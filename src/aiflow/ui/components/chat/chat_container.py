@@ -6,7 +6,7 @@ def message_bubble(msg) -> rx.Component:
     """Single chat message bubble."""
     is_user = msg.role == "user"
     return rx.box(
-        rx.markdown(msg.content, size="2"),
+        rx.markdown(msg.content),
         padding="12px 16px",
         border_radius="12px",
         max_width="80%",
@@ -42,10 +42,6 @@ def chat_container(
                 value=current_input,
                 on_change=on_input_change,
                 placeholder=placeholder,
-                on_key_down=rx.cond(
-                    rx.EventChain.key == "Enter",
-                    on_send,
-                ),
                 flex="1",
                 size="3",
             ),

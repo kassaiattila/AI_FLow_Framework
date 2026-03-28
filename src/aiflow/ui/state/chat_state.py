@@ -1,12 +1,13 @@
 """Reusable chat state for RAG skills."""
 import reflex as rx
-from typing import Any
+from pydantic import BaseModel, Field
 
 
-class ChatMessage(rx.Base):
-    role: str = "user"  # user | assistant
+class ChatMessage(BaseModel):
+    """A single chat message."""
+    role: str = "user"
     content: str = ""
-    citations: list[dict] = []
+    citations: list[dict] = Field(default_factory=list)
     processing: bool = False
 
 
