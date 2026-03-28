@@ -1,0 +1,55 @@
+# === Secrets - SOHA ne commitoljuk ===
+.env
+.env.*
+!.env.example
+**/credentials.json
+**/secrets.yaml
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# === Testing artifacts ===
+tests/artifacts/
+!tests/artifacts/.gitkeep
+skills/*/tests/artifacts/
+!skills/*/tests/artifacts/.gitkeep
+htmlcov/
+.coverage
+coverage.xml
+.pytest_cache/
+.promptfoo/
+
+# === Playwright ===
+tests/ui/test-results/
+
+# === Build ===
+node_modules/
+.next/
+
+# === Data ===
+data/
+outputs/
+test_runs/
+*.sqlite
+
+# === OS ===
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# === Claude Code local (session data, NOT commands/settings) ===
+# .claude/commands/ and .claude/settings.local.json ARE committed

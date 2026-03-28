@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(pytest*)",
+      "Bash(python -m pytest*)",
+      "Bash(ruff*)",
+      "Bash(black*)",
+      "Bash(mypy*)",
+      "Bash(make *)",
+      "Bash(alembic*)",
+      "Bash(pip install*)",
+      "Bash(pip list*)",
+      "Bash(docker compose*)",
+      "Bash(npx promptfoo*)",
+      "Bash(mkdir*)",
+      "Bash(grep -c \"\\\\.md$\")",
+      "Bash(grep -rn \"allkeys-lru\" 01_PLAN/*.md --include=\"*.md\")",
+      "Bash(grep -rn '`plan/' 01_PLAN/*.md --include=\"*.md\")",
+      "Bash(grep -rn \"python-jose\" 01_PLAN/*.md --include=\"*.md\")",
+      "Bash(grep -rn \"passlib\" 01_PLAN/*.md --include=\"*.md\")",
+      "Bash(grep -rn \"3\\\\.11+\" 01_PLAN/*.md --include=\"*.md\")"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)"
+    ]
+  }
+}
