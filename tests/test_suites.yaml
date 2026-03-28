@@ -17,3 +17,31 @@ suites:
       - core.events
       - core.registry
       - core.di
+
+  state-unit:
+    description: "State layer unit tests (ORM models, repository)"
+    path: "tests/unit/state/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: high
+    max_duration_seconds: 30
+    coverage_target: 85.0
+    requires_services: []
+    components:
+      - state.models
+      - state.repository
+
+  models-unit:
+    description: "Model abstraction layer unit tests (metadata, protocols, registry, client)"
+    path: "tests/unit/models/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: critical
+    max_duration_seconds: 30
+    coverage_target: 90.0
+    requires_services: []
+    components:
+      - models.metadata
+      - models.protocols
+      - models.registry
+      - models.client

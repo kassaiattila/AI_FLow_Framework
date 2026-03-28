@@ -8,9 +8,19 @@ rules:
     suites: [core-unit]
     reason: "Public API exports"
 
+  - pattern: "src/aiflow/state/**"
+    suites: [state-unit, core-unit]
+    reason: "State layer change affects ORM and repository"
+
+  - pattern: "src/aiflow/models/**"
+    suites: [models-unit, core-unit]
+    reason: "Model layer change affects protocols, registry, and client"
+
   - pattern: "pyproject.toml"
     suites: FULL
     reason: "Dependency change may affect everything"
 
 default_suites:
   - core-unit
+  - state-unit
+  - models-unit
