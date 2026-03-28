@@ -226,7 +226,7 @@ Az AIFlow API sajat MCP server-kent is elerheto lesz:
 ```json
 // .vscode/settings.json
 {
-  "python.defaultInterpreterPath": ".venv/bin/python",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
   "python.testing.pytestEnabled": true,
   "python.testing.pytestArgs": ["tests/"],
   "editor.formatOnSave": true,

@@ -22,20 +22,48 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - Reflex or NiceGUI or Next.js (frontend - see 01_PLAN/14_FRONTEND.md), typer (CLI)
 - Playwright (GUI testing + RPA skills), ffmpeg (media processing in RPA skills)
 
+## Development Environment
+- **Python package manager: `uv`** (NOT pip, NOT poetry) - fast, lockfile-based, PEP 621
+- **Virtual environment: `.venv/`** created by `uv venv`
+- **Lockfile: `uv.lock`** - ALWAYS committed, used by CI AND Docker (reproducible builds)
+- **Services (PostgreSQL, Redis, Kroki): ALWAYS in Docker** - never install locally
+- **Python code (API, worker): runs locally** from .venv for IDE support + hot reload
+- **Full Docker option:** `make dev-docker` runs everything in containers
+- Setup: `uv venv && uv pip install -e ".[dev]" && cp .env.example .env && make dev`
+- Details: `01_PLAN/27_DEVELOPMENT_ENVIRONMENT.md`
+
 ## Key Commands
 ```bash
-make dev                                    # Start dev environment (docker compose)
-make test                                   # Run all tests
-make lint                                   # ruff + black + mypy
+# Setup (first time)
+make setup                                  # Create .venv + install deps + copy .env
+make dev                                    # Start Docker services + run DB migrations
+
+# Daily development
+make api                                    # Run FastAPI locally (hot reload)
+make worker                                 # Run arq worker locally
+make test                                   # Run all unit tests
+make test-cov                               # Tests + coverage report
+make lint                                   # ruff check + ruff format + mypy
+make lint-fix                               # Auto-fix lint issues
+
+# Database
+make migrate                                # Alembic upgrade head
+make migrate-new NAME=add_xyz               # Create new migration
+
+# Testing
 pytest tests/unit/ -v                       # Unit tests only
 pytest tests/integration/ -v               # Integration tests (needs Docker)
 npx promptfoo eval -c skills/*/tests/promptfooconfig.yaml  # Prompt tests
+
+# AIFlow CLI
 aiflow workflow list                        # List registered workflows
 aiflow workflow run <name> --input '{}'     # Run workflow
 aiflow skill install ./skills/<name>        # Install skill (9-step process)
 aiflow prompt sync --label dev              # Sync YAML prompts to Langfuse
 aiflow eval run --skill <name>              # Run evaluation suite (100+ tests)
-alembic upgrade head                        # Run DB migrations
+
+# Lockfile
+make lock                                   # Regenerate uv.lock from pyproject.toml
 ```
 
 ## Claude Code Slash Commands (use these during development!)
@@ -210,7 +238,10 @@ Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
 
 **Security & Operations:**
 - 20_SECURITY_HARDENING, 21_DEPLOYMENT_OPERATIONS
-- 22_API_SPECIFICATION (40+ endpoint), 23_CONFIGURATION_REFERENCE
+- 22_API_SPECIFICATION (50+ endpoint), 23_CONFIGURATION_REFERENCE
+
+**Environment:**
+- **27_DEVELOPMENT_ENVIRONMENT** - uv, .venv, Docker Compose, Makefile, onboarding
 
 **Dev Artifacts:**
 - IMPLEMENTATION_PLAN.md, SKILL_DEVELOPMENT.md, AIFLOW_MASTER_PLAN.md

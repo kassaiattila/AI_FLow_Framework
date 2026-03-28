@@ -8,7 +8,7 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - **11-13**: Examples (3+3 skill walkthroughs, skill integration, GitHub research)
 - **14-16**: Technical deep-dives (frontend, ML models, RAG/vectorstore)
 - **17-19**: Dev rules (git, testing, RPA)
-- **20-25**: New additions (security, deployment, API spec, config, testing/regression strategy, test structure)
+- **20-27**: Security, deployment, API spec, config, testing/regression, test structure, Claude Code setup, dev environment
 - **AIFLOW_MASTER_PLAN.md**: Integrated overview of everything
 - **IMPLEMENTATION_PLAN.md**: Step-by-step execution guide with pilot project references
 - **SKILL_DEVELOPMENT.md**: How to create new skills
@@ -25,7 +25,9 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 ## Key numbers to keep consistent
 - 35 DB tables, 13 views, 19 migrations, 60+ indexes
 - 22 weeks, 7 phases (Phase 4=Het 10-13, Phase 5=14-16, Phase 6=17-19, Phase 7=20-22)
-- 6 skills, 33 plan documents
+- 6 skills, 34 plan documents
+- Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
+- Services in Docker, Python code locally from .venv/
 - Max 6 specialist agents per orchestrator
 - 100+ test cases per skill minimum
 - Tech: PyJWT (NOT python-jose), bcrypt (NOT passlib), APScheduler 4.x (NOT 3.x)
