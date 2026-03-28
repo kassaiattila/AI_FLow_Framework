@@ -1,26 +1,45 @@
-"""ASZF RAG Chat page - skill-specific Reflex page."""
+"""ASZF RAG Chat page - professional ChatGPT/Claude-style interface.
+
+Extends BaseChatState with ASZF-specific RAG query pipeline.
+Uses the professional chat_container component for the full layout.
+"""
 import reflex as rx
 from src.aiflow.ui.state.chat_state import BaseChatState, ChatMessage
 from src.aiflow.ui.components.chat.chat_container import chat_container
 
 
 class AszfChatState(BaseChatState):
-    """ASZF-specific chat state."""
+    """ASZF-specific chat state with RAG pipeline integration."""
+
     skill_name: str = "aszf_rag_chat"
     collection: str = "azhu-aszf-2024"
-    role: str = "baseline"
     company_name: str = "Allianz Hungaria"
 
     async def _get_response(self, question: str) -> dict:
-        """Call the ASZF RAG query workflow."""
+        """Call the ASZF RAG query workflow pipeline.
+
+        Executes the full 6-step RAG pipeline:
+        1. rewrite_query  - reformulate for better retrieval
+        2. search_documents - hybrid vector + BM25 search
+        3. build_context  - assemble context from chunks
+        4. generate_answer - LLM generation with role
+        5. extract_citations - pull source references
+        6. detect_hallucination - quality gate check
+        """
         from skills.aszf_rag_chat.workflows.query import (
-            rewrite_query, search_documents, build_context,
-            generate_answer, extract_citations, detect_hallucination,
+            rewrite_query,
+            search_documents,
+            build_context,
+            generate_answer,
+            extract_citations,
+            detect_hallucination,
         )
 
-        # Build conversation history
-        history = [{"role": m.role, "content": m.content}
-                   for m in self.messages[-6:]]  # last 3 turns
+        # Build conversation history from recent messages (last 3 turns = 6 msgs)
+        history = [
+            {"role": m.role, "content": m.content}
+            for m in self.current_messages[-6:]
+        ]
 
         data = {
             "question": question,
@@ -40,57 +59,36 @@ class AszfChatState(BaseChatState):
             r6 = await detect_hallucination(r5)
             return r6
         except Exception as e:
-            return {"answer": f"Hiba a feldolgozas soran: {e}", "citations": []}
-
-
-def citation_card(citation: dict) -> rx.Component:
-    """Display a source citation."""
-    return rx.card(
-        rx.vstack(
-            rx.hstack(
-                rx.icon("file-text", size=16),
-                rx.text(citation.get("document_name", ""), weight="bold", size="2"),
-            ),
-            rx.text(citation.get("excerpt", "")[:200], size="1", color="gray"),
-            rx.badge(
-                f"Relevancia: {citation.get('relevance_score', 0):.0%}",
-                color_scheme="green",
-            ),
-            spacing="1",
-        ),
-        size="1",
-    )
+            return {
+                "answer": f"Hiba a feldolgozas soran: {e}",
+                "citations": [],
+            }
 
 
 def aszf_chat_page() -> rx.Component:
-    """The ASZF RAG Chat page."""
-    return rx.box(
-        # Header
-        rx.hstack(
-            rx.heading("ASZF Chat", size="5"),
-            rx.spacer(),
-            rx.select(
-                ["baseline", "mentor", "expert"],
-                value=AszfChatState.role,
-                on_change=AszfChatState.set_role,
-                size="2",
-            ),
-            rx.button("Uj beszelgetes", on_click=AszfChatState.clear_chat, variant="outline", size="2"),
-            padding="16px",
-            border_bottom="1px solid #eee",
-            width="100%",
-        ),
-        # Chat
-        chat_container(
-            messages=AszfChatState.messages,
-            current_input=AszfChatState.current_input,
-            on_send=AszfChatState.send_message,
-            on_input_change=AszfChatState.set_current_input,
-            is_processing=AszfChatState.is_processing,
-            placeholder="Kerem kerdezzen az ASZF-rol...",
-        ),
-        width="100%",
-        max_width="800px",
-        margin="0 auto",
-        height="100vh",
+    """The ASZF RAG Chat page - full professional layout."""
+    return chat_container(
+        # State vars
+        conversations=AszfChatState.conversations,
+        current_conversation_id=AszfChatState.current_conversation_id,
+        current_messages=AszfChatState.current_messages,
+        current_input=AszfChatState.current_input,
+        current_title=AszfChatState.current_title,
+        role=AszfChatState.role,
+        role_display=AszfChatState.role_display,
+        is_processing=AszfChatState.is_processing,
+        sidebar_open=AszfChatState.sidebar_open,
+        has_messages=AszfChatState.has_messages,
+        show_citations=AszfChatState.show_citations,
+        selected_citations=AszfChatState.selected_citations,
+        # Event handlers
+        on_new_chat=AszfChatState.new_conversation,
+        on_select_conversation=AszfChatState.select_conversation,
+        on_delete_conversation=AszfChatState.delete_conversation,
+        on_role_change=AszfChatState.set_role,
+        on_toggle_sidebar=AszfChatState.toggle_sidebar,
+        on_send=AszfChatState.send_message,
+        on_input_change=AszfChatState.set_current_input,
+        on_citation_toggle=AszfChatState.toggle_citations,
+        on_citation_close=AszfChatState.close_citations,
     )
