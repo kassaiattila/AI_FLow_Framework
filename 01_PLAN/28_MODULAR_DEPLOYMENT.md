@@ -2,7 +2,8 @@
 
 **Cel:** Egyetlen framework es skill codebase tobb ugyfelnel, tobb konfiguracioval hasznalhato legyen.
 **Alapelv:** Skill = Template (kod), Instance = Futo peldany (konfig + adat).
-**Stack:** Python 3.12+, FastAPI, PostgreSQL+pgvector, Redis, arq, Kubernetes, Docker multi-stage.
+**Stack:** Python 3.12+, FastAPI, PostgreSQL+pgvector, Redis, arq, Docker Compose (staging/prod), K8s kesobb.
+**Jelenlegi fazis:** Docker Compose alapu staging/prod. K8s kesobb, amikor cluster elerheto.
 
 ---
 
@@ -33,24 +34,24 @@
 ```
 Skill Template: aszf_rag_chat
   |
-  +-- Instance: allianz_aszf_rag       (Allianz ASZF dokumentumok, gpt-4o, SLA: 5s)
-  +-- Instance: allianz_internal_rag   (Allianz belso szabalyzatok, gpt-4o-mini, SLA: 3s)
-  +-- Instance: cubix_faq_rag          (Cubix EDU kurzus FAQ, gpt-4o-mini, SLA: 2s)
+  +-- Instance: azhu_aszf_rag          (AZHU ASZF dokumentumok, gpt-4o, SLA: 5s)
+  +-- Instance: azhu_internal_rag      (AZHU belso szabalyzatok, gpt-4o-mini, SLA: 3s)
+  +-- Instance: npra_faq_rag           (NPRA kurzus FAQ, gpt-4o-mini, SLA: 2s)
 
 Skill Template: email_intent_processor
   |
-  +-- Instance: allianz_claims_email   (kar-bejelentes@allianz.hu, 12 intent)
-  +-- Instance: allianz_info_email     (info@allianz.hu, 8 intent)
+  +-- Instance: azhu_claims_email      (kar-bejelentes@allianz.hu, 12 intent)
+  +-- Instance: azhu_info_email        (info@allianz.hu, 8 intent)
 
 Skill Template: cubix_course_capture
   |
-  +-- Instance: cubix_udemy_capture    (Udemy platform, video + SRT)
-  +-- Instance: cubix_coursera_capture (Coursera platform, video + transcript)
+  +-- Instance: npra_udemy_capture     (Udemy platform, video + SRT)
+  +-- Instance: npra_coursera_capture  (Coursera platform, video + transcript)
 
 Skill Template: qbpp_test_automation
   |
-  +-- Instance: allianz_portal_test    (portal.allianz.hu, E2E tesztek)
-  +-- Instance: cubix_lms_test         (lms.cubixedu.com, regression tesztek)
+  +-- Instance: azhu_portal_test       (portal.allianz.hu, E2E tesztek)
+  +-- Instance: npra_lms_test          (lms.npra.com, regression tesztek)
 ```
 
 **Fontos:** A skill template **NEM** tartalmaz ugyfel-specifikus adatot. Az instance config tartalmazza
@@ -66,17 +67,17 @@ az osszes ugyfel-specifikus beallitast (data source, prompt override, model, bud
 # Instance Config Schema
 # Helye: deployments/{customer}/instances/{instance_name}.yaml
 
-instance_name: string             # Unique ID (kebab-case, pl. "allianz-aszf-rag")
-display_name: string              # UI-ban megjeleno nev (pl. "Allianz ASZF Chat")
+instance_name: string             # Unique ID (kebab-case, pl. "azhu-aszf-rag")
+display_name: string              # UI-ban megjeleno nev (pl. "AZHU ASZF Chat")
 skill_template: string            # Skill neve (skill.yaml name mezovel egyezik)
 version: string                   # Skill template SemVer (pl. "1.2.0")
-customer: string                  # Ugyfel azonosito (pl. "allianz", "cubix-edu")
+customer: string                  # Ugyfel azonosito (pl. "azhu", "npra")
 enabled: bool                     # true/false - instance be/ki kapcsolas
 
 # --- Adat forrasok (RAG skill-eknel) ---
 data_sources:
   collections:                    # Melyik vector collection-okbol keres
-    - name: string                # Collection nev (pl. "allianz-aszf-2024")
+    - name: string                # Collection nev (pl. "azhu-aszf-2024")
       priority: int               # Keresesi prioritas (1 = legmagasabb)
   document_filters:               # Automatikus szures minden keresesnel
     department: string | null
@@ -86,7 +87,7 @@ data_sources:
 
 # --- Prompt konfiguracio ---
 prompts:
-  namespace: string               # Langfuse prompt prefix (pl. "allianz/aszf-rag")
+  namespace: string               # Langfuse prompt prefix (pl. "azhu/aszf-rag")
   label: string                   # Langfuse label (dev/staging/prod)
   overrides:                      # Instance-specifikus prompt feluliras
     - prompt_name: string         # Base prompt neve (pl. "classifier")
@@ -133,21 +134,21 @@ routing:
 
 ### 2.2 Pelda: RAG Chat - Ket Kulonbozo Instance
 
-**Instance 1: Allianz ASZF RAG Chat**
+**Instance 1: AZHU ASZF RAG Chat**
 ```yaml
-# deployments/allianz/instances/allianz-aszf-rag.yaml
-instance_name: allianz-aszf-rag
-display_name: "Allianz ASZF Chatbot"
+# deployments/azhu/instances/azhu-aszf-rag.yaml
+instance_name: azhu-aszf-rag
+display_name: "AZHU ASZF Chatbot"
 skill_template: aszf_rag_chat
 version: "1.2.0"
-customer: allianz
+customer: azhu
 enabled: true
 
 data_sources:
   collections:
-    - name: allianz-aszf-2024
+    - name: azhu-aszf-2024
       priority: 1
-    - name: allianz-aszf-2023
+    - name: azhu-aszf-2023
       priority: 2
   document_filters:
     document_type: aszf
@@ -155,7 +156,7 @@ data_sources:
   embedding_model: text-embedding-3-small
 
 prompts:
-  namespace: allianz/aszf-rag
+  namespace: azhu/aszf-rag
   label: prod
   overrides:
     - prompt_name: system-prompt
@@ -187,26 +188,26 @@ routing:
   input_channel: api
   output_channel: api
   webhook_url: null
-  queue_name: allianz-rag-queue
+  queue_name: azhu-rag-queue
 ```
 
-**Instance 2: Allianz Belso Szabalyzatok RAG**
+**Instance 2: AZHU Belso Szabalyzatok RAG**
 ```yaml
-# deployments/allianz/instances/allianz-internal-rag.yaml
-instance_name: allianz-internal-rag
-display_name: "Allianz Belso Szabalyzat Kereses"
+# deployments/azhu/instances/azhu-internal-rag.yaml
+instance_name: azhu-internal-rag
+display_name: "AZHU Belso Szabalyzat Kereses"
 skill_template: aszf_rag_chat
 version: "1.2.0"
-customer: allianz
+customer: azhu
 enabled: true
 
 data_sources:
   collections:
-    - name: allianz-hr-szabalyzat
+    - name: azhu-hr-szabalyzat
       priority: 1
-    - name: allianz-it-security-policy
+    - name: azhu-it-security-policy
       priority: 2
-    - name: allianz-compliance-docs
+    - name: azhu-compliance-docs
       priority: 3
   document_filters:
     document_type: szabalyzat
@@ -214,7 +215,7 @@ data_sources:
   embedding_model: text-embedding-3-small
 
 prompts:
-  namespace: allianz/internal-rag
+  namespace: azhu/internal-rag
   label: prod
   overrides:
     - prompt_name: system-prompt
@@ -252,12 +253,12 @@ routing:
 ### 2.3 Pelda: Email Intent - Ket Kulonbozo Instance
 
 ```yaml
-# deployments/allianz/instances/allianz-claims-email.yaml
-instance_name: allianz-claims-email
-display_name: "Allianz Karbejelentes Email Feldolgozo"
+# deployments/azhu/instances/azhu-claims-email.yaml
+instance_name: azhu-claims-email
+display_name: "AZHU Karbejelentes Email Feldolgozo"
 skill_template: email_intent_processor
 version: "1.0.0"
-customer: allianz
+customer: azhu
 enabled: true
 
 data_sources:
@@ -266,7 +267,7 @@ data_sources:
   embedding_model: null
 
 prompts:
-  namespace: allianz/claims-email
+  namespace: azhu/claims-email
   label: prod
   overrides:
     - prompt_name: system-prompt
@@ -314,18 +315,18 @@ routing:
   input_channel: email
   output_channel: email
   webhook_url: https://crm.allianz.hu/api/webhook/email-processed
-  queue_name: allianz-claims-email-queue
+  queue_name: azhu-claims-email-queue
 ```
 
 ### 2.4 Pelda: Auto Test - Kulonbozo Test Targetek
 
 ```yaml
-# deployments/allianz/instances/allianz-portal-test.yaml
-instance_name: allianz-portal-test
-display_name: "Allianz Portal E2E Tesztek"
+# deployments/azhu/instances/azhu-portal-test.yaml
+instance_name: azhu-portal-test
+display_name: "AZHU Portal E2E Tesztek"
 skill_template: qbpp_test_automation
 version: "1.0.0"
-customer: allianz
+customer: azhu
 enabled: true
 
 data_sources:
@@ -334,7 +335,7 @@ data_sources:
   embedding_model: null
 
 prompts:
-  namespace: allianz/portal-test
+  namespace: azhu/portal-test
   label: prod
   overrides:
     - prompt_name: test-generator
@@ -362,18 +363,18 @@ routing:
   input_channel: queue
   output_channel: webhook
   webhook_url: https://ci.allianz.hu/api/test-results
-  queue_name: allianz-test-queue
+  queue_name: azhu-test-queue
 ```
 
 ### 2.5 Pelda: RPA - Kulonbozo Weboldalak
 
 ```yaml
-# deployments/cubix-edu/instances/cubix-udemy-capture.yaml
-instance_name: cubix-udemy-capture
-display_name: "Cubix Udemy Kurzus Rogzites"
+# deployments/npra/instances/npra-udemy-capture.yaml
+instance_name: npra-udemy-capture
+display_name: "NPRA Udemy Kurzus Rogzites"
 skill_template: cubix_course_capture
 version: "1.0.0"
-customer: cubix-edu
+customer: npra
 enabled: true
 
 data_sources:
@@ -382,7 +383,7 @@ data_sources:
   embedding_model: null
 
 prompts:
-  namespace: cubix/udemy-capture
+  namespace: npra/udemy-capture
   label: prod
   overrides:
     - prompt_name: transcript-structurer
@@ -410,8 +411,8 @@ sla:
 routing:
   input_channel: api
   output_channel: webhook
-  webhook_url: https://lms.cubixedu.com/api/capture-complete
-  queue_name: cubix-rpa-queue
+  webhook_url: https://lms.npra.com/api/capture-complete
+  queue_name: npra-rpa-queue
 ```
 
 ---
@@ -429,9 +430,9 @@ CREATE TABLE skill_instances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- Azonositas
-    instance_name VARCHAR(255) UNIQUE NOT NULL,      -- "allianz-aszf-rag" (kebab-case, globalis unique)
-    display_name VARCHAR(255) NOT NULL,              -- "Allianz ASZF Chatbot"
-    customer VARCHAR(100) NOT NULL,                  -- "allianz"
+    instance_name VARCHAR(255) UNIQUE NOT NULL,      -- "azhu-aszf-rag" (kebab-case, globalis unique)
+    display_name VARCHAR(255) NOT NULL,              -- "AZHU ASZF Chatbot"
+    customer VARCHAR(100) NOT NULL,                  -- "azhu"
 
     -- Skill template hivatkozas
     skill_name VARCHAR(255) NOT NULL,                -- FK a skills.name-re (template)
@@ -441,7 +442,7 @@ CREATE TABLE skill_instances (
     config JSONB NOT NULL,                           -- Az egesz instance YAML -> JSONB
 
     -- Prompt namespace (Langfuse izolacio)
-    prompt_namespace VARCHAR(255) NOT NULL,           -- "allianz/aszf-rag"
+    prompt_namespace VARCHAR(255) NOT NULL,           -- "azhu/aszf-rag"
     prompt_label VARCHAR(50) DEFAULT 'prod',          -- dev/staging/prod
 
     -- Model konfiguracio (denormalizalt a gyors lekerdeshez)
@@ -646,17 +647,18 @@ instances:                        # Instance config file-ok referenciaja
   - file: string                  # Relative path: instances/{name}.yaml
 
 infrastructure:
-  k8s_namespace: string           # K8s namespace nev
+  docker_compose_project: string   # Docker Compose projekt nev (pl. "aiflow-azhu")
+  k8s_namespace: string | null    # K8s namespace nev (Phase 2 - K8s cluster elerhetosegekor)
   database:
     host: string
-    name: string                  # Dedikalt DB nev (pl. "aiflow_allianz")
-    schema: string | null         # Vagy dedikalt schema (pl. "allianz")
+    name: string                  # Dedikalt DB nev (pl. "aiflow_azhu")
+    schema: string | null         # Vagy dedikalt schema (pl. "azhu")
   redis:
     db: int                       # Redis DB index (0-15)
-    prefix: string                # Key prefix (pl. "allianz:")
+    prefix: string                # Key prefix (pl. "azhu:")
   langfuse:
     project: string               # Langfuse projekt nev
-    prompt_label_prefix: string   # Prompt label prefix (pl. "allianz-prod")
+    prompt_label_prefix: string   # Prompt label prefix (pl. "azhu-prod")
   resources:
     api_replicas: int
     worker_replicas: int
@@ -670,14 +672,15 @@ infrastructure:
 ```
 deployments/
 |
-|-- allianz/
+|-- azhu/
 |   |-- deployment.yaml              # Ugyfel profil (skills, infra, general config)
+|   |-- docker-compose.yml           # Per-customer Docker Compose (staging/prod)
 |   |-- instances/
-|   |   |-- allianz-aszf-rag.yaml
-|   |   |-- allianz-internal-rag.yaml
-|   |   |-- allianz-claims-email.yaml
-|   |   |-- allianz-portal-test.yaml
-|   |-- k8s/
+|   |   |-- azhu-aszf-rag.yaml
+|   |   |-- azhu-internal-rag.yaml
+|   |   |-- azhu-claims-email.yaml
+|   |   |-- azhu-portal-test.yaml
+|   |-- k8s/                         # Phase 2 - K8s cluster elerhetosegekor
 |   |   |-- namespace.yaml
 |   |   |-- configmap.yaml
 |   |   |-- secrets.yaml             # Sealed Secrets / External Secrets ref
@@ -686,28 +689,29 @@ deployments/
 |   |   |-- ingress.yaml
 |   |   |-- hpa.yaml                 # Horizontal Pod Autoscaler
 |
-|-- cubix-edu/
+|-- npra/
 |   |-- deployment.yaml
+|   |-- docker-compose.yml           # Per-customer Docker Compose (staging/prod)
 |   |-- instances/
-|   |   |-- cubix-udemy-capture.yaml
-|   |   |-- cubix-coursera-capture.yaml
-|   |   |-- cubix-faq-rag.yaml
-|   |-- k8s/
+|   |   |-- npra-udemy-capture.yaml
+|   |   |-- npra-coursera-capture.yaml
+|   |   |-- npra-faq-rag.yaml
+|   |-- k8s/                         # Phase 2 - K8s cluster elerhetosegekor
 |       |-- namespace.yaml
 |       |-- configmap.yaml
 |       |-- secrets.yaml
 |       |-- api-deployment.yaml
 |       |-- worker-deployment.yaml
-|       |-- rpa-worker-deployment.yaml  # Cubix-nak kell RPA worker
+|       |-- rpa-worker-deployment.yaml  # NPRA-nak kell RPA worker
 |       |-- ingress.yaml
 ```
 
-### 4.3 Pelda: Allianz Deployment (4 Instance)
+### 4.3 Pelda: AZHU Deployment (4 Instance)
 
 ```yaml
-# deployments/allianz/deployment.yaml
+# deployments/azhu/deployment.yaml
 customer:
-  name: allianz
+  name: azhu
   display_name: "Allianz Hungaria Zrt."
   contact_email: it-ops@allianz.hu
   tier: enterprise
@@ -725,23 +729,24 @@ skill_templates:
     version: "1.0.0"
 
 instances:
-  - file: instances/allianz-aszf-rag.yaml
-  - file: instances/allianz-internal-rag.yaml
-  - file: instances/allianz-claims-email.yaml
-  - file: instances/allianz-portal-test.yaml
+  - file: instances/azhu-aszf-rag.yaml
+  - file: instances/azhu-internal-rag.yaml
+  - file: instances/azhu-claims-email.yaml
+  - file: instances/azhu-portal-test.yaml
 
 infrastructure:
-  k8s_namespace: aiflow-allianz
+  docker_compose_project: aiflow-azhu
+  k8s_namespace: aiflow-azhu     # Phase 2 - K8s cluster elerhetosegekor
   database:
     host: pg-cluster.internal
-    name: aiflow_allianz
+    name: aiflow_azhu
     schema: null
   redis:
     db: 1
-    prefix: "allianz:"
+    prefix: "azhu:"
   langfuse:
-    project: allianz-aiflow
-    prompt_label_prefix: "allianz"
+    project: azhu-aiflow
+    prompt_label_prefix: "azhu"
   resources:
     api_replicas: 2
     worker_replicas: 3
@@ -750,14 +755,14 @@ infrastructure:
     cpu_limit: "1000m"
 ```
 
-### 4.4 Pelda: Cubix EDU Deployment (3 Instance)
+### 4.4 Pelda: NPRA Deployment (3 Instance)
 
 ```yaml
-# deployments/cubix-edu/deployment.yaml
+# deployments/npra/deployment.yaml
 customer:
-  name: cubix-edu
-  display_name: "Cubix EDU Kft."
-  contact_email: dev@cubixedu.com
+  name: npra
+  display_name: "NPRA"
+  contact_email: dev@npra.com
   tier: business
 
 framework:
@@ -771,22 +776,23 @@ skill_templates:
     version: "1.2.0"
 
 instances:
-  - file: instances/cubix-udemy-capture.yaml
-  - file: instances/cubix-coursera-capture.yaml
-  - file: instances/cubix-faq-rag.yaml
+  - file: instances/npra-udemy-capture.yaml
+  - file: instances/npra-coursera-capture.yaml
+  - file: instances/npra-faq-rag.yaml
 
 infrastructure:
-  k8s_namespace: aiflow-cubix
+  docker_compose_project: aiflow-npra
+  k8s_namespace: aiflow-npra     # Phase 2 - K8s cluster elerhetosegekor
   database:
     host: pg-cluster.internal
-    name: aiflow_cubix
+    name: aiflow_npra
     schema: null
   redis:
     db: 2
-    prefix: "cubix:"
+    prefix: "npra:"
   langfuse:
-    project: cubix-aiflow
-    prompt_label_prefix: "cubix"
+    project: npra-aiflow
+    prompt_label_prefix: "npra"
   resources:
     api_replicas: 1
     worker_replicas: 2
@@ -806,8 +812,8 @@ ghcr.io/bestixcom/aiflow-base:v1.2.0          # (1) Framework only
     |
     +-- ghcr.io/bestixcom/aiflow-base-rpa:v1.2.0   # (2) Framework + Playwright + ffmpeg
     |
-    +-- ghcr.io/bestixcom/aiflow-allianz:v1.2.0     # (3) Customer: base + 3 skill
-    +-- ghcr.io/bestixcom/aiflow-cubix:v1.2.0        # (3) Customer: base-rpa + 2 skill
+    +-- ghcr.io/bestixcom/aiflow-azhu:v1.2.0        # (3) Customer: base + 3 skill
+    +-- ghcr.io/bestixcom/aiflow-npra:v1.2.0         # (3) Customer: base-rpa + 2 skill
 ```
 
 ### 5.2 Base Image (Framework Only)
@@ -876,10 +882,10 @@ COPY skills/email_intent_processor/ /app/skills/email_intent_processor/
 COPY skills/qbpp_test_automation/ /app/skills/qbpp_test_automation/
 
 # Instance konfigok masolasa
-COPY deployments/allianz/instances/ /app/config/instances/
-COPY deployments/allianz/deployment.yaml /app/config/deployment.yaml
+COPY deployments/azhu/instances/ /app/config/instances/
+COPY deployments/azhu/deployment.yaml /app/config/deployment.yaml
 
-LABEL org.opencontainers.image.title="AIFlow - Allianz"
+LABEL org.opencontainers.image.title="AIFlow - AZHU"
 ```
 
 ### 5.5 scripts/select_skills.py
@@ -889,8 +895,8 @@ LABEL org.opencontainers.image.title="AIFlow - Allianz"
 """Build-time skill selection: deployment.yaml alapjan generalja a customer Dockerfile-t.
 
 Hasznalat:
-    python scripts/select_skills.py deployments/allianz/deployment.yaml
-    -> Kimenet: deployments/allianz/Dockerfile (generalt)
+    python scripts/select_skills.py deployments/azhu/deployment.yaml
+    -> Kimenet: deployments/azhu/Dockerfile (generalt)
 
 Ez biztositja, hogy az ugyfel image CSAK a szukseges skill-eket tartalmazza,
 csokkentve az image meretet es a tamadasi feluletet.
@@ -975,12 +981,12 @@ Meglevo prefixek (valtozatlan):
 
 UJ prefixek:
   instance/{customer}/{instance}/{leiras}    # Instance konfig valtozas
-  |   Pelda: instance/allianz/aszf-rag/update-prompt-v3
-  |   Pelda: instance/cubix-edu/udemy-capture/add-subtitle-support
+  |   Pelda: instance/azhu/aszf-rag/update-prompt-v3
+  |   Pelda: instance/npra/udemy-capture/add-subtitle-support
   |
   deploy/{customer}/{leiras}                 # Customer deployment valtozas
-      Pelda: deploy/allianz/add-portal-test-instance
-      Pelda: deploy/cubix-edu/upgrade-framework-1.3
+      Pelda: deploy/azhu/add-portal-test-instance
+      Pelda: deploy/npra/upgrade-framework-1.3
 ```
 
 ### 6.2 Tag Strategia
@@ -997,9 +1003,9 @@ Skill template tag:
   skill/email-intent/v1.0.0
 
 Customer deployment tag:
-  deploy/allianz/v2026.03.28              # Datum-alapu (napi deploy lehetseges)
-  deploy/allianz/v2026.03.28-hotfix1      # Hotfix a napi deploy-ra
-  deploy/cubix-edu/v2026.04.01
+  deploy/azhu/v2026.03.28              # Datum-alapu (napi deploy lehetseges)
+  deploy/azhu/v2026.03.28-hotfix1      # Hotfix a napi deploy-ra
+  deploy/npra/v2026.04.01
 ```
 
 ### 6.3 CI Pipeline D: Customer Deployment Validacio
@@ -1019,7 +1025,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        customer: [allianz, cubix-edu]      # Dinamikusan bovitheto
+        customer: [azhu, npra]              # Dinamikusan bovitheto
     steps:
       - uses: actions/checkout@v4
 
@@ -1057,8 +1063,8 @@ jobs:
 
 | Tipus | Mikor | Pelda |
 |-------|-------|-------|
-| instance | Instance konfig valtozas | `instance(allianz/aszf-rag): update classifier prompt to v3` |
-| deploy | Deployment profil valtozas | `deploy(allianz): add portal-test instance` |
+| instance | Instance konfig valtozas | `instance(azhu/aszf-rag): update classifier prompt to v3` |
+| deploy | Deployment profil valtozas | `deploy(azhu): add portal-test instance` |
 
 Scope formatum: `{customer}/{instance}` vagy `{customer}`.
 
@@ -1106,33 +1112,106 @@ Langfuse: Mock (tests/mocks/langfuse_mock.py)
 Prompt label: "test"
 ```
 
-CI intelligens szures: ha csak `deployments/allianz/` valtozik, csak az allianz-specifikus
+CI intelligens szures: ha csak `deployments/azhu/` valtozik, csak az AZHU-specifikus
 teszteket futtatja. Ha `src/aiflow/` valtozik, minden ugyfel tesztje fut.
 
-### 7.3 Staging (Per-Customer K8s Namespace)
+### 7.3 Staging (Per-Customer Docker Compose)
+
+> **Jelenlegi fazis: Docker Compose alapu staging/prod. K8s kesobb, amikor cluster elerheto.**
 
 ```
-Kornyezet: Kubernetes cluster (staging)
-Namespace: aiflow-{customer}-staging (pl. aiflow-allianz-staging)
+Kornyezet: Docker Compose per customer (staging)
+Compose project: aiflow-{customer}-staging (pl. aiflow-azhu-staging)
 Skill-ek: A customer deployment.yaml szerinti skill-ek
 Instances: A customer instance YAML-ek (staging label-lel)
-Database: Dedikalt DB (pl. aiflow_allianz_staging)
+Database: Dedikalt DB (pl. aiflow_azhu_staging)
 Redis: Dedikalt DB index (pl. db 11)
 Langfuse: Ugyfel-specifikus projekt, "staging" label
 Prompt label: "{customer}-staging"
 ```
 
-### 7.4 Prod (Per-Customer K8s Namespace)
+**Docker Compose staging pelda:**
+```yaml
+# deployments/azhu/docker-compose.yml (staging profile)
+# Hasznalat: docker compose -f deployments/azhu/docker-compose.yml --profile staging up -d
+
+services:
+  api:
+    image: ghcr.io/bestixcom/aiflow-azhu:v1.2.0
+    profiles: [staging, prod]
+    environment:
+      - AIFLOW_ENV=staging
+      - AIFLOW_DB_NAME=aiflow_azhu_staging
+      - AIFLOW_REDIS_DB=11
+      - AIFLOW_CUSTOMER=azhu
+    env_file: .env.staging
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: ghcr.io/bestixcom/aiflow-azhu:v1.2.0
+    profiles: [staging, prod]
+    command: ["python", "-m", "aiflow.execution.worker"]
+    environment:
+      - AIFLOW_ENV=staging
+      - AIFLOW_DB_NAME=aiflow_azhu_staging
+      - AIFLOW_REDIS_DB=11
+      - AIFLOW_CUSTOMER=azhu
+    env_file: .env.staging
+    deploy:
+      replicas: 2
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    profiles: [staging, prod]
+    volumes:
+      - azhu_pg_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=aiflow_azhu_staging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+
+  redis:
+    image: redis:7-alpine
+    profiles: [staging, prod]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+
+volumes:
+  azhu_pg_data:
+```
+
+### 7.4 Prod (Per-Customer Docker Compose)
 
 ```
-Kornyezet: Kubernetes cluster (production)
-Namespace: aiflow-{customer} (pl. aiflow-allianz)
+Kornyezet: Docker Compose per customer (production)
+Compose project: aiflow-{customer} (pl. aiflow-azhu)
 Skill-ek: A customer deployment.yaml szerinti skill-ek
 Instances: A customer instance YAML-ek (prod label-lel)
-Database: Dedikalt DB (pl. aiflow_allianz)
+Database: Dedikalt DB (pl. aiflow_azhu)
 Redis: Dedikalt DB index (pl. db 1)
 Langfuse: Ugyfel-specifikus projekt, "prod" label
 Prompt label: "{customer}-prod"
+```
+
+### 7.4.1 Phase 2 - K8s cluster elerhetosegekor
+
+> A K8s szekciok a jovobeli migraciohoz dokumentalva maradnak. Amikor K8s cluster
+> elerheto lesz, a Docker Compose deployment atmigralhato K8s-re a meglevo k8s/
+> konyvtarakban talalhato manifest-ek alapjan.
+
+```
+Kornyezet: Kubernetes cluster (production) - KESOBB
+Namespace: aiflow-{customer} (pl. aiflow-azhu)
+Skill-ek: A customer deployment.yaml szerinti skill-ek
+Instances: A customer instance YAML-ek (prod label-lel)
+Database: Managed DB (pl. aiflow_azhu)
+Redis: Managed Redis cluster
 ```
 
 ### 7.5 Langfuse Izolacio
@@ -1140,15 +1219,15 @@ Prompt label: "{customer}-prod"
 ```
 Langfuse projektek:
   |-- aiflow-dev                          # Fejlesztoi kozos
-  |-- allianz-aiflow                      # Allianz production
-  |   |-- Prompt: allianz/aszf-rag/system-prompt (label: allianz-prod)
-  |   |-- Prompt: allianz/aszf-rag/classifier   (label: allianz-prod)
-  |   |-- Prompt: allianz/claims-email/system-prompt (label: allianz-prod)
+  |-- azhu-aiflow                         # AZHU production
+  |   |-- Prompt: azhu/aszf-rag/system-prompt (label: azhu-prod)
+  |   |-- Prompt: azhu/aszf-rag/classifier   (label: azhu-prod)
+  |   |-- Prompt: azhu/claims-email/system-prompt (label: azhu-prod)
   |   |-- Trace-ek: instance_name tag-gel szurve
   |
-  |-- cubix-aiflow                        # Cubix production
-      |-- Prompt: cubix/udemy-capture/transcript-structurer (label: cubix-prod)
-      |-- Prompt: cubix/faq-rag/system-prompt (label: cubix-prod)
+  |-- npra-aiflow                         # NPRA production
+      |-- Prompt: npra/udemy-capture/transcript-structurer (label: npra-prod)
+      |-- Prompt: npra/faq-rag/system-prompt (label: npra-prod)
 ```
 
 **ExecutionContext bovites:**
@@ -1156,9 +1235,9 @@ Langfuse projektek:
 class ExecutionContext(BaseModel):
     # ... meglevo mezok ...
     instance_id: str | None = None         # Skill instance ID
-    instance_name: str | None = None       # "allianz-aszf-rag"
-    customer: str | None = None            # "allianz"
-    prompt_namespace: str | None = None    # "allianz/aszf-rag"
+    instance_name: str | None = None       # "azhu-aszf-rag"
+    customer: str | None = None            # "azhu"
+    prompt_namespace: str | None = None    # "azhu/aszf-rag"
 ```
 
 ### 7.6 Database Izolacio
@@ -1168,10 +1247,10 @@ class ExecutionContext(BaseModel):
 ```
 pg-cluster.internal
   |-- aiflow_dev           # Dev (osszes skill, osszes test instance)
-  |-- aiflow_allianz       # Allianz production
-  |-- aiflow_allianz_stg   # Allianz staging
-  |-- aiflow_cubix         # Cubix production
-  |-- aiflow_cubix_stg     # Cubix staging
+  |-- aiflow_azhu          # AZHU production
+  |-- aiflow_azhu_stg      # AZHU staging
+  |-- aiflow_npra          # NPRA production
+  |-- aiflow_npra_stg      # NPRA staging
 ```
 
 Elonyok:
@@ -1180,7 +1259,7 @@ Elonyok:
 - Per-ugyfel connection pool meret
 - GDPR compliance: ugyfel adat torles = DB drop
 
-Alternativa (kisebb ugyfeleknel): Shared DB, per-customer schema (`SET search_path TO allianz`).
+Alternativa (kisebb ugyfeleknel): Shared DB, per-customer schema (`SET search_path TO azhu`).
 
 ---
 
@@ -1196,7 +1275,7 @@ Framework v1.2.0 -> v1.3.0 (MINOR, backward compat)
 3. Minden ugyfel deployment.yaml-ban framework.version -> "1.3.0"
 4. Per-ugyfel CI futtat: Pipeline D validate
 5. Per-ugyfel staging deploy + automated test
-6. Fokozatos prod rollout: Allianz eloszor (nagyobb), Cubix utana
+6. Fokozatos prod rollout: AZHU eloszor (nagyobb), NPRA utana
 
 Idobecslés: 1-2 nap (automatizalt pipeline-okon)
 ```
@@ -1223,7 +1302,7 @@ Skill aszf_rag_chat v1.2.0 -> v1.3.0 (uj feature: multi-language)
 4. Per-ugyfel prod rollout
 
 FONTOS: Ugyfelek NEM KOTELEZEK azonnal frissiteni!
-Allianz maradhat v1.2.0-n, mig Cubix mar v1.3.0-t hasznal.
+AZHU maradhat v1.2.0-n, mig NPRA mar v1.3.0-t hasznal.
 ```
 
 ### 8.3 Instance Config Update (Zero-Deploy for Prompts)
@@ -1231,8 +1310,8 @@ Allianz maradhat v1.2.0-n, mig Cubix mar v1.3.0-t hasznal.
 ```
 Prompt valtozas (NEM igenyel deploy-t):
   1. Langfuse UI-ban uj prompt verzio keszites
-  2. Label athelyezes: "allianz-staging" -> teszteles
-  3. Label athelyezes: "allianz-prod" -> eles
+  2. Label athelyezes: "azhu-staging" -> teszteles
+  3. Label athelyezes: "azhu-prod" -> eles
   4. Prompt cache TTL lejar (300s) -> uj verzio automatikusan betoltodik
   -> NINCS restart, NINCS deploy, NINCS image build
 
@@ -1316,9 +1395,9 @@ Szint 4: FRAMEWORK HOTFIX (orak - 1 nap)
 | # | Feladat | File(ok) |
 |---|---------|----------|
 | C1 | aszf_rag_chat skill template veglegesites | `skills/aszf_rag_chat/` |
-| C2 | Allianz ASZF instance konfig | `deployments/allianz/instances/allianz-aszf-rag.yaml` |
-| C3 | Allianz belso instance konfig | `deployments/allianz/instances/allianz-internal-rag.yaml` |
-| C4 | Cubix FAQ instance konfig | `deployments/cubix-edu/instances/cubix-faq-rag.yaml` |
+| C2 | AZHU ASZF instance konfig | `deployments/azhu/instances/azhu-aszf-rag.yaml` |
+| C3 | AZHU belso instance konfig | `deployments/azhu/instances/azhu-internal-rag.yaml` |
+| C4 | NPRA FAQ instance konfig | `deployments/npra/instances/npra-faq-rag.yaml` |
 | C5 | Langfuse namespace setup (3 kulon prompt set) | Langfuse UI + sync script |
 | C6 | Per-instance evaluation (promptfoo) | `skills/aszf_rag_chat/tests/instance_eval/` |
 | C7 | Per-instance load test | `tests/performance/test_rag_instances.py` |
@@ -1333,8 +1412,8 @@ Szint 4: FRAMEWORK HOTFIX (orak - 1 nap)
 | # | Feladat | File(ok) |
 |---|---------|----------|
 | D1 | cubix_course_capture skill template veglegesites | `skills/cubix_course_capture/` |
-| D2 | Udemy instance konfig | `deployments/cubix-edu/instances/cubix-udemy-capture.yaml` |
-| D3 | Coursera instance konfig | `deployments/cubix-edu/instances/cubix-coursera-capture.yaml` |
+| D2 | Udemy instance konfig | `deployments/npra/instances/npra-udemy-capture.yaml` |
+| D3 | Coursera instance konfig | `deployments/npra/instances/npra-coursera-capture.yaml` |
 | D4 | RPA worker instance-aware routing | `src/aiflow/rpa/worker.py` |
 | D5 | RPA worker Dockerfile.base-rpa | `Dockerfile.base-rpa` |
 | D6 | Platform-specifikus prompt overrides | Langfuse namespace setup |
@@ -1353,15 +1432,15 @@ Szint 4: FRAMEWORK HOTFIX (orak - 1 nap)
 | E2 | Instance YAML validator | `scripts/validate_instance.py` |
 | E3 | select_skills.py (Dockerfile generator) | `scripts/select_skills.py` |
 | E4 | Pipeline D: CI workflow | `.github/workflows/pipeline-d-deploy-validate.yml` |
-| E5 | Allianz deployment profil | `deployments/allianz/` |
-| E6 | Cubix deployment profil | `deployments/cubix-edu/` |
-| E7 | K8s manifest templates (Kustomize base) | `deployments/_templates/k8s/` |
-| E8 | Customer K8s overlays | `deployments/{customer}/k8s/` |
+| E5 | AZHU deployment profil | `deployments/azhu/` |
+| E6 | NPRA deployment profil | `deployments/npra/` |
+| E7 | Per-customer Docker Compose config (K8s kesobb) | `deployments/{customer}/docker-compose.yml` |
+| E8 | K8s manifest templates (Phase 2 - K8s cluster elerhetosegekor) | `deployments/_templates/k8s/` |
 | E9 | Staging deploy script | `scripts/deploy_staging.sh` |
 | E10 | Prod deploy script (manual approval) | `scripts/deploy_prod.sh` |
 | E11 | End-to-end deploy test (staging) | `tests/e2e/test_customer_deploy.py` |
 
-**Kimenetek:** `make deploy-staging customer=allianz`, `make deploy-prod customer=allianz`.
+**Kimenetek:** `make deploy-staging customer=azhu`, `make deploy-prod customer=azhu`.
 
 ### Osszesitett Idovonal
 

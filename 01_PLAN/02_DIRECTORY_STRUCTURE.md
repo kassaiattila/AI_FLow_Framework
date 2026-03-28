@@ -304,18 +304,20 @@ aiflow/
 |-- deployments/                            # Ugyfél deployment profilok
 |   |-- _shared/
 |   |   |-- base-config.yaml
-|   |-- allianz/
+|   |-- azhu/
 |   |   |-- deployment.yaml                 # Skill lista + instance-ok
+|   |   |-- docker-compose.yml              # Per-customer Docker Compose (staging/prod)
 |   |   |-- instances/
 |   |   |   |-- hr_aszf_chat.yaml
 |   |   |   |-- legal_aszf_chat.yaml
-|   |   |-- k8s/
+|   |   |-- k8s/                            # Phase 2 - K8s cluster elerhetosegekor
 |   |       |-- kustomization.yaml
-|   |-- cubix-edu/
+|   |-- npra/
 |       |-- deployment.yaml
+|       |-- docker-compose.yml              # Per-customer Docker Compose (staging/prod)
 |       |-- instances/
 |       |   |-- python_course.yaml
-|       |-- k8s/
+|       |-- k8s/                            # Phase 2 - K8s cluster elerhetosegekor
 |           |-- kustomization.yaml
 |
 |-- templates/                              # Workflow sablonok

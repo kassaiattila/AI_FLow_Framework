@@ -268,10 +268,10 @@ Egy skill template-bol tobb instance hozható letre kulonbozo konfiguracioval. U
 
 ```bash
 # Uj instance letrehozasa YAML konfigbol
-aiflow instance create --config instances/allianz/hr_aszf_chat.yaml
+aiflow instance create --config instances/azhu/hr_aszf_chat.yaml
 
 # Instance-ok listazasa ugyfel szerint
-aiflow instance list --customer allianz
+aiflow instance list --customer azhu
 
 # Instance konfiguracio modositasa
 aiflow instance configure --instance hr_aszf_chat --set budget.monthly=1000
@@ -291,17 +291,17 @@ Skill Template: aszf_rag_chat (egyetlen kodot karbantartjuk)
   |
   +-- Instance: hr_aszf_chat
   |     +-- Collection: hr_docs (sajat dokumentumok)
-  |     +-- Prompt namespace: allianz/hr_aszf/ (sajat system prompt)
+  |     +-- Prompt namespace: azhu/hr_aszf/ (sajat system prompt)
   |     +-- Budget: $500/ho
   |
   +-- Instance: legal_aszf_chat
   |     +-- Collection: legal_docs (sajat dokumentumok)
-  |     +-- Prompt namespace: allianz/legal_aszf/ (sajat system prompt)
+  |     +-- Prompt namespace: azhu/legal_aszf/ (sajat system prompt)
   |     +-- Budget: $1000/ho
   |
   +-- Instance: it_policy_chat
         +-- Collection: it_docs (sajat dokumentumok)
-        +-- Prompt namespace: allianz/it_aszf/ (sajat system prompt)
+        +-- Prompt namespace: azhu/it_aszf/ (sajat system prompt)
         +-- Budget: $300/ho
 ```
 
@@ -314,16 +314,16 @@ A skill kod egyszer van irva es karbantartva. Az instance YAML határozza meg:
 - Milyen adatforrasokbol (SharePoint/S3/upload) szinkronizal
 
 ```yaml
-# deployments/allianz/instances/hr_aszf_chat.yaml
+# deployments/azhu/instances/hr_aszf_chat.yaml
 instance_name: hr_aszf_chat
 display_name: "HR Szabalyzat Chat"
 skill_name: aszf_rag_chat
 skill_version: "1.0.0"
-customer_id: allianz
+customer_id: azhu
 
 config:
   collection_name: hr_docs
-  prompt_namespace: allianz/hr_aszf
+  prompt_namespace: azhu/hr_aszf
   data_sources:
     - type: sharepoint
       uri: "https://allianz.sharepoint.com/sites/HR/docs"

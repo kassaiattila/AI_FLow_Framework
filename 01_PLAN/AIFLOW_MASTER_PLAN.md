@@ -188,16 +188,18 @@ class ExecutionContext(BaseModel):
 Egy skill NEM szingularis deployment. Egy skill SABLON (template), amibol
 tobb PELDANY (instance) futhat kulonbozo konfiguracioval:
 
-**Ugyfel A:**
+**AZHU (Allianz):**
   - `aszf_rag_chat` instance **"HR Chat"** (hr_docs, HR promptok)
   - `aszf_rag_chat` instance **"Jogi Chat"** (legal_docs, jogi promptok)
   - `email_intent` instance **"Ugyfelszolgalat"** (5 intent)
   - `email_intent` instance **"Belso Ticketek"** (8 intent)
+  - `qbpp_test_automation` instance **"Portal E2E"** (portal.allianz.hu)
 
-**Ugyfel B:**
+**NPRA:**
   - `aszf_rag_chat` instance **"Policy Chat"** (policies, angol promptok)
-  - `cubix_course_capture` instance **"Python Course"** (cubix.hu)
-  - `cubix_course_capture` instance **"ML Course"** (cubix.hu/ml)
+  - `cubix_course_capture` instance **"Python Course"** (online platform)
+  - `cubix_course_capture` instance **"ML Course"** (online platform)
+  - `process_documentation` instance **"Process Docs"** (belso folyamatok)
 
 Minden instance sajat: collection, prompt namespace, budget, SLA, adatforrasok.
 Reszletek: [28_MODULAR_DEPLOYMENT.md](28_MODULAR_DEPLOYMENT.md)
@@ -240,7 +242,7 @@ Reszletek: [28_MODULAR_DEPLOYMENT.md](28_MODULAR_DEPLOYMENT.md)
 | PostgreSQL | aiflow_dev (local) | aiflow_test (CI) | aiflow_uat (staging) | aiflow_prod (managed) |
 | Redis prefix | aiflow:dev: | aiflow:test: | aiflow:uat: | aiflow:prod: |
 | Langfuse label | dev | test | staging | prod |
-| Config | .env | CI secrets | K8s ConfigMap + Vault | K8s ConfigMap + Vault |
+| Config | .env | CI secrets | Docker Compose .env + Vault | Docker Compose .env + Vault (K8s kesobb) |
 
 **Prompt-ok fuggetlen eletciklusa** (nem kell deploy!):
 ```
@@ -374,7 +376,7 @@ main (mindig deployolhato, CODEOWNERS vedett)
 | **4. Skills (6 db)** | 10-13 | POC portalas, 6 skill, 600+ teszt | Mukodo skill-ek | - |
 | **5. Execution + API + Security** | 14-16 | Queue, Worker, FastAPI, RBAC, Frontend scaffold | Teljes API + UI | - |
 | **6. CLI + Observability** | 17-19 | aiflow CLI, Langfuse+OTel tracing, Cost, SLA, Dashboards | Teljes lifecycle | - |
-| **7. Production** | 20-22 | Checkpoint (LangGraph minta), HITL, Scheduler, Kafka adapter, K8s, CI/CD, Audit | Production-ready | LangGraph checkpoint |
+| **7. Production** | 20-22 | Checkpoint (LangGraph minta), HITL, Scheduler, Kafka adapter, Docker Compose prod, CI/CD, Audit | Production-ready | LangGraph checkpoint |
 
 **Reszletes het-per-het bontas: lasd 04_IMPLEMENTATION_PHASES.md (a Phase 2 es 7 bovitve a GitHub tanulsagokkal)**
 
@@ -442,7 +444,7 @@ BDD -> AIFlow workflow adaptalas. Strategy-based teszt generálas.
 | reflex | `aiflow[ui]` | Frontend UI |
 
 ### Infrastruktura
-| Service | Dev (Docker) | Prod (K8s) |
+| Service | Dev (Docker) | Prod (Docker Compose, K8s kesobb) |
 |---------|-------------|------------|
 | PostgreSQL 16 + pgvector | pgvector/pgvector:pg16 | Managed DB + vectors |
 | Redis 7 | redis:7-alpine | Redis cluster |

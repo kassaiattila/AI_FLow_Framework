@@ -1724,10 +1724,10 @@ Uj skill instance letrehozasa.
 {
   "instance_name": "hr_aszf_chat",
   "skill_template": "aszf_rag_chat",
-  "customer_id": "cust_allianz_01",
+  "customer_id": "cust_azhu_01",
   "config": {
     "collection": "hr_docs",
-    "prompt_namespace": "allianz/hr",
+    "prompt_namespace": "azhu/hr",
     "budget_monthly_usd": 50.0,
     "models": ["openai/gpt-4o"],
     "sla_p95_ms": 5000
@@ -1760,7 +1760,7 @@ Instance-ok listazasa, szurheto ugyfel, skill es statusz alapjan.
       "id": "inst_01ABC",
       "instance_name": "hr_aszf_chat",
       "skill_template": "aszf_rag_chat",
-      "customer_id": "cust_allianz_01",
+      "customer_id": "cust_azhu_01",
       "status": "active",
       "created_at": "2026-03-28T10:00:00Z"
     }
@@ -1783,10 +1783,10 @@ Egy konkret instance reszletes adatai.
   "id": "inst_01ABC",
   "instance_name": "hr_aszf_chat",
   "skill_template": "aszf_rag_chat",
-  "customer_id": "cust_allianz_01",
+  "customer_id": "cust_azhu_01",
   "config": {
     "collection": "hr_docs",
-    "prompt_namespace": "allianz/hr",
+    "prompt_namespace": "azhu/hr",
     "budget_monthly_usd": 50.0,
     "models": ["openai/gpt-4o"],
     "sla_p95_ms": 5000

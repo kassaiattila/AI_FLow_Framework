@@ -220,7 +220,7 @@ Csak a sync pipeline irhat prod label-re.
 A Skill Instance-ok fuggetlen eletciklussal birnak a framework-tol es a skill template-tol:
 
 **Instance config verziozas:**
-- Az instance YAML konfiguraciok (pl. `deployments/allianz/instances/hr_aszf_chat.yaml`) Git-ben verziozottak
+- Az instance YAML konfiguraciok (pl. `deployments/azhu/instances/hr_aszf_chat.yaml`) Git-ben verziozottak
 - Minden config valtozas PR-ben kovetett, CODEOWNERS review-vel
 
 **Instance NEM kovet framework vagy skill verziokat:**

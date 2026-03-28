@@ -341,7 +341,7 @@ FELADATOK:
 3. src/aiflow/documents/sync.py - SharePoint/S3/GDrive sync
 4. src/aiflow/security/audit.py - teljes audit trail
 5. src/aiflow/security/secrets.py - Vault integracio
-6. k8s/ - Kubernetes manifests (base + overlays)
+6. Docker Compose prod per-customer (K8s manifests kesobb, amikor cluster elerheto)
 7. .github/workflows/ - deploy-staging.yml, deploy-prod.yml
 8. Evaluation framework: test_datasets/test_cases DB tablak
    RESZLETEK: 18_TESTING_AUTOMATION.md 6. szekció
@@ -434,7 +434,7 @@ FELADATOK:
 1. Modellek, promptok portalasa
 2. Multi-instance tamogatas (collection, prompt namespace per instance)
 3. 100+ teszt eset
-4. Elso instance: instances/allianz/hr_aszf_chat.yaml
+4. Elso instance: instances/azhu/hr_aszf_chat.yaml
 ```
 
 ### FAZIS D: Masodik Skill - Cubix Course Capture (4-5 het)
@@ -444,15 +444,15 @@ FORRAS: Cubix_AI_ML/automation + transcript_pipeline
 FELADATOK:
 1. Playwright + ffmpeg + STT pipeline
 2. Operator-assisted lepesek (HumanReviewRequiredError)
-3. Instance: instances/cubix-edu/python_course.yaml
+3. Instance: instances/npra/python_course.yaml
 ```
 
 ### FAZIS E: Customer Deployment Infra (2-3 het, parhuzamos)
 
 ```
 FELADATOK:
-1. Per-customer Kustomize overlays
+1. Per-customer Docker Compose config (K8s kesobb)
 2. CI Pipeline D (customer deployment)
-3. Staging namespace-ek
+3. Staging Docker kornyezetek
 4. Elso customer deployment teszt
 ```

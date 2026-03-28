@@ -443,7 +443,7 @@ Egy Skill SABLON (template), amibol tobb PELDANY (instance) futhat kulonbozo kon
 ```
 Skill Template (kod) -> skills/aszf_rag_chat/ (agents, workflow, models)
   |
-Skill Instance Config -> instances/allianz/hr_aszf_chat.yaml (collection, prompts, data)
+Skill Instance Config -> instances/azhu/hr_aszf_chat.yaml (collection, prompts, data)
   |
 Skill Instance Runtime -> PostgreSQL: skill_instances tabla (metrics, cost, status)
 ```
