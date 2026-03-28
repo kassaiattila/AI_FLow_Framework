@@ -1,0 +1,19 @@
+version: 1
+suites:
+  core-unit:
+    description: "Core kernel unit tests"
+    path: "tests/unit/core/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: critical
+    max_duration_seconds: 30
+    coverage_target: 90.0
+    requires_services: []
+    components:
+      - core.config
+      - core.types
+      - core.errors
+      - core.context
+      - core.events
+      - core.registry
+      - core.di

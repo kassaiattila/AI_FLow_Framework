@@ -1,0 +1,9 @@
+# AIFlow CODEOWNERS
+/src/aiflow/              @bestixcom/framework-team
+/src/aiflow/ui/           @bestixcom/frontend-team
+/skills/process_documentation/  @bestixcom/process-doc-team
+/skills/aszf_rag_chat/         @bestixcom/legal-tech-team
+/skills/email_intent_processor/ @bestixcom/customer-service-team
+/k8s/                     @bestixcom/devops-team
+/.github/                 @bestixcom/devops-team
+/01_PLAN/                 @bestixcom/framework-team

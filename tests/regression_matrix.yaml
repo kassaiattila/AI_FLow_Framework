@@ -1,0 +1,16 @@
+version: 1
+rules:
+  - pattern: "src/aiflow/core/**"
+    suites: FULL
+    reason: "Core kernel change affects ALL components"
+
+  - pattern: "src/aiflow/__init__.py"
+    suites: [core-unit]
+    reason: "Public API exports"
+
+  - pattern: "pyproject.toml"
+    suites: FULL
+    reason: "Dependency change may affect everything"
+
+default_suites:
+  - core-unit
