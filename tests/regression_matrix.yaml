@@ -16,6 +16,10 @@ rules:
     suites: [models-unit, core-unit]
     reason: "Model layer change affects protocols, registry, and client"
 
+  - pattern: "src/aiflow/engine/**"
+    suites: [engine-unit, core-unit, integration-state]
+    reason: "Engine changes may affect core and state"
+
   - pattern: "pyproject.toml"
     suites: FULL
     reason: "Dependency change may affect everything"
@@ -24,3 +28,4 @@ default_suites:
   - core-unit
   - state-unit
   - models-unit
+  - engine-unit

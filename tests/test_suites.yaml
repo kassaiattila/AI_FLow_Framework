@@ -45,3 +45,18 @@ suites:
       - models.protocols
       - models.registry
       - models.client
+
+  engine-unit:
+    description: "Workflow engine unit tests"
+    path: "tests/unit/engine/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: critical
+    max_duration_seconds: 60
+    coverage_target: 90.0
+    requires_services: []
+    components:
+      - engine.step
+      - engine.dag
+      - engine.conditions
+      - engine.policies
