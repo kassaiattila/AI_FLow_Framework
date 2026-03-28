@@ -1,0 +1,28 @@
+name: cfpb_complaint_router
+display_name: "CFPB Complaint Router"
+version: "1.0.0"
+skill_type: ai
+description: "ML-based classification and routing of CFPB consumer complaints using sklearn"
+author: "BestIxCom Kft"
+framework_requires: ">=0.1.0"
+capabilities: [text_classification, feature_extraction, model_inference, routing, explainability]
+required_models:
+  - {name: "sklearn/tfidf-svm", type: ml, usage: "Primary complaint classification"}
+  - {name: "sklearn/tfidf-logistic", type: ml, usage: "Fallback classifier"}
+  - {name: "openai/gpt-4o-mini", type: llm, usage: "Explanation generation, edge cases"}
+workflows: [cfpb-complaint-routing]
+agent_types: [PreprocessorAgent, FeatureExtractorAgent, ClassifierAgent, ExplainerAgent, RouterAgent]
+prompts: [cfpb/explainer, cfpb/edge_case_classifier]
+ml_config:
+  training_data: "cfpb_complaints.csv"
+  target_column: "product"
+  test_size: 0.2
+  sklearn_pipeline:
+    - TfidfVectorizer
+    - LinearSVC
+dependencies:
+  - scikit-learn>=1.4.0
+  - pandas>=2.0.0
+  - joblib>=1.3.0
+estimated_cost_per_run: 0.01
+tags: [cfpb, complaints, sklearn, classification, ml, routing]

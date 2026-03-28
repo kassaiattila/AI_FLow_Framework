@@ -48,6 +48,14 @@ rules:
     suites: [ingestion-unit, documents-unit, vectorstore-unit, core-unit]
     reason: "Ingestion pipeline changes affect parsers, chunkers, documents, and vector store"
 
+  - pattern: "src/aiflow/skills/**"
+    suites: [skills-unit, core-unit]
+    reason: "Skill system changes affect manifest, loader, registry, and core"
+
+  - pattern: "src/aiflow/evaluation/**"
+    suites: [evaluation-unit, core-unit]
+    reason: "Evaluation framework changes affect scorers, datasets, and core"
+
   - pattern: "pyproject.toml"
     suites: FULL
     reason: "Dependency change may affect everything"
@@ -62,3 +70,5 @@ default_suites:
   - prompts-unit
   - documents-unit
   - ingestion-unit
+  - skills-unit
+  - evaluation-unit

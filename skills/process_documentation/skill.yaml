@@ -1,0 +1,16 @@
+name: process_documentation
+display_name: "Process Documentation & Diagramming"
+version: "2.0.0"
+skill_type: ai
+description: "Natural language -> structured BPMN documentation + diagrams"
+author: "BestIxCom Kft"
+framework_requires: ">=0.1.0"
+capabilities: [intent_classification, text_elaboration, process_extraction, quality_review, diagram_generation]
+required_models:
+  - {name: "openai/gpt-4o", type: llm, usage: "Extraction, review"}
+  - {name: "openai/gpt-4o-mini", type: llm, usage: "Classification, diagrams"}
+workflows: [process-documentation]
+agent_types: [ClassifierAgent, ElaboratorAgent, ExtractorAgent, ReviewerAgent, DiagramGeneratorAgent]
+prompts: [process-doc/classifier, process-doc/elaborator, process-doc/extractor, process-doc/reviewer, process-doc/mermaid_flowchart]
+estimated_cost_per_run: 0.06
+tags: [bpmn, documentation, diagrams, hungarian, english]

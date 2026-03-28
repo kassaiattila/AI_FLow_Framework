@@ -141,3 +141,31 @@ suites:
     components:
       - ingestion.chunkers
       - ingestion.pipeline
+
+  skills-unit:
+    description: "Skill system unit tests (manifest, loader, registry)"
+    path: "tests/unit/skills/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: critical
+    max_duration_seconds: 30
+    coverage_target: 90.0
+    requires_services: []
+    components:
+      - skills.manifest
+      - skills.loader
+      - skills.registry
+
+  evaluation-unit:
+    description: "Evaluation framework unit tests (framework, scorers, datasets)"
+    path: "tests/unit/evaluation/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: high
+    max_duration_seconds: 30
+    coverage_target: 90.0
+    requires_services: []
+    components:
+      - evaluation.framework
+      - evaluation.scorers
+      - evaluation.datasets

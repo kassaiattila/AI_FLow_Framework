@@ -1,0 +1,22 @@
+name: aszf_rag_chat
+display_name: "ASZF RAG Chat"
+version: "1.0.0"
+skill_type: ai
+description: "RAG-based Q&A chatbot for Hungarian legal documents (ASZF/terms of service)"
+author: "BestIxCom Kft"
+framework_requires: ">=0.1.0"
+capabilities: [document_ingestion, semantic_search, answer_generation, citation_extraction, hallucination_detection, conversation_memory]
+required_models:
+  - {name: "openai/gpt-4o", type: llm, usage: "Answer generation, hallucination detection"}
+  - {name: "openai/gpt-4o-mini", type: llm, usage: "Query rewriting, citation extraction"}
+  - {name: "openai/text-embedding-3-small", type: embedding, usage: "Document and query embedding"}
+workflows: [aszf-rag-chat]
+agent_types: [QueryRewriterAgent, RetrieverAgent, AnswerGeneratorAgent, CitationExtractorAgent, HallucinationDetectorAgent, ConversationManagerAgent]
+prompts: [aszf-rag/query_rewriter, aszf-rag/answer_generator, aszf-rag/citation_extractor, aszf-rag/hallucination_detector]
+vectorstore:
+  collection: aszf_documents
+  embedding_model: "openai/text-embedding-3-small"
+  chunk_size: 512
+  chunk_overlap: 64
+estimated_cost_per_run: 0.04
+tags: [rag, legal, aszf, hungarian, chatbot, pgvector]

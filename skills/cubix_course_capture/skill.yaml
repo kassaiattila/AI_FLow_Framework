@@ -1,0 +1,29 @@
+name: cubix_course_capture
+display_name: "Cubix Course Capture"
+version: "1.0.0"
+skill_type: hybrid
+description: "RPA + AI hybrid skill for capturing web-based course content using Playwright, ffmpeg, and STT"
+author: "BestIxCom Kft"
+framework_requires: ">=0.1.0"
+capabilities: [web_navigation, video_capture, audio_extraction, speech_to_text, content_structuring, note_generation]
+required_models:
+  - {name: "openai/whisper-1", type: stt, usage: "Audio transcription (speech-to-text)"}
+  - {name: "openai/gpt-4o", type: llm, usage: "Content structuring, note generation"}
+  - {name: "openai/gpt-4o-mini", type: llm, usage: "Slide text extraction, summaries"}
+workflows: [course-capture]
+agent_types: [NavigatorAgent, RecorderAgent, TranscriberAgent, ContentStructurerAgent, NoteGeneratorAgent]
+prompts: [cubix/content_structurer, cubix/note_generator, cubix/slide_extractor]
+rpa_config:
+  browser: chromium
+  headless: true
+  viewport: {width: 1920, height: 1080}
+  timeout_ms: 30000
+tools:
+  - playwright
+  - ffmpeg
+  - whisper
+dependencies:
+  - playwright>=1.40.0
+  - ffmpeg-python>=0.2.0
+estimated_cost_per_run: 0.15
+tags: [rpa, course, capture, playwright, ffmpeg, stt, whisper, hybrid]

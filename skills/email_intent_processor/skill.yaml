@@ -1,0 +1,27 @@
+name: email_intent_processor
+display_name: "Email Intent Processor"
+version: "1.0.0"
+skill_type: ai
+description: "Kafka-triggered email classification and routing with 5 intent categories"
+author: "BestIxCom Kft"
+framework_requires: ">=0.1.0"
+capabilities: [email_parsing, intent_classification, entity_extraction, priority_scoring, routing]
+trigger:
+  type: kafka
+  topic: incoming-emails
+  group_id: email-intent-processor
+  auto_offset_reset: earliest
+required_models:
+  - {name: "openai/gpt-4o", type: llm, usage: "Complex intent classification, entity extraction"}
+  - {name: "openai/gpt-4o-mini", type: llm, usage: "Simple classification, priority scoring"}
+workflows: [email-intent-processing]
+agent_types: [EmailParserAgent, IntentClassifierAgent, EntityExtractorAgent, PriorityScorerAgent, RouterAgent]
+prompts: [email-intent/parser, email-intent/classifier, email-intent/entity_extractor, email-intent/priority_scorer]
+intent_categories:
+  - complaint
+  - inquiry
+  - order
+  - support_request
+  - feedback
+estimated_cost_per_run: 0.03
+tags: [email, intent, kafka, classification, routing]
