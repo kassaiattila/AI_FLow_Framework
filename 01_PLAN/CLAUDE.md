@@ -1,14 +1,15 @@
 # AIFlow Plan Documentation Context
 
-You are working in the `01_PLAN/` directory which contains the complete AIFlow project plan (34 documents).
+You are working in the `01_PLAN/` directory which contains the complete AIFlow project plan (35 documents).
 
 ## Structure
-- **00-05**: Core architecture, DB schema (35 tables, 13 views), implementation phases (22 weeks), tech stack
+- **00-05**: Core architecture, DB schema (36 tables, 13 views), implementation phases (22 weeks), tech stack
 - **06-10**: Operations (Claude Code, versioning, errors, middleware, audit)
 - **11-13**: Examples (3+3 skill walkthroughs, skill integration, GitHub research)
 - **14-16**: Technical deep-dives (frontend, ML models, RAG/vectorstore)
 - **17-19**: Dev rules (git, testing, RPA)
 - **20-27**: Security, deployment, API spec, config, testing/regression, test structure, Claude Code setup, dev environment
+- **28**: Modular Deployment (Skill Instance architecture, multi-customer deployment)
 - **AIFLOW_MASTER_PLAN.md**: Integrated overview of everything
 - **IMPLEMENTATION_PLAN.md**: Step-by-step execution guide with pilot project references
 - **SKILL_DEVELOPMENT.md**: How to create new skills
@@ -23,9 +24,9 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - 6 skills: process_documentation, aszf_rag_chat, email_intent_processor, cfpb_complaint_router, cubix_course_capture, qbpp_test_automation
 
 ## Key numbers to keep consistent
-- 35 DB tables, 13 views, 19 migrations, 60+ indexes
+- 36 DB tables, 13 views, 20 migrations, 60+ indexes
 - 22 weeks, 7 phases (Phase 4=Het 10-13, Phase 5=14-16, Phase 6=17-19, Phase 7=20-22)
-- 6 skills, 34 plan documents
+- 6 skills, 35 plan documents
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/
 - Max 6 specialist agents per orchestrator
@@ -34,3 +35,5 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - API key prefix: "aiflow_sk_" (NOT "af_sk_" or "aif_sk_")
 - JWT: RS256 (asymmetric key pair, NOT HS256 symmetric secret)
 - Redis eviction: volatile-lru (NOT allkeys-lru)
+- Skill = template (code), Instance = running config (YAML). Multiple instances per customer.
+- deployments/{customer}/deployment.yaml defines which skills+instances per customer

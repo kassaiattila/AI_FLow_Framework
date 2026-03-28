@@ -215,6 +215,32 @@ Csak a sync pipeline irhat prod label-re.
 | Framework | K8s deployment rollback (skills framework_requires range-en belul) | ~2 perc |
 | Database | `alembic downgrade -1` (additive migraciok, safe rollback) | ~1 perc |
 
+### 3.6 Instance Verziokezeles
+
+A Skill Instance-ok fuggetlen eletciklussal birnak a framework-tol es a skill template-tol:
+
+**Instance config verziozas:**
+- Az instance YAML konfiguraciok (pl. `deployments/allianz/instances/hr_aszf_chat.yaml`) Git-ben verziozottak
+- Minden config valtozas PR-ben kovetett, CODEOWNERS review-vel
+
+**Instance NEM kovet framework vagy skill verziokat:**
+- A skill template (kod) frissulhet anelkul hogy az instance config valtozna
+- Az instance config frissulhet (pl. uj prompt, mas collection) anelkul hogy a skill kod valtozna
+- Fuggetlen deployment ciklus: instance config deploy != skill deploy
+
+**Prompt namespace izolacio:**
+- Minden instance sajat Langfuse prompt namespace-szel rendelkezik
+- Pelda: `allianz/hr_aszf/` vs `allianz/legal_aszf/` vs `allianz/it_aszf/`
+- Igy kulonbozo system prompt-ok, valasz stilusok hasznalhatok instance-onkent
+
+**Instance allapot eletciklus:**
+```
+active -> paused -> active     (ideiglenes leallitas)
+active -> disabled              (vegleg leallitva, de megmarad)
+disabled -> active              (ujrainditas)
+active/paused/disabled -> deleted  (torlest csak admin vegezheti)
+```
+
 ---
 
 ## 4. Fejlesztesi Orchestracio

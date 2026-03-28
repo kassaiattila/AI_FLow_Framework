@@ -1706,7 +1706,174 @@ A `Retry-After` header is beallitasra kerul (masodpercben).
 
 ---
 
-## 14. RBAC Matrix (Szerepkor-alapu jogosultsagi matrix)
+## 14. Instance Endpoints (Skill Instance kezeles)
+
+A Skill Instance egy skill template konkret, konfiguralt deploymentje. Ugyanaz a skill kod,
+de kulonbozo adatforrasok, promptok, budget es SLA per instance. Tobb instance is tartozhat
+egy ugyfelhez.
+
+### 14.1 POST /api/v1/instances
+
+Uj skill instance letrehozasa.
+
+- **Auth required:** Igen (role: admin | developer)
+- **Status codes:** `201`, `400`, `401`, `403`, `409`
+
+**Request:**
+```json
+{
+  "instance_name": "hr_aszf_chat",
+  "skill_template": "aszf_rag_chat",
+  "customer_id": "cust_allianz_01",
+  "config": {
+    "collection": "hr_docs",
+    "prompt_namespace": "allianz/hr",
+    "budget_monthly_usd": 50.0,
+    "models": ["openai/gpt-4o"],
+    "sla_p95_ms": 5000
+  }
+}
+```
+
+**Response (201):**
+```json
+{
+  "id": "inst_01ABC",
+  "instance_name": "hr_aszf_chat",
+  "status": "active"
+}
+```
+
+### 14.2 GET /api/v1/instances
+
+Instance-ok listazasa, szurheto ugyfel, skill es statusz alapjan.
+
+- **Auth required:** Igen (role: admin | developer | operator)
+- **Query params:** `customer` (string), `skill` (string), `status` (`active|paused|archived`), `cursor`, `limit`
+- **Status codes:** `200`, `401`
+
+**Response (200):**
+```json
+{
+  "data": [
+    {
+      "id": "inst_01ABC",
+      "instance_name": "hr_aszf_chat",
+      "skill_template": "aszf_rag_chat",
+      "customer_id": "cust_allianz_01",
+      "status": "active",
+      "created_at": "2026-03-28T10:00:00Z"
+    }
+  ],
+  "pagination": { "next_cursor": null, "limit": 25, "total_count": 3 }
+}
+```
+
+### 14.3 GET /api/v1/instances/{name}
+
+Egy konkret instance reszletes adatai.
+
+- **Auth required:** Igen (role: admin | developer | operator)
+- **Path params:** `name` (string)
+- **Status codes:** `200`, `401`, `404`
+
+**Response (200):**
+```json
+{
+  "id": "inst_01ABC",
+  "instance_name": "hr_aszf_chat",
+  "skill_template": "aszf_rag_chat",
+  "customer_id": "cust_allianz_01",
+  "config": {
+    "collection": "hr_docs",
+    "prompt_namespace": "allianz/hr",
+    "budget_monthly_usd": 50.0,
+    "models": ["openai/gpt-4o"],
+    "sla_p95_ms": 5000
+  },
+  "status": "active",
+  "budget_used_usd": 12.35,
+  "total_runs": 245,
+  "last_run_at": "2026-03-28T14:00:00Z",
+  "created_at": "2026-03-28T10:00:00Z"
+}
+```
+
+### 14.4 PUT /api/v1/instances/{name}/config
+
+Instance konfiguracio frissitese (merge a meglevo config-gal).
+
+- **Auth required:** Igen (role: admin | developer)
+- **Path params:** `name` (string)
+- **Status codes:** `200`, `400`, `401`, `403`, `404`
+
+**Request:**
+```json
+{
+  "config_overrides": {
+    "budget_monthly_usd": 75.0,
+    "models": ["openai/gpt-4o", "openai/gpt-4o-mini"]
+  }
+}
+```
+
+**Response (200):**
+```json
+{
+  "instance_name": "hr_aszf_chat",
+  "updated": true,
+  "config": { "...merged config..." }
+}
+```
+
+### 14.5 POST /api/v1/instances/{name}/pause
+
+Instance szuneteltetese (nem fogad uj workflow futatasokat).
+
+- **Auth required:** Igen (role: admin | developer | operator)
+- **Status codes:** `200`, `401`, `403`, `404`
+
+**Response (200):**
+```json
+{
+  "instance_name": "hr_aszf_chat",
+  "status": "paused"
+}
+```
+
+### 14.6 POST /api/v1/instances/{name}/resume
+
+Szuneteltetett instance ujrainditasa.
+
+- **Auth required:** Igen (role: admin | developer | operator)
+- **Status codes:** `200`, `401`, `403`, `404`
+
+**Response (200):**
+```json
+{
+  "instance_name": "hr_aszf_chat",
+  "status": "active"
+}
+```
+
+### 14.7 Workflow Run + Instance
+
+A `POST /api/v1/workflows/{name}/run` endpoint tamogatja az `instance` parametert:
+
+```json
+{
+  "input": { "message": "Mi a szabadsag szabaly?" },
+  "mode": "sync",
+  "instance": "hr_aszf_chat"
+}
+```
+
+Az `instance` mezo opcionalis. Ha megadva, a workflow az adott instance konfiguraciojat
+hasznalja (collection, prompt namespace, budget stb.).
+
+---
+
+## 15. RBAC Matrix (Szerepkor-alapu jogosultsagi matrix)
 
 A rendszer 4 role-t definial: **admin**, **developer**, **operator**, **viewer**.
 
@@ -1749,6 +1916,10 @@ A rendszer 4 role-t definial: **admin**, **developer**, **operator**, **viewer**
 | **Documents** list/search | Y | Y | Y | Y |
 | **Collections** list | Y | Y | Y | Y |
 | **WebSocket** events | Y | Y | Y | Y |
+| **Instances** create | Y | Y | - | - |
+| **Instances** list/get | Y | Y | Y | Y |
+| **Instances** config update | Y | Y | - | - |
+| **Instances** pause/resume | Y | Y | Y | - |
 | **WebSocket** chat | Y | Y | Y | - |
 
 **Jelmagyarazat:** Y = engedelyezett, - = tiltott (403 Forbidden)
@@ -1758,7 +1929,7 @@ A rendszer 4 role-t definial: **admin**, **developer**, **operator**, **viewer**
 
 ---
 
-## 15. Idempotency (Idempotencia)
+## 16. Idempotency (Idempotencia)
 
 Nem-idempotenst POST endpoint-oknal az `X-Idempotency-Key` header biztositja, hogy ugyanaz a keres tobbszori kuldese eseten is csak egyszer hajtodik vegre.
 
@@ -1800,7 +1971,7 @@ Content-Type: application/json
 
 ---
 
-## 16. API Versioning Policy (API Verziozasi Iranyelvek)
+## 17. API Versioning Policy (API Verziozasi Iranyelvek)
 
 ### Mikor szukseges uj fo verzio (v2)?
 

@@ -436,6 +436,29 @@ aiflow skill install ./skills/process_documentation
 # 6. Tesztek futtatas (opcionalis: --skip-tests)
 ```
 
+### 5.5 Skill Instance Reteg
+
+Egy Skill SABLON (template), amibol tobb PELDANY (instance) futhat kulonbozo konfiguracioval:
+
+```
+Skill Template (kod) -> skills/aszf_rag_chat/ (agents, workflow, models)
+  |
+Skill Instance Config -> instances/allianz/hr_aszf_chat.yaml (collection, prompts, data)
+  |
+Skill Instance Runtime -> PostgreSQL: skill_instances tabla (metrics, cost, status)
+```
+
+Pelda: Ugyanazon aszf_rag_chat skill-bol 3 instance egy ugyfélnel:
+- "HR Szabalyzat Chat" (hr_docs collection, HR promptok)
+- "Jogi Dokumentum Chat" (legal_docs collection, jogi promptok)
+- "IT Policy Chat" (it_docs collection, IT promptok)
+
+Minden instance sajat:
+- VectorStore collection (kulonbozo dokumentumok)
+- Langfuse prompt namespace (kulonbozo system prompt-ok)
+- Budget es SLA (kulonbozo koltseg keretek)
+- Adatforrasok (kulonbozo SharePoint/S3/upload)
+
 ---
 
 ## 6. Prompt Platform

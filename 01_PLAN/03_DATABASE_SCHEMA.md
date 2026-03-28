@@ -2,7 +2,7 @@
 
 ## PostgreSQL Database: `aiflow`
 
-**Teljes schema:** 35 tabla, 13 view, 60+ index, 19 migracio
+**Teljes schema:** 36 tabla, 13 view, 60+ index, 20 migracio
 **Utolso frissites:** 2026-03-28 (v1 + v2 + v3 test tracking egyesittes)
 
 ---
@@ -34,6 +34,7 @@ CREATE TABLE workflow_runs (
     user_id UUID,  -- FK added in 005_add_security.py
     job_id VARCHAR(255),
     priority INT DEFAULT 3,
+    instance_id UUID REFERENCES skill_instances(id) ON DELETE SET NULL,
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -49,6 +50,7 @@ CREATE INDEX idx_wr_created_at ON workflow_runs(created_at DESC);
 CREATE INDEX idx_wr_job_id ON workflow_runs(job_id);
 CREATE INDEX idx_wr_skill_name ON workflow_runs(skill_name);
 CREATE INDEX idx_wr_user_id ON workflow_runs(user_id);
+CREATE INDEX idx_wr_instance_id ON workflow_runs(instance_id);
 ```
 
 ### step_runs
@@ -105,6 +107,30 @@ CREATE TABLE skills (
     installed_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+```
+
+### skill_instances
+
+```sql
+CREATE TABLE skill_instances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    instance_name VARCHAR(255) UNIQUE NOT NULL,
+    display_name VARCHAR(500),
+    skill_name VARCHAR(255) NOT NULL,
+    skill_version VARCHAR(50) NOT NULL,
+    customer_id VARCHAR(255) NOT NULL,
+    config JSONB NOT NULL,
+    prompt_namespace VARCHAR(255) NOT NULL,
+    collection_name VARCHAR(255),
+    status VARCHAR(20) DEFAULT 'active',
+    budget_monthly_usd DECIMAL(10,2),
+    budget_used_usd DECIMAL(10,2) DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_si_skill ON skill_instances(skill_name);
+CREATE INDEX idx_si_customer ON skill_instances(customer_id);
+CREATE INDEX idx_si_status ON skill_instances(status);
 ```
 
 ### workflow_definitions
@@ -726,8 +752,9 @@ alembic/versions/
     009_add_ab_testing.py         # Phase 7: ab_experiments, ab_assignments, ab_outcomes
     010_add_test_management.py    # Phase 7: test_datasets, test_cases, test_results
     011_add_monitoring_views.py   # Phase 7: v_workflow_metrics, v_team_budget, stb.
-    ...                           # Phase 1+: test tracking tablak (012-018)
-    019_add_conversations.py      # Phase 2+: conversations, conversation_messages
+    012_add_skill_instances.py    # Phase 2+: skill_instances + ALTER workflow_runs ADD instance_id
+    ...                           # Phase 1+: test tracking tablak (013-019)
+    020_add_conversations.py      # Phase 2+: conversations, conversation_messages
 ```
 
 ---
@@ -1148,14 +1175,15 @@ alembic/versions/
     009_add_ab_testing.py              # Phase 7: ab_experiments, ab_assignments, ab_outcomes
     010_add_test_management.py         # Phase 7: test_datasets, test_cases, test_results
     011_add_monitoring_views.py        # Phase 7: v_workflow_metrics, v_team_budget, stb.
-    012_add_dev_step_tracking.py       # Phase 1+: development_steps
-    013_add_test_suites.py             # Phase 1+: test_suites, test_suite_components
-    014_add_regression_tracking.py     # Phase 1+: regression_runs, regression_suite_results, regression_test_results
-    015_add_coverage_tracking.py       # Phase 1+: coverage_snapshots, coverage_module_details
-    016_add_flaky_tracking.py          # Phase 1+: flaky_test_tracking
-    017_add_regression_matrix.py       # Phase 1+: regression_matrix_rules
-    018_add_test_regression_views.py   # Phase 1+: v_weekly_regression_summary stb.
-    019_add_conversations.py           # Phase 2+: conversations, conversation_messages
+    012_add_skill_instances.py         # Phase 2+: skill_instances + ALTER workflow_runs ADD instance_id
+    013_add_dev_step_tracking.py       # Phase 1+: development_steps
+    014_add_test_suites.py             # Phase 1+: test_suites, test_suite_components
+    015_add_regression_tracking.py     # Phase 1+: regression_runs, regression_suite_results, regression_test_results
+    016_add_coverage_tracking.py       # Phase 1+: coverage_snapshots, coverage_module_details
+    017_add_flaky_tracking.py          # Phase 1+: flaky_test_tracking
+    018_add_regression_matrix.py       # Phase 1+: regression_matrix_rules
+    019_add_test_regression_views.py   # Phase 1+: v_weekly_regression_summary stb.
+    020_add_conversations.py           # Phase 2+: conversations, conversation_messages
 ```
 
 ---
@@ -1167,6 +1195,7 @@ alembic/versions/
 | 1 | workflow_runs | ~450/nap | Workflow futtatas tracking | 1 |
 | 2 | step_runs | ~2,500/nap | Step szintu tracking + checkpoint | 1 |
 | 3 | skills | ~10-50 | Telepitett skill-ek | 2 |
+| 3b | skill_instances | ~50-200 | Skill peldanyok per ugyfel | 2+ |
 | 4 | workflow_definitions | ~20-100 | DAG definiciok | 2 |
 | 5 | skill_prompt_versions | ~50-200 | Prompt verzio mapping | 2 |
 | 6 | model_registry | ~20-50 | ML/LLM modellek | 2 |
@@ -1200,10 +1229,10 @@ alembic/versions/
 | 34 | conversations | ~100-500/nap | RAG chat beszelgetesek | 2+ |
 | 35 | conversation_messages | ~500-5,000/nap | Chat uzenetek + citations | 2+ |
 
-**Osszes tabla:** 35
+**Osszes tabla:** 36
 **Osszes view:** 12
 **Osszes index:** 60+
-**Osszes migracio:** 19
+**Osszes migracio:** 20
 
 ---
 

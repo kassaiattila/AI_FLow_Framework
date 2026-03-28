@@ -2,7 +2,7 @@
 
 **Datum:** 2026-03-28
 **Ceg:** BestIx Kft
-**Status:** Integralt terv (26 reszterv + 4 fejlesztesi artefaktum = 30 dokumentum)
+**Status:** Integralt terv (27 reszterv + 4 fejlesztesi artefaktum = 31 dokumentum)
 
 ---
 
@@ -180,6 +180,27 @@ class ExecutionContext(BaseModel):
     checkpoint_data: dict | None = None  # Resume-hoz (LangGraph minta)
     checkpoint_version: int = 0          # Version tracking (LangGraph minta)
 ```
+
+### 4.6 Skill Instance Architektura
+
+#### Skill = Template, Instance = Futo Peldany
+
+Egy skill NEM szingularis deployment. Egy skill SABLON (template), amibol
+tobb PELDANY (instance) futhat kulonbozo konfiguracioval:
+
+**Ugyfel A:**
+  - `aszf_rag_chat` instance **"HR Chat"** (hr_docs, HR promptok)
+  - `aszf_rag_chat` instance **"Jogi Chat"** (legal_docs, jogi promptok)
+  - `email_intent` instance **"Ugyfelszolgalat"** (5 intent)
+  - `email_intent` instance **"Belso Ticketek"** (8 intent)
+
+**Ugyfel B:**
+  - `aszf_rag_chat` instance **"Policy Chat"** (policies, angol promptok)
+  - `cubix_course_capture` instance **"Python Course"** (cubix.hu)
+  - `cubix_course_capture` instance **"ML Course"** (cubix.hu/ml)
+
+Minden instance sajat: collection, prompt namespace, budget, SLA, adatforrasok.
+Reszletek: [28_MODULAR_DEPLOYMENT.md](28_MODULAR_DEPLOYMENT.md)
 
 ---
 
@@ -609,11 +630,12 @@ aiflow/
 
 **A reszletes het-per-het feladatlista: [04_IMPLEMENTATION_PHASES.md](04_IMPLEMENTATION_PHASES.md)**
 
-**Teljes terv (30 dokumentum):**
+**Teljes terv (31 dokumentum):**
 - Core: 01-05 (Architecture, Directory, DB Schema, Phases, Tech Stack)
 - Operations: 06-08 (Claude Code, Version/Lifecycle, Error/Debug)
 - Enterprise: 09-10 (Middleware, Audit/Compliance)
 - Examples: 11-13 (Skills Walkthrough, Skill Integration, GitHub Research)
 - Technical: 14-16 (Frontend, ML Models, RAG/VectorStore)
 - Dev Rules: 17-19 (Git Rules, Testing/Playwright, RPA Automation)
+- Deployment: 28 (Modular Deployment, Skill Instance architecture, multi-customer)
 - Artifacts: CLAUDE.md, SKILL_DEVELOPMENT.md, AIFLOW_MASTER_PLAN.md, 00_EXECUTIVE_SUMMARY.md

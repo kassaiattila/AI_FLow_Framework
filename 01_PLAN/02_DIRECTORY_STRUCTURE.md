@@ -301,6 +301,23 @@ aiflow/
 |   |   |-- config/                         # field_registry.json, test_strategies.json
 |   |   |-- tests/
 |
+|-- deployments/                            # Ugyfél deployment profilok
+|   |-- _shared/
+|   |   |-- base-config.yaml
+|   |-- allianz/
+|   |   |-- deployment.yaml                 # Skill lista + instance-ok
+|   |   |-- instances/
+|   |   |   |-- hr_aszf_chat.yaml
+|   |   |   |-- legal_aszf_chat.yaml
+|   |   |-- k8s/
+|   |       |-- kustomization.yaml
+|   |-- cubix-edu/
+|       |-- deployment.yaml
+|       |-- instances/
+|       |   |-- python_course.yaml
+|       |-- k8s/
+|           |-- kustomization.yaml
+|
 |-- templates/                              # Workflow sablonok
 |   |-- small_linear/                       # 3-5 lepes, linearis
 |   |   |-- workflow.py.j2

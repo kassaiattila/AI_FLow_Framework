@@ -12,6 +12,7 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - **Prompt** = YAML source -> Langfuse SSOT -> runtime cache, label-based env (dev/test/staging/prod)
 - **ExecutionContext** = request-scoped context flowing through all components (trace, budget, label)
 - **ModelClient** = unified facade: generate (LLM), embed, classify, extract, vision, predict
+- **Skill Instance** = configured deployment of a Skill template. Same skill code, different data/prompts/budget per instance. Multiple instances per customer possible.
 - **VectorStore** = pgvector hybrid search (vector HNSW + BM25 tsvector + RRF)
 
 ## Tech Stack
@@ -243,6 +244,7 @@ Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
 
 **Environment:**
 - **27_DEVELOPMENT_ENVIRONMENT** - uv, .venv, Docker Compose, Makefile, onboarding
+- **28_MODULAR_DEPLOYMENT** - Skill Instance architecture, multi-customer, deployment profiles
 
 **Dev Artifacts:**
 - IMPLEMENTATION_PLAN.md, SKILL_DEVELOPMENT.md, AIFLOW_MASTER_PLAN.md

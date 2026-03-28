@@ -260,6 +260,79 @@ Step 6: audit_log bejegyzes: "skill.uninstall"
 
 ---
 
+## 6.5 Multi-Instance Telepites
+
+Egy skill template-bol tobb instance hozható letre kulonbozo konfiguracioval. Ugyanaz a kod, mas konfig.
+
+### 6.5.1 Instance CLI Parancsok
+
+```bash
+# Uj instance letrehozasa YAML konfigbol
+aiflow instance create --config instances/allianz/hr_aszf_chat.yaml
+
+# Instance-ok listazasa ugyfel szerint
+aiflow instance list --customer allianz
+
+# Instance konfiguracio modositasa
+aiflow instance configure --instance hr_aszf_chat --set budget.monthly=1000
+
+# Instance statusz valtas
+aiflow instance pause --instance hr_aszf_chat
+aiflow instance resume --instance hr_aszf_chat
+aiflow instance disable --instance hr_aszf_chat
+```
+
+### 6.5.2 Instance Izolacio
+
+Minden instance teljes izolacioval mukodik:
+
+```
+Skill Template: aszf_rag_chat (egyetlen kodot karbantartjuk)
+  |
+  +-- Instance: hr_aszf_chat
+  |     +-- Collection: hr_docs (sajat dokumentumok)
+  |     +-- Prompt namespace: allianz/hr_aszf/ (sajat system prompt)
+  |     +-- Budget: $500/ho
+  |
+  +-- Instance: legal_aszf_chat
+  |     +-- Collection: legal_docs (sajat dokumentumok)
+  |     +-- Prompt namespace: allianz/legal_aszf/ (sajat system prompt)
+  |     +-- Budget: $1000/ho
+  |
+  +-- Instance: it_policy_chat
+        +-- Collection: it_docs (sajat dokumentumok)
+        +-- Prompt namespace: allianz/it_aszf/ (sajat system prompt)
+        +-- Budget: $300/ho
+```
+
+### 6.5.3 Egy Skill Template Tobb Instance-szal
+
+A skill kod egyszer van irva es karbantartva. Az instance YAML határozza meg:
+- Melyik VectorStore collection-t hasznalja
+- Melyik Langfuse prompt namespace-bol olvas
+- Milyen budget es SLA kerettel dolgozik
+- Milyen adatforrasokbol (SharePoint/S3/upload) szinkronizal
+
+```yaml
+# deployments/allianz/instances/hr_aszf_chat.yaml
+instance_name: hr_aszf_chat
+display_name: "HR Szabalyzat Chat"
+skill_name: aszf_rag_chat
+skill_version: "1.0.0"
+customer_id: allianz
+
+config:
+  collection_name: hr_docs
+  prompt_namespace: allianz/hr_aszf
+  data_sources:
+    - type: sharepoint
+      uri: "https://allianz.sharepoint.com/sites/HR/docs"
+  budget:
+    monthly_usd: 500
+```
+
+---
+
 ## 7. Dokumentacios Kovetelmeny
 
 ### 7.1 Minden Skill-nek Kell

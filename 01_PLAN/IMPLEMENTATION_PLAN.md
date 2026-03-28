@@ -400,3 +400,59 @@ gh pr create --title "feat(core): add AIFlowSettings" --body "..."
 # Merge (squash)
 # CI zold + review -> squash merge to main
 ```
+
+---
+
+## FAZIS A-E: MODULAR DEPLOYMENT + VALOS SKILL-EK
+
+### FAZIS A: Instance Infrastruktura (1-2 het)
+
+```
+FELADATOK:
+1. skill_instances DB tabla + 012_add_skill_instances.py migracio
+2. src/aiflow/skills/instance.py - SkillInstance model + InstanceManager
+3. deployments/ konyvtar struktura + DeploymentManifest model
+4. CLI: aiflow instance create/list/configure
+5. workflow_runs.instance_id FK bovites
+```
+
+### FAZIS B: Framework Placeholder Befejezese (2-3 het)
+
+```
+FELADATOK:
+1. pgvector_store.py - valodi SQL implementacio
+2. prompts/manager.py - Langfuse integracio
+3. api/v1/ - valodi endpoint-ok (DB-bol olvasas)
+4. skills/registry.py - teljes install folyamat
+```
+
+### FAZIS C: Elso Valodi Skill - ASZF RAG Chat (3-4 het)
+
+```
+FORRAS: allianz-rag-unified pilot
+FELADATOK:
+1. Modellek, promptok portalasa
+2. Multi-instance tamogatas (collection, prompt namespace per instance)
+3. 100+ teszt eset
+4. Elso instance: instances/allianz/hr_aszf_chat.yaml
+```
+
+### FAZIS D: Masodik Skill - Cubix Course Capture (4-5 het)
+
+```
+FORRAS: Cubix_AI_ML/automation + transcript_pipeline
+FELADATOK:
+1. Playwright + ffmpeg + STT pipeline
+2. Operator-assisted lepesek (HumanReviewRequiredError)
+3. Instance: instances/cubix-edu/python_course.yaml
+```
+
+### FAZIS E: Customer Deployment Infra (2-3 het, parhuzamos)
+
+```
+FELADATOK:
+1. Per-customer Kustomize overlays
+2. CI Pipeline D (customer deployment)
+3. Staging namespace-ek
+4. Elso customer deployment teszt
+```
