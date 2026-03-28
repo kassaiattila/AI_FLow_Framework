@@ -32,6 +32,10 @@ rules:
     suites: [engine-unit, core-unit, integration-state]
     reason: "Engine changes may affect core and state"
 
+  - pattern: "src/aiflow/agents/**"
+    suites: [agents-unit, engine-unit, core-unit]
+    reason: "Agent changes may affect orchestration, engine, and core"
+
   - pattern: "pyproject.toml"
     suites: FULL
     reason: "Dependency change may affect everything"
@@ -42,3 +46,4 @@ default_suites:
   - models-unit
   - vectorstore-unit
   - engine-unit
+  - agents-unit
