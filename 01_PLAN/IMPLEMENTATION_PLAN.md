@@ -24,26 +24,45 @@ es a 6 skill-t felepigtse, lepesrol lepesre. A `` mappa 23 dokumentuma alapjan,
 ### Het 1: Monorepo + Core Kernel
 
 ```
+FEJLESZTOI KORNYEZET (27_DEVELOPMENT_ENVIRONMENT.md):
+- Python 3.12+ + uv (package manager) KOTELEZO a fejleszto gepen
+- `uv venv` -> .venv/ letrehozas
+- `uv pip install -e ".[dev]"` -> fuggosegek
+- `uv.lock` -> MINDIG commitolva (reprodukalhato build)
+- Docker szolgaltatasok: `make dev` (postgres + redis + kroki)
+- Kod fut lokálisan .venv-bol (IDE tamogatas, hot reload)
+
 FELADATOK:
-1. GitHub repo: aiflow (monorepo)
-2. pyproject.toml (fuggosegek: 05_TECH_STACK.md alapjan)
-3. src/aiflow/__init__.py - public API exports
-4. src/aiflow/_version.py - "0.1.0"
-5. src/aiflow/core/config.py - AIFlowSettings (pydantic-settings)
+1. GitHub repo: aiflow (monorepo) - MAR KESZ (baseline commit)
+2. pyproject.toml (fuggosegek: 05_TECH_STACK.md alapjan, uv kompatibilis PEP 621)
+3. uv.lock generalas: `uv pip compile pyproject.toml -o uv.lock`
+4. Makefile (27_DEVELOPMENT_ENVIRONMENT.md 5. szekció - 20+ target)
+5. src/aiflow/__init__.py - public API exports
+6. src/aiflow/_version.py - "0.1.0"
+7. src/aiflow/core/config.py - AIFlowSettings (pydantic-settings)
    MINTA: 06_Diagram_Gen_AI_Agent/src/config.py (52-162 sor)
-6. src/aiflow/core/types.py - Status enum, kozos tipusok
-7. src/aiflow/core/errors.py - TransientError/PermanentError hierarchia
+8. src/aiflow/core/types.py - Status enum, kozos tipusok
+9. src/aiflow/core/errors.py - TransientError/PermanentError hierarchia
    RESZLETEK: 08_ERROR_HANDLING_DEBUGGING.md 1.1 szekció
-8. src/aiflow/core/context.py - ExecutionContext
-   RESZLETEK: 01_ARCHITECTURE.md 2.1 szekció
-9. src/aiflow/core/events.py - Event Bus (CrewAI minta)
-10. src/aiflow/core/registry.py - univerzalis registry
-11. src/aiflow/core/di.py - DI container
-12. .pre-commit-config.yaml (17_GIT_RULES.md 9. szekció)
-13. .github/CODEOWNERS (17_GIT_RULES.md 2. szekció)
+10. src/aiflow/core/context.py - ExecutionContext
+    RESZLETEK: 01_ARCHITECTURE.md 2.1 szekció
+11. src/aiflow/core/events.py - Event Bus (CrewAI minta)
+12. src/aiflow/core/registry.py - univerzalis registry
+13. src/aiflow/core/di.py - DI container
+14. .pre-commit-config.yaml (17_GIT_RULES.md 9. szekció)
+15. .github/CODEOWNERS (17_GIT_RULES.md 2. szekció)
+16. src/aiflow/CLAUDE.md - Framework kontextus (26_CLAUDE_CODE_SETUP.md)
+17. tests/CLAUDE.md - Test kontextus (26_CLAUDE_CODE_SETUP.md)
+18. tests/conftest.py - Globalis fixtures (25_TEST_DIRECTORY_STRUCTURE.md 9. szekció)
+19. tests/test_suites.yaml - Elso suite definiciok (24_TESTING_REGRESSION_STRATEGY.md)
+20. tests/regression_matrix.yaml - Elso matrix szabalyok (24_TESTING_REGRESSION_STRATEGY.md)
+21. scripts/check_environment.sh - Kornyezet ellenorzo (27_DEVELOPMENT_ENVIRONMENT.md 10. szekció)
 
 TESZTEK: tests/unit/core/test_config.py, test_context.py, test_errors.py, test_registry.py
-VERIFIKACIO: pytest tests/unit/core/ -v -> ZOLD
+VERIFIKACIO:
+  uv venv && uv pip install -e ".[dev]"    # Kornyezet mukodik
+  make dev                                  # Docker szolgaltatasok elindulnak
+  pytest tests/unit/core/ -v               # ZOLD
 ```
 
 ### Het 2: State + LLM
@@ -72,14 +91,15 @@ VERIFIKACIO: alembic upgrade head + pytest -> ZOLD
 
 ```
 FELADATOK:
-1. docker-compose.yml - pgvector/pgvector:pg16, redis:7-alpine, aiflow-api
-   MINTA: 06_Diagram_Gen_AI_Agent/docker-compose.yml
-2. Dockerfile - Python 3.12 + uvicorn
-3. aiflow.yaml - framework config
-4. .env.example - titkok template
+1. docker-compose.yml - pgvector/pgvector:pg16, redis:7-alpine, kroki
+   RESZLETEK: 27_DEVELOPMENT_ENVIRONMENT.md 6. szekció (profiles: core/full/tools)
+2. Dockerfile - uv-alapu multi-stage (api, worker, rpa-worker)
+   RESZLETEK: 27_DEVELOPMENT_ENVIRONMENT.md 8. szekció
+3. aiflow.yaml - framework config (23_CONFIGURATION_REFERENCE.md)
+4. .env.example - titkok template (23_CONFIGURATION_REFERENCE.md 3. szekció)
 5. src/aiflow/observability/logging.py - structlog JSON
-6. Makefile (make dev, make test, make lint, make migrate)
-7. .github/workflows/ci-framework.yml
+6. .github/workflows/ci-framework.yml (uv pip sync uv.lock - reprodukalhato!)
+   RESZLETEK: 27_DEVELOPMENT_ENVIRONMENT.md 7. szekció
    RESZLETEK: 18_TESTING_AUTOMATION.md 3. szekció
 
 VERIFIKACIO: docker compose up -d, curl localhost:8000/api/v1/health -> {"status": "healthy"}
@@ -332,10 +352,13 @@ FELADATOK:
 ## VERIFIKACIO MINDEN FAZIS VEGEN
 
 ```bash
-# Automatikus (CI)
-make lint                                    # ruff + black + mypy
-pytest tests/unit/ -v --cov=aiflow          # Unit tesztek + coverage
-pytest tests/integration/ -v                # Integracio (Docker)
+# Kornyezet ellenorzes (27_DEVELOPMENT_ENVIRONMENT.md)
+bash scripts/check_environment.sh            # Python, uv, Docker, .venv, .env ellenorzes
+
+# Automatikus (CI - uv.lock-bol reprodukalhatoan)
+make lint                                    # ruff check + ruff format + mypy
+make test-cov                                # Unit tesztek + coverage
+make test-integration                        # Integracio (Docker szolgaltatasok kellenek)
 
 # Fazis 4+:
 aiflow skill list                           # Skill-ek megjelennek

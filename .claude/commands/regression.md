@@ -10,10 +10,11 @@ Steps:
    - Run ALL test suites
 4. Otherwise, run only the affected suites
 
-For each suite:
+Ensure .venv is active (uv-managed). For each suite:
 ```bash
-pytest {suite_path} -v --tb=short --cov=aiflow --cov-report=term-missing
+.venv/Scripts/pytest {suite_path} -v --tb=short --cov=aiflow --cov-report=term-missing
 ```
+(On Unix use `.venv/bin/pytest`)
 
 After running:
 1. Report results in a table:

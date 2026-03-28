@@ -5,6 +5,10 @@ Arguments: $ARGUMENTS
 
 This command is used AFTER implementing a change and writing tests, BEFORE committing.
 
+Prerequisites: .venv must exist (created by `uv venv && uv pip install -e ".[dev]"`).
+Docker services must be running (`make dev`) for integration tests.
+Environment spec: 01_PLAN/27_DEVELOPMENT_ENVIRONMENT.md
+
 Sequence:
 1. **Identify changes**: `git diff --name-only` + `git diff --staged --name-only`
 2. **Classify step type**: feature / fix / refactor / prompt / skill / dependency / config

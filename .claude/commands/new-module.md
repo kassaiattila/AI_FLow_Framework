@@ -27,9 +27,14 @@ Then generate:
 
 4. **Update regression_matrix.yaml** with the new module's mapping
 
+5. **After generating**, run `/regression` to verify nothing broke
+
 Rules from CLAUDE.md:
 - All public API must be typed (no `Any` without justification)
 - Pydantic BaseModel for data classes
 - async for I/O operations
 - structlog for logging
 - AIFlowError subclasses for errors
+
+Environment: uses .venv (uv-managed), services in Docker.
+See 01_PLAN/27_DEVELOPMENT_ENVIRONMENT.md for full setup.

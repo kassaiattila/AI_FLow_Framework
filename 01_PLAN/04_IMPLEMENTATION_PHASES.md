@@ -28,19 +28,30 @@
 
 ### Het 1: Projekt scaffold + Core kernel
 
+**Fejlesztoi kornyezet (27_DEVELOPMENT_ENVIRONMENT.md):**
+- `uv` telepitese (Python package manager) - `pip install uv`
+- `uv venv` -> `.venv/` letrehozas
+- `uv pip install -e ".[dev]"` -> fuggosegek
+- `uv.lock` generalas es commitolas (reprodukalhato build)
+
 **Feladatok:**
-1. GitHub repo: aiflow (monorepo)
-2. `pyproject.toml` - fuggosegek (05_TECH_STACK alapjan, bovitett optional deps)
-3. `src/aiflow/__init__.py` - public API exports
-4. `src/aiflow/_version.py` - "0.1.0"
-5. `src/aiflow/core/config.py` - AIFlowSettings (pydantic-settings)
-6. `src/aiflow/core/types.py` - Status enum, kozos tipusok
-7. `src/aiflow/core/errors.py` - TransientError/PermanentError hierarchia
-8. `src/aiflow/core/context.py` - ExecutionContext (+ checkpoint_version)
-9. `src/aiflow/core/events.py` - Event Bus (CrewAI minta)
-10. `src/aiflow/core/registry.py` - univerzalis registry
-11. `src/aiflow/core/di.py` - DI container
-12. `.pre-commit-config.yaml`, `.github/CODEOWNERS`, `.gitignore`, PR template
+1. `pyproject.toml` - PEP 621 format, uv kompatibilis (05_TECH_STACK alapjan)
+2. `uv.lock` - lockfile generalas (`uv pip compile pyproject.toml -o uv.lock`)
+3. `Makefile` - 20+ target (27_DEVELOPMENT_ENVIRONMENT.md 5. szekció)
+4. `src/aiflow/__init__.py` - public API exports
+5. `src/aiflow/_version.py` - "0.1.0"
+6. `src/aiflow/core/config.py` - AIFlowSettings (pydantic-settings)
+7. `src/aiflow/core/types.py` - Status enum, kozos tipusok
+8. `src/aiflow/core/errors.py` - TransientError/PermanentError hierarchia
+9. `src/aiflow/core/context.py` - ExecutionContext (+ checkpoint_version)
+10. `src/aiflow/core/events.py` - Event Bus (CrewAI minta)
+11. `src/aiflow/core/registry.py` - univerzalis registry
+12. `src/aiflow/core/di.py` - DI container
+13. `.pre-commit-config.yaml`, `.github/CODEOWNERS`, PR template
+14. `src/aiflow/CLAUDE.md` - Framework kontextus (26_CLAUDE_CODE_SETUP.md)
+15. `tests/CLAUDE.md` - Test kontextus
+16. `tests/conftest.py`, `tests/test_suites.yaml`, `tests/regression_matrix.yaml`
+17. `scripts/check_environment.sh` - Kornyezet ellenorzo
 
 **Teszt:** `tests/unit/core/test_config.py`, `test_context.py`, `test_errors.py`, `test_registry.py`
 
@@ -63,15 +74,21 @@
 ### Het 3: Docker + Logging + CI scaffold
 
 **Feladatok:**
-1. `docker-compose.yml` - pgvector/pgvector:pg16, redis:7-alpine, aiflow-api
-2. `Dockerfile` - Python 3.12 + uvicorn (multi-stage)
-3. `aiflow.yaml` - default framework config
-4. `.env.example` - titkok template
+1. `docker-compose.yml` - pgvector, redis, kroki + profiles (27_DEVELOPMENT_ENVIRONMENT.md 6. sz.)
+2. `Dockerfile` - uv-alapu multi-stage: api, worker, rpa-worker (27_DEVELOPMENT_ENVIRONMENT.md 8. sz.)
+3. `aiflow.yaml` - default framework config (23_CONFIGURATION_REFERENCE.md)
+4. `.env.example` - titkok template (23_CONFIGURATION_REFERENCE.md 3. szekció)
 5. `src/aiflow/observability/logging.py` - structlog JSON
-6. `Makefile` - `make dev`, `make test`, `make lint`, `make migrate`
-7. `.github/workflows/ci-framework.yml` - alap lint + unit test
+6. `.github/workflows/ci-framework.yml` - uv setup + `uv pip sync uv.lock` (reprodukalhato!)
+7. `.vscode/settings.json` + `.vscode/extensions.json` (26_CLAUDE_CODE_SETUP.md 6. sz.)
 
-**Milestone:** `pytest tests/unit/` zold, Docker elindul, DB migracio fut, LLM hivas mukodik
+**Milestone:**
+```bash
+uv venv && uv pip install -e ".[dev]"     # Kornyezet felall
+make dev                                    # Docker szolgaltatasok + DB migracio
+pytest tests/unit/ -v                       # Tesztek ZOLDEK
+curl http://localhost:8000/health           # API elerheto (ha make dev-docker)
+```
 
 ---
 
