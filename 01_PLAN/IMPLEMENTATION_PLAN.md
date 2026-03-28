@@ -484,21 +484,20 @@ ROBOT FRAMEWORK INTEGRACIO:
 4. [KESZ] Robot Framework 7.4.2 telepitve es verifikalt
 ```
 
-### FAZIS A4: AIFlow Keretrendszer Felulvizsgalat (tervezett)
+### FAZIS A4: AIFlow Keretrendszer Felulvizsgalat - AUDIT KESZ 2026-03-28
 
 ```
-STATUSZ: TERVEZETT
-MEGFIGYEELSEK A VALOS TESZTEKBOL:
-- WorkflowRunner-t senki nem hasznalja (stepeket kozvetlenul hivjuk)
-- DI container nincs bekotve (closure-ok)
-- API endpoint-ok stubbok
-- Agent rendszer nem hasznalt a ket valos skillben
+STATUSZ: AUDIT KESZ, OPTIMALIZACIO TERVEZETT
+RESZLETES TERV: 01_PLAN/29_OPTIMIZATION_PLAN.md
 
-JAVASOLT OPTIMALIZACIOK:
-1. Runner service injection (ctx, models, prompts parameterek)
-2. Lightweight skill modus (egyetlen fuggveny = skill)
-3. /port-skill slash command (pilot -> AIFlow automatikus portalas)
-4. Pilot portalasi sablon (minden mukodo funkcioszint 1. korben atkerul)
+AUDIT EREDMENYEK (valos hasznalat alapjan):
+  HASZNALT (ertekes): ModelClient, PromptManager, @step, structlog, Pydantic, FileStateManager
+  NEM HASZNALT (holt kod): WorkflowRunner, DI Container, ExecutionContext, Agent system, API stubbok
+
+OPTIMALIZACIOS FAZISOK:
+  O1 (1 het): Runner service injection + SkillRunner + holt kod deprecation
+  O2 (1-2 het): Skill __main__.py entry point + skill_config.yaml + CLI futtathatosag
+  O3 (2-3 het): Mappa vegleges rendrakas + dependency cleanup + dokumentacio
 ```
 
 ### FAZIS B: Framework Placeholder Befejezese (2-3 het)
