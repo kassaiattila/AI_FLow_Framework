@@ -495,9 +495,10 @@ AUDIT EREDMENYEK (valos hasznalat alapjan):
   NEM HASZNALT (holt kod): WorkflowRunner, DI Container, ExecutionContext, Agent system, API stubbok
 
 OPTIMALIZACIOS FAZISOK:
-  O1 (1 het): Runner service injection + SkillRunner + holt kod deprecation
-  O2 (1-2 het): Skill __main__.py entry point + skill_config.yaml + CLI futtathatosag
-  O3 (2-3 het): Mappa vegleges rendrakas + dependency cleanup + dokumentacio
+  O1 [KESZ]: Runner service injection + SkillRunner + CLI entry pointok
+  O2 [KESZ]: skill_config.yaml mindket skillhez
+  O3 [KESZ]: tools/ merge (contrib/ -> tools/ flat), holt kod deprecation
+  KOVETKEZO: aszf_rag_chat skill portalas (Allianz RAG pilot)
 ```
 
 ### FAZIS B: Framework Placeholder Befejezese (2-3 het)
