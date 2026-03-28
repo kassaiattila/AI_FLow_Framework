@@ -56,6 +56,22 @@ rules:
     suites: [evaluation-unit, core-unit]
     reason: "Evaluation framework changes affect scorers, datasets, and core"
 
+  - pattern: "src/aiflow/execution/**"
+    suites: [execution-unit, core-unit]
+    reason: "Execution layer changes affect queue, worker, DLQ, and rate limiter"
+
+  - pattern: "src/aiflow/security/**"
+    suites: [security-unit, core-unit]
+    reason: "Security layer changes affect auth, RBAC, and guardrails"
+
+  - pattern: "src/aiflow/api/**"
+    suites: [api-unit, security-unit, core-unit]
+    reason: "API layer changes affect endpoints, auth middleware, and core"
+
+  - pattern: "alembic/versions/005_*"
+    suites: [security-unit]
+    reason: "Security migration affects teams, users, and audit tables"
+
   - pattern: "pyproject.toml"
     suites: FULL
     reason: "Dependency change may affect everything"
@@ -72,3 +88,6 @@ default_suites:
   - ingestion-unit
   - skills-unit
   - evaluation-unit
+  - execution-unit
+  - security-unit
+  - api-unit

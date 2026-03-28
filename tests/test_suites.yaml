@@ -169,3 +169,45 @@ suites:
       - evaluation.framework
       - evaluation.scorers
       - evaluation.datasets
+
+  execution-unit:
+    description: "Execution layer unit tests (queue, worker, DLQ, rate limiter)"
+    path: "tests/unit/execution/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: critical
+    max_duration_seconds: 30
+    coverage_target: 90.0
+    requires_services: []
+    components:
+      - execution.queue
+      - execution.worker
+      - execution.dlq
+      - execution.rate_limiter
+
+  security-unit:
+    description: "Security layer unit tests (auth, RBAC, guardrails)"
+    path: "tests/unit/security/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: critical
+    max_duration_seconds: 30
+    coverage_target: 90.0
+    requires_services: []
+    components:
+      - security.auth
+      - security.rbac
+      - security.guardrails
+
+  api-unit:
+    description: "API layer unit tests (app factory, health, workflows)"
+    path: "tests/unit/api/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: critical
+    max_duration_seconds: 30
+    coverage_target: 90.0
+    requires_services: []
+    components:
+      - api.app
+      - api.health
