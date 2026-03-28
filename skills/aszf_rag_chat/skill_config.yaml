@@ -1,0 +1,32 @@
+# ASZF RAG Chat - Runtime Configuration
+models:
+  embedding: openai/text-embedding-3-small
+  answer_generator: openai/gpt-4o
+  query_rewriter: openai/gpt-4o-mini
+  citation_extractor: openai/gpt-4o-mini
+  hallucination_detector: openai/gpt-4o-mini
+
+search:
+  vector_weight: 0.6
+  keyword_weight: 0.4
+  top_k: 5
+  similarity_threshold: 0.3
+  rrf_k: 60
+
+chunking:
+  strategy: semantic
+  target_tokens: 500
+  overlap_tokens: 100
+  separators: ["\n\n", "\n", ". "]
+
+embedding:
+  batch_size: 5
+  max_chars: 6000
+  model: text-embedding-3-small
+  dimensions: 1536
+
+roles:
+  - baseline
+  - mentor
+  - expert
+default_role: baseline
