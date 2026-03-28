@@ -48,8 +48,15 @@ class WorkflowRunner:
     4. On failure: return error result
     """
 
-    def __init__(self, checkpoint_manager: CheckpointManager | None = None) -> None:
+    def __init__(
+        self,
+        checkpoint_manager: CheckpointManager | None = None,
+        models: Any | None = None,
+        prompts: Any | None = None,
+    ) -> None:
         self._checkpoint_mgr = checkpoint_manager or CheckpointManager()
+        self._models = models
+        self._prompts = prompts
 
     async def run(
         self,
@@ -254,12 +261,34 @@ class WorkflowRunner:
 
     async def _execute_step(self, step_name: str, step_func: Any,
                             input_data: Any, ctx: ExecutionContext) -> StepResult:
-        """Execute a single step and return its result."""
+        """Execute a single step with optional service injection.
+
+        If the step function accepts keyword arguments (models, prompts, ctx),
+        they are injected automatically. Otherwise, only input_data is passed
+        (backward compatible with existing steps).
+        """
+        import inspect
+
         start = time.monotonic()
 
         try:
-            # Call the step function
-            output = await step_func(input_data)
+            # Inspect function signature to determine injection
+            sig = inspect.signature(step_func)
+            kwargs: dict[str, Any] = {}
+
+            # Check for service parameters (keyword-only or regular)
+            params = sig.parameters
+            if "models" in params and self._models is not None:
+                kwargs["models"] = self._models
+            if "prompts" in params and self._prompts is not None:
+                kwargs["prompts"] = self._prompts
+            if "ctx" in params:
+                kwargs["ctx"] = ctx
+
+            if kwargs:
+                output = await step_func(input_data, **kwargs)
+            else:
+                output = await step_func(input_data)
 
             duration = (time.monotonic() - start) * 1000
             return StepResult(
