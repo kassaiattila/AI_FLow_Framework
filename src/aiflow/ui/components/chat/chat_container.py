@@ -124,7 +124,7 @@ def conversation_item(
                     line_height="1.2",
                 ),
                 spacing="0",
-                align_items="flex-start",
+                align_items="start",
                 flex="1",
                 min_width="0",
             ),
@@ -392,9 +392,9 @@ def message_bubble(msg, on_citation_toggle: rx.EventHandler) -> rx.Component:
         ),
         user_avatar(),
         spacing="2",
-        align="flex-end",
+        align="end",
         width="100%",
-        justify="flex-end",
+        justify="end",
     )
 
     # -- Assistant message: left-aligned light bubble with avatar --
@@ -460,10 +460,10 @@ def message_bubble(msg, on_citation_toggle: rx.EventHandler) -> rx.Component:
                 rx.fragment(),
             ),
             spacing="0",
-            align_items="flex-start",
+            align_items="start",
         ),
         spacing="2",
-        align="flex-start",
+        align="start",
         width="100%",
     )
 
@@ -701,7 +701,7 @@ def chat_input(
                     },
                 ),
                 spacing="2",
-                align="flex-end",
+                align="end",
                 width="100%",
             ),
             max_width="768px",
