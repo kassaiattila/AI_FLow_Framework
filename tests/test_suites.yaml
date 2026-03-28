@@ -32,7 +32,7 @@ suites:
       - state.repository
 
   models-unit:
-    description: "Model abstraction layer unit tests (metadata, protocols, registry, client)"
+    description: "Model abstraction layer unit tests (metadata, protocols, registry, client, router, cost)"
     path: "tests/unit/models/"
     suite_type: unit
     run_on: [commit, pr, merge]
@@ -43,8 +43,26 @@ suites:
     components:
       - models.metadata
       - models.protocols
+      - models.protocols.classification
+      - models.protocols.extraction
       - models.registry
       - models.client
+      - models.router
+      - models.cost
+
+  vectorstore-unit:
+    description: "Vector store unit tests (base models, hybrid search, embedder)"
+    path: "tests/unit/vectorstore/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: high
+    max_duration_seconds: 30
+    coverage_target: 85.0
+    requires_services: []
+    components:
+      - vectorstore.base
+      - vectorstore.search
+      - vectorstore.embedder
 
   engine-unit:
     description: "Workflow engine unit tests"

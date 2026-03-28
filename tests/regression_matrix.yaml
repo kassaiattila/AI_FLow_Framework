@@ -16,6 +16,18 @@ rules:
     suites: [models-unit, core-unit]
     reason: "Model layer change affects protocols, registry, and client"
 
+  - pattern: "src/aiflow/vectorstore/**"
+    suites: [vectorstore-unit, models-unit, core-unit]
+    reason: "Vector store change affects search, embedder, and model protocols"
+
+  - pattern: "alembic/versions/003_*"
+    suites: [models-unit]
+    reason: "Model registry migration affects model layer"
+
+  - pattern: "alembic/versions/004_*"
+    suites: [vectorstore-unit]
+    reason: "Vector store migration affects collections, documents, chunks"
+
   - pattern: "src/aiflow/engine/**"
     suites: [engine-unit, core-unit, integration-state]
     reason: "Engine changes may affect core and state"
@@ -28,4 +40,5 @@ default_suites:
   - core-unit
   - state-unit
   - models-unit
+  - vectorstore-unit
   - engine-unit
