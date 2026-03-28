@@ -1,0 +1,21 @@
+processes:
+  - name: simple_linear
+    input: "A szabadság igénylés folyamata: a dolgozó kitölti az igénylőlapot, a vezető jóváhagyja, a HR rögzíti a rendszerben."
+    expected_actors: ["dolgozó", "vezető", "HR"]
+    expected_min_steps: 5
+
+  - name: with_decision
+    input: "Számla feldolgozás: érkezik a számla, rögzítés a rendszerben, ha 100.000 Ft felett van akkor vezetői jóváhagyás kell, ha alatta automatikus, végül utalás."
+    expected_actors: ["pénzügy"]
+    expected_min_steps: 6
+
+  - name: complex_multi_actor
+    input: "Új munkatárs felvétel: HR meghirdeti az állást, jelöltek jelentkeznek, HR szűri az önéletrajzokat, szakmai vezető interjúztat, HR bérajánlatot küld, jelölt elfogadja vagy elutasítja, elfogadás esetén HR elkészíti a szerződést."
+    expected_actors: ["HR", "szakmai vezető", "jelölt"]
+    expected_min_steps: 8
+
+off_topic:
+  - input: "Mi a kedvenc színed?"
+    expected_category: reject
+  - input: "Szia, jó napot!"
+    expected_category: reject

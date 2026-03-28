@@ -1,0 +1,42 @@
+instance_name: npra-faq-rag
+display_name: "NPRA FAQ RAG Chat"
+skill_template: aszf_rag_chat
+version: "0.1.0"
+customer: npra
+enabled: true
+
+data_sources:
+  collections:
+    - name: npra-faq-2024
+      priority: 1
+  document_filters:
+    language: hu
+  embedding_model: text-embedding-3-small
+
+prompts:
+  namespace: npra/faq-rag
+  label: prod
+  overrides:
+    - prompt_name: system-prompt
+      variables:
+        company_name: "NPRA"
+        tone: "professional"
+        max_response_length: 400
+
+models:
+  default: gpt-4o-mini
+  fallback: gpt-4o-mini
+
+budget:
+  monthly_usd: 150.00
+  per_run_usd: 0.05
+  alert_threshold: 0.8
+
+sla:
+  target_seconds: 3
+  p95_target_seconds: 5
+  availability: 0.99
+
+routing:
+  input_channel: api
+  output_channel: api

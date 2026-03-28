@@ -1,0 +1,35 @@
+customer:
+  name: azhu
+  display_name: "Allianz Hungaria Zrt."
+  contact_email: it-ops@allianz.hu
+  tier: enterprise
+
+framework:
+  version: "0.1.0"
+  image_variant: base
+
+skill_templates:
+  - name: aszf_rag_chat
+    version: "0.1.0"
+
+instances:
+  - file: instances/azhu-aszf-rag.yaml
+
+infrastructure:
+  docker_compose_project: aiflow-azhu
+  k8s_namespace: null
+  database:
+    host: localhost
+    name: aiflow_azhu
+  redis:
+    db: 1
+    prefix: "azhu:"
+  langfuse:
+    project: azhu-aiflow
+    prompt_label_prefix: "azhu"
+  resources:
+    api_replicas: 2
+    worker_replicas: 3
+    rpa_worker_replicas: 0
+    memory_limit: "2Gi"
+    cpu_limit: "1000m"

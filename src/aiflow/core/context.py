@@ -27,6 +27,12 @@ class ExecutionContext(BaseModel):
     team_id: str | None = None
     user_id: str | None = None
 
+    # Instance context (Phase A - Modular Deployment)
+    instance_id: str | None = None
+    instance_name: str | None = None
+    customer: str | None = None
+    prompt_namespace: str | None = None
+
     # Runtime configuration
     prompt_label: str = "prod"
     model_override: str | None = None

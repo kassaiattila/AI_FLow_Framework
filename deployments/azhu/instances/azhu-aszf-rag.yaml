@@ -1,0 +1,51 @@
+instance_name: azhu-aszf-rag
+display_name: "AZHU ASZF Chatbot"
+skill_template: aszf_rag_chat
+version: "0.1.0"
+customer: azhu
+enabled: true
+
+data_sources:
+  collections:
+    - name: azhu-aszf-2024
+      priority: 1
+    - name: azhu-aszf-2023
+      priority: 2
+  document_filters:
+    document_type: aszf
+    language: hu
+  embedding_model: text-embedding-3-small
+
+prompts:
+  namespace: azhu/aszf-rag
+  label: prod
+  overrides:
+    - prompt_name: system-prompt
+      variables:
+        company_name: "Allianz Hungaria Zrt."
+        tone: "formal"
+        max_response_length: 500
+    - prompt_name: classifier
+      variables:
+        allowed_topics: "biztositas, karbejelentes, szerzodes, dijfizetes"
+
+models:
+  default: gpt-4o
+  fallback: gpt-4o-mini
+  per_agent:
+    classifier: gpt-4o-mini
+
+budget:
+  monthly_usd: 500.00
+  per_run_usd: 0.15
+  alert_threshold: 0.8
+
+sla:
+  target_seconds: 5
+  p95_target_seconds: 8
+  availability: 0.995
+
+routing:
+  input_channel: api
+  output_channel: api
+  queue_name: azhu-rag-queue

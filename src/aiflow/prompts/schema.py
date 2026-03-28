@@ -23,6 +23,8 @@ _JINJA_ENV = Environment(loader=BaseLoader(), undefined=StrictUndefined)
 class PromptConfig(BaseModel):
     """LLM configuration parameters."""
 
+    model_config = {"extra": "ignore"}
+
     model: str = "gpt-4o"
     temperature: float = 0.7
     max_tokens: int = 2048
@@ -47,6 +49,8 @@ class LangfuseSettings(BaseModel):
 class PromptMetadata(BaseModel):
     """Prompt metadata for cataloguing."""
 
+    model_config = {"extra": "ignore"}
+
     language: str = "en"
     tags: list[str] = Field(default_factory=list)
 
@@ -56,6 +60,8 @@ class PromptDefinition(BaseModel):
 
     Architecture: YAML source (Git) -> Langfuse (Cloud SSOT) -> Runtime cache.
     """
+
+    model_config = {"extra": "ignore"}
 
     name: str
     version: str = "1.0"

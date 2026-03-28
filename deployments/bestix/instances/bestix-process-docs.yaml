@@ -1,0 +1,38 @@
+instance_name: bestix-process-docs
+display_name: "BESTIX Process Documentation"
+skill_template: process_documentation
+version: "0.1.0"
+customer: bestix
+enabled: true
+
+data_sources:
+  collections: []
+  document_filters: {}
+  embedding_model: null
+
+prompts:
+  namespace: bestix/process-docs
+  label: prod
+  overrides:
+    - prompt_name: classifier
+      variables:
+        company_name: "BestIxCom Kft"
+        output_format: "drawio"
+
+models:
+  default: gpt-4o
+  fallback: gpt-4o-mini
+
+budget:
+  monthly_usd: 100.00
+  per_run_usd: 0.50
+  alert_threshold: 0.8
+
+sla:
+  target_seconds: 30
+  p95_target_seconds: 60
+  availability: 0.99
+
+routing:
+  input_channel: api
+  output_channel: api

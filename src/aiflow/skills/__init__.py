@@ -1,11 +1,21 @@
-"""AIFlow Skill System - manifest parsing, discovery, loading, and registry.
+"""AIFlow Skill System - backward compatibility re-exports.
 
-Skills are self-contained packages of AI/RPA/hybrid capabilities
-defined via skill.yaml manifests.
+DEPRECATED: Use aiflow.skill_system instead of aiflow.skills.
+This module re-exports everything from aiflow.skill_system for backward compat.
 """
-from aiflow.skills.manifest import SkillManifest, RequiredModel, VectorStoreConfig
-from aiflow.skills.loader import SkillLoader
-from aiflow.skills.registry import SkillRegistry
+# Re-export from canonical location
+from aiflow.skill_system import (  # noqa: F401
+    SkillManifest,
+    RequiredModel,
+    VectorStoreConfig,
+    SkillLoader,
+    SkillRegistry,
+    InstanceConfig,
+    InstanceRegistry,
+    DeploymentProfile,
+    load_instance_config,
+    load_deployment_profile,
+)
 
 __all__ = [
     "SkillManifest",
@@ -13,4 +23,9 @@ __all__ = [
     "VectorStoreConfig",
     "SkillLoader",
     "SkillRegistry",
+    "InstanceConfig",
+    "InstanceRegistry",
+    "DeploymentProfile",
+    "load_instance_config",
+    "load_deployment_profile",
 ]

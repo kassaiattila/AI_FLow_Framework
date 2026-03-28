@@ -1,0 +1,44 @@
+instance_name: bestix-internal-rag
+display_name: "BESTIX Internal RAG Chat"
+skill_template: aszf_rag_chat
+version: "0.1.0"
+customer: bestix
+enabled: true
+
+data_sources:
+  collections:
+    - name: bestix-internal-docs
+      priority: 1
+  document_filters:
+    language: hu
+  embedding_model: text-embedding-3-small
+
+prompts:
+  namespace: bestix/internal-rag
+  label: prod
+  overrides:
+    - prompt_name: system-prompt
+      variables:
+        company_name: "BestIxCom Kft"
+        tone: "professional"
+        max_response_length: 500
+
+models:
+  default: gpt-4o
+  fallback: gpt-4o-mini
+  per_agent:
+    classifier: gpt-4o-mini
+
+budget:
+  monthly_usd: 200.00
+  per_run_usd: 0.10
+  alert_threshold: 0.8
+
+sla:
+  target_seconds: 5
+  p95_target_seconds: 8
+  availability: 0.99
+
+routing:
+  input_channel: api
+  output_channel: api

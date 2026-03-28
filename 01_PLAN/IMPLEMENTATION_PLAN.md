@@ -408,15 +408,97 @@ gh pr create --title "feat(core): add AIFlowSettings" --body "..."
 
 ## FAZIS A-E: MODULAR DEPLOYMENT + VALOS SKILL-EK
 
-### FAZIS A: Instance Infrastruktura (1-2 het)
+### FAZIS A: Instance Infrastruktura (1-2 het) - KESZ 2026-03-28
 
 ```
+STATUSZ: KESZ
 FELADATOK:
-1. skill_instances DB tabla + 012_add_skill_instances.py migracio
-2. src/aiflow/skills/instance.py - SkillInstance model + InstanceManager
-3. deployments/ konyvtar struktura + DeploymentManifest model
-4. CLI: aiflow instance create/list/configure
-5. workflow_runs.instance_id FK bovites
+1. [KESZ] skill_instances DB tabla + 012_add_skill_instances.py migracio
+2. [KESZ] src/aiflow/skills/instance.py - SkillInstance model + InstanceManager
+3. [KESZ] deployments/ konyvtar struktura + DeploymentManifest model
+4. [KESZ] CLI: aiflow instance create/list/configure
+5. [KESZ] workflow_runs.instance_id FK bovites
+6. [KESZ] Instance YAML loader + registry (instance_loader.py, instance_registry.py)
+7. [KESZ] ExecutionContext bovites (instance_id, customer, prompt_namespace)
+8. [KESZ] 42 uj unit teszt (803/803 PASSED)
+9. [KESZ] 3 ugyfel deployment config (AZHU, NPRA, BESTIX)
+```
+
+### FAZIS A2: Valos Skill Implementacio - KESZ 2026-03-28
+
+```
+STATUSZ: KESZ (process_documentation + cubix transcript pipeline)
+
+PROCESS DOCUMENTATION SKILL:
+1. [KESZ] Pydantic I/O modellek (ProcessExtraction, ClassifyOutput, ReviewOutput)
+2. [KESZ] 5 prompt YAML (classifier, elaborator, extractor, reviewer, mermaid_flowchart)
+3. [KESZ] 5+1 step fuggveny (classify, elaborate, extract, review, generate_diagram, export_all)
+4. [KESZ] Multi-format export: .mmd + .svg (Kroki) + .drawio (XML) + .md tablazat + .json
+5. [KESZ] Miro API export (opcionalis, ha MIRO_API_TOKEN konfiguralt)
+6. [KESZ] Template-alapu diagram generator (LLM nelkul)
+7. [KESZ] 13 unit teszt + valos LLM integracios teszt (3 magyar folyamat)
+8. [KESZ] Valos output: test_output/diagrams/{folyamat_nev}/
+
+CUBIX TRANSCRIPT PIPELINE:
+1. [KESZ] 10 Pydantic model (AudioProbeResult -> StructuredTranscript)
+2. [KESZ] TranscriptPipelineConfig (ffmpeg, STT, chunk parameterek)
+3. [KESZ] 6 step fuggveny (probe, extract_audio, chunk, transcribe, merge, structure)
+4. [KESZ] 1 prompt YAML (transcript_structurer)
+5. [KESZ] 13 unit teszt + valos STT integracios teszt (3 MKV feldolgozva)
+6. [KESZ] Valos output: test_output/*.json, *.txt
+
+CONTRIB MODULOK:
+1. [KESZ] src/aiflow/contrib/shell/executor.py - ShellExecutor (ffmpeg/ffprobe wrapper)
+2. [KESZ] src/aiflow/contrib/playwright/browser.py - PlaywrightBrowser (RPA)
+3. [KESZ] src/aiflow/contrib/human_loop/manager.py - HumanLoopManager (HITL)
+
+CUBIX RPA PIPELINE (teljes):
+1. [KESZ] course_capture.py - 4 step (resolve_and_login, scan_structure, process_all_lessons, report)
+2. [KESZ] Platform config: cubixedu.py (szelektorok, JS snippetek)
+3. [KESZ] File state manager (pipeline_state.json, resume tamogatas)
+4. [KESZ] Kurzus-szintu output konyvtar (Cubix_ML_Course/week_XX/lesson_YY/)
+```
+
+### FAZIS A3: DrawIO Portalas + RF Integration + Mappa Refactor - KESZ 2026-03-28
+
+```
+STATUSZ: KESZ
+
+MAPPA REFACTOR:
+1. [KESZ] src/aiflow/skills/ -> src/aiflow/skill_system/ (backward compat re-export)
+2. [KESZ] Ket skills/ mappa problema tisztazva
+
+DRAWIO PORTALAS (Lesotho DHA projekt):
+1. [KESZ] skills/process_documentation/drawio/builder.py - DrawioBuilder (18KB, teljes port)
+2. [KESZ] skills/process_documentation/drawio/bpmn.py - BPMNDiagram (15KB, swimlane BPMN)
+3. [KESZ] skills/process_documentation/drawio/colors.py - 14 arch + 5 lane + 9 BPMN szin
+4. [KESZ] skills/process_documentation/drawio/stencils.py - Stencil loader (3423 shape)
+5. [KESZ] skills/process_documentation/drawio/stencil_catalog.json - 5.7MB stencil gyujtemeny
+6. [KESZ] drawio_exporter.py ujrairva DrawioBuilder-rel + BPMN swimlane export
+7. [KESZ] export_all step: diagram.drawio + diagram_bpmn.drawio + diagram.svg + .mmd + .md + .json
+
+ROBOT FRAMEWORK INTEGRACIO:
+1. [KESZ] src/aiflow/tools/robotframework_runner.py - RobotFrameworkRunner (async subprocess)
+2. [KESZ] skills/cubix_course_capture/robot/ - 5 .robot + 4 .js portolva pilot-bol
+3. [KESZ] course_capture.py - RF/Playwright dual mode (automatikus valasztas)
+4. [KESZ] Robot Framework 7.4.2 telepitve es verifikalt
+```
+
+### FAZIS A4: AIFlow Keretrendszer Felulvizsgalat (tervezett)
+
+```
+STATUSZ: TERVEZETT
+MEGFIGYEELSEK A VALOS TESZTEKBOL:
+- WorkflowRunner-t senki nem hasznalja (stepeket kozvetlenul hivjuk)
+- DI container nincs bekotve (closure-ok)
+- API endpoint-ok stubbok
+- Agent rendszer nem hasznalt a ket valos skillben
+
+JAVASOLT OPTIMALIZACIOK:
+1. Runner service injection (ctx, models, prompts parameterek)
+2. Lightweight skill modus (egyetlen fuggveny = skill)
+3. /port-skill slash command (pilot -> AIFlow automatikus portalas)
+4. Pilot portalasi sablon (minden mukodo funkcioszint 1. korben atkerul)
 ```
 
 ### FAZIS B: Framework Placeholder Befejezese (2-3 het)

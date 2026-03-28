@@ -10,7 +10,7 @@ required_models:
   - {name: "openai/whisper-1", type: stt, usage: "Audio transcription (speech-to-text)"}
   - {name: "openai/gpt-4o", type: llm, usage: "Content structuring, note generation"}
   - {name: "openai/gpt-4o-mini", type: llm, usage: "Slide text extraction, summaries"}
-workflows: [course-capture]
+workflows: [course-capture, transcript-pipeline]
 agent_types: [NavigatorAgent, RecorderAgent, TranscriberAgent, ContentStructurerAgent, NoteGeneratorAgent]
 prompts: [cubix/content_structurer, cubix/note_generator, cubix/slide_extractor]
 rpa_config:

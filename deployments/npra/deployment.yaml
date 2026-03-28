@@ -1,0 +1,35 @@
+customer:
+  name: npra
+  display_name: "NPRA"
+  contact_email: dev@npra.com
+  tier: business
+
+framework:
+  version: "0.1.0"
+  image_variant: base
+
+skill_templates:
+  - name: aszf_rag_chat
+    version: "0.1.0"
+
+instances:
+  - file: instances/npra-faq-rag.yaml
+
+infrastructure:
+  docker_compose_project: aiflow-npra
+  k8s_namespace: null
+  database:
+    host: localhost
+    name: aiflow_npra
+  redis:
+    db: 2
+    prefix: "npra:"
+  langfuse:
+    project: npra-aiflow
+    prompt_label_prefix: "npra"
+  resources:
+    api_replicas: 1
+    worker_replicas: 2
+    rpa_worker_replicas: 0
+    memory_limit: "2Gi"
+    cpu_limit: "1000m"

@@ -1,0 +1,46 @@
+# Sample test data for Cubix Course Capture transcript pipeline tests
+# Used by: skills/cubix_course_capture/tests/test_workflow.py
+
+sample_ffprobe_output:
+  streams:
+    - codec_type: audio
+      codec_name: aac
+      sample_rate: "44100"
+      channels: 2
+      bit_rate: "128000"
+      duration: "120.5"
+  format:
+    duration: "120.5"
+    size: "1920000"
+
+sample_transcript_text: >
+  Ma a Python programozas alapjairol fogunk tanulni. Eloszor megismerkedunk
+  a valtozokkal es az alap adattipusokkal. A Python egy dinamikusan tipusos
+  nyelv, ami azt jelenti, hogy nem kell elore megadnunk a valtozo tipusat.
+  Ezutan atnezzuk a vezerlo szerkezeteket, mint peldaul az if-else
+  felteteles utasitast es a for ciklust.
+
+sample_segments:
+  - id: 0
+    start: 0.0
+    end: 15.2
+    text: "Ma a Python programozas alapjairol fogunk tanulni."
+    confidence: 0.92
+
+  - id: 1
+    start: 15.2
+    end: 32.8
+    text: "Eloszor megismerkedunk a valtozokkal es az alap adattipusokkal."
+    confidence: 0.89
+
+  - id: 2
+    start: 32.8
+    end: 55.4
+    text: "A Python egy dinamikusan tipusos nyelv, ami azt jelenti, hogy nem kell elore megadnunk a valtozo tipusat."
+    confidence: 0.95
+
+  - id: 3
+    start: 55.4
+    end: 78.0
+    text: "Ezutan atnezzuk a vezerlo szerkezeteket, mint peldaul az if-else felteteles utasitast es a for ciklust."
+    confidence: 0.91

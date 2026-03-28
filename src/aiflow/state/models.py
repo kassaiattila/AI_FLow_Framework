@@ -3,14 +3,16 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from decimal import Decimal
+
 from sqlalchemy import (
-    Boolean, DateTime, Float, Integer, String, Text, Index,
+    Boolean, DateTime, Float, Integer, Numeric, String, Text, Index,
     ForeignKey, CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-__all__ = ["Base", "WorkflowRunModel", "StepRunModel"]
+__all__ = ["Base", "WorkflowRunModel", "StepRunModel", "SkillInstanceModel"]
 
 
 class Base(DeclarativeBase):
@@ -52,6 +54,11 @@ class WorkflowRunModel(Base):
     user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     job_id: Mapped[str | None] = mapped_column(String(255))
 
+    # Instance FK (migration 012)
+    instance_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("skill_instances.id", ondelete="SET NULL")
+    )
+
     priority: Mapped[int] = mapped_column(Integer, default=3)
     metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, default=dict)
 
@@ -59,6 +66,7 @@ class WorkflowRunModel(Base):
 
     # Relationships
     step_runs: Mapped[list["StepRunModel"]] = relationship(back_populates="workflow_run", cascade="all, delete-orphan")
+    instance: Mapped["SkillInstanceModel | None"] = relationship(back_populates="workflow_runs")
 
     __table_args__ = (
         CheckConstraint(
@@ -72,6 +80,7 @@ class WorkflowRunModel(Base):
         Index("idx_wr_skill_name", "skill_name"),
         Index("idx_wr_created_at", "created_at"),
         Index("idx_wr_job_id", "job_id"),
+        Index("idx_wr_instance_id", "instance_id"),
     )
 
     def __repr__(self) -> str:
@@ -127,3 +136,76 @@ class StepRunModel(Base):
 
     def __repr__(self) -> str:
         return f"<StepRun {self.id} step={self.step_name} status={self.status}>"
+
+
+class SkillInstanceModel(Base):
+    """Configured deployment of a skill template for a specific customer."""
+
+    __tablename__ = "skill_instances"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    instance_name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    customer: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    skill_name: Mapped[str] = mapped_column(
+        String(255), ForeignKey("skills.name"), nullable=False
+    )
+    skill_version: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+
+    prompt_namespace: Mapped[str] = mapped_column(String(255), nullable=False)
+    prompt_label: Mapped[str] = mapped_column(String(50), default="prod")
+
+    default_model: Mapped[str] = mapped_column(String(100), nullable=False)
+    fallback_model: Mapped[str | None] = mapped_column(String(100))
+
+    budget_monthly_usd: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    budget_used_usd: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0"))
+    budget_per_run_usd: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
+    budget_reset_day: Mapped[int] = mapped_column(Integer, default=1)
+
+    sla_target_seconds: Mapped[int | None] = mapped_column(Integer)
+    sla_p95_target_seconds: Mapped[int | None] = mapped_column(Integer)
+
+    input_channel: Mapped[str] = mapped_column(String(50), default="api")
+    output_channel: Mapped[str] = mapped_column(String(50), default="api")
+    queue_name: Mapped[str | None] = mapped_column(String(255))
+
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    status: Mapped[str] = mapped_column(String(20), default="active")
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    total_runs: Mapped[int] = mapped_column(Integer, default=0)
+    total_cost_usd: Mapped[Decimal] = mapped_column(Numeric(10, 4), default=Decimal("0"))
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_by: Mapped[str | None] = mapped_column(String(255))
+    updated_by: Mapped[str | None] = mapped_column(String(255))
+
+    # Relationships
+    workflow_runs: Mapped[list["WorkflowRunModel"]] = relationship(back_populates="instance")
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'paused', 'deprecated', 'error')",
+            name="chk_si_status",
+        ),
+        CheckConstraint(
+            "input_channel IN ('api', 'email', 'webhook', 'queue')",
+            name="chk_si_input",
+        ),
+        CheckConstraint(
+            "output_channel IN ('api', 'email', 'webhook', 'db')",
+            name="chk_si_output",
+        ),
+        Index("idx_si_customer", "customer"),
+        Index("idx_si_skill_name", "skill_name"),
+        Index("idx_si_status", "status"),
+        Index("idx_si_customer_skill", "customer", "skill_name"),
+        Index("idx_si_prompt_namespace", "prompt_namespace"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<SkillInstance {self.instance_name} customer={self.customer} status={self.status}>"
