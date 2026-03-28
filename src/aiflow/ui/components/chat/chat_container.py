@@ -563,15 +563,11 @@ def citation_card(citation) -> rx.Component:
                 max_height="80px",
                 overflow="hidden",
             ),
-            rx.cond(
-                citation.contains("relevance_score"),
-                rx.badge(
-                    "Relevancia: " + (citation["relevance_score"] * 100).to(int).to(str) + "%",
-                    color_scheme="green",
-                    variant="soft",
-                    size="1",
-                ),
-                rx.fragment(),
+            rx.badge(
+                "Forras",
+                color_scheme="green",
+                variant="soft",
+                size="1",
             ),
             spacing="2",
         ),
