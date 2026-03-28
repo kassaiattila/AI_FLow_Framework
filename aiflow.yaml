@@ -1,0 +1,58 @@
+# AIFlow Framework Configuration
+# Override values with AIFLOW_* environment variables
+
+app:
+  name: aiflow
+  version: "0.1.0"
+  environment: dev        # dev | test | staging | prod
+  debug: false
+
+database:
+  url: postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev
+  pool_size: 20
+  pool_overflow: 10
+  echo: false
+
+redis:
+  url: redis://localhost:6379/0
+  prefix: "aiflow:"
+  max_connections: 50
+
+security:
+  jwt_algorithm: RS256
+  jwt_private_key_path: ./jwt_private.pem
+  jwt_public_key_path: ./jwt_public.pem
+  jwt_access_token_ttl: 900       # 15 minutes
+  jwt_refresh_token_ttl: 604800   # 7 days
+  api_key_prefix: "aiflow_"
+
+llm:
+  default_model: openai/gpt-4o-mini
+  fallback_model: openai/gpt-4o
+  timeout: 30
+  max_retries: 3
+
+langfuse:
+  enabled: false
+  host: https://cloud.langfuse.com
+  cache_ttl: 300
+
+budget:
+  default_per_run_usd: 10.0
+  alert_threshold_pct: 80
+
+observability:
+  log_level: INFO
+  log_format: json            # json | console
+  prometheus_enabled: false
+
+queue:
+  worker_count: 2
+  max_jobs: 100
+  job_timeout: 300
+  dlq_max_retries: 3
+
+vectorstore:
+  default_embedding_model: openai/text-embedding-3-small
+  default_chunk_size: 500
+  default_overlap: 100

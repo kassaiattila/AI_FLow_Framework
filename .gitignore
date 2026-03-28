@@ -16,7 +16,7 @@ dist/
 build/
 
 # === IDE ===
-.vscode/
+# .vscode/ is committed (shared team settings)
 .idea/
 *.swp
 *.swo

@@ -1,0 +1,86 @@
+services:
+  # === CORE SERVICES (always running with `make dev`) ===
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: aiflow_dev
+      POSTGRES_USER: aiflow
+      POSTGRES_PASSWORD: aiflow_dev_password
+    ports:
+      - "${AIFLOW_DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aiflow -d aiflow_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy volatile-lru
+      --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kroki:
+    image: yuzutech/kroki
+    ports:
+      - "8080:8000"
+
+  # === FULL PROFILE (docker compose --profile full up) ===
+  api:
+    build:
+      context: .
+      target: api
+    profiles: ["full"]
+    environment:
+      AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:aiflow_dev_password@db:5432/aiflow_dev
+      AIFLOW_REDIS__URL: redis://redis:6379/0
+      AIFLOW_ENVIRONMENT: dev
+      AIFLOW_DEBUG: "true"
+      AIFLOW_LOG_LEVEL: DEBUG
+    ports:
+      - "8000:8000"
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - ./src:/app/src:ro
+
+  worker:
+    build:
+      context: .
+      target: worker
+    profiles: ["full"]
+    environment:
+      AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:aiflow_dev_password@db:5432/aiflow_dev
+      AIFLOW_REDIS__URL: redis://redis:6379/0
+      AIFLOW_ENVIRONMENT: dev
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  # === TOOLS PROFILE (docker compose --profile tools up) ===
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    profiles: ["tools"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@aiflow.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+
+volumes:
+  pgdata:
+  redisdata:
