@@ -36,6 +36,18 @@ rules:
     suites: [agents-unit, engine-unit, core-unit]
     reason: "Agent changes may affect orchestration, engine, and core"
 
+  - pattern: "src/aiflow/prompts/**"
+    suites: [prompts-unit, core-unit]
+    reason: "Prompt platform changes affect schema, manager, sync, and A/B testing"
+
+  - pattern: "src/aiflow/documents/**"
+    suites: [documents-unit, vectorstore-unit, core-unit]
+    reason: "Document management changes affect registry, versioning, freshness, and vector store"
+
+  - pattern: "src/aiflow/ingestion/**"
+    suites: [ingestion-unit, documents-unit, vectorstore-unit, core-unit]
+    reason: "Ingestion pipeline changes affect parsers, chunkers, documents, and vector store"
+
   - pattern: "pyproject.toml"
     suites: FULL
     reason: "Dependency change may affect everything"
@@ -47,3 +59,6 @@ default_suites:
   - vectorstore-unit
   - engine-unit
   - agents-unit
+  - prompts-unit
+  - documents-unit
+  - ingestion-unit

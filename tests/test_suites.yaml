@@ -99,3 +99,45 @@ suites:
       - agents.quality_gate
       - agents.human_loop
       - agents.reflection
+
+  prompts-unit:
+    description: "Prompt platform unit tests (schema, manager, sync, A/B testing)"
+    path: "tests/unit/prompts/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: high
+    max_duration_seconds: 30
+    coverage_target: 90.0
+    requires_services: []
+    components:
+      - prompts.schema
+      - prompts.manager
+      - prompts.sync
+      - prompts.ab_testing
+
+  documents-unit:
+    description: "Document management unit tests (registry, versioning, freshness)"
+    path: "tests/unit/documents/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: high
+    max_duration_seconds: 30
+    coverage_target: 85.0
+    requires_services: []
+    components:
+      - documents.registry
+      - documents.versioning
+      - documents.freshness
+
+  ingestion-unit:
+    description: "Ingestion pipeline unit tests (parsers, chunkers, pipeline)"
+    path: "tests/unit/ingestion/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: high
+    max_duration_seconds: 30
+    coverage_target: 85.0
+    requires_services: []
+    components:
+      - ingestion.chunkers
+      - ingestion.pipeline
