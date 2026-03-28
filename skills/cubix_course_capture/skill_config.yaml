@@ -1,0 +1,35 @@
+# Cubix Course Capture Skill - Runtime Configuration
+
+models:
+  stt: whisper-1
+  stt_fallback: gpt-4o-mini-transcribe
+  structuring: openai/gpt-4o-mini
+  stt_language: hu
+
+audio:
+  format: m4a
+  sample_rate: 16000
+  channels: 1
+  bitrate: "64k"
+  max_chunk_bytes: 25165824   # 24 MB
+
+platform:
+  name: cubixedu
+  base_url: https://cubixedu.com
+  credentials_env_prefix: CUBIX
+
+output:
+  base_dir: ./output
+  structure:
+    # {base_dir}/{course_name}/week_{ww}/lesson_{ll}_{slug}/
+    course_name: Cubix_ML_Course
+    organize_by: week_lesson  # week_lesson | flat
+
+state:
+  backend: file              # file | db | both
+  resume: true               # resume from last checkpoint
+
+rpa:
+  prefer: robotframework     # robotframework | playwright | auto
+  headless: false            # visible browser for recording
+  timeout_seconds: 600

@@ -1,0 +1,32 @@
+# Process Documentation Skill - Runtime Configuration
+# Used by SkillRunner.from_env() and __main__.py
+
+models:
+  default: openai/gpt-4o-mini
+  fallback: openai/gpt-4o
+  per_step:
+    classify_intent: openai/gpt-4o-mini
+    elaborate: openai/gpt-4o
+    extract: openai/gpt-4o
+    review: openai/gpt-4o
+    generate_diagram: openai/gpt-4o-mini
+
+prompts:
+  dir: ./prompts
+  cache_ttl_seconds: 300
+
+export:
+  output_dir: ./output/diagrams
+  formats:
+    - mermaid    # .mmd source
+    - drawio     # architecture flowchart
+    - bpmn       # BPMN swimlane
+    - svg        # Kroki rendered (if available)
+    - markdown   # process table
+    - json       # extraction data
+  kroki_url: http://localhost:8000
+  miro_api_token: ${MIRO_API_TOKEN}
+
+quality:
+  review_threshold: 7    # minimum review score to accept
+  max_refinements: 2     # retry extract if review score < threshold

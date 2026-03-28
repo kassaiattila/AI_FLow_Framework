@@ -1,6 +1,8 @@
 """Lightweight dependency injection container for framework services.
 
 Services are registered by type and retrieved by type. Supports lazy initialization.
+
+DEPRECATED: Skills use SkillRunner.from_env() instead. Planned for Phase B review.
 """
 from typing import Any, TypeVar, Callable
 

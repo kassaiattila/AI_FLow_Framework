@@ -1,4 +1,7 @@
-"""AIFlow 2-level agent system - Orchestrator + max 6 Specialists."""
+"""AIFlow 2-level agent system - Orchestrator + max 6 Specialists.
+
+DEPRECATED: Not used by any working skill. Planned for Phase B review.
+"""
 
 from aiflow.agents.messages import AgentRequest, AgentResponse
 from aiflow.agents.specialist import AgentSpec, SpecialistAgent

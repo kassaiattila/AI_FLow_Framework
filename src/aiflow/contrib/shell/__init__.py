@@ -1,4 +1,7 @@
-"""Shell command execution for AIFlow (ffmpeg, ffprobe, etc.)."""
-from aiflow.contrib.shell.executor import ShellExecutor, ShellResult
+"""Shell command execution for AIFlow (ffmpeg, ffprobe, etc.).
 
-__all__ = ["ShellExecutor", "ShellResult"]
+Backward-compat re-export. Canonical location: ``aiflow.tools.shell``
+"""
+from aiflow.tools.shell import ShellExecutor, ShellResult, ShellCommandDeniedError, ShellTimeoutError
+
+__all__ = ["ShellExecutor", "ShellResult", "ShellCommandDeniedError", "ShellTimeoutError"]
