@@ -432,10 +432,10 @@ def message_bubble(msg, on_citation_toggle: rx.EventHandler) -> rx.Component:
                                 border_radius="3px",
                                 font_size="13px",
                             ),
-                            "codeblock": lambda text, **props: rx.box(
+                            "pre": lambda text, **props: rx.box(
                                 rx.code_block(
                                     text,
-                                    language=props.get("language", ""),
+                                    language="python",
                                     show_line_numbers=True,
                                     theme="one-light",
                                 ),
