@@ -313,10 +313,21 @@ aiflow/
 |   |   |-- k8s/                            # Phase 2 - K8s cluster elerhetosegekor
 |   |       |-- kustomization.yaml
 |   |-- npra/
-|       |-- deployment.yaml
+|   |   |-- deployment.yaml
+|   |   |-- docker-compose.yml              # Per-customer Docker Compose (staging/prod)
+|   |   |-- instances/
+|   |   |   |-- python_course.yaml
+|   |   |-- k8s/                            # Phase 2 - K8s cluster elerhetosegekor
+|   |       |-- kustomization.yaml
+|   |-- bestix/
+|       |-- deployment.yaml                 # BESTIX: minden skill (belso hasznalat, demo, teszteles)
 |       |-- docker-compose.yml              # Per-customer Docker Compose (staging/prod)
 |       |-- instances/
-|       |   |-- python_course.yaml
+|       |   |-- bestix-internal-rag.yaml
+|       |   |-- bestix-process-docs.yaml
+|       |   |-- bestix-cubix-capture.yaml
+|       |   |-- bestix-cfpb-demo.yaml
+|       |   |-- bestix-support-email.yaml
 |       |-- k8s/                            # Phase 2 - K8s cluster elerhetosegekor
 |           |-- kustomization.yaml
 |

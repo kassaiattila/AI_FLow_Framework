@@ -5,6 +5,14 @@
 **Stack:** Python 3.12+, FastAPI, PostgreSQL+pgvector, Redis, arq, Docker Compose (staging/prod), K8s kesobb.
 **Jelenlegi fazis:** Docker Compose alapu staging/prod. K8s kesobb, amikor cluster elerheto.
 
+### Ugyfel Attekintes
+
+| Ugyfel | Kod | Skills | Megjegyzes |
+|--------|-----|--------|------------|
+| Allianz Hungaria | AZHU | aszf_rag_chat (RAG Chat), email_intent_processor (Intent), qbpp_test_automation (AutoTest) | Fo ugyfel, enterprise tier |
+| NPRA | NPRA | aszf_rag_chat (RAG Chat), qbpp_test_automation (AutoTest) | Business tier |
+| BestIxCom Kft | BESTIX | process_documentation (Diagram Gen), cubix_course_capture (RPA+Transcript), cfpb_complaint_router (ML), email_intent_processor, aszf_rag_chat - minden skill sajat hasznalatra | Belso hasznalat, teszteles, demo |
+
 ---
 
 ## 1. Alapelv: Skill = Template, Instance = Futo Peldany
@@ -37,21 +45,32 @@ Skill Template: aszf_rag_chat
   +-- Instance: azhu_aszf_rag          (AZHU ASZF dokumentumok, gpt-4o, SLA: 5s)
   +-- Instance: azhu_internal_rag      (AZHU belso szabalyzatok, gpt-4o-mini, SLA: 3s)
   +-- Instance: npra_faq_rag           (NPRA kurzus FAQ, gpt-4o-mini, SLA: 2s)
+  +-- Instance: bestix_internal_rag    (BESTIX belso dokumentumok, gpt-4o, SLA: 3s)
 
 Skill Template: email_intent_processor
   |
   +-- Instance: azhu_claims_email      (kar-bejelentes@allianz.hu, 12 intent)
   +-- Instance: azhu_info_email        (info@allianz.hu, 8 intent)
+  +-- Instance: bestix_support_email   (support@bestix.hu, 6 intent)
 
 Skill Template: cubix_course_capture
   |
   +-- Instance: npra_udemy_capture     (Udemy platform, video + SRT)
   +-- Instance: npra_coursera_capture  (Coursera platform, video + transcript)
+  +-- Instance: bestix_cubix_capture   (Cubix AI/ML kurzusok, belso hasznalat)
 
 Skill Template: qbpp_test_automation
   |
   +-- Instance: azhu_portal_test       (portal.allianz.hu, E2E tesztek)
   +-- Instance: npra_lms_test          (lms.npra.com, regression tesztek)
+
+Skill Template: process_documentation
+  |
+  +-- Instance: bestix_process_docs    (BESTIX belso folyamatok, framework validacio)
+
+Skill Template: cfpb_complaint_router
+  |
+  +-- Instance: bestix_cfpb_demo       (BESTIX ML demo, belso teszteles)
 ```
 
 **Fontos:** A skill template **NEM** tartalmaz ugyfel-specifikus adatot. Az instance config tartalmazza
@@ -704,6 +723,24 @@ deployments/
 |       |-- worker-deployment.yaml
 |       |-- rpa-worker-deployment.yaml  # NPRA-nak kell RPA worker
 |       |-- ingress.yaml
+|
+|-- bestix/
+|   |-- deployment.yaml
+|   |-- docker-compose.yml           # Per-customer Docker Compose (staging/prod)
+|   |-- instances/
+|   |   |-- bestix-internal-rag.yaml
+|   |   |-- bestix-process-docs.yaml
+|   |   |-- bestix-cubix-capture.yaml
+|   |   |-- bestix-cfpb-demo.yaml
+|   |   |-- bestix-support-email.yaml
+|   |-- k8s/                         # Phase 2 - K8s cluster elerhetosegekor
+|       |-- namespace.yaml
+|       |-- configmap.yaml
+|       |-- secrets.yaml
+|       |-- api-deployment.yaml
+|       |-- worker-deployment.yaml
+|       |-- rpa-worker-deployment.yaml  # BESTIX-nek kell RPA worker (cubix_course_capture)
+|       |-- ingress.yaml
 ```
 
 ### 4.3 Pelda: AZHU Deployment (4 Instance)
@@ -801,6 +838,62 @@ infrastructure:
     cpu_limit: "2000m"
 ```
 
+### 4.5 Pelda: BESTIX Deployment (5 Instance - Minden Skill)
+
+```yaml
+# deployments/bestix/deployment.yaml
+customer:
+  name: bestix
+  display_name: "BestIxCom Kft"
+  contact_email: dev@bestix.hu
+  tier: enterprise
+
+framework:
+  version: "1.2.0"
+  image_variant: base-rpa        # RPA skill van (cubix_course_capture), kell Playwright + ffmpeg
+
+skill_templates:                  # MINDEN skill - belso hasznalat, teszteles, demo
+  - name: process_documentation
+    version: "2.0.0"
+  - name: aszf_rag_chat
+    version: "1.2.0"
+  - name: cubix_course_capture
+    version: "1.0.0"
+  - name: cfpb_complaint_router
+    version: "1.0.0"
+  - name: email_intent_processor
+    version: "1.0.0"
+  - name: qbpp_test_automation
+    version: "1.0.0"
+
+instances:
+  - file: instances/bestix-internal-rag.yaml
+  - file: instances/bestix-process-docs.yaml
+  - file: instances/bestix-cubix-capture.yaml
+  - file: instances/bestix-cfpb-demo.yaml
+  - file: instances/bestix-support-email.yaml
+
+infrastructure:
+  docker_compose_project: aiflow-bestix
+  k8s_namespace: aiflow-bestix   # Phase 2 - K8s cluster elerhetosegekor
+  database:
+    host: pg-cluster.internal
+    name: aiflow_bestix
+    schema: null
+  redis:
+    db: 3
+    prefix: "bestix:"
+  langfuse:
+    project: bestix-aiflow
+    prompt_label_prefix: "bestix"
+  resources:
+    api_replicas: 1
+    worker_replicas: 2
+    rpa_worker_replicas: 1       # RPA worker cubix_course_capture-hoz
+    memory_limit: "4Gi"
+    cpu_limit: "2000m"
+```
+
 ---
 
 ## 5. Docker Image Strategia
@@ -814,6 +907,7 @@ ghcr.io/bestixcom/aiflow-base:v1.2.0          # (1) Framework only
     |
     +-- ghcr.io/bestixcom/aiflow-azhu:v1.2.0        # (3) Customer: base + 3 skill
     +-- ghcr.io/bestixcom/aiflow-npra:v1.2.0         # (3) Customer: base-rpa + 2 skill
+    +-- ghcr.io/bestixcom/aiflow-bestix:v1.2.0       # (3) Customer: base-rpa + 6 skill (minden)
 ```
 
 ### 5.2 Base Image (Framework Only)
@@ -1006,6 +1100,7 @@ Customer deployment tag:
   deploy/azhu/v2026.03.28              # Datum-alapu (napi deploy lehetseges)
   deploy/azhu/v2026.03.28-hotfix1      # Hotfix a napi deploy-ra
   deploy/npra/v2026.04.01
+  deploy/bestix/v2026.03.28            # BESTIX belso deploy
 ```
 
 ### 6.3 CI Pipeline D: Customer Deployment Validacio
@@ -1025,7 +1120,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        customer: [azhu, npra]              # Dinamikusan bovitheto
+        customer: [azhu, npra, bestix]       # 3 ugyfel
     steps:
       - uses: actions/checkout@v4
 
@@ -1226,8 +1321,14 @@ Langfuse projektek:
   |   |-- Trace-ek: instance_name tag-gel szurve
   |
   |-- npra-aiflow                         # NPRA production
-      |-- Prompt: npra/udemy-capture/transcript-structurer (label: npra-prod)
-      |-- Prompt: npra/faq-rag/system-prompt (label: npra-prod)
+  |   |-- Prompt: npra/udemy-capture/transcript-structurer (label: npra-prod)
+  |   |-- Prompt: npra/faq-rag/system-prompt (label: npra-prod)
+  |
+  |-- bestix-aiflow                       # BESTIX production (belso hasznalat + demo)
+      |-- Prompt: bestix/internal-rag/system-prompt (label: bestix-prod)
+      |-- Prompt: bestix/process-docs/classifier (label: bestix-prod)
+      |-- Prompt: bestix/cfpb-demo/classifier (label: bestix-prod)
+      |-- Prompt: bestix/support-email/system-prompt (label: bestix-prod)
 ```
 
 **ExecutionContext bovites:**
@@ -1251,6 +1352,8 @@ pg-cluster.internal
   |-- aiflow_azhu_stg      # AZHU staging
   |-- aiflow_npra          # NPRA production
   |-- aiflow_npra_stg      # NPRA staging
+  |-- aiflow_bestix        # BESTIX production (belso hasznalat, demo, teszteles)
+  |-- aiflow_bestix_stg    # BESTIX staging
 ```
 
 Elonyok:
@@ -1275,7 +1378,7 @@ Framework v1.2.0 -> v1.3.0 (MINOR, backward compat)
 3. Minden ugyfel deployment.yaml-ban framework.version -> "1.3.0"
 4. Per-ugyfel CI futtat: Pipeline D validate
 5. Per-ugyfel staging deploy + automated test
-6. Fokozatos prod rollout: AZHU eloszor (nagyobb), NPRA utana
+6. Fokozatos prod rollout: BESTIX eloszor (belso), majd AZHU (nagyobb), NPRA utana
 
 Idobecslés: 1-2 nap (automatizalt pipeline-okon)
 ```

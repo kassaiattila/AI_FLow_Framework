@@ -8,14 +8,17 @@ es a 6 skill-t felepigtse, lepesrol lepesre. A `` mappa 23 dokumentuma alapjan,
 
 ## PILOT PROJEKT HIVATKOZASOK (Forras kod)
 
-| # | Skill | Pilot Projekt | Hely | Fo Tanulsagok |
-|---|-------|--------------|------|---------------|
-| 1 | Process Documentation | Diagram Gen AI Agent | `06_Diagram_Gen_AI_Agent/src/` | Langfuse SSOT, Workflow Registry, Promptfoo |
-| 2 | ASZF RAG Chat | Allianz RAG Unified | `94_Cubix_RAG_AI/allianz-rag-unified/` | pgvector, hybrid search, reranker, Next.js UI |
-| 3 | Email Intent | (uj, nincs pilot) | - | Kafka trigger minta a 19_RPA-bol |
-| 4 | Cubix Course Capture | Cubix Automation + Transcript | `Cubix_AI_ML/automation/` + `transcript_pipeline/` | Temporal->AIFlow, Playwright, ffmpeg, STT |
-| 5 | CFPB Complaint Router | CFPB ML Pilot | `Cubix_AI_ML/01_Pilot_ML/01_cfpb_complaints/` | sklearn pipeline, TF-IDF, FastAPI serving |
-| 6 | QBPP Test Automation | AZHU MultiApp AutoTester | `50_AZHU/03_AZHU_AutoTest/MultiApp_AutoTester/` | Playwright, registry-driven, BDD, strategy-based |
+| # | Skill | Pilot Projekt | Pontos Eleresi Ut | Fo Tanulsagok |
+|---|-------|--------------|-------------------|---------------|
+| 1 | process_documentation | Diagram Gen AI Agent | `C:\Users\kassaiattila\OneDrive - BestIxCom Kft\00_BESTIX_KFT\11_DEV\80_Sample_Projects\06_Diagram_Gen_AI_Agent\data` | Langfuse SSOT, Workflow Registry, Promptfoo |
+| 2 | aszf_rag_chat | Allianz RAG Unified | `C:\Users\kassaiattila\OneDrive - BestIxCom Kft\00_BESTIX_KFT\11_DEV\94_Cubix_RAG_AI\allianz-rag-unified\` | pgvector, hybrid search, reranker, Next.js UI |
+| 3 | email_intent_processor | (uj, nincs pilot) | - | Kafka trigger minta a 19_RPA-bol |
+| 4 | cubix_course_capture | Cubix Automation + Transcript | `C:\Users\kassaiattila\BestIxCom Kft\Bestix Kft. - Documents\07_Szakmai_Anyagok\AI\Cubix_AI_ML\automation\` ES `C:\Users\kassaiattila\BestIxCom Kft\Bestix Kft. - Documents\07_Szakmai_Anyagok\AI\Cubix_AI_ML\transcript_pipeline\` | Temporal->AIFlow, Playwright, ffmpeg, STT |
+| 5 | cfpb_complaint_router | CFPB ML Pilot | `C:\Users\kassaiattila\BestIxCom Kft\Bestix Kft. - Documents\07_Szakmai_Anyagok\AI\Cubix_AI_ML\01_Pilot_ML\01_cfpb_complaints\` | sklearn pipeline, TF-IDF, FastAPI serving |
+| 6 | qbpp_test_automation | AZHU MultiApp AutoTester | `C:\Users\kassaiattila\OneDrive - BestIxCom Kft\00_BESTIX_KFT\11_DEV\50_AZHU\03_AZHU_AutoTest\MultiApp_AutoTester\` | Playwright, registry-driven, BDD, strategy-based |
+
+> **Megjegyzes:** A fenti pilot projektek mind mukodnek a sajat kornyezetukben. A portalas soran
+> az AIFlow keretrendszerbe kell adaptalni oket (workflow DAG, agent rendszer, prompt management).
 
 ---
 
@@ -426,33 +429,89 @@ FELADATOK:
 4. skills/registry.py - teljes install folyamat
 ```
 
-### FAZIS C: Elso Valodi Skill - ASZF RAG Chat (3-4 het)
+### FAZIS C: Skill Portalas - Prioritasi Sorrend (12-16 het)
+
+> **Portalasi prioritas:** A pilot projektek mind mukodnek a sajat kornyezetukben.
+> A sorrend figyelembe veszi: framework validacio, ugyfel igeny, fuggosegek.
 
 ```
-FORRAS: allianz-rag-unified pilot
-FELADATOK:
-1. Modellek, promptok portalasa
-2. Multi-instance tamogatas (collection, prompt namespace per instance)
-3. 100+ teszt eset
-4. Elso instance: instances/azhu/hr_aszf_chat.yaml
+PORTALASI PRIORITAS:
+
+1. process_documentation (Diagram Gen) - 2-3 het
+   BESTIX belso, jo framework validacios darab (5 agent, quality gate, refine loop)
+   FORRAS: C:\Users\kassaiattila\OneDrive - BestIxCom Kft\00_BESTIX_KFT\11_DEV\80_Sample_Projects\06_Diagram_Gen_AI_Agent\data
+   UGYFELEK: BESTIX
+   FELADATOK:
+   - Modellek, promptok, agent-ek portalasa AIFlow keretbe
+   - 120+ teszt eset
+   - Elso instance: deployments/bestix/instances/bestix-process-docs.yaml
+
+2. aszf_rag_chat (RAG Chat) - 3-4 het
+   Mind a 3 ugyfel hasznalja (AZHU, NPRA, BESTIX), legmagasabb uzleti prioritas
+   FORRAS: C:\Users\kassaiattila\OneDrive - BestIxCom Kft\00_BESTIX_KFT\11_DEV\94_Cubix_RAG_AI\allianz-rag-unified\
+   UGYFELEK: AZHU, NPRA, BESTIX
+   FELADATOK:
+   - Multi-instance tamogatas (collection, prompt namespace per instance)
+   - 150+ teszt eset
+   - Instance-ok: azhu/hr_aszf_chat, npra/faq_rag, bestix/internal_rag
+
+3. cubix_course_capture + transcript_pipeline - 4-5 het
+   BESTIX belso hasznalat (Cubix AI/ML kurzusok rogzitese)
+   FORRAS: C:\Users\kassaiattila\BestIxCom Kft\Bestix Kft. - Documents\07_Szakmai_Anyagok\AI\Cubix_AI_ML\automation\
+           C:\Users\kassaiattila\BestIxCom Kft\Bestix Kft. - Documents\07_Szakmai_Anyagok\AI\Cubix_AI_ML\transcript_pipeline\
+   UGYFELEK: BESTIX (+ NPRA kesobb)
+   FELADATOK:
+   - Temporal->AIFlow migracio, Playwright + ffmpeg + STT pipeline
+   - Operator-assisted lepesek (HumanReviewRequiredError)
+   - Instance: deployments/bestix/instances/bestix-cubix-capture.yaml
+
+4. qbpp_test_automation - 2-3 het
+   AZHU + NPRA ugyfel igeny (biztositasi kalkulator teszteles)
+   FORRAS: C:\Users\kassaiattila\OneDrive - BestIxCom Kft\00_BESTIX_KFT\11_DEV\50_AZHU\03_AZHU_AutoTest\MultiApp_AutoTester\
+   UGYFELEK: AZHU, NPRA
+   FELADATOK:
+   - pytest-bdd -> AIFlow workflow (registry load -> generate -> run -> analyze)
+   - Instance: deployments/azhu/instances/azhu-portal-test.yaml
+
+5. email_intent_processor - 2-3 het
+   Uj skill, nincs meglevo pilot (Kafka trigger minta a 19_RPA-bol)
+   FORRAS: (uj fejlesztes, nincs pilot)
+   UGYFELEK: AZHU, BESTIX
+   FELADATOK:
+   - Kafka trigger -> intent klasszifikacio -> routing
+   - Instance-ok: azhu/claims_email, bestix/support_email
+
+6. cfpb_complaint_router - 1-2 het
+   BESTIX ML demo (sklearn pipeline portalas, legkisebb scope)
+   FORRAS: C:\Users\kassaiattila\BestIxCom Kft\Bestix Kft. - Documents\07_Szakmai_Anyagok\AI\Cubix_AI_ML\01_Pilot_ML\01_cfpb_complaints\
+   UGYFELEK: BESTIX
+   FELADATOK:
+   - sklearn Pipeline -> AIFlow LocalModelBackend adaptacio
+   - 100+ teszt eset
+   - Instance: deployments/bestix/instances/bestix-cfpb-demo.yaml
 ```
 
-### FAZIS D: Masodik Skill - Cubix Course Capture (4-5 het)
-
-```
-FORRAS: Cubix_AI_ML/automation + transcript_pipeline
-FELADATOK:
-1. Playwright + ffmpeg + STT pipeline
-2. Operator-assisted lepesek (HumanReviewRequiredError)
-3. Instance: instances/npra/python_course.yaml
-```
-
-### FAZIS E: Customer Deployment Infra (2-3 het, parhuzamos)
+### FAZIS D: Customer Deployment Infra (2-3 het, parhuzamos a skill portalassal)
 
 ```
 FELADATOK:
 1. Per-customer Docker Compose config (K8s kesobb)
-2. CI Pipeline D (customer deployment)
-3. Staging Docker kornyezetek
+   - deployments/azhu/docker-compose.yml
+   - deployments/npra/docker-compose.yml
+   - deployments/bestix/docker-compose.yml
+2. CI Pipeline D (customer deployment validacio - 3 ugyfel)
+3. Staging Docker kornyezetek (BESTIX eloszor mint belso teszt)
 4. Elso customer deployment teszt
+5. BESTIX deployment mint "dogfooding" - belso hasznalat validalja a framework-ot
+```
+
+### FAZIS E: Production Deployment (2-3 het)
+
+```
+FELADATOK:
+1. BESTIX deployment veglegesites (belso teszt + demo environment)
+2. AZHU production deployment (enterprise - 4 instance)
+3. NPRA production deployment (business - 3 instance)
+4. Monitoring + alerting setup per customer (Langfuse + Grafana)
+5. Dokumentacio: operations runbook per customer
 ```

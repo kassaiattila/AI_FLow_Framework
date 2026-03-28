@@ -188,7 +188,7 @@ class ExecutionContext(BaseModel):
 Egy skill NEM szingularis deployment. Egy skill SABLON (template), amibol
 tobb PELDANY (instance) futhat kulonbozo konfiguracioval:
 
-**AZHU (Allianz):**
+**AZHU (Allianz Hungaria):**
   - `aszf_rag_chat` instance **"HR Chat"** (hr_docs, HR promptok)
   - `aszf_rag_chat` instance **"Jogi Chat"** (legal_docs, jogi promptok)
   - `email_intent` instance **"Ugyfelszolgalat"** (5 intent)
@@ -200,6 +200,14 @@ tobb PELDANY (instance) futhat kulonbozo konfiguracioval:
   - `cubix_course_capture` instance **"Python Course"** (online platform)
   - `cubix_course_capture` instance **"ML Course"** (online platform)
   - `process_documentation` instance **"Process Docs"** (belso folyamatok)
+
+**BESTIX (BestIxCom Kft - belso hasznalat, teszteles, demo):**
+  - `process_documentation` instance **"Belso Folyamatok"** (framework validacio)
+  - `aszf_rag_chat` instance **"Belso Docs Chat"** (belso dokumentumok)
+  - `cubix_course_capture` instance **"Cubix Kurzus"** (Cubix AI/ML kurzusok)
+  - `cfpb_complaint_router` instance **"ML Demo"** (ML klasszifikacio demo)
+  - `email_intent_processor` instance **"Support Email"** (support@bestix.hu)
+  - Minden skill sajat hasznalatra - teszteles, demo, belso automatizacio
 
 Minden instance sajat: collection, prompt namespace, budget, SLA, adatforrasok.
 Reszletek: [28_MODULAR_DEPLOYMENT.md](28_MODULAR_DEPLOYMENT.md)

@@ -44,6 +44,7 @@ llm:
   max_retries: 3                       # Exponential backoff-fal
 
 # ── Langfuse Observability ─────────────────────────────────
+# Langfuse: cloud account (cloud.langfuse.com), self-hosted kesobb ha szukseges
 langfuse:
   public_key: ""
   secret_key: ""
@@ -187,9 +188,13 @@ AIFLOW_LLM__DEFAULT_MODEL=gpt-4o
 AIFLOW_LLM__TIMEOUT=120
 
 # Langfuse (REQUIRED if enabled)
+# Langfuse: cloud account (cloud.langfuse.com), self-hosted kesobb ha szukseges
 AIFLOW_LANGFUSE__PUBLIC_KEY=pk-lf-...
 AIFLOW_LANGFUSE__SECRET_KEY=sk-lf-...
 AIFLOW_LANGFUSE__ENABLED=true
+
+# OpenAI: aktiv API key (OPENAI_API_KEY a .env-ben)
+OPENAI_API_KEY=sk-...
 
 # Security (REQUIRED)
 AIFLOW_SECURITY__JWT_PRIVATE_KEY_PATH=/etc/aiflow/keys/jwt-private.pem
