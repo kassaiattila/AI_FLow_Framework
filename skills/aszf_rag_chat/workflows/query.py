@@ -42,7 +42,7 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 
 _backend = LiteLLMBackend(default_model="openai/gpt-4o-mini")
-_model_client = ModelClient(generation_backend=_backend)
+_model_client = ModelClient(generation_backend=_backend, embedding_backend=_backend)
 _prompt_manager = PromptManager()
 _prompt_manager.register_yaml_dir(Path(__file__).parent.parent / "prompts")
 
