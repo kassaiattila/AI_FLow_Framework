@@ -114,13 +114,12 @@ async def load_documents(data: dict) -> dict:
     }
 
 
-@step(name="parse_documents", description="Extract text from each file")
+@step(name="parse_documents", description="Extract text from each file using docling")
 async def parse_documents(data: dict) -> dict:
-    """Extract text content from each file.
+    """Extract text content using docling (universal document parser).
 
-    For PDF: try pymupdf (fitz), fallback to read_text()
-    For MD/TXT: direct read with utf-8
-    For DOCX: python-docx paragraph extraction
+    Docling handles: PDF (with table/layout recognition), DOCX, PPTX, XLSX,
+    HTML, MD, TXT, images. Falls back to direct read for simple text files.
 
     Input:
         files: list[dict] - from load_documents
@@ -128,7 +127,7 @@ async def parse_documents(data: dict) -> dict:
         language: str
 
     Output:
-        documents: list[dict] - with name, text, file_type
+        documents: list[dict] - with name, text, markdown, file_type, tables
         collection: str
         language: str
     """
@@ -136,44 +135,77 @@ async def parse_documents(data: dict) -> dict:
     collection = data.get("collection", "default")
     language = data.get("language", "hu")
 
+    # Try docling first, fallback to basic parsers
+    use_docling = False
+    try:
+        from aiflow.ingestion.parsers.docling_parser import DoclingParser
+        parser = DoclingParser()
+        use_docling = True
+        logger.info("parse_documents.using_docling")
+    except ImportError:
+        logger.info("parse_documents.using_basic_parsers", reason="docling not installed")
+
     documents: list[dict[str, Any]] = []
     for file_info in files:
         file_path = Path(file_info["path"])
         file_name = file_info["name"]
         ext = file_path.suffix.lower()
-        text = ""
 
         try:
-            if ext == ".pdf":
-                text = _parse_pdf(file_path)
+            if use_docling and ext in {".pdf", ".docx", ".pptx", ".xlsx", ".html"}:
+                # Docling: advanced parsing with table/layout recognition
+                parsed = parser.parse(file_path)
+                if parsed.text.strip():
+                    documents.append({
+                        "name": file_name,
+                        "text": parsed.text,
+                        "markdown": parsed.markdown,
+                        "file_type": ext.lstrip("."),
+                        "tables": [t.model_dump() for t in parsed.tables],
+                        "word_count": parsed.word_count,
+                        "char_count": parsed.char_count,
+                    })
+                else:
+                    logger.warning("parse_documents.empty", file=file_name)
             elif ext in {".md", ".txt"}:
+                # Direct read for text files
                 text = file_path.read_text(encoding="utf-8")
-            elif ext == ".docx":
-                text = _parse_docx(file_path)
+                if text.strip():
+                    documents.append({
+                        "name": file_name,
+                        "text": text,
+                        "markdown": text,
+                        "file_type": ext.lstrip("."),
+                        "tables": [],
+                        "word_count": len(text.split()),
+                        "char_count": len(text),
+                    })
+            elif not use_docling:
+                # Fallback basic parsers when docling not available
+                text = _parse_basic(file_path, ext)
+                if text.strip():
+                    documents.append({
+                        "name": file_name,
+                        "text": text,
+                        "markdown": text,
+                        "file_type": ext.lstrip("."),
+                        "tables": [],
+                        "word_count": len(text.split()),
+                        "char_count": len(text),
+                    })
             else:
                 logger.warning("parse_documents.unsupported", file=file_name, ext=ext)
-                continue
 
-            if text.strip():
-                documents.append({
-                    "name": file_name,
-                    "text": text,
-                    "file_type": ext.lstrip("."),
-                })
-                logger.debug(
+            if documents and documents[-1]["name"] == file_name:
+                logger.info(
                     "parse_documents.parsed",
                     file=file_name,
-                    chars=len(text),
+                    chars=documents[-1]["char_count"],
+                    parser="docling" if use_docling and ext not in {".md", ".txt"} else "basic",
                 )
-            else:
-                logger.warning("parse_documents.empty", file=file_name)
 
         except Exception as exc:
-            logger.error(
-                "parse_documents.error",
-                file=file_name,
-                error=str(exc),
-            )
+            logger.error("parse_documents.error", file=file_name, error=str(exc))
             continue
 
     logger.info(
@@ -187,6 +219,17 @@ async def parse_documents(data: dict) -> dict:
         "collection": collection,
         "language": language,
     }
+
+
+def _parse_basic(path: Path, ext: str) -> str:
+    """Basic parser fallback when docling is not available."""
+    if ext == ".pdf":
+        return _parse_pdf(path)
+    elif ext == ".docx":
+        return _parse_docx(path)
+    elif ext in {".md", ".txt"}:
+        return path.read_text(encoding="utf-8")
+    return ""
 
 
 def _parse_pdf(path: Path) -> str:

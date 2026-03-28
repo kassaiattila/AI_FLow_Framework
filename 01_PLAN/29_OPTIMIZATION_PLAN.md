@@ -255,7 +255,38 @@ Het 5+: Kovetkezo skillek portalasa (aszf_rag_chat elso)
 
 ---
 
-## 6. Sikerkritérium
+## 6. Docling integracio (dokumentum feldolgozas)
+
+### Cel
+A `docling` (docling.ai) az egyseges dokumentum feldolgozo megoldas az AIFlow-ban.
+Egyetlen library kezeli: PDF (tablazat/layout feismeres), DOCX, PPTX, XLSX, HTML, kepek.
+
+### Implementacio
+- **Fajl:** `src/aiflow/ingestion/parsers/docling_parser.py` - KESZ
+- **Osztaly:** `DoclingParser` - universal parser `parse()` es `parse_batch()` metodusokkal
+- **Output:** `ParsedDocument` (text, markdown, tables, metadata, word/char count)
+- **Integracio:** RAG ingest workflow `parse_documents` step docling-ot hasznal elsosorban
+- **Fallback:** Ha docling nincs telepitve, pymupdf/python-docx fallback
+
+### Miert docling es nem egyedi parserek?
+1. Egyetlen dependency 15+ formatum helyett (PDF, DOCX, PPTX, XLSX, HTML, kep)
+2. Tablazat struktura felismeres (mas parserek ezt nem tudjak)
+3. Layout/olvasasi sorrend analizis (fontos biztositasi dokumentumoknal)
+4. Aktivan karbantartott (IBM-hez kotheto projekt)
+5. Lokalis feldolgozas (nincs cloud fuggoseg - fontos GDPR szempontbol)
+
+### Hasznalat mas skillekben
+Barmelyik skill ami dokumentumokat dolgoz fel, hasznalhatja:
+```python
+from aiflow.ingestion.parsers.docling_parser import DoclingParser
+parser = DoclingParser()
+result = parser.parse("document.pdf")
+# result.text, result.markdown, result.tables
+```
+
+---
+
+## 7. Sikerkritérium
 
 | Metrika | Jelenlegi | Cel |
 |---------|-----------|-----|
