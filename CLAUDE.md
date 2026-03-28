@@ -5,15 +5,19 @@ Enterprise AI Automation Framework for building, deploying, and operating
 AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Redis.
 
 ## Architecture (Key Concepts)
-- **Step** = atomic unit with typed Pydantic I/O, `@step` decorator, DI injection
-- **Workflow** = DAG of Steps built with `WorkflowBuilder` (branch, loop, join, subworkflow, parallel_map, for_each)
-- **Specialist Agent** = stateless, single-responsibility, max 6 per orchestrator
-- **Skill** = self-contained package (workflow + agents + prompts + tests + skill.yaml manifest). Types: ai, rpa, hybrid
-- **Prompt** = YAML source -> Langfuse SSOT -> runtime cache, label-based env (dev/test/staging/prod)
-- **ExecutionContext** = request-scoped context flowing through all components (trace, budget, label)
-- **ModelClient** = unified facade: generate (LLM), embed, classify, extract, vision, predict
-- **Skill Instance** = configured deployment of a Skill template. Same skill code, different data/prompts/budget per instance. Multiple instances per customer possible.
+- **Step** = atomic unit with `@step` decorator, takes dict -> returns dict
+- **SkillRunner** = sequential step executor with service injection (models, prompts, ctx)
+- **WorkflowRunner** = DAG executor with branching/checkpoints (for complex workflows)
+- **Skill** = self-contained package (workflows + tools + prompts + tests + UI + skill.yaml). Types: ai, rpa, hybrid
+- **ModelClient** = unified LLM facade (generate, embed) via LiteLLM backend
+- **PromptManager** = YAML prompt loading with Jinja2 templates and cache
+- **Skill Instance** = configured deployment of a Skill template per customer
 - **VectorStore** = pgvector hybrid search (vector HNSW + BM25 tsvector + RRF)
+
+## Working Skills (tested with real data)
+- **process_documentation** (ai) - Natural language -> BPMN diagrams (Mermaid + DrawIO + BPMN swimlane + SVG)
+- **cubix_course_capture** (hybrid) - Video transcript pipeline (ffmpeg + Whisper STT + LLM structuring) + RPA (Robot Framework)
+- **aszf_rag_chat** (ai) - PLANNED: RAG chat for legal documents (pgvector + OpenAI)
 
 ## Tech Stack
 - Python 3.12+, FastAPI (API), arq + Redis (async queue), PostgreSQL + pgvector (state + vectors)
@@ -56,12 +60,17 @@ pytest tests/unit/ -v                       # Unit tests only
 pytest tests/integration/ -v               # Integration tests (needs Docker)
 npx promptfoo eval -c skills/*/tests/promptfooconfig.yaml  # Prompt tests
 
-# AIFlow CLI
+# Skill CLI (direct execution - recommended)
+python -m skills.process_documentation --input "..." --output ./out
+python -m skills.cubix_course_capture transcript --input video.mkv
+python -m skills.cubix_course_capture capture --url "https://..."
+python -m skills.aszf_rag_chat ingest --source ./docs/ --collection my-docs
+python -m skills.aszf_rag_chat query --question "..." --role expert
+
+# AIFlow CLI (framework management)
 aiflow workflow list                        # List registered workflows
-aiflow workflow run <name> --input '{}'     # Run workflow
-aiflow skill install ./skills/<name>        # Install skill (9-step process)
-aiflow prompt sync --label dev              # Sync YAML prompts to Langfuse
-aiflow eval run --skill <name>              # Run evaluation suite (100+ tests)
+aiflow instance list                        # List skill instances
+aiflow instance load deployments/bestix/deployment.yaml
 
 # Lockfile
 make lock                                   # Regenerate uv.lock from pyproject.toml
@@ -82,27 +91,42 @@ make lock                                   # Regenerate uv.lock from pyproject.
 ## Directory Structure
 ```
 src/aiflow/
-    core/          # Config, context, errors, events, DI, registry
-    engine/        # Step, workflow, DAG, runner, checkpoint, policies
-    agents/        # Specialist, orchestrator, quality_gate, human_loop
-    skills/        # Skill base, manifest, loader, registry
-    prompts/       # PromptManager (Langfuse SSOT), sync, A/B testing
-    models/        # ModelClient (LLM+embedding+classify+extract+vision), registry, router, backends
-    execution/     # JobQueue (arq), worker, scheduler, DLQ, rate_limiter, messaging adapters
-    state/         # SQLAlchemy ORM, repository, Alembic migrations
-    observability/ # Langfuse+OTel tracing, cost_tracker, SLA, structlog, Prometheus
-    evaluation/    # EvalSuite, scorers, Promptfoo integration, datasets
-    security/      # JWT+API key auth, RBAC, audit, Vault secrets, guardrails
-    api/v1/        # FastAPI endpoints (workflows, jobs, skills, prompts, admin, health)
+    core/          # Config, context, errors, events, registry, types
+    engine/        # Step, SkillRunner, WorkflowRunner, DAG, checkpoint
+    models/        # ModelClient, LiteLLM backend, protocols
+    prompts/       # PromptManager (YAML + Jinja2 + cache)
+    skill_system/  # Skill manifest, loader, registry, instance (canonical)
+    tools/         # Shell, Playwright, RobotFramework, HumanLoop, Kafka (canonical)
     vectorstore/   # VectorStore ABC, pgvector, HybridSearchEngine, embedder
-    documents/     # DocumentRegistry, versioning, freshness, external sync
-    ingestion/     # Parsers (PDF/DOCX/XLSX), chunkers (semantic/fixed/hierarchical)
-    ui/            # Reflex/NiceGUI frontend (operator, chat, developer, admin, reports)
-    cli/           # typer CLI (workflow, skill, prompt, eval, dev, deploy)
-    contrib/       # Optional: n8n, chainlit, kroki, miro, messaging, MCP, playwright, shell
-skills/            # Installed skills (process_doc, aszf_rag, email_intent, cubix_capture, ...)
-templates/         # Workflow scaffolding templates (small, medium, large)
+    documents/     # DocumentRegistry, versioning, freshness
+    ingestion/     # Parsers (PDF/DOCX), chunkers (semantic)
+    state/         # SQLAlchemy ORM, repository, Alembic migrations
+    security/      # JWT+API key auth, RBAC, audit
+    api/v1/        # FastAPI endpoints (stub - Phase B)
+    observability/ # Tracing, cost_tracker (partial)
+    ui/            # Reflex frontend (planned - Phase 4)
+    cli/           # typer CLI
+    skills/        # Backward compat re-exports -> skill_system/
+    contrib/       # Backward compat re-exports -> tools/
+    agents/        # DEPRECATED - not used by working skills
+skills/            # Self-contained skill packages (each with own tools, tests, UI)
+  process_documentation/  # WORKING - diagram generation
+  cubix_course_capture/   # WORKING - video transcript pipeline + RPA
+  aszf_rag_chat/          # PLANNED - RAG chat
+deployments/       # Per-customer deployment configs (AZHU, NPRA, BESTIX)
 tests/             # unit/, integration/, e2e/, conftest.py
+```
+
+## Skill Running (two ways)
+```bash
+# CLI (recommended for testing):
+python -m skills.process_documentation --input "Szamla feldolgozas..." --output ./out
+python -m skills.cubix_course_capture transcript --input video.mkv --course Cubix_ML
+
+# Programmatic (for integration):
+from aiflow.engine.skill_runner import SkillRunner
+runner = SkillRunner.from_env(prompt_dirs=["skills/X/prompts"])
+result = await runner.run_steps([step1, step2], {"input": "..."})
 ```
 
 ## Coding Conventions
