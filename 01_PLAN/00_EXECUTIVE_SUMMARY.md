@@ -59,7 +59,7 @@ A POC-ot az **elso Skill**-kent portoljuk at az uj keretrendszerbe:
 |------|----------|
 | [01_ARCHITECTURE.md](01_ARCHITECTURE.md) | Reszletes architektura (Engine, Agents, Skills, Prompts, Execution, Security) |
 | [02_DIRECTORY_STRUCTURE.md](02_DIRECTORY_STRUCTURE.md) | Teljes konyvtar struktura |
-| [03_DATABASE_SCHEMA.md](03_DATABASE_SCHEMA.md) | PostgreSQL schema (35 tabla, 12 view, indexek) |
+| [03_DATABASE_SCHEMA.md](03_DATABASE_SCHEMA.md) | PostgreSQL schema (35 tabla, 13 view, indexek) |
 | [04_IMPLEMENTATION_PHASES.md](04_IMPLEMENTATION_PHASES.md) | 7 fazis, 22 het, heti lebontas |
 | [05_TECH_STACK.md](05_TECH_STACK.md) | Tech stack, fuggosegek, pyproject.toml |
 | [06_CLAUDE_CODE_INTEGRATION.md](06_CLAUDE_CODE_INTEGRATION.md) | Claude Code + MCP a teljes eletciklusban |

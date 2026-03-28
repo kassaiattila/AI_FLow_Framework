@@ -76,6 +76,7 @@ make lock                                   # Regenerate uv.lock from pyproject.
 - `/dev-step` - Complete development step: regression + record + commit suggestion
 - `/phase-status` - Check implementation progress for a phase (1-7)
 - `/validate-plan` - Validate plan document consistency
+- `/update-plan` - **MANDATORY for plan changes**: propagate + 2-pass validation
 
 ## Directory Structure
 ```

@@ -1,9 +1,9 @@
 # AIFlow Plan Documentation Context
 
-You are working in the `01_PLAN/` directory which contains the complete AIFlow project plan (30 documents).
+You are working in the `01_PLAN/` directory which contains the complete AIFlow project plan (34 documents).
 
 ## Structure
-- **00-05**: Core architecture, DB schema (35 tables, 12 views), implementation phases (22 weeks), tech stack
+- **00-05**: Core architecture, DB schema (35 tables, 13 views), implementation phases (22 weeks), tech stack
 - **06-10**: Operations (Claude Code, versioning, errors, middleware, audit)
 - **11-13**: Examples (3+3 skill walkthroughs, skill integration, GitHub research)
 - **14-16**: Technical deep-dives (frontend, ML models, RAG/vectorstore)

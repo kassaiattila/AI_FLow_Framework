@@ -149,7 +149,7 @@ A tervcsomag **rendkivul alapos** egy tervezesi fazisban levo projekthez:
 - **Deployment** (21): K8s, blue-green, DR, runbook-ok
 - **GitHub kutatas** (13): Valos kodanalzis 3 framework-bol (LangGraph, CrewAI, Haystack)
 - **Skill rendszer** (11-12): 6 skill teljes eletciklusa
-- **Claude Code integracio** (26, CLAUDE.md): 9 slash command, strict testing rules
+- **Claude Code integracio** (26, CLAUDE.md): 10 slash command, strict testing rules
 
 A 69 talalt hiba 80%-a MEDIUM/LOW, a 4 CRITICAL kozvetlen javithato.
 A terv **production-ready minosegu** az azonnal javitandok elvegzese utan.
