@@ -17,6 +17,10 @@ suites:
       - core.events
       - core.registry
       - core.di
+      - observability.tracing
+      - observability.cost_tracker
+      - observability.sla_monitor
+      - observability.metrics
 
   state-unit:
     description: "State layer unit tests (ORM models, repository)"
@@ -211,3 +215,16 @@ suites:
     components:
       - api.app
       - api.health
+
+  cli-unit:
+    description: "CLI unit tests (main app, command groups, subcommands)"
+    path: "tests/unit/cli/"
+    suite_type: unit
+    run_on: [commit, pr, merge]
+    priority: high
+    max_duration_seconds: 30
+    coverage_target: 85.0
+    requires_services: []
+    components:
+      - cli.main
+      - cli.commands

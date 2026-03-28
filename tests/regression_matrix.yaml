@@ -68,6 +68,14 @@ rules:
     suites: [api-unit, security-unit, core-unit]
     reason: "API layer changes affect endpoints, auth middleware, and core"
 
+  - pattern: "src/aiflow/cli/**"
+    suites: [cli-unit, core-unit]
+    reason: "CLI changes affect command groups, subcommands, and core wiring"
+
+  - pattern: "src/aiflow/observability/**"
+    suites: [core-unit]
+    reason: "Observability changes affect tracing, cost tracking, SLA monitoring, and metrics"
+
   - pattern: "alembic/versions/005_*"
     suites: [security-unit]
     reason: "Security migration affects teams, users, and audit tables"
@@ -91,3 +99,4 @@ default_suites:
   - execution-unit
   - security-unit
   - api-unit
+  - cli-unit
