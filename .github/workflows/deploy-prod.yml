@@ -1,0 +1,153 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"    # e.g. v1.2.0 (semver, no pre-release suffix)
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_API: ghcr.io/bestixcom/aiflow-api
+  IMAGE_WORKER: ghcr.io/bestixcom/aiflow-worker
+  K8S_NAMESPACE: aiflow
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ------------------------------------------------------------------
+  # Build & push container images
+  # ------------------------------------------------------------------
+  build:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract tag
+        id: meta
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          target: api
+          push: true
+          tags: |
+            ${{ env.IMAGE_API }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE_API }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push Worker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          target: worker
+          push: true
+          tags: |
+            ${{ env.IMAGE_WORKER }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE_WORKER }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+
+  # ------------------------------------------------------------------
+  # Manual approval gate
+  # ------------------------------------------------------------------
+  approve:
+    name: Production Approval
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production    # Requires manual approval via GitHub environment protection rules
+    steps:
+      - name: Approval confirmed
+        run: echo "Production deployment approved for tag ${{ needs.build.outputs.image_tag }}"
+
+  # ------------------------------------------------------------------
+  # Deploy to production cluster
+  # ------------------------------------------------------------------
+  deploy:
+    name: Deploy to Production
+    needs: [build, approve]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Set kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG_PROD }}" | base64 -d > ~/.kube/config
+
+      - name: Run database migrations
+        run: |
+          # Run Alembic migrations against the production database
+          # This step assumes the migration runner has network access to the DB
+          echo "Running Alembic migrations..."
+          # alembic upgrade head
+          echo "Migrations complete (placeholder)"
+
+      - name: Apply Kubernetes manifests
+        run: |
+          TAG="${{ needs.build.outputs.image_tag }}"
+
+          # Apply base resources
+          kubectl apply -f k8s/base/namespace.yaml
+
+          # Update image tags and apply deployments
+          sed "s|:latest|:${TAG}|g" k8s/base/deployment-api.yaml \
+            | kubectl apply -f -
+          sed "s|:latest|:${TAG}|g" k8s/base/deployment-worker.yaml \
+            | kubectl apply -f -
+
+      - name: Wait for rollout
+        run: |
+          kubectl -n ${{ env.K8S_NAMESPACE }} rollout status \
+            deployment/aiflow-api --timeout=300s
+          kubectl -n ${{ env.K8S_NAMESPACE }} rollout status \
+            deployment/aiflow-worker --timeout=300s
+
+      - name: Run production smoke tests
+        run: |
+          API_URL=$(kubectl -n ${{ env.K8S_NAMESPACE }} get svc aiflow-api \
+            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "Production API: ${API_URL:-cluster-internal}"
+          # Placeholder: add real smoke test commands here
+          echo "Production smoke tests passed (placeholder)"
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "Successfully deployed ${{ needs.build.outputs.image_tag }} to production"
+          # Placeholder: send Slack/Teams notification
+          # curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+          #   -H 'Content-Type: application/json' \
+          #   -d '{"text": "AIFlow ${{ needs.build.outputs.image_tag }} deployed to production"}'
+
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "FAILED to deploy ${{ needs.build.outputs.image_tag }} to production"
+          # Placeholder: send alert notification

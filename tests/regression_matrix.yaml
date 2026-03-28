@@ -80,6 +80,14 @@ rules:
     suites: [security-unit]
     reason: "Security migration affects teams, users, and audit tables"
 
+  - pattern: "src/aiflow/contrib/**"
+    suites: [core-unit]
+    reason: "Contrib module changes affect messaging, connectors, and core integration"
+
+  - pattern: "k8s/**"
+    suites: FULL
+    reason: "Kubernetes manifests change may affect deployment and all services"
+
   - pattern: "pyproject.toml"
     suites: FULL
     reason: "Dependency change may affect everything"

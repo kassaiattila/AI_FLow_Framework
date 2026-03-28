@@ -175,7 +175,7 @@ suites:
       - evaluation.datasets
 
   execution-unit:
-    description: "Execution layer unit tests (queue, worker, DLQ, rate limiter)"
+    description: "Execution layer unit tests (queue, worker, DLQ, rate limiter, scheduler)"
     path: "tests/unit/execution/"
     suite_type: unit
     run_on: [commit, pr, merge]
@@ -188,9 +188,10 @@ suites:
       - execution.worker
       - execution.dlq
       - execution.rate_limiter
+      - execution.scheduler
 
   security-unit:
-    description: "Security layer unit tests (auth, RBAC, guardrails)"
+    description: "Security layer unit tests (auth, RBAC, guardrails, audit, secrets)"
     path: "tests/unit/security/"
     suite_type: unit
     run_on: [commit, pr, merge]
@@ -202,6 +203,8 @@ suites:
       - security.auth
       - security.rbac
       - security.guardrails
+      - security.audit
+      - security.secrets
 
   api-unit:
     description: "API layer unit tests (app factory, health, workflows)"
