@@ -60,3 +60,7 @@ suites:
       - engine.dag
       - engine.conditions
       - engine.policies
+      - engine.workflow
+      - engine.runner
+      - engine.checkpoint
+      - engine.serialization
