@@ -14,11 +14,20 @@ logger = structlog.get_logger(__name__)
 class SchemaRegistry:
     """Load versioned JSON schemas from skill directories.
 
-    Schemas live in: skills/{skill_name}/schemas/{version}/{schema_type}.json
+    Schema resolution order (first match wins):
+    1. deployments/{customer}/schemas/{skill_name}/{schema_type}.json (customer override)
+    2. skills/{skill_name}/schemas/{version}/{schema_type}.json (default)
     """
 
-    def __init__(self, skills_dir: Path | str = "skills"):
+    def __init__(
+        self,
+        skills_dir: Path | str = "skills",
+        customer: str | None = None,
+        deployments_dir: Path | str | None = None,
+    ):
         self._skills_dir = Path(skills_dir)
+        self._customer = customer
+        self._deployments_dir = Path(deployments_dir) if deployments_dir else self._skills_dir.parent / "deployments"
         self._cache: dict[str, dict] = {}
 
     def load_schema(
@@ -31,10 +40,27 @@ class SchemaRegistry:
             schema_type: e.g. "intents", "entities", "document_types"
             version: e.g. "v1", or "latest" for highest version
         """
-        cache_key = f"{skill_name}:{schema_type}:{version}"
+        cache_key = f"{self._customer or ''}:{skill_name}:{schema_type}:{version}"
         if cache_key in self._cache:
             return self._cache[cache_key]
 
+        # 1. Try customer-specific schema first
+        if self._customer:
+            customer_path = (
+                self._deployments_dir / self._customer / "schemas"
+                / skill_name / f"{schema_type}.json"
+            )
+            if customer_path.exists():
+                data = json.loads(customer_path.read_text(encoding="utf-8"))
+                self._cache[cache_key] = data
+                logger.info(
+                    "schema_loaded",
+                    skill=skill_name, type=schema_type,
+                    source=f"customer:{self._customer}",
+                )
+                return data
+
+        # 2. Fall back to default skill schema
         schema_dir = self._skills_dir / skill_name / "schemas"
         if not schema_dir.exists():
             raise FileNotFoundError(f"No schemas directory: {schema_dir}")

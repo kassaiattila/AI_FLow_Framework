@@ -1,0 +1,357 @@
+{
+  "schema_version": "v1",
+  "customer": "bestix",
+  "source": "intent_discovery",
+  "discovery_date": "2026-03-29",
+  "total_emails_analyzed": 41,
+  "discovery_cost_usd": 0.1204,
+  "intents": [
+    {
+      "id": "promotion_and_offers",
+      "display_name": "Promóciók és ajánlatok",
+      "display_name_en": "Promotions and Offers",
+      "description": "Emails related to promotional offers, product promotions, and course promotions.",
+      "keywords_hu": [
+        "promóció",
+        "ajánlat",
+        "termék",
+        "tanfolyam",
+        "kedvezmény"
+      ],
+      "keywords_en": [
+        "promotion",
+        "offer",
+        "product",
+        "course",
+        "discount"
+      ],
+      "examples": [
+        "20260319_A teljes Windows-élmény bármilyen eszközön",
+        "20260326_Transform your business with Windows 365 Cloud PCs",
+        "20260327_Sajátíts el új IT_ Data és AI skilleket _ induló m"
+      ],
+      "routing": {
+        "queue": "q_promotion_and_offers",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "promotion_and_offers",
+      "sub_intents": [],
+      "source": "discovery",
+      "discovered_from": [
+        "promotional_offer",
+        "product_promotion",
+        "course_promotion",
+        "promotion_offer",
+        "promote_training_courses"
+      ],
+      "email_count": 0
+    },
+    {
+      "id": "event_and_webinar_notifications",
+      "display_name": "Esemény- és webinárium értesítések",
+      "display_name_en": "Event and Webinar Notifications",
+      "description": "Emails providing summaries or reminders for webinars and events.",
+      "keywords_hu": [
+        "esemény",
+        "webinárium",
+        "emlékeztető",
+        "összefoglaló",
+        "időpont"
+      ],
+      "keywords_en": [
+        "event",
+        "webinar",
+        "reminder",
+        "summary",
+        "schedule"
+      ],
+      "examples": [
+        "20260320_30 elbukott AI projekt tanulságai",
+        "20260311__DS Klub_ ma 18_00 -- VS code_ hogyan használd az",
+        "20260318"
+      ],
+      "routing": {
+        "queue": "q_event_and_webinar_notifications",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "event_and_webinar_notifications",
+      "sub_intents": [],
+      "source": "discovery",
+      "discovered_from": [
+        "webinar_summary",
+        "event_reminder",
+        "event_schedule_change"
+      ],
+      "email_count": 0
+    },
+    {
+      "id": "industry_and_insights",
+      "display_name": "Iparági hírek és betekintések",
+      "display_name_en": "Industry News and Insights",
+      "description": "Emails providing insights or updates about industry trends.",
+      "keywords_hu": [
+        "iparág",
+        "hírek",
+        "betekintés",
+        "trend",
+        "frissítés"
+      ],
+      "keywords_en": [
+        "industry",
+        "news",
+        "insight",
+        "trend",
+        "update"
+      ],
+      "examples": [
+        "20260321__ AI Signals _ Tracking the Next Wave of Innovatio",
+        "20260321"
+      ],
+      "routing": {
+        "queue": "q_industry_and_insights",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "industry_and_insights",
+      "sub_intents": [],
+      "source": "discovery",
+      "discovered_from": [
+        "industry_insights",
+        "industry_insight_update"
+      ],
+      "email_count": 0
+    },
+    {
+      "id": "notifications_and_updates",
+      "display_name": "Értesítések és frissítések",
+      "display_name_en": "Notifications and Updates",
+      "description": "Emails providing notifications about comments, file deletions, or general updates.",
+      "keywords_hu": [
+        "értesítés",
+        "frissítés",
+        "hozzászólás",
+        "törlés",
+        "fájl"
+      ],
+      "keywords_en": [
+        "notification",
+        "update",
+        "comment",
+        "deletion",
+        "file"
+      ],
+      "examples": [
+        "20260322_Új hozzászólás érkezett",
+        "20260322",
+        "20260315"
+      ],
+      "routing": {
+        "queue": "q_notifications_and_updates",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "notifications_and_updates",
+      "sub_intents": [],
+      "source": "discovery",
+      "discovered_from": [
+        "notification_update",
+        "comment_notification",
+        "file_deletion_alert"
+      ],
+      "email_count": 0
+    },
+    {
+      "id": "meeting_and_project_management",
+      "display_name": "Találkozók és projektmenedzsment",
+      "display_name_en": "Meetings and Project Management",
+      "description": "Emails related to meeting arrangements, follow-ups, and project updates or feedback.",
+      "keywords_hu": [
+        "találkozó",
+        "projekt",
+        "visszajelzés",
+        "jóváhagyás",
+        "emlékeztető"
+      ],
+      "keywords_en": [
+        "meeting",
+        "project",
+        "feedback",
+        "approval",
+        "reminder"
+      ],
+      "examples": [
+        "20260323_Welcome to Read AI _ your LES Home Affairs IT stat",
+        "20260327_Fw_ ERM app for CY SIS",
+        "20260326_Re_ Kassai Attila - Cubix ML záró projekt"
+      ],
+      "routing": {
+        "queue": "q_meeting_and_project_management",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "meeting_and_project_management",
+      "sub_intents": [],
+      "source": "discovery",
+      "discovered_from": [
+        "meeting_follow_up",
+        "meeting_arrangement",
+        "meeting_summary_request",
+        "project_submission_reminder",
+        "project_feedback",
+        "project_approval_update"
+      ],
+      "email_count": 0
+    },
+    {
+      "id": "trial_and_subscription_management",
+      "display_name": "Próbaverziók és előfizetések kezelése",
+      "display_name_en": "Trial and Subscription Management",
+      "description": "Emails related to trial progress, expiration notices, and subscription reminders.",
+      "keywords_hu": [
+        "próbaverzió",
+        "előfizetés",
+        "lejárat",
+        "emlékeztető",
+        "nap"
+      ],
+      "keywords_en": [
+        "trial",
+        "subscription",
+        "expiration",
+        "reminder",
+        "day"
+      ],
+      "examples": [
+        "20260324_It_s day 2 of your Read AI trial",
+        "20260327_Your free Enterprise trial is ending in 3 days _ R"
+      ],
+      "routing": {
+        "queue": "q_trial_and_subscription_management",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "trial_and_subscription_management",
+      "sub_intents": [],
+      "source": "discovery",
+      "discovered_from": [
+        "trial_progress_update",
+        "trial_expiration_notice",
+        "trial_period_reminder"
+      ],
+      "email_count": 0
+    },
+    {
+      "id": "financial_and_payment_notifications",
+      "display_name": "Pénzügyi és fizetési értesítések",
+      "display_name_en": "Financial and Payment Notifications",
+      "description": "Emails related to payment reminders, tax notices, and billing issues.",
+      "keywords_hu": [
+        "fizetés",
+        "adó",
+        "számla",
+        "emlékeztető",
+        "panasz"
+      ],
+      "keywords_en": [
+        "payment",
+        "tax",
+        "invoice",
+        "reminder",
+        "complaint"
+      ],
+      "examples": [
+        "20260325_gépjárműadó 04_15-ig",
+        "test_complaint"
+      ],
+      "routing": {
+        "queue": "q_financial_and_payment_notifications",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "financial_and_payment_notifications",
+      "sub_intents": [],
+      "source": "discovery",
+      "discovered_from": [
+        "payment_reminder",
+        "tax_payment_notice",
+        "billing_discrepancy_complaint"
+      ],
+      "email_count": 0
+    },
+    {
+      "id": "job_and_service_inquiries",
+      "display_name": "Állás- és szolgáltatási megkeresések",
+      "display_name_en": "Job and Service Inquiries",
+      "description": "Emails related to job opportunities and inquiries about service expansions.",
+      "keywords_hu": [
+        "állás",
+        "szolgáltatás",
+        "megkeresés",
+        "lehetőség",
+        "bővítés"
+      ],
+      "keywords_en": [
+        "job",
+        "service",
+        "inquiry",
+        "opportunity",
+        "expansion"
+      ],
+      "examples": [
+        "20260313",
+        "test_inquiry"
+      ],
+      "routing": {
+        "queue": "q_job_and_service_inquiries",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "job_and_service_inquiries",
+      "sub_intents": [],
+      "source": "discovery",
+      "discovered_from": [
+        "job_opportunity_invitation",
+        "service_expansion_inquiry"
+      ],
+      "email_count": 0
+    },
+    {
+      "id": "system_and_support_issues",
+      "display_name": "Rendszer- és támogatási problémák",
+      "display_name_en": "System and Support Issues",
+      "description": "Emails reporting urgent system issues or general support requests.",
+      "keywords_hu": [
+        "rendszer",
+        "probléma",
+        "támogatás",
+        "sürgős",
+        "jelentés"
+      ],
+      "keywords_en": [
+        "system",
+        "issue",
+        "support",
+        "urgent",
+        "report"
+      ],
+      "examples": [
+        "test_support"
+      ],
+      "routing": {
+        "queue": "q_system_and_support_issues",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "system_and_support_issues",
+      "sub_intents": [],
+      "source": "discovery",
+      "discovered_from": [
+        "urgent_system_issue",
+        "system_issue_report"
+      ],
+      "email_count": 0
+    }
+  ]
+}

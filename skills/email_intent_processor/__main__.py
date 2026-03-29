@@ -115,6 +115,7 @@ async def main(input_source: str, subject: str, output_dir: str) -> None:
 
 async def cmd_discover(args: argparse.Namespace) -> None:
     """Discover intent categories from real emails."""
+    import json as _json
     from skills.email_intent_processor.discovery.intent_discoverer import discover_intents
 
     print("=" * 60)
@@ -142,8 +143,41 @@ async def cmd_discover(args: argparse.Namespace) -> None:
         name = comp.schema_intent_id or comp.discovered_match
         print(f"  [{icon}] {name} — {comp.status} {comp.notes}")
 
+    # Save customer-specific schema if --customer specified
+    if args.customer:
+        schema_dir = Path("deployments") / args.customer / "schemas" / "email_intent_processor"
+        schema_dir.mkdir(parents=True, exist_ok=True)
+        schema_path = schema_dir / "intents.json"
+        customer_schema = {
+            "schema_version": "v1",
+            "customer": args.customer,
+            "source": "intent_discovery",
+            "discovery_date": result.email_assignments[0].email_id if result.email_assignments else "",
+            "total_emails_analyzed": result.total_emails,
+            "discovery_cost_usd": result.total_cost_usd,
+            "intents": [
+                {
+                    "id": d.id,
+                    "display_name": d.display_name,
+                    "display_name_en": d.display_name_en,
+                    "description": d.description,
+                    "keywords_hu": d.keywords_hu,
+                    "keywords_en": d.keywords_en,
+                    "examples": d.example_subjects,
+                    "routing": {"queue": f"q_{d.id}", "priority_boost": 0, "sla_hours": 48},
+                    "ml_label": d.id,
+                    "sub_intents": [],
+                }
+                for d in result.discovered_intents
+            ],
+        }
+        schema_path.write_text(
+            _json.dumps(customer_schema, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"\nCustomer schema saved: {schema_path}")
+
     if args.output:
-        print(f"\nFull results saved to: {args.output}")
+        print(f"Full results saved to: {args.output}")
 
 
 if __name__ == "__main__":
@@ -161,7 +195,8 @@ if __name__ == "__main__":
     # discover
     p_discover = subparsers.add_parser("discover", help="Discover intents from real emails")
     p_discover.add_argument("--emails", "-e", required=True, help="Directory with .eml files")
-    p_discover.add_argument("--output", "-o", default="", help="Output JSON path")
+    p_discover.add_argument("--customer", "-c", default="", help="Customer name (saves schema to deployments/{customer}/)")
+    p_discover.add_argument("--output", "-o", default="", help="Output JSON path for full results")
     p_discover.add_argument("--batch-size", type=int, default=8, help="Emails per LLM batch")
 
     args = parser.parse_args()
