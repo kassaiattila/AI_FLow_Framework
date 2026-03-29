@@ -89,7 +89,7 @@ async def load_documents(data: dict) -> dict:
 
     files: list[dict[str, Any]] = []
     for ext in _SUPPORTED_EXTENSIONS:
-        for file_path in sorted(source_path.glob(f"*{ext}")):
+        for file_path in sorted(source_path.rglob(f"*{ext}")):
             if file_path.is_file():
                 files.append({
                     "path": str(file_path),
