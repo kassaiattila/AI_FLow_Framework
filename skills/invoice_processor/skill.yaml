@@ -1,0 +1,29 @@
+name: invoice_processor
+display_name: "Invoice Processor"
+version: "1.0.0"
+description: "Extract structured data from Hungarian PDF invoices (incoming & outgoing)"
+skill_type: ai
+
+capabilities:
+  - document_parsing
+  - invoice_classification
+  - field_extraction
+  - line_item_parsing
+  - validation
+  - database_storage
+  - csv_excel_export
+
+required_models:
+  - name: openai/gpt-4o
+    type: generation
+    usage: "Invoice header and line item extraction"
+  - name: openai/gpt-4o-mini
+    type: generation
+    usage: "Invoice classification and validation correction"
+
+workflows:
+  - invoice-processing
+
+estimated_cost_per_run: 0.05
+tags: [invoice, pdf, extraction, hungarian, bestix]
+depends_on: []

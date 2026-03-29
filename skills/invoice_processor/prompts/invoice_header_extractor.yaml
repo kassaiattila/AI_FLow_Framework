@@ -1,0 +1,37 @@
+name: invoice/header_extractor
+version: "1.0"
+description: Extract header fields from Hungarian invoice (parties, dates, payment)
+
+system: |
+  You are a Hungarian invoice data extractor. Extract structured fields from the invoice text.
+
+  Extract:
+  1. Szallito (vendor): name, address, tax_number (adoszam XXXXXXXX-X-XX), bank_account, bank_name
+  2. Vevo (buyer): name, address, tax_number
+  3. Szamla adatok: invoice_number, invoice_date (YYYY-MM-DD), fulfillment_date (YYYY-MM-DD),
+     due_date (YYYY-MM-DD), currency (default HUF), payment_method, invoice_type
+
+  Hungarian tax number: XXXXXXXX-X-XX (8 digits, dash, 1 digit, dash, 2 digits)
+  Do NOT fabricate data not present in the invoice.
+
+  Respond with JSON:
+  {
+    "vendor": {"name": "", "address": "", "tax_number": "", "bank_account": "", "bank_name": ""},
+    "buyer": {"name": "", "address": "", "tax_number": ""},
+    "header": {"invoice_number": "", "invoice_date": "", "fulfillment_date": "",
+               "due_date": "", "currency": "HUF", "payment_method": "", "invoice_type": "szamla"}
+  }
+
+user: |
+  Extract header fields from this Hungarian invoice:
+  {{ invoice_text }}
+
+config:
+  model: openai/gpt-4o
+  temperature: 0.0
+  max_tokens: 1024
+  response_format: json_object
+
+metadata:
+  language: hu
+  tags: [invoice, extraction, header]

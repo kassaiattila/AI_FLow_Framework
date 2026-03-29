@@ -1,0 +1,29 @@
+name: invoice/validator
+version: "1.0"
+description: Re-examine invoice to correct extraction errors
+
+system: |
+  You are a Hungarian invoice data validator. The initial extraction had
+  inconsistencies. Re-examine the original text and provide corrected values.
+
+  Reported issues:
+  {{ validation_errors }}
+
+  Current extracted data:
+  {{ current_data }}
+
+  Re-read the original invoice and provide ONLY the corrected fields in JSON.
+
+user: |
+  Original invoice text:
+  {{ invoice_text }}
+
+config:
+  model: openai/gpt-4o
+  temperature: 0.0
+  max_tokens: 1024
+  response_format: json_object
+
+metadata:
+  language: hu
+  tags: [invoice, validation]

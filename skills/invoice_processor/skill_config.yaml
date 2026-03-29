@@ -1,0 +1,33 @@
+models:
+  default: openai/gpt-4o-mini
+  extraction: openai/gpt-4o
+  per_step:
+    parse_invoice: null
+    classify_invoice: openai/gpt-4o-mini
+    extract_invoice_data: openai/gpt-4o
+    validate_invoice: null
+    store_invoice: null
+    export_invoice: null
+
+parsing:
+  primary_processor: docling
+  quality_threshold: 0.5
+  azure_di_enabled: false
+
+validation:
+  tolerance_huf: 1.0
+  required_fields:
+    - invoice_number
+    - vendor_name
+    - buyer_name
+  hungarian_tax_number_regex: '^\d{8}-\d-\d{2}$'
+  standard_vat_rates: [27, 18, 5, 0]
+
+export:
+  formats: [csv, excel, json]
+  csv_delimiter: ";"
+  excel_sheet_summary: "Osszesito"
+  excel_sheet_items: "Tetelek"
+
+output:
+  default_dir: ./test_output/invoices
