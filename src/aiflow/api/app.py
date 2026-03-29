@@ -1,13 +1,20 @@
 """FastAPI application factory."""
-from fastapi import FastAPI
+from pathlib import Path
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import structlog
+import traceback
 from aiflow._version import __version__
 
 __all__ = ["create_app"]
 logger = structlog.get_logger(__name__)
 
 def create_app() -> FastAPI:
+    # Load .env inside factory (not at module level - avoids test interference)
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent.parent.parent / ".env")
+
     app = FastAPI(
         title="AIFlow API",
         version=__version__,
@@ -29,5 +36,15 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(workflows_router)
     app.include_router(chat_router)
+    # Global exception handler for debugging
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        tb = traceback.format_exc()
+        logger.error("unhandled_exception", error=str(exc), traceback=tb[:500])
+        return JSONResponse(
+            status_code=500,
+            content={"detail": str(exc), "traceback": tb[:1000]},
+        )
+
     logger.info("app_created", version=__version__)
     return app
