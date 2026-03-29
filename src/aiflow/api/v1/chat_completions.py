@@ -74,6 +74,20 @@ async def list_models() -> dict:
             "owned_by": "aiflow",
             "name": "Process Documentation (BPMN)",
         },
+        {
+            "id": "email-intent:azhu:hybrid",
+            "object": "model",
+            "created": 1711670400,
+            "owned_by": "aiflow",
+            "name": "Email Intent (Allianz, Hybrid ML+LLM)",
+        },
+        {
+            "id": "email-intent:azhu:llm-only",
+            "object": "model",
+            "created": 1711670400,
+            "owned_by": "aiflow",
+            "name": "Email Intent (Allianz, LLM Only)",
+        },
     ]
     return {"object": "list", "data": models}
 
@@ -193,6 +207,52 @@ async def _run_process_doc(question: str) -> dict[str, Any]:
     }
 
 
+async def _run_email_intent(
+    text: str,
+    collection: str,
+    role: str,
+) -> dict[str, Any]:
+    """Run the Email Intent Processor pipeline."""
+    from skills.email_intent_processor.workflows.classify import (
+        parse_email, process_attachments, classify_intent,
+        extract_entities, score_priority, decide_routing,
+    )
+
+    data: dict[str, Any] = {
+        "source": text,
+        "subject": "",
+        "body": text,
+        "sender": "",
+        "customer": collection,
+        "classification_strategy": role if role != "baseline" else "hybrid",
+    }
+
+    r1 = await parse_email(data)
+    r2 = await process_attachments(r1)
+    r3 = await classify_intent(r2)
+    r4 = await extract_entities(r3)
+    r5 = await score_priority(r4)
+    r6 = await decide_routing(r5)
+
+    intent = r3.get("primary_intent", "unknown")
+    confidence = r3.get("intent_confidence", 0.0)
+    entities = r4.get("extracted_entities", [])
+    priority = r5.get("priority", 3)
+    queue = r6.get("routed_to", "")
+    department = r6.get("department", "")
+
+    answer = f"**Email feldolgozas eredmenye:**\n\n"
+    answer += f"- **Intent:** {intent} (confidence: {confidence:.0%})\n"
+    answer += f"- **Prioritas:** {priority}/5\n"
+    answer += f"- **Routing:** {department} / {queue}\n"
+    if entities:
+        answer += f"\n**Kinyert adatpontok:**\n"
+        for e in entities[:5]:
+            answer += f"- {e.get('type', '?')}: {e.get('value', '?')}\n"
+
+    return {"answer": answer}
+
+
 # ---------------------------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------------------------
@@ -222,6 +282,8 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletionResp
             result = await _run_aszf_rag(question, collection, role, history)
         elif skill in ("process-doc", "process_documentation"):
             result = await _run_process_doc(question)
+        elif skill in ("email-intent", "email_intent_processor"):
+            result = await _run_email_intent(question, collection, role)
         else:
             raise HTTPException(404, f"Unknown skill: {skill}")
 
