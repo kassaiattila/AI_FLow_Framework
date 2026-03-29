@@ -39,7 +39,7 @@ config:
   model: openai/gpt-4o
   temperature: 0.2
   max_tokens: 4096
-  response_format: {"type": "json_object"}
+  response_format: json_object
 
 metadata:
   language: multilingual
