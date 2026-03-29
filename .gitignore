@@ -56,5 +56,15 @@ test_runs/
 Thumbs.db
 Desktop.ini
 
+# === ML models & training data (large binary files) ===
+*.joblib
+skills/*/training_data/collected/
+skills/*/models/*.csv
+
+# === Test data (generated, not source) ===
+test_output/
+test_emails/
+test_rag_docs/
+
 # === Claude Code local (session data, NOT commands/settings) ===
 # .claude/commands/ and .claude/settings.local.json ARE committed
