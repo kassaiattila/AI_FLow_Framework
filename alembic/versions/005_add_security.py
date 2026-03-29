@@ -74,9 +74,9 @@ def upgrade() -> None:
     op.create_index("idx_audit_log_action", "audit_log", ["action"])
     op.create_index("idx_audit_log_resource", "audit_log", ["resource_type", "resource_id"])
 
-    # --- ALTER workflow_runs: add FK columns ---
-    op.add_column("workflow_runs", sa.Column("team_id", UUID(as_uuid=True)))
-    op.add_column("workflow_runs", sa.Column("user_id", UUID(as_uuid=True)))
+    # --- ALTER workflow_runs: add FK constraints (columns already exist from 001) ---
+    # Note: team_id and user_id columns created in 001_initial_core.py
+    # Here we only add the foreign key constraints
     op.create_foreign_key(
         "fk_workflow_runs_team_id",
         "workflow_runs",

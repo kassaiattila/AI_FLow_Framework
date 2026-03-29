@@ -43,12 +43,12 @@ def upgrade() -> None:
             END                                         AS success_rate,
             ROUND(
                 AVG(
-                    EXTRACT(EPOCH FROM (wr.finished_at - wr.started_at))
+                    EXTRACT(EPOCH FROM (wr.completed_at - wr.started_at))
                 )::numeric, 3
             )                                           AS avg_duration_s,
             ROUND(
                 PERCENTILE_CONT(0.95) WITHIN GROUP (
-                    ORDER BY EXTRACT(EPOCH FROM (wr.finished_at - wr.started_at))
+                    ORDER BY EXTRACT(EPOCH FROM (wr.completed_at - wr.started_at))
                 )::numeric, 3
             )                                           AS p95_duration_s,
             COALESCE(SUM(cr.cost_usd), 0)              AS total_cost_usd,
@@ -57,7 +57,7 @@ def upgrade() -> None:
                 THEN ROUND(
                     COUNT(*) FILTER (
                         WHERE wr.status = 'completed'
-                          AND EXTRACT(EPOCH FROM (wr.finished_at - wr.started_at)) <= 30
+                          AND EXTRACT(EPOCH FROM (wr.completed_at - wr.started_at)) <= 30
                     )::numeric
                     / COUNT(*)::numeric * 100, 2
                 )
