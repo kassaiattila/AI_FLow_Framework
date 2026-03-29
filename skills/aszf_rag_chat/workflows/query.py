@@ -60,7 +60,7 @@ _search_config = SearchConfig(
     vector_weight=0.6,
     keyword_weight=0.4,
     top_k=5,
-    similarity_threshold=0.3,
+    similarity_threshold=0.0,  # Disabled - filtering done by top_k ordering instead
     rrf_k=60,
 )
 _search_engine = HybridSearchEngine.from_config(_vector_store, _search_config)
@@ -305,6 +305,8 @@ async def generate_answer(data: dict) -> dict:
         system_messages = system_prompt.compile(variables={
             "context": context,
             "question": question,
+            "company_name": data.get("company_name", "Allianz Hungaria Zrt."),
+            "history": str(conversation_history[-6:]) if conversation_history else "",
         })
     except Exception as exc:
         logger.warning(
@@ -400,7 +402,7 @@ async def extract_citations(data: dict) -> dict:
     messages = prompt.compile(variables={
         "answer": answer,
         "context": context,
-        "sources_json": str(sources),
+        "sources": str(sources),
     })
 
     result = await _model_client.generate(
