@@ -124,11 +124,11 @@ A referencia tananyag (05_evaluacio) altal ajanlott:
 ## Cubix RAG tananyag checklist
 
 ### Modul 01: LLM alapok ✅ (hasznaljuk a ModelClient-et)
-### Modul 02: RAG Pipeline ⚠️ (alap mukodik, chunking javitando)
+### Modul 02: RAG Pipeline ✅ (recursive chunking mukodik)
 - [x] Dokumentum betoltes (docling)
 - [x] Chunking (alap paragraph split)
-- [ ] Recursive chunking (tananyag ajanlasa!)
-- [ ] Heading-based chunking
+- [x] Recursive chunking (tananyag ajanlasa!) - KESZ 2026-03-29
+- [ ] Heading-based chunking (jovobeli)
 - [x] Metadata enrichment (collection, skill_name)
 - [ ] Metadata: fejezet, oldal, datum
 
@@ -139,18 +139,21 @@ A referencia tananyag (05_evaluacio) altal ajanlott:
 - [ ] IVFFlat index optimalizacio (lists parameter)
 - [ ] BM25 tsvector integracio (hybrid search)
 
-### Modul 04: Backend + API ⚠️
+### Modul 04: Backend + API ✅ (OpenAI-compat API mukodik)
 - [x] CLI interface
 - [x] Reflex GUI (alap)
+- [x] Open WebUI (profi chat) - KESZ 2026-03-29
+- [x] API endpoint (FastAPI /v1/chat/completions + /v1/models)
 - [ ] Streaming valasz
 - [ ] Conversation memory (DB)
-- [ ] API endpoint (FastAPI)
 
-### Modul 05: Evaluacio ❌ (nincs implementalva)
-- [ ] Golden dataset (50+ kerdes/valasz)
-- [ ] LLM-as-Judge scoring
-- [ ] Promptfoo teszt config
-- [ ] Retrieval precision merika
+### Modul 05: Evaluacio ⚠️ (alapok kesz)
+- [x] Golden dataset (14 kerdes/valasz) - KESZ 2026-03-29
+- [x] Evaluation runner (eval_runner.py) - KESZ 2026-03-29
+- [x] Eredmeny: 12/14 PASS (86%)
+- [ ] LLM-as-Judge scoring (jovobeli)
+- [ ] Promptfoo teszt config (jovobeli)
+- [ ] Negativ teszt szures javitasa
 
 ### Modul 06: Eszkozok + CI/CD ❌
 - [ ] Promptfoo CI/CD pipeline

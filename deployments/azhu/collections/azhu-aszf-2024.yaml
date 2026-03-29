@@ -1,0 +1,42 @@
+# AZHU ASZF Collection Config - Allianz biztositasi feltetelek
+collection:
+  name: azhu-aszf-2024
+  customer: azhu
+  skill_name: aszf_rag_chat
+  description: "Allianz Hungaria biztositasi feltetelek (ASZF) 2024"
+
+  source:
+    path: ./documents/azhu/aszf/
+    formats: [pdf, docx]
+    language: hu
+
+  ingestion:
+    parser: docling
+    chunking:
+      strategy: recursive
+      chunk_size: 2000
+      chunk_overlap: 200
+      separators: ["\n## ", "\n### ", "\n\n", "\n", ". ", " "]
+      min_chunk_size: 100
+    embedding:
+      model: text-embedding-3-small
+      batch_size: 5
+      dimensions: 1536
+
+  search:
+    vector_weight: 0.6
+    keyword_weight: 0.4
+    top_k: 5
+    similarity_threshold: 0.0
+    rrf_k: 60
+
+  prompts:
+    system_prompt: aszf-rag/system_prompt_expert
+    variables:
+      company_name: "Allianz Hungaria Zrt."
+      tone: formal
+      language: hu
+
+  evaluation:
+    golden_dataset: skills/aszf_rag_chat/tests/datasets/golden_queries.yaml
+    min_pass_rate: 0.7
