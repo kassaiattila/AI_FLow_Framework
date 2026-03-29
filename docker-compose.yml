@@ -38,6 +38,20 @@ services:
     ports:
       - "8080:8000"
 
+  # === CHAT UI (OpenChat - professional chat interface) ===
+  # Start: docker compose --profile chat up -d
+  # Access: http://localhost:3000
+  # Configure: Settings -> Add Provider -> Custom -> http://host.docker.internal:8200/v1
+  openchat:
+    image: ghcr.io/openchatui/openchat:latest
+    profiles: ["chat"]
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: file:./db.sqlite
+    volumes:
+      - openchat_data:/app/data
+
   # === FULL PROFILE (docker compose --profile full up) ===
   api:
     build:
@@ -84,3 +98,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  openchat_data:
