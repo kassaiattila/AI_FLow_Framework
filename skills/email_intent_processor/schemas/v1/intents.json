@@ -1,0 +1,145 @@
+{
+  "schema_version": "1.0",
+  "intents": [
+    {
+      "id": "complaint",
+      "display_name": "Panasz / Reklamacio",
+      "description": "Ugyfel elegedetlen, panaszt tesz termekre, szolgaltatasra vagy ugyintezesre",
+      "keywords_hu": ["reklamacio", "panasz", "elegedetlen", "problema", "kifogasol", "felhaboritott", "elfogadhatatlan", "rossz minoseg", "nem megfelelo"],
+      "keywords_en": ["complaint", "dissatisfied", "problem", "unacceptable", "terrible", "outraged", "poor quality"],
+      "examples": [
+        "Reklamaciom van a szamlaval kapcsolatban",
+        "Panaszt szeretnek tenni a kiszolgalas miatt",
+        "Elfogadhatatlan minosegu szolgaltatast kaptam",
+        "Felhaboritott a tapasztalatom az ugyfelszolgalaton"
+      ],
+      "routing": {
+        "queue": "ugyfelszolgalat",
+        "priority_boost": 1,
+        "sla_hours": 24
+      },
+      "ml_label": "complaint",
+      "sub_intents": ["billing_complaint", "service_complaint", "product_complaint", "staff_complaint"]
+    },
+    {
+      "id": "inquiry",
+      "display_name": "Informacio keres",
+      "description": "Ugyfel tajekoztatast ker termekrol, szolgaltatasrol, feltételekrol vagy folyamatokrol",
+      "keywords_hu": ["kerdes", "erdekel", "informacio", "tudnak", "szeretnem megtudni", "tájékoztatás", "hogyan", "mikor", "mennyibe"],
+      "keywords_en": ["question", "information", "interested", "how", "when", "what", "details", "inquiry"],
+      "examples": [
+        "Erdeklodnek a biztositasi csomagjaikrol",
+        "Szeretnem megtudni a dijszabast",
+        "Hogyan tudok szerzodest modositani?",
+        "Milyen dokumentumok kellenek az igenylesehez?"
+      ],
+      "routing": {
+        "queue": "informacio",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "inquiry",
+      "sub_intents": ["product_inquiry", "pricing_inquiry", "process_inquiry", "status_inquiry"]
+    },
+    {
+      "id": "order",
+      "display_name": "Rendeles / Szerzodes",
+      "description": "Ugyfel rendelest ad le, szerzodest kot vagy modosit, vagy szolgaltatast igenyel",
+      "keywords_hu": ["rendeles", "megrendelem", "szerzodes", "megkotni", "igenylem", "megvasarolni", "elofizetes", "csomag", "modositas"],
+      "keywords_en": ["order", "purchase", "contract", "subscribe", "buy", "sign up", "modify contract"],
+      "examples": [
+        "Szeretnek egy uj biztositast kotni",
+        "Megrendelnem a premium csomagot",
+        "Modositani szeretnem a meglevo szerzodesemet",
+        "Elofizetek a haztartasi biztositasra"
+      ],
+      "routing": {
+        "queue": "szerzodes_kezeles",
+        "priority_boost": 0,
+        "sla_hours": 24
+      },
+      "ml_label": "order",
+      "sub_intents": ["new_contract", "contract_modification", "product_order", "upgrade"]
+    },
+    {
+      "id": "support",
+      "display_name": "Technikai segitseg",
+      "description": "Ugyfel technikai problemat jelent, tamogatast ker rendszer- vagy alkalmazashasznalati ugyekben",
+      "keywords_hu": ["nem mukodik", "hiba", "technikai", "segitseg", "tamogatas", "nem erem el", "bejelentkezes", "jelszó", "rendszer"],
+      "keywords_en": ["not working", "error", "technical", "help", "support", "cannot access", "login", "password", "bug"],
+      "examples": [
+        "Nem tudok bejelentkezni a fiokamba",
+        "Hibat jelzi az online felulet",
+        "Nem mukodik a mobilalkalmazas",
+        "Technikai segitseget kerek az ugyfelportalhoz"
+      ],
+      "routing": {
+        "queue": "technikai_tamogatas",
+        "priority_boost": 0,
+        "sla_hours": 8
+      },
+      "ml_label": "support",
+      "sub_intents": ["login_issue", "app_error", "portal_issue", "system_outage"]
+    },
+    {
+      "id": "feedback",
+      "display_name": "Visszajelzes",
+      "description": "Ugyfel visszajelzest, ertekelest vagy javaslatot ad a szolgaltatasrol",
+      "keywords_hu": ["visszajelzes", "velemeny", "javaslat", "ertekeles", "koszonom", "elegedett", "dicsernem", "fejlesztes"],
+      "keywords_en": ["feedback", "suggestion", "opinion", "review", "thank you", "satisfied", "improvement", "praise"],
+      "examples": [
+        "Szeretnek pozitiv visszajelzest adni az ugyintezesrol",
+        "Javaslatom lenne a szolgaltatas javitasara",
+        "Koszonom a gyors ugyintezest",
+        "Elégedett vagyok, de lenne egy javaslatom"
+      ],
+      "routing": {
+        "queue": "minoseg",
+        "priority_boost": -1,
+        "sla_hours": 72
+      },
+      "ml_label": "feedback",
+      "sub_intents": ["positive_feedback", "negative_feedback", "suggestion", "survey_response"]
+    },
+    {
+      "id": "claim",
+      "display_name": "Karbejelentes",
+      "description": "Ugyfel kart jelent be, biztositasi esemenyt, balesetet vagy lopast jelez",
+      "keywords_hu": ["karbejelentes", "kar", "baleset", "lopas", "tuz", "vihar", "betores", "biztositasi esemeny", "karrendezes"],
+      "keywords_en": ["claim", "damage", "accident", "theft", "fire", "storm", "burglary", "insurance event", "loss"],
+      "examples": [
+        "Karbejelentest szeretnek tenni, betortek a lakasomba",
+        "Kozlekedesi balesetem volt, biztositasi igenyt nyujtanek be",
+        "A tegnapelotti vihar megrongalta a tetot",
+        "Ellopta valaki az automat a parkolobol"
+      ],
+      "routing": {
+        "queue": "karrendezes",
+        "priority_boost": 2,
+        "sla_hours": 4
+      },
+      "ml_label": "claim",
+      "sub_intents": ["property_damage", "vehicle_accident", "theft_claim", "natural_disaster", "health_claim"]
+    },
+    {
+      "id": "cancellation",
+      "display_name": "Lemondas / Felmondas",
+      "description": "Ugyfel szerzodest, elofizetest vagy szolgaltatast mond le vagy mond fel",
+      "keywords_hu": ["lemondas", "felmondas", "megszuntetes", "torles", "lemond", "felmond", "nem kerem tovabb", "kilepni"],
+      "keywords_en": ["cancellation", "cancel", "terminate", "unsubscribe", "close account", "end contract", "quit"],
+      "examples": [
+        "Fel szeretnem mondani a biztositasomat",
+        "Szerzodes torlesere lenne szuksegem",
+        "Nem kerem tovabb a szolgaltatast, lemondanek",
+        "Kilepnek a premium csomagbol"
+      ],
+      "routing": {
+        "queue": "szerzodes_kezeles",
+        "priority_boost": 1,
+        "sla_hours": 24
+      },
+      "ml_label": "cancellation",
+      "sub_intents": ["contract_cancellation", "subscription_cancel", "service_termination", "partial_cancel"]
+    }
+  ]
+}

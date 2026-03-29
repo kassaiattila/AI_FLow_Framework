@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "document_types": [
+    {
+      "id": "invoice",
+      "display_name": "Szamla",
+      "description": "Szamla, nyugta, dijbekero dokumentum",
+      "mime_types": ["application/pdf", "image/png", "image/jpeg"],
+      "extensions": [".pdf", ".png", ".jpg", ".jpeg"],
+      "extraction_fields": ["invoice_number", "date", "amount", "vendor_name", "tax_id"],
+      "keywords": ["szamla", "dijbekero", "fizetendo", "adoszam", "invoice", "receipt"],
+      "relevance_for_intents": ["complaint", "claim", "order"]
+    },
+    {
+      "id": "contract",
+      "display_name": "Szerzodes",
+      "description": "Szerzodes, feltetelrendszer, modositas dokumentum",
+      "mime_types": ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+      "extensions": [".pdf", ".docx"],
+      "extraction_fields": ["contract_number", "parties", "effective_date", "expiry_date", "terms"],
+      "keywords": ["szerzodes", "feltetel", "kotvenyszam", "contract", "agreement", "policy"],
+      "relevance_for_intents": ["cancellation", "order", "complaint"]
+    },
+    {
+      "id": "photo_evidence",
+      "display_name": "Foto bizonyitek",
+      "description": "Foto karrol, balesetrol, allapotrol",
+      "mime_types": ["image/png", "image/jpeg", "image/tiff", "image/heic"],
+      "extensions": [".png", ".jpg", ".jpeg", ".tiff", ".heic"],
+      "extraction_fields": ["description", "damage_type", "location"],
+      "keywords": [],
+      "relevance_for_intents": ["claim"],
+      "processing_note": "Use LLM vision for damage assessment"
+    },
+    {
+      "id": "police_report",
+      "display_name": "Rendorsegi jegyzokonyv",
+      "description": "Feljelentes, jegyzokonyv, hatosagi dokumentum",
+      "mime_types": ["application/pdf", "image/png", "image/jpeg"],
+      "extensions": [".pdf", ".png", ".jpg"],
+      "extraction_fields": ["report_number", "date", "incident_type", "location", "parties_involved"],
+      "keywords": ["rendorseg", "jegyzokonyv", "feljelentes", "police", "report"],
+      "relevance_for_intents": ["claim"]
+    },
+    {
+      "id": "medical_document",
+      "display_name": "Orvosi dokumentum",
+      "description": "Orvosi lelet, igazolas, szamla",
+      "mime_types": ["application/pdf", "image/png", "image/jpeg"],
+      "extensions": [".pdf", ".png", ".jpg"],
+      "extraction_fields": ["patient_name", "date", "diagnosis", "doctor_name", "institution"],
+      "keywords": ["orvosi", "lelet", "diagnozis", "igazolas", "medical", "doctor"],
+      "relevance_for_intents": ["claim"],
+      "processing_note": "Contains sensitive health data - handle per GDPR"
+    },
+    {
+      "id": "identification",
+      "display_name": "Szemelyi dokumentum",
+      "description": "Szemelyigazolvany, jogositvany, utlevel",
+      "mime_types": ["image/png", "image/jpeg", "application/pdf"],
+      "extensions": [".png", ".jpg", ".jpeg", ".pdf"],
+      "extraction_fields": ["document_number", "full_name", "birth_date", "expiry_date"],
+      "keywords": ["szemelyi", "igazolvany", "jogositvany", "utlevel", "ID", "passport"],
+      "relevance_for_intents": ["order", "cancellation", "claim"],
+      "processing_note": "Contains PII - handle per GDPR, do not store raw content"
+    },
+    {
+      "id": "correspondence",
+      "display_name": "Korabbi levelezés",
+      "description": "Korabbi email, level, valaszlevel",
+      "mime_types": ["message/rfc822", "text/plain", "application/pdf"],
+      "extensions": [".eml", ".msg", ".txt", ".pdf"],
+      "extraction_fields": ["date", "subject", "reference_number", "summary"],
+      "keywords": ["korabbi", "valasz", "hivatkozas", "reference", "previous"],
+      "relevance_for_intents": ["complaint", "inquiry", "support"]
+    },
+    {
+      "id": "spreadsheet",
+      "display_name": "Tablazat",
+      "description": "Excel, CSV fajl adatokkal",
+      "mime_types": [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+        "text/csv"
+      ],
+      "extensions": [".xlsx", ".xls", ".csv"],
+      "extraction_fields": ["headers", "row_count", "summary"],
+      "keywords": ["tablazat", "kimutatás", "lista", "spreadsheet"],
+      "relevance_for_intents": ["complaint", "claim", "inquiry"]
+    }
+  ]
+}

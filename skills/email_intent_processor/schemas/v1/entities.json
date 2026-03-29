@@ -1,0 +1,140 @@
+{
+  "schema_version": "1.0",
+  "entity_types": [
+    {
+      "id": "person_name",
+      "display_name": "Szemely nev",
+      "extraction_methods": ["llm"],
+      "regex_patterns": [],
+      "llm_prompt_hint": "Extract person names. Hungarian format: Family name first, then Given name (e.g., 'Kovacs Janos'). May appear with titles like 'dr.', 'ifj.', 'id.'.",
+      "validation": {
+        "min_length": 2,
+        "max_length": 100
+      },
+      "source_priority": ["body", "subject", "from"],
+      "normalize": true
+    },
+    {
+      "id": "contract_number",
+      "display_name": "Szerzodes szam",
+      "extraction_methods": ["regex", "llm"],
+      "regex_patterns": [
+        "\\b[A-Z]{2,4}[-/]\\d{5,10}\\b",
+        "\\bSZ[-/]\\d+\\b",
+        "\\b\\d{6,10}/\\d{2,4}\\b",
+        "\\bSZERZ[-/]\\d{4,}\\b",
+        "\\b[A-Z]{1,3}\\d{6,12}\\b"
+      ],
+      "llm_prompt_hint": "Look for contract numbers, policy numbers, or agreement identifiers. Hungarian format often starts with letter prefix followed by digits, e.g., 'SZ-12345', 'BIZ/20240001'.",
+      "validation": {
+        "min_length": 5,
+        "max_length": 20
+      },
+      "source_priority": ["subject", "body", "attachment"],
+      "normalize": true
+    },
+    {
+      "id": "date",
+      "display_name": "Datum",
+      "extraction_methods": ["regex", "llm"],
+      "regex_patterns": [
+        "\\b\\d{4}\\.\\s?\\w+\\.?\\s?\\d{1,2}\\.?\\b",
+        "\\b\\d{4}[-/]\\d{2}[-/]\\d{2}\\b",
+        "\\b\\d{1,2}\\.\\s?\\d{1,2}\\.\\s?\\d{4}\\b",
+        "\\b\\d{4}\\.\\d{2}\\.\\d{2}\\b"
+      ],
+      "llm_prompt_hint": "Extract dates in any format. Hungarian date format: YYYY. MM. DD. or YYYY.MM.DD. Also look for relative dates like 'tegnap', 'mult heten', 'januar 5-en'.",
+      "validation": {
+        "min_length": 6,
+        "max_length": 30
+      },
+      "source_priority": ["body", "subject", "attachment"],
+      "normalize": true,
+      "normalize_format": "ISO8601"
+    },
+    {
+      "id": "amount",
+      "display_name": "Osszeg",
+      "extraction_methods": ["regex", "llm"],
+      "regex_patterns": [
+        "\\b\\d{1,3}(?:[\\s.,]\\d{3})*(?:[.,]\\d{1,2})?\\s*(?:Ft|HUF|forint|EUR|euro|€|USD|\\$)\\b",
+        "\\b(?:Ft|HUF|EUR|USD|\\$|€)\\s*\\d{1,3}(?:[\\s.,]\\d{3})*(?:[.,]\\d{1,2})?\\b"
+      ],
+      "llm_prompt_hint": "Extract monetary amounts with currency. Hungarian amounts use space or dot as thousands separator, comma for decimals. Default currency is HUF/Ft. Look for patterns like '150 000 Ft', '1.500.000 HUF', '250,50 EUR'.",
+      "validation": {
+        "min_length": 2,
+        "max_length": 30
+      },
+      "source_priority": ["body", "attachment", "subject"],
+      "normalize": true,
+      "normalize_format": "decimal_with_currency"
+    },
+    {
+      "id": "email_address",
+      "display_name": "Email cim",
+      "extraction_methods": ["regex"],
+      "regex_patterns": [
+        "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"
+      ],
+      "llm_prompt_hint": "Extract email addresses from the text.",
+      "validation": {
+        "min_length": 5,
+        "max_length": 254
+      },
+      "source_priority": ["body", "from", "subject"],
+      "normalize": true
+    },
+    {
+      "id": "phone_number",
+      "display_name": "Telefonszam",
+      "extraction_methods": ["regex", "llm"],
+      "regex_patterns": [
+        "\\+?36[-\\s]?(?:1|20|30|31|50|70)[-\\s]?\\d{3}[-\\s]?\\d{4}",
+        "\\b06[-\\s]?(?:1|20|30|31|50|70)[-\\s]?\\d{3}[-\\s]?\\d{4}\\b",
+        "\\(\\d{1,3}\\)\\s?\\d{3}[-\\s]?\\d{4}"
+      ],
+      "llm_prompt_hint": "Extract Hungarian phone numbers. Common formats: +36 20 123 4567, 06-30-123-4567, (1) 234-5678. Mobile prefixes: 20, 30, 31, 50, 70. Budapest landline: 1.",
+      "validation": {
+        "min_length": 9,
+        "max_length": 20
+      },
+      "source_priority": ["body", "subject"],
+      "normalize": true,
+      "normalize_format": "+36XXXXXXXXX"
+    },
+    {
+      "id": "address",
+      "display_name": "Cim / Lakcim",
+      "extraction_methods": ["llm"],
+      "regex_patterns": [
+        "\\b\\d{4}\\s+[A-Z\\u00C0-\\u017E][a-z\\u00E0-\\u017E]+",
+        "\\b(?:utca|ut|ter|sor|korut|koz|setany)\\b"
+      ],
+      "llm_prompt_hint": "Extract Hungarian addresses. Format: ZIP City, Street Type Number Floor/Door. Example: '1051 Budapest, Nador utca 12. 3/4.' Look for zip (4 digits), city name, street with type (utca, ut, ter, korut, koz, setany).",
+      "validation": {
+        "min_length": 10,
+        "max_length": 200
+      },
+      "source_priority": ["body", "attachment"],
+      "normalize": false
+    },
+    {
+      "id": "policy_number",
+      "display_name": "Kotveny szam",
+      "extraction_methods": ["regex", "llm"],
+      "regex_patterns": [
+        "\\b[A-Z]{1,4}[-/]?\\d{4,12}[-/]?\\d{0,4}\\b",
+        "\\bKOTV[-/]\\d+\\b",
+        "\\bBIZ[-/]\\d+\\b",
+        "\\b\\d{3}[-/]\\d{6,10}[-/]\\d{2,4}\\b"
+      ],
+      "llm_prompt_hint": "Extract insurance policy numbers. Hungarian insurance policy formats vary: 'KOTV-12345678', 'BIZ/20240001', '123-456789-01'. These are distinct from contract numbers.",
+      "validation": {
+        "min_length": 5,
+        "max_length": 25
+      },
+      "source_priority": ["subject", "body", "attachment"],
+      "normalize": true
+    }
+  ]
+}

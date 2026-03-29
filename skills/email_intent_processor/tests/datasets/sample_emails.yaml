@@ -1,0 +1,420 @@
+# Sample emails for Email Intent Processor testing
+# 14 samples: 2 per intent category
+# Each sample includes expected intent, priority, and key entities.
+
+schema_version: "1.0"
+
+samples:
+  # --- COMPLAINT (2) ---
+  - id: complaint_01
+    subject: "Reklamaciom van a szamlaval kapcsolatban"
+    body: |
+      Tisztelt Ugyfelszolgalat!
+
+      Tobb alkalommal is jeleztem, hogy a 2024. marciusi szamlan hibas
+      osszeg szerepel. A szerzodesbem szerint a havi dij 15 000 Ft,
+      de 23 500 Ft-ot vontak le. A szerzodes szamom: SZ-12345678.
+
+      Kérem sürgős intézkedésüket, mert ez mar a harmadik email ebben
+      az ügyben és még mindig nem kaptam érdemi választ.
+
+      Üdvözlettel,
+      Kovacs Janos
+      Tel: +36 30 123 4567
+    sender: "kovacs.janos@example.com"
+    expected:
+      intent: complaint
+      sub_intent: billing_complaint
+      priority_level: 2
+      priority_name: high
+      department: ugyfelszolgalat
+      entities:
+        - type: contract_number
+          value: "SZ-12345678"
+        - type: amount
+          value: "15 000 Ft"
+        - type: amount
+          value: "23 500 Ft"
+        - type: person_name
+          value: "Kovacs Janos"
+        - type: phone_number
+          value: "+36 30 123 4567"
+        - type: date
+          value: "2024. marciusi"
+
+  - id: complaint_02
+    subject: "Extremely poor customer service"
+    body: |
+      Dear Customer Service,
+
+      I am writing to express my deep dissatisfaction with the service
+      I received at your Budapest office on March 15, 2024. The staff
+      was unhelpful and rude. My policy number is BIZ/20240315.
+
+      If this matter is not resolved within 5 business days, I will
+      be forced to seek legal counsel.
+
+      Regards,
+      Maria Szabo
+    sender: "maria.szabo@example.com"
+    expected:
+      intent: complaint
+      sub_intent: staff_complaint
+      priority_level: 1  # Legal threat boosts to critical
+      priority_name: critical
+      department: ugyfelszolgalat
+      entities:
+        - type: person_name
+          value: "Maria Szabo"
+        - type: policy_number
+          value: "BIZ/20240315"
+        - type: date
+          value: "March 15, 2024"
+
+  # --- INQUIRY (2) ---
+  - id: inquiry_01
+    subject: "Erdeklodes lakasbiztositasrol"
+    body: |
+      Tisztelt Cim!
+
+      Erdeklodnek a lakasbiztositasi csomagjaikrol. Egy 65 m2-es
+      budapesti lakasom van (1051 Budapest, Nador utca 12. 3/4.),
+      es szeretnem tudni, hogy milyen fedezeteket kinal a standard
+      csomag es mennyibe kerul havonta.
+
+      Köszönettel,
+      Nagy Peter
+    sender: "nagy.peter@example.com"
+    expected:
+      intent: inquiry
+      sub_intent: product_inquiry
+      priority_level: 4
+      priority_name: low
+      department: informacio
+      entities:
+        - type: person_name
+          value: "Nagy Peter"
+        - type: address
+          value: "1051 Budapest, Nador utca 12. 3/4."
+
+  - id: inquiry_02
+    subject: "Milyen dokumentumok kellenek?"
+    body: |
+      Szia!
+
+      Szeretnem modositani a casco biztositasomat (szerzodes szam:
+      AUTO-987654) es erdeklodnek, hogy milyen dokumentumokat kell
+      bekuldenom. Az auto rendszama ABC-123.
+
+      Koszonom!
+      Toth Anna
+    sender: "toth.anna@example.com"
+    expected:
+      intent: inquiry
+      sub_intent: process_inquiry
+      priority_level: 4
+      priority_name: low
+      department: informacio
+      entities:
+        - type: person_name
+          value: "Toth Anna"
+        - type: contract_number
+          value: "AUTO-987654"
+
+  # --- ORDER (2) ---
+  - id: order_01
+    subject: "Uj lakas biztositas kotese"
+    body: |
+      Tisztelt Biztosito!
+
+      Szeretnek egy uj lakasbiztositast kotni a kovetkezo ingatlanra:
+      2040 Budaors, Templom ter 5.
+
+      A lakás mérete 82 m2, társasházban van. Kérem küldjék el az
+      ajánlatot és a szükséges dokumentumok listáját.
+
+      Adataim:
+      Név: dr. Kiss Istvan
+      Tel: 06-20-555-1234
+      Email: kiss.istvan@example.com
+
+      Üdvözlettel
+    sender: "kiss.istvan@example.com"
+    expected:
+      intent: order
+      sub_intent: new_contract
+      priority_level: 3
+      priority_name: medium
+      department: szerzodes_kezeles
+      entities:
+        - type: person_name
+          value: "dr. Kiss Istvan"
+        - type: phone_number
+          value: "06-20-555-1234"
+        - type: email_address
+          value: "kiss.istvan@example.com"
+        - type: address
+          value: "2040 Budaors, Templom ter 5."
+
+  - id: order_02
+    subject: "Premium csomag megrendelese"
+    body: |
+      Jo napot!
+
+      A jelenlegi alap csomagomrol (SZ-55667788) szeretnek atvaltani
+      a premium csomagra. A modositas 2024. majus 1-tol lepjen eletbe.
+
+      Fekete Gabor
+      +36 70 999 8877
+    sender: "fekete.gabor@example.com"
+    expected:
+      intent: order
+      sub_intent: upgrade
+      priority_level: 3
+      priority_name: medium
+      department: szerzodes_kezeles
+      entities:
+        - type: person_name
+          value: "Fekete Gabor"
+        - type: contract_number
+          value: "SZ-55667788"
+        - type: phone_number
+          value: "+36 70 999 8877"
+        - type: date
+          value: "2024. majus 1."
+
+  # --- SUPPORT (2) ---
+  - id: support_01
+    subject: "Nem tudok bejelentkezni"
+    body: |
+      Sziasztok!
+
+      Mar ket napja nem tudok bejelentkezni az ugyfelportalra.
+      A jelszavamat megprobalnam resetelni, de az emailes link
+      nem erkezik meg. Sürges lenne, mert a karszamlalomat
+      szeretnem ellenorizni.
+
+      Molnar Eva
+      molnar.eva@example.com
+    sender: "molnar.eva@example.com"
+    expected:
+      intent: support
+      sub_intent: login_issue
+      priority_level: 2
+      priority_name: high
+      department: technikai_tamogatas
+      entities:
+        - type: person_name
+          value: "Molnar Eva"
+        - type: email_address
+          value: "molnar.eva@example.com"
+
+  - id: support_02
+    subject: "App crashes on Android"
+    body: |
+      Hello,
+
+      The mobile app keeps crashing whenever I try to open my
+      policy details. I'm using Android 14 on a Samsung Galaxy S24.
+      The error code shown briefly is ERR-4502.
+
+      My account email is juhasz.b@example.com.
+
+      Thanks,
+      Balazs Juhasz
+    sender: "juhasz.b@example.com"
+    expected:
+      intent: support
+      sub_intent: app_error
+      priority_level: 3
+      priority_name: medium
+      department: technikai_tamogatas
+      entities:
+        - type: person_name
+          value: "Balazs Juhasz"
+        - type: email_address
+          value: "juhasz.b@example.com"
+
+  # --- FEEDBACK (2) ---
+  - id: feedback_01
+    subject: "Köszönet a gyors ügyintézésért"
+    body: |
+      Tisztelt Biztosito!
+
+      Szeretnem megkoszonni Szabo Katalin ugyintezonek a rendkivul
+      gyors es segitokesz ugyintezes. A karigenyemet 3 napon belul
+      rendezte, ami nagyon pozitiv tapasztalat volt.
+
+      Üdvözlettel,
+      Horvath Laszlo
+    sender: "horvath.laszlo@example.com"
+    expected:
+      intent: feedback
+      sub_intent: positive_feedback
+      priority_level: 5
+      priority_name: minimal
+      department: minoseg
+      entities:
+        - type: person_name
+          value: "Horvath Laszlo"
+        - type: person_name
+          value: "Szabo Katalin"
+
+  - id: feedback_02
+    subject: "Javaslatom az online felulethez"
+    body: |
+      Sziasztok!
+
+      Lenne egy javaslatom: az ugyfelportálon hasznos lenne egy
+      karszamla kovetorendszer, ahol real-time lathato az igenyem
+      allapota. Jelenleg semmilyen informaciot nem kapok a
+      feldolgozasrol.
+
+      Üdv,
+      Varga Zsolt
+    sender: "varga.zsolt@example.com"
+    expected:
+      intent: feedback
+      sub_intent: suggestion
+      priority_level: 5
+      priority_name: minimal
+      department: minoseg
+      entities:
+        - type: person_name
+          value: "Varga Zsolt"
+
+  # --- CLAIM (2) ---
+  - id: claim_01
+    subject: "Karbejelentes - betores"
+    body: |
+      Tisztelt Karrendezesi Osztaly!
+
+      Karbejelentest szeretnek tenni. 2024. marcius 20-an betortek a
+      lakasomba (1134 Budapest, Vaci ut 45. 2/8.). A rendorsegi
+      feljelentes szama: BUD-2024-33456.
+
+      Az ellopott targyak erteke becslesem szerint 850 000 Ft.
+      A biztositasi kotvenyem szama: KOTV-20230015.
+
+      Foto dokumentaciot csatolom.
+
+      Sürgős segitseguket kerem!
+      Balogh Andras
+      +36 20 111 2233
+    sender: "balogh.andras@example.com"
+    expected:
+      intent: claim
+      sub_intent: theft_claim
+      priority_level: 2
+      priority_name: high
+      department: karrendezes
+      entities:
+        - type: person_name
+          value: "Balogh Andras"
+        - type: date
+          value: "2024. marcius 20."
+        - type: address
+          value: "1134 Budapest, Vaci ut 45. 2/8."
+        - type: amount
+          value: "850 000 Ft"
+        - type: policy_number
+          value: "KOTV-20230015"
+        - type: phone_number
+          value: "+36 20 111 2233"
+
+  - id: claim_02
+    subject: "Car accident insurance claim"
+    body: |
+      Dear Claims Department,
+
+      I was involved in a car accident on March 25, 2024, in Budapest
+      near the intersection of Andrassy ut and Bajcsy-Zsilinszky ut.
+
+      My policy number is AUTO-20240101 and my contract number is
+      SZ-99001122. The estimated damage is approximately 2,500,000 Ft.
+
+      I have the police report (report #BUD-2024-44567) and photos
+      of the damage attached.
+
+      Please process my claim urgently.
+
+      Pinter Katalin
+      Tel: +36 30 444 5566
+    sender: "pinter.katalin@example.com"
+    expected:
+      intent: claim
+      sub_intent: vehicle_accident
+      priority_level: 1
+      priority_name: critical
+      department: karrendezes
+      entities:
+        - type: person_name
+          value: "Pinter Katalin"
+        - type: date
+          value: "March 25, 2024"
+        - type: policy_number
+          value: "AUTO-20240101"
+        - type: contract_number
+          value: "SZ-99001122"
+        - type: amount
+          value: "2,500,000 Ft"
+        - type: phone_number
+          value: "+36 30 444 5566"
+
+  # --- CANCELLATION (2) ---
+  - id: cancellation_01
+    subject: "Szerzodes felmondas"
+    body: |
+      Tisztelt Biztosito!
+
+      Felmondom a SZ-44556677 szamu lakasbiztositasi szerzodesemet
+      a legkozelebb lehetseges idoponttal. Kerem igazoljak a
+      felmondas tudomasulvetetlet.
+
+      Sipos Marta
+      1016 Budapest, Dezso utca 8.
+      +36 1 234 5678
+    sender: "sipos.marta@example.com"
+    expected:
+      intent: cancellation
+      sub_intent: contract_cancellation
+      priority_level: 2
+      priority_name: high
+      department: szerzodes_kezeles
+      entities:
+        - type: person_name
+          value: "Sipos Marta"
+        - type: contract_number
+          value: "SZ-44556677"
+        - type: address
+          value: "1016 Budapest, Dezso utca 8."
+        - type: phone_number
+          value: "+36 1 234 5678"
+
+  - id: cancellation_02
+    subject: "Premium csomag lemondas"
+    body: |
+      Jo napot!
+
+      Szeretnem lemondani a premium szolgaltatasi csomagot a
+      PREM-20240201 szamu elofizetesemet. Az alap csomagot
+      megtartanam, csak a premium plusz szolgaltatasokat mondanam le.
+
+      Kerem visszaigazolasukat.
+
+      Farkas Tibor
+      farkas.tibor@example.com
+    sender: "farkas.tibor@example.com"
+    expected:
+      intent: cancellation
+      sub_intent: partial_cancel
+      priority_level: 3
+      priority_name: medium
+      department: szerzodes_kezeles
+      entities:
+        - type: person_name
+          value: "Farkas Tibor"
+        - type: contract_number
+          value: "PREM-20240201"
+        - type: email_address
+          value: "farkas.tibor@example.com"

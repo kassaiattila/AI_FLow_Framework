@@ -1,0 +1,163 @@
+{
+  "schema_version": "1.0",
+  "departments": [
+    {"id": "ugyfelszolgalat", "display_name": "Ugyfelszolgalat", "email": "ugyfelszolgalat@company.hu"},
+    {"id": "karrendezes", "display_name": "Karrendezes", "email": "karrendezes@company.hu"},
+    {"id": "szerzodes_kezeles", "display_name": "Szerzodes kezeles", "email": "szerzodes@company.hu"},
+    {"id": "technikai_tamogatas", "display_name": "Technikai tamogatas", "email": "support@company.hu"},
+    {"id": "informacio", "display_name": "Informacios kozpont", "email": "info@company.hu"},
+    {"id": "minoseg", "display_name": "Minosegbiztositas", "email": "minoseg@company.hu"},
+    {"id": "jogi", "display_name": "Jogi osztaly", "email": "jogi@company.hu"},
+    {"id": "escalation", "display_name": "Vezetoi escalation", "email": "escalation@company.hu"}
+  ],
+  "queues": [
+    {"id": "q_complaint_general", "department": "ugyfelszolgalat", "max_wait_minutes": 60},
+    {"id": "q_complaint_urgent", "department": "ugyfelszolgalat", "max_wait_minutes": 15},
+    {"id": "q_claim_property", "department": "karrendezes", "max_wait_minutes": 30},
+    {"id": "q_claim_vehicle", "department": "karrendezes", "max_wait_minutes": 30},
+    {"id": "q_claim_general", "department": "karrendezes", "max_wait_minutes": 45},
+    {"id": "q_contract_new", "department": "szerzodes_kezeles", "max_wait_minutes": 120},
+    {"id": "q_contract_modify", "department": "szerzodes_kezeles", "max_wait_minutes": 120},
+    {"id": "q_contract_cancel", "department": "szerzodes_kezeles", "max_wait_minutes": 60},
+    {"id": "q_support_login", "department": "technikai_tamogatas", "max_wait_minutes": 30},
+    {"id": "q_support_general", "department": "technikai_tamogatas", "max_wait_minutes": 60},
+    {"id": "q_inquiry", "department": "informacio", "max_wait_minutes": 240},
+    {"id": "q_feedback", "department": "minoseg", "max_wait_minutes": 480},
+    {"id": "q_legal", "department": "jogi", "max_wait_minutes": 15},
+    {"id": "q_escalation", "department": "escalation", "max_wait_minutes": 10}
+  ],
+  "routing_rules": [
+    {
+      "id": "complaint_urgent",
+      "intent": "complaint",
+      "priority_range": [1, 2],
+      "queue": "q_complaint_urgent",
+      "department": "ugyfelszolgalat",
+      "auto_escalate_after_minutes": 30,
+      "notes": "Surgo panasz -> azonnal feldolgozni"
+    },
+    {
+      "id": "complaint_standard",
+      "intent": "complaint",
+      "priority_range": [3, 5],
+      "queue": "q_complaint_general",
+      "department": "ugyfelszolgalat",
+      "auto_escalate_after_minutes": 120,
+      "notes": "Standard panasz"
+    },
+    {
+      "id": "claim_vehicle",
+      "intent": "claim",
+      "priority_range": [1, 5],
+      "sub_intents": ["vehicle_accident"],
+      "queue": "q_claim_vehicle",
+      "department": "karrendezes",
+      "auto_escalate_after_minutes": 60,
+      "notes": "Gepjarmu kar -> specialista"
+    },
+    {
+      "id": "claim_property",
+      "intent": "claim",
+      "priority_range": [1, 5],
+      "sub_intents": ["property_damage", "natural_disaster", "theft_claim"],
+      "queue": "q_claim_property",
+      "department": "karrendezes",
+      "auto_escalate_after_minutes": 60,
+      "notes": "Ingatlan / lopas / termeszeti kar"
+    },
+    {
+      "id": "claim_general",
+      "intent": "claim",
+      "priority_range": [1, 5],
+      "queue": "q_claim_general",
+      "department": "karrendezes",
+      "auto_escalate_after_minutes": 90,
+      "notes": "Altalanos karbejelentes"
+    },
+    {
+      "id": "cancellation_route",
+      "intent": "cancellation",
+      "priority_range": [1, 5],
+      "queue": "q_contract_cancel",
+      "department": "szerzodes_kezeles",
+      "auto_escalate_after_minutes": 120,
+      "notes": "Lemondas / felmondas -> retention team"
+    },
+    {
+      "id": "order_new",
+      "intent": "order",
+      "priority_range": [1, 5],
+      "sub_intents": ["new_contract"],
+      "queue": "q_contract_new",
+      "department": "szerzodes_kezeles",
+      "auto_escalate_after_minutes": 240,
+      "notes": "Uj szerzodes"
+    },
+    {
+      "id": "order_modify",
+      "intent": "order",
+      "priority_range": [1, 5],
+      "queue": "q_contract_modify",
+      "department": "szerzodes_kezeles",
+      "auto_escalate_after_minutes": 240,
+      "notes": "Szerzodes modositas"
+    },
+    {
+      "id": "support_login",
+      "intent": "support",
+      "priority_range": [1, 5],
+      "sub_intents": ["login_issue"],
+      "queue": "q_support_login",
+      "department": "technikai_tamogatas",
+      "auto_escalate_after_minutes": 60,
+      "notes": "Bejelentkezesi problema -> gyors megoldas"
+    },
+    {
+      "id": "support_general",
+      "intent": "support",
+      "priority_range": [1, 5],
+      "queue": "q_support_general",
+      "department": "technikai_tamogatas",
+      "auto_escalate_after_minutes": 120,
+      "notes": "Altalanos technikai tamogatas"
+    },
+    {
+      "id": "inquiry_route",
+      "intent": "inquiry",
+      "priority_range": [1, 5],
+      "queue": "q_inquiry",
+      "department": "informacio",
+      "auto_escalate_after_minutes": 480,
+      "notes": "Informacio keres"
+    },
+    {
+      "id": "feedback_route",
+      "intent": "feedback",
+      "priority_range": [1, 5],
+      "queue": "q_feedback",
+      "department": "minoseg",
+      "auto_escalate_after_minutes": 1440,
+      "notes": "Visszajelzes -> minosegbiztositas"
+    }
+  ],
+  "escalation_rules": [
+    {
+      "id": "legal_escalation",
+      "trigger": "legal_keywords_detected",
+      "override_queue": "q_legal",
+      "override_department": "jogi",
+      "notes": "Jogi fenyegetes automatikus escalation"
+    },
+    {
+      "id": "vip_escalation",
+      "trigger": "vip_customer",
+      "override_queue": "q_escalation",
+      "override_department": "escalation",
+      "notes": "VIP ugyfel -> vezetoi escalation"
+    }
+  ],
+  "default_route": {
+    "queue": "q_inquiry",
+    "department": "informacio"
+  }
+}

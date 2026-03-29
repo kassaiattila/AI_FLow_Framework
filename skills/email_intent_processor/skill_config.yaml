@@ -1,0 +1,62 @@
+# Email Intent Processor Skill - Runtime Configuration
+# Used by SkillRunner.from_env() and __main__.py
+
+models:
+  default: openai/gpt-4o-mini
+  fallback: openai/gpt-4o
+  per_step:
+    parse_email: null  # No LLM needed (standard parsing)
+    process_attachments: openai/gpt-4o-mini  # For LLM vision fallback
+    classify_intent: openai/gpt-4o-mini
+    extract_entities: openai/gpt-4o-mini
+    score_priority: null  # Rule-based, no LLM
+    decide_routing: null  # Rule-based, no LLM
+    log_result: null  # No LLM needed
+
+prompts:
+  dir: ./prompts
+  cache_ttl_seconds: 300
+
+classification:
+  strategy: sklearn_first  # sklearn_first, llm_first, ensemble, sklearn_only, llm_only
+  confidence_threshold: 0.6
+  sklearn_weight: 0.4
+  llm_weight: 0.6
+  sklearn_model_path: ./models/intent_model.joblib  # Optional pre-trained model
+
+attachments:
+  primary_processor: docling
+  fallback_processor: azure_di
+  azure_enabled: false
+  azure_endpoint: ${AZURE_DI_ENDPOINT}
+  azure_api_key: ${AZURE_DI_API_KEY}
+  max_size_mb: 25
+
+schemas:
+  version: v1
+  intents: intents.json
+  entities: entities.json
+  priorities: priorities.json
+  routing_rules: routing_rules.json
+  document_types: document_types.json
+
+routing:
+  default_queue: q_inquiry
+  default_department: informacio
+  enable_escalation: true
+  enable_legal_detection: true
+
+quality:
+  min_classification_confidence: 0.3  # Below this, flag for human review
+  max_email_body_length: 10000  # Truncate for LLM
+  max_attachment_text_length: 2000
+
+trigger:
+  type: kafka
+  topic: incoming-emails
+  group_id: email-intent-processor
+  auto_offset_reset: earliest
+
+logging:
+  save_results: true
+  results_table: email_processing_results

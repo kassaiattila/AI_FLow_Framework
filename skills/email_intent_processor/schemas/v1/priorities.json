@@ -1,0 +1,134 @@
+{
+  "schema_version": "1.0",
+  "priority_levels": [
+    {"level": 1, "name": "critical", "display_name": "Kritikus", "sla_hours": 2, "color": "#FF0000"},
+    {"level": 2, "name": "high", "display_name": "Magas", "sla_hours": 8, "color": "#FF8C00"},
+    {"level": 3, "name": "medium", "display_name": "Kozepes", "sla_hours": 24, "color": "#FFD700"},
+    {"level": 4, "name": "low", "display_name": "Alacsony", "sla_hours": 48, "color": "#32CD32"},
+    {"level": 5, "name": "minimal", "display_name": "Minimalis", "sla_hours": 72, "color": "#87CEEB"}
+  ],
+  "rules": [
+    {
+      "id": "claim_with_amount",
+      "description": "Karbejelentes nagy osszeggel -> critical",
+      "conditions": {
+        "intent": "claim",
+        "entity_present": ["amount"],
+        "amount_threshold_huf": 1000000
+      },
+      "result_priority": 1
+    },
+    {
+      "id": "claim_standard",
+      "description": "Karbejelentes -> high",
+      "conditions": {
+        "intent": "claim"
+      },
+      "result_priority": 2
+    },
+    {
+      "id": "complaint_repeated",
+      "description": "Ismetelt panasz (thread) -> critical",
+      "conditions": {
+        "intent": "complaint",
+        "is_thread_reply": true
+      },
+      "result_priority": 1
+    },
+    {
+      "id": "complaint_standard",
+      "description": "Panasz -> high",
+      "conditions": {
+        "intent": "complaint"
+      },
+      "result_priority": 2
+    },
+    {
+      "id": "cancellation_contract",
+      "description": "Szerzodes felmondas -> high",
+      "conditions": {
+        "intent": "cancellation",
+        "entity_present": ["contract_number"]
+      },
+      "result_priority": 2
+    },
+    {
+      "id": "cancellation_standard",
+      "description": "Lemondas -> medium",
+      "conditions": {
+        "intent": "cancellation"
+      },
+      "result_priority": 3
+    },
+    {
+      "id": "support_system_down",
+      "description": "Technikai problema rendszerkiesessel -> high",
+      "conditions": {
+        "intent": "support",
+        "keywords_present": ["nem mukodik", "nem erheto el", "lealt", "not working", "down", "outage"]
+      },
+      "result_priority": 2
+    },
+    {
+      "id": "support_standard",
+      "description": "Technikai segitseg -> medium",
+      "conditions": {
+        "intent": "support"
+      },
+      "result_priority": 3
+    },
+    {
+      "id": "order_new_contract",
+      "description": "Uj szerzodes -> medium",
+      "conditions": {
+        "intent": "order"
+      },
+      "result_priority": 3
+    },
+    {
+      "id": "inquiry_standard",
+      "description": "Informacio keres -> low",
+      "conditions": {
+        "intent": "inquiry"
+      },
+      "result_priority": 4
+    },
+    {
+      "id": "feedback_standard",
+      "description": "Visszajelzes -> minimal",
+      "conditions": {
+        "intent": "feedback"
+      },
+      "result_priority": 5
+    }
+  ],
+  "boost_rules": [
+    {
+      "id": "vip_customer",
+      "description": "VIP ugyfel priority boost",
+      "condition": "customer_tier == 'vip'",
+      "boost": -1
+    },
+    {
+      "id": "legal_threat",
+      "description": "Jogi fenyegetes emeli a prioritast",
+      "condition": "contains_legal_keywords",
+      "keywords": ["ugyved", "per", "birosag", "feljelentes", "lawyer", "court", "legal action"],
+      "boost": -1
+    },
+    {
+      "id": "media_threat",
+      "description": "Sajto/media fenyegetes emeli a prioritast",
+      "condition": "contains_media_keywords",
+      "keywords": ["sajto", "media", "facebook", "kozossegi", "nyilvanossag", "press"],
+      "boost": -1
+    },
+    {
+      "id": "attachment_present",
+      "description": "Csatolt dokumentum kicsit emeli a prioritast",
+      "condition": "has_attachments",
+      "boost": 0
+    }
+  ],
+  "default_priority": 4
+}
