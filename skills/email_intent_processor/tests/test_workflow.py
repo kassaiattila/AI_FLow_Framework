@@ -54,7 +54,7 @@ class TestSchemas:
         from aiflow.tools.schema_registry import SchemaRegistry
         sr = SchemaRegistry()
         data = sr.load_schema("email_intent_processor", "intents")
-        assert len(data["intents"]) == 7
+        assert len(data["intents"]) == 10
         ids = {i["id"] for i in data["intents"]}
         assert "complaint" in ids
         assert "cancellation" in ids
