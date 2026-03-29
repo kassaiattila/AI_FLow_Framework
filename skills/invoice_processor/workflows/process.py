@@ -104,11 +104,14 @@ async def parse_invoice(data: dict) -> dict:
 
 async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:
     """Parse a single PDF with DoclingParser, fallback to PyMuPDF."""
+    docling_error = None
+
     try:
         from aiflow.ingestion.parsers.docling_parser import DoclingParser
 
         parser = DoclingParser()
         result = parser.parse(str(pdf_path))
+        logger.info("docling_parse_start", file=pdf_path.name, size_kb=round(pdf_path.stat().st_size / 1024))
         return {
             "path": str(pdf_path),
             "filename": pdf_path.name,
@@ -118,8 +121,9 @@ async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:
             "parser_used": "docling",
             "file_size_kb": pdf_path.stat().st_size / 1024,
         }
-    except Exception as docling_err:
-        logger.info("parse_invoice.docling_fallback", file=pdf_path.name, error=str(docling_err))
+    except Exception as exc:
+        docling_error = str(exc)
+        logger.info("parse_invoice.docling_fallback", file=pdf_path.name, error=docling_error)
 
     # Fallback: PyMuPDF
     try:
@@ -128,6 +132,7 @@ async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:
         doc = fitz.open(str(pdf_path))
         text = "\n".join(page.get_text() for page in doc)
         doc.close()
+        logger.info("parse_invoice.pymupdf_ok", file=pdf_path.name, chars=len(text))
         return {
             "path": str(pdf_path),
             "filename": pdf_path.name,
@@ -138,7 +143,7 @@ async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:
             "file_size_kb": pdf_path.stat().st_size / 1024,
         }
     except Exception as fitz_err:
-        raise RuntimeError(f"All parsers failed for {pdf_path.name}: docling={docling_err}, pymupdf={fitz_err}")
+        raise RuntimeError(f"All parsers failed for {pdf_path.name}: docling={docling_error}, pymupdf={fitz_err}")
 
 
 # ---------------------------------------------------------------------------
@@ -276,7 +281,7 @@ async def _extract_header(text: str) -> dict[str, Any]:
             temperature=prompt.config.temperature,
             max_tokens=prompt.config.max_tokens,
         )
-        return json.loads(result.output.text)
+        return _parse_json_response(result.output.text, "header")
     except Exception as exc:
         logger.warning("extract_header_error", error=str(exc))
         return {"vendor": {}, "buyer": {}, "header": {}}
@@ -296,10 +301,34 @@ async def _extract_lines(text: str, tables_md: str) -> dict[str, Any]:
             temperature=prompt.config.temperature,
             max_tokens=prompt.config.max_tokens,
         )
-        return json.loads(result.output.text)
+        return _parse_json_response(result.output.text, "lines")
     except Exception as exc:
         logger.warning("extract_lines_error", error=str(exc))
         return {"line_items": [], "totals": {}}
+
+
+def _parse_json_response(text: str, context: str = "") -> dict[str, Any]:
+    """Parse JSON from LLM response, handling markdown code blocks."""
+    text = text.strip()
+    # Strip markdown code blocks
+    if text.startswith("```"):
+        lines = text.split("\n")
+        # Remove first and last lines (```json and ```)
+        lines = [l for l in lines if not l.strip().startswith("```")]
+        text = "\n".join(lines).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # Try to find JSON object in text
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        if start >= 0 and end > start:
+            try:
+                return json.loads(text[start:end])
+            except json.JSONDecodeError:
+                pass
+        logger.warning("json_parse_failed", context=context, text_preview=text[:200])
+        return {}
 
 
 # ---------------------------------------------------------------------------
