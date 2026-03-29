@@ -310,6 +310,14 @@ async def generate_answer(data: dict) -> dict:
             "company_name": data.get("company_name", "Allianz Hungaria Zrt."),
             "history": str(conversation_history[-6:]) if conversation_history else "",
         })
+        # Ensure the context + question are in a user message
+        # (role prompts may only have system: without user:)
+        has_user_msg = any(m.get("role") == "user" for m in system_messages)
+        if not has_user_msg:
+            system_messages.append({
+                "role": "user",
+                "content": f"Kontextus a dokumentumokbol:\n\n{context}\n\n---\nKerdes: {question}",
+            })
     except Exception as exc:
         logger.warning(
             "generate_answer.prompt_fallback",
@@ -330,7 +338,7 @@ async def generate_answer(data: dict) -> dict:
             },
             {
                 "role": "user",
-                "content": question,
+                "content": f"Kontextus a dokumentumokbol:\n\n{context}\n\n---\nKerdes: {question}",
             },
         ]
 
