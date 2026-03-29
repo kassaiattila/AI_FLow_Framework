@@ -23,15 +23,58 @@ es az 5 skill-t felepigtse, lepesrol lepesre. A `01_PLAN/` mappa 23 dokumentuma 
 
 ---
 
-## SKILL DASHBOARD (2026-03-29)
+## SKILL DASHBOARD (frissitve: 2026-03-29 session vege)
 
 | # | Skill | Statusz | Tesztek | Ugyfelek | Megjegyzes |
 |---|-------|---------|---------|----------|------------|
-| 1 | process_documentation | **PRODUCTION** | ~25 teszt | BESTIX | 5 step, multi-format export |
-| 2 | cubix_course_capture | **75%** | ~30 teszt | BESTIX | Transcript pipeline mukodik, RPA reszleges |
-| 3 | aszf_rag_chat | **85%** | 0 valos teszt! | AZHU, NPRA, BESTIX | RAG pipeline mukodik, tesztek hianyoznak |
-| 4 | email_intent_processor | **80%** | ~15 teszt | AZHU, BESTIX | Aktiv fejlesztes, hibrid ML+LLM |
-| 5 | qbpp_test_automation | **STUB** | 0 | AZHU, NPRA | Varja az AZHU portal hozzaferest |
+| 1 | process_documentation | **PRODUCTION** | 13 | BESTIX | 5 step, multi-format export |
+| 2 | cubix_course_capture | **75%** | 13 | BESTIX | Transcript pipeline mukodik, RPA reszleges |
+| 3 | aszf_rag_chat | **85%** | **52** | AZHU, NPRA, BESTIX | RAG pipeline + tesztek KESZ |
+| 4 | email_intent_processor | **90%** | **54** | AZHU, BESTIX | Discovery pipeline, ugyfal-schema, hibrid ML+LLM |
+| 5 | invoice_processor | **70%** | **22** | BESTIX | **UJ** - 20 valos szamla feldolgozva, CSV/Excel/JSON |
+| 6 | qbpp_test_automation | **STUB** | 3 | AZHU, NPRA | Varja az AZHU portal hozzaferest |
+
+**Osszesen: 6 skill, 157 teszt fuggveny, 869 framework+skill teszt PASS**
+
+---
+
+## HATRALEVO FEJLESZTESI FAZISOK (prioritas szerint)
+
+### F1: Production UI - Workflow Viewer + Validacio (2-3 het)
+Cel: Minden AIFlow skill-hez atlathato, validalhato UI felulet
+- Step-by-step vizualizacio (input/output megtekintheto)
+- Side-by-side nézet: eredeti dokumentum vs kinyert adat
+- Confidence score megjelenes per step
+- Prompt/LLM koltseg monitoring real-time
+- Technologia: Reflex (skeleton mar letezik src/aiflow/ui/)
+- Reszletes terv: 01_PLAN/14_FRONTEND.md
+
+### F2: Cost Monitoring + Prompt Tracking (1 het)
+Cel: Minden LLM hivas koltseget kovetni, jelezni, riportalni
+- src/aiflow/observability/cost_tracker.py MAR LETEZIK (infrastruktura kesz)
+- Hianyzik: per-skill integration (csak aszf_rag_chat hasznalta eddig)
+- Hianyzik: dashboard UI (KPI card skeleton van, de nincs page)
+- Hianyzik: prompt versioning + A/B teszt koltseg osszehasonlitas
+- Cel: koltseg/szamla, koltseg/email, koltseg/query metrikak
+
+### F3: ML Training Pipeline (1-2 het)
+Reszletes terv: 01_PLAN/31_INTENT_DISCOVERY_ML_PIPELINE.md
+- Fazis C: LLM Labeling (llm_labeler.py, label_reviewer.py)
+- Fazis D: sklearn Trainer (trainer.py, evaluator.py)
+- Fazis E: Continuous Learning (collector.py)
+- Fazis F: Claude Code slash commands (/train-model, /evaluate-model)
+
+### F4: AZHU Deployment (1 het)
+- Per-customer Docker Compose
+- Streaming SSE valasz (chat_completions.py)
+- Instance config injection (singleton refactor)
+- JWT auth bekotes
+- Golden dataset bovites (14 -> 50+)
+
+### F5: Tovabbi Skillek (folyamatos)
+- qbpp_test_automation: AZHU portal hozzaferes utan (2-3 het)
+- cubix_course_capture: RPA pipeline befejezese (1 het)
+- invoice_processor: Alembic migracio + DB storage (1 nap)
 
 ---
 

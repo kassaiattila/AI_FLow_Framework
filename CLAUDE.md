@@ -18,7 +18,8 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - **process_documentation** (ai) - Natural language -> BPMN diagrams (Mermaid + DrawIO + BPMN swimlane + SVG)
 - **cubix_course_capture** (hybrid) - Video transcript pipeline (ffmpeg + Whisper STT + LLM structuring) + RPA (Robot Framework)
 - **aszf_rag_chat** (ai) - RAG chat (docling PDF parse + pgvector + OpenAI + Open WebUI) - evaluation 86% pass
-- **email_intent_processor** (ai) - IN DEVELOPMENT: email + csatolmany feldolgozo (hibrid ML+LLM, JSON schema vezerelt)
+- **email_intent_processor** (ai) - Email + csatolmany feldolgozo (hibrid ML+LLM, intent discovery, JSON schema vezerelt)
+- **invoice_processor** (ai) - PDF szamla feldolgozas (Docling + gpt-4o extraction, CSV/Excel/JSON export) - 20 valos szamla tesztelve
 
 ## Architecture Patterns
 
