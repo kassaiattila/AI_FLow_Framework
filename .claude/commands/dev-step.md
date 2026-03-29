@@ -3,35 +3,32 @@ Record a completed development step and run the full validation sequence.
 Arguments: $ARGUMENTS
 (Optional: step title)
 
-This command is used AFTER implementing a change and writing tests, BEFORE committing.
+## PRE-IMPLEMENTATION CHECKS (before writing any code!):
 
-Prerequisites: .venv must exist (created by `uv venv && uv pip install -e ".[dev]"`).
-Docker services must be running (`make dev`) for integration tests.
-Environment spec: 01_PLAN/27_DEVELOPMENT_ENVIRONMENT.md
+1. **Read the relevant plan document** in `01_PLAN/`:
+   - `IMPLEMENTATION_PLAN.md` - current phase and task list
+   - `30_RAG_PRODUCTION_PLAN.md` - for RAG features (check Cubix tananyag checklist!)
+   - `29_OPTIMIZATION_PLAN.md` - for framework changes
+2. **Check reference materials** - `skills/*/reference/` if relevant
+3. **Check existing pilot code** - never reinvent what already works
+4. **If DB change needed**: create Alembic migration FIRST, run `alembic upgrade head`
+5. **If new skill**: use `/new-skill` command which enforces all conventions
+
+## POST-IMPLEMENTATION (this is the main validation):
 
 Sequence:
 1. **Identify changes**: `git diff --name-only` + `git diff --staged --name-only`
-2. **Classify step type**: feature / fix / refactor / prompt / skill / dependency / config
-3. **Run regression** (same as /regression command):
-   - Determine affected suites from regression_matrix.yaml
-   - Run all affected suites
-   - Verify coverage didn't decrease
-4. **If ALL PASS**:
-   - Generate development step record:
-     ```
-     Step: DS-{YYYY}-{MMDD}-{NNN}
-     Type: {type}
-     Title: {title}
-     Files: {changed_files}
-     New tests: {count}
-     Regression: L{X}, {total} tests, ALL PASS
-     Coverage: {before}% -> {after}%
-     ```
-   - Suggest commit message (Conventional Commits format)
-   - Ask: "Ready to commit? (y/n)"
-5. **If ANY FAIL**:
-   - Show failures
-   - DO NOT suggest committing
-   - Suggest fixes
+2. **Check no untracked files** that should be in git
+3. **Run unit tests**: `pytest tests/unit/ skills/*/tests/ -q`
+4. **Verify ALL PASS** - zero failures
+5. **Check Alembic**: if any .py migration changed, run `alembic upgrade head`
+6. **Generate step record + suggest commit message**
 
-This is the PRIMARY workflow command. Use it for every development cycle.
+## CRITICAL RULES:
+
+- NEVER commit with failing tests
+- NEVER create DB tables without Alembic
+- NEVER skip reading the plan document
+- NEVER hardcode prompts in Python (use YAML)
+- ALWAYS run `git status` to check for untracked files
+- ALWAYS use conventional commits (feat/fix/docs/refactor)

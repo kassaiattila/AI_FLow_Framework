@@ -17,7 +17,32 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 ## Working Skills (tested with real data)
 - **process_documentation** (ai) - Natural language -> BPMN diagrams (Mermaid + DrawIO + BPMN swimlane + SVG)
 - **cubix_course_capture** (hybrid) - Video transcript pipeline (ffmpeg + Whisper STT + LLM structuring) + RPA (Robot Framework)
-- **aszf_rag_chat** (ai) - PLANNED: RAG chat for legal documents (pgvector + OpenAI)
+- **aszf_rag_chat** (ai) - RAG chat (docling PDF parse + pgvector + OpenAI) - WORKING with Allianz test docs
+
+## MANDATORY Development Rules (NEVER skip these!)
+
+### Before implementing ANY feature:
+1. **Read the relevant plan** in `01_PLAN/` - EVERY feature has a plan document
+2. **Check reference materials** - `skills/*/reference/` tartalmaz szakmai utmutatot (pl. Cubix RAG tananyag)
+3. **Use Alembic** for ALL database changes - NEVER create tables with raw SQL
+4. **Follow the Cubix RAG checklist** at `01_PLAN/30_RAG_PRODUCTION_PLAN.md` for RAG features
+5. **Run `alembic upgrade head`** after any migration file change
+
+### Before committing:
+1. Run `pytest tests/unit/ -q` - all tests must pass
+2. Check `git status` - no untracked files that should be tracked
+3. Commit message: conventional commits (`feat`, `fix`, `docs`, `refactor`)
+
+### Key plan documents:
+- `01_PLAN/IMPLEMENTATION_PLAN.md` - Fazis A1-A5 (KESZ) + F1-F4 (aktualis) + B (jovobeli)
+- `01_PLAN/29_OPTIMIZATION_PLAN.md` - O1-O3 (KESZ) + framework audit eredmeny
+- `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist (Cubix tananyag alapjan!)
+- `01_PLAN/28_MODULAR_DEPLOYMENT.md` - Multi-customer instance architecture
+
+### Database:
+- PostgreSQL pgvector @ localhost:5433 (Docker: `docker compose up -d db`)
+- Alembic: `alembic upgrade head` (12 migracio, 25 tabla)
+- **SOHA ne hozz letre tablat Alembic nelkul!**
 
 ## Tech Stack
 - Python 3.12+, FastAPI (API), arq + Redis (async queue), PostgreSQL + pgvector (state + vectors)

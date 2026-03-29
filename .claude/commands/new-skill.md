@@ -6,41 +6,58 @@ Ask me for:
 3. Skill type: ai / rpa / hybrid
 4. Brief description
 5. Required LLM models
-6. Agent names and their responsibilities (max 6!)
-7. Workflow complexity: small_linear / medium_branching / large_orchestrated
+6. Workflow steps and their responsibilities
+7. Pilot project path (if porting from existing code)
 
-Then generate the FULL skill directory structure:
+## MANDATORY checklist before generating:
+
+1. **Read the relevant plan** in `01_PLAN/` for this skill
+2. **Check pilot project** - if porting, read the pilot code FIRST and port ALL functionality
+3. **Read reference materials** - check `skills/*/reference/` for relevant guides
+4. **Follow `01_PLAN/30_RAG_PRODUCTION_PLAN.md`** for RAG skills
+5. **Use Alembic** for any new DB tables (NEVER raw SQL)
+
+## Generate the FULL skill directory:
 
 ```
 skills/{name}/
-    skill.yaml            # Manifest with all metadata
-    __init__.py
-    workflow.py            # Workflow DAG definition
-    agents/
+    skill.yaml            # Manifest (name, version, models, workflows)
+    skill_config.yaml     # Runtime config (models, thresholds, output)
+    __init__.py           # Service init (ModelClient, PromptManager)
+    __main__.py           # CLI entry point: python -m skills.{name}
+    workflow.py            # Re-exports from workflows/
+
+    workflows/
         __init__.py
-        {agent_name}.py    # For each agent (with @step decorator)
+        {pipeline_name}.py  # Step functions with @step + @workflow
+
     models/
-        __init__.py
-        {domain}.py        # Pydantic models for step I/O
+        __init__.py         # Pydantic I/O models for every step
+
     prompts/
-        {agent_name}.yaml  # Prompt YAML for each LLM agent
-    tools/                 # Only if needed
+        {step_name}.yaml    # PromptDefinition YAML for each LLM step
+
+    tools/                  # Skill-specific tools (drawio, ffmpeg, etc.)
+
     tests/
-        conftest.py
-        promptfooconfig.yaml
-        test_workflow.py
-        test_{agent_name}.py  # For each agent
+        __init__.py
+        test_workflow.py    # Unit tests (mocked LLM) - @test_registry header!
+        test_integration.py # Real LLM tests (@pytest.mark.integration)
         datasets/
-            test_cases.json   # Minimum 100 test cases skeleton
+            sample_data.yaml
+
+    reference/              # If porting: copy relevant pilot docs/guides
+        CLAUDE.md           # "NE modositsd - fix referencia"
+
+    ui/                     # Skill-specific Reflex components (if GUI needed)
 ```
 
-ENFORCE these rules:
-- Max 6 specialist agents
-- skill.yaml MUST include: framework_requires, required_models, workflows, agent_types, prompts, estimated_cost_per_run
-- All agents MUST be stateless
-- All I/O MUST be Pydantic BaseModel
-- Test files MUST have @test_registry headers
-- Prompt YAML MUST follow the standard format (name, version, system, user, config, examples, langfuse)
-- Generate at least 10 test case skeletons per agent in the datasets/ JSON
+## Critical rules:
 
-Reference: 01_PLAN/SKILL_DEVELOPMENT.md for complete guidelines.
+- Every step: `async def step_fn(data: dict) -> dict`
+- Use `ModelClient(generation_backend=backend, embedding_backend=backend)` - BOTH backends!
+- Use `PromptDefinition.compile(variables={...})` for all LLM calls
+- Use `structlog` for logging, NEVER print()
+- Run `pytest` after generating - must pass
+- If RAG skill: follow `01_PLAN/30_RAG_PRODUCTION_PLAN.md` checklist
+- If DB needed: create Alembic migration, not raw SQL

@@ -498,17 +498,81 @@ OPTIMALIZACIOS FAZISOK:
   O1 [KESZ]: Runner service injection + SkillRunner + CLI entry pointok
   O2 [KESZ]: skill_config.yaml mindket skillhez
   O3 [KESZ]: tools/ merge (contrib/ -> tools/ flat), holt kod deprecation
-  KOVETKEZO: aszf_rag_chat skill portalas (Allianz RAG pilot)
+  KOVETKEZO: RAG production pipeline + OpenChat UI
 ```
 
-### FAZIS B: Framework Placeholder Befejezese (2-3 het)
+### FAZIS A5: ASZF RAG Chat + Docling + Alembic - KESZ 2026-03-29
+
+```
+STATUSZ: KESZ
+
+RAG SKILL:
+1. [KESZ] 9 Pydantic model (QueryInput/Output, SearchResult, Citation, IngestInput/Output)
+2. [KESZ] 7 prompt YAML (query_rewriter, answer_generator, citation, hallucination, 3 role)
+3. [KESZ] Ingest workflow: 6 step (load, parse/docling, chunk, embed, store/pgvector, verify)
+4. [KESZ] Query workflow: 6 step (rewrite, search, context, answer, cite, hallucination)
+5. [KESZ] CLI: python -m skills.aszf_rag_chat ingest/query
+6. [KESZ] Valos teszt: 2 Allianz PDF -> 28 chunk -> pgvector -> query 5 talalat
+
+DOCLING INTEGRACIO:
+1. [KESZ] src/aiflow/ingestion/parsers/docling_parser.py - Universal parser
+2. [KESZ] PDF tabla/layout felismeres mukodik
+
+ALEMBIC MIGRACIK:
+1. [KESZ] 005 javitva (duplicate column fix)
+2. [KESZ] 011 javitva (finished_at -> completed_at)
+3. [KESZ] 001-012 mind lefutott tiszta DB-n
+4. [KESZ] 25 tabla + 3 view + rag_chunks
+
+VECTORSTORE:
+1. [KESZ] pgvector_store.py - dual backend (asyncpg + in-memory)
+2. [KESZ] embedder.py - batch embedding (text-embedding-3-small, batch=5)
+3. [KESZ] search.py - HybridSearchEngine (RRF)
+
+REFLEX GUI:
+1. [KESZ] ChatGPT/Claude stilusu chat interface
+2. [BOVITENDO] OpenChat UI integracio (F1 fazis)
+
+CUBIX REFERENCIA TANANYAG:
+1. [KESZ] 4 utmutato + 2 kodpelda bemasoltuk reference/ mappaba
+2. [BOVITENDO] Checklist kovetese (recursive chunking, evaluation)
+```
+
+### AKTUALIS FAZISOK (2026-03-29):
+
+```
+RESZLETES TERV: 01_PLAN/30_RAG_PRODUCTION_PLAN.md
+
+F1 (1-2 nap): OpenAI-kompatibilis API endpoint + OpenChat UI Docker
+  - POST /v1/chat/completions (universal bridge - barmely chat UI)
+  - OpenChat UI mint Docker service
+  - Reflex UI -> admin/operator feluletre atalakitas
+
+F2 (2-3 nap): RAG Production Pipeline (Cubix tananyag kovetese)
+  - Recursive chunking (02_rag_pipeline ajanlasa)
+  - Heading-based chunking (docling fejlec felismeres)
+  - Evaluation framework: golden dataset (50+ Q/A), LLM-as-Judge
+  - Promptfoo integracio
+
+F3 (1-2 nap): Multi-tenant collection konfig
+  - Per-collection chunking/embedding/search strategia
+  - Instance config -> collection config integralas
+  - CLI: --config deployments/azhu/instances/azhu-aszf-rag.yaml
+
+F4 (1 nap): DB infra (Alembic 013+)
+  - rag_collections tabla
+  - rag_query_log tabla (monitoring)
+  - Per-collection statisztikak view
+```
+
+### FAZIS B: Hatra levo framework munka (2-3 het)
 
 ```
 FELADATOK:
-1. pgvector_store.py - valodi SQL implementacio
-2. prompts/manager.py - Langfuse integracio
-3. api/v1/ - valodi endpoint-ok (DB-bol olvasas)
-4. skills/registry.py - teljes install folyamat
+1. Langfuse integracio (PromptManager Phase B)
+2. API endpoint-ok veglegesitese (FastAPI)
+3. CI/CD pipeline (GitHub Actions + Promptfoo)
+4. Tovabbi skillek portalasa (email_intent, qbpp_test)
 ```
 
 ### FAZIS C: Skill Portalas - Prioritasi Sorrend (12-16 het)

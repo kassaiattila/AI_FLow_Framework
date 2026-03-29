@@ -7,10 +7,11 @@
 
 ## Jelenlegi problemak
 
-### 1. Alembic nem hasznalt
-- 12 migracio letezik de soha nem futott a valos DB-n
-- A `rag_chunks` tablat kozvetlenul SQL-lel hoztuk letre
-- Nem reprodukalhato, nem verziozott
+### 1. Alembic - JAVITVA 2026-03-29
+- ~~12 migracio letezik de soha nem futott~~ -> MIND LEFUTOTT (001-012)
+- 005 javitva (duplicate column), 011 javitva (column name)
+- 25 tabla + 3 view + rag_chunks (utobbit meg Alembic-be kell tenni!)
+- **SZABALY: Soha tobbe ne hozzunk letre tablat Alembic nelkul!**
 
 ### 2. Referencia tananyag nem alkalmazott
 - A Cubix RAG kurzus 7 modulja bemasoltuk a skill/reference-be
@@ -65,7 +66,31 @@ data_sources:
 
 ## Implementacios fazisok
 
-### F1: Alembic integracio (1-2 ora)
+### F0: Alembic integracio - KESZ 2026-03-29
+1. [KESZ] 005 javitva (duplicate team_id/user_id)
+2. [KESZ] 011 javitva (finished_at -> completed_at)
+3. [KESZ] 001-012 mind lefutott, 25 tabla + 3 view
+4. [TODO] 013_add_rag_infrastructure.py Alembic-be (rag_chunks, rag_collections, rag_query_log)
+
+### F1: OpenAI-kompatibilis API + OpenChat UI (1-2 nap)
+
+**Cel:** POST /v1/chat/completions endpoint - barmely chat UI hasznalhato.
+
+```
+POST /v1/chat/completions
+{
+  "model": "aszf-rag:azhu-test:expert",
+  "messages": [{"role": "user", "content": "Milyen adatokat kezel?"}],
+  "stream": true
+}
+```
+
+**Fajlok:**
+1. `src/aiflow/api/v1/chat_completions.py` - OpenAI-format endpoint
+2. `docker-compose.yml` - OpenChat UI service hozzaadasa
+3. Reflex UI -> admin feluletre atalakitas
+
+### F1b: Alembic integracio (a RAG tervbol - mar KESZ, lasd F0 felett)
 1. `alembic/versions/013_add_rag_chunks.py` - Migracio a rag_chunks tablahoz
 2. `alembic upgrade head` futtatas a Docker PG-n
 3. Meglevo kozvetlenul letrehozott tabla torleseTES ujraltrehozas alembic-kel
