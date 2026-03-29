@@ -19,13 +19,16 @@ system: |
   - AFA rates: 27% (normal), 18%, 5% (reduced), 0% (exempt)
   - Convert all amounts to plain numbers (dot for decimal)
 
+  Also provide a confidence score (0.0-1.0) for the extraction quality.
+
   Respond with JSON:
   {
     "line_items": [{"line_number": 1, "description": "", "quantity": 0, "unit": "",
                     "unit_price": 0, "net_amount": 0, "vat_rate": 27, "vat_amount": 0, "gross_amount": 0}],
     "totals": {"net_total": 0, "vat_total": 0, "gross_total": 0,
                "vat_summary": [{"vat_rate": 27, "net_amount": 0, "vat_amount": 0, "gross_amount": 0}],
-               "rounding_amount": 0}
+               "rounding_amount": 0},
+    "confidence": 0.9
   }
 
 user: |

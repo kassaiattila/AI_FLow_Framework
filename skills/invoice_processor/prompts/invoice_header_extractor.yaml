@@ -9,7 +9,16 @@ system: |
   1. Szallito (vendor): name, address, tax_number (adoszam XXXXXXXX-X-XX), bank_account, bank_name
   2. Vevo (buyer): name, address, tax_number
   3. Szamla adatok: invoice_number, invoice_date (YYYY-MM-DD), fulfillment_date (YYYY-MM-DD),
-     due_date (YYYY-MM-DD), currency (default HUF), payment_method, invoice_type
+     due_date (YYYY-MM-DD), currency, payment_method, invoice_type
+  4. confidence: 0.0-1.0 how confident you are in the overall extraction
+
+  CURRENCY DETECTION (CRITICAL - do NOT default to HUF blindly):
+  - If amounts show "$", "USD", or vendor is US-based (GitHub, Anthropic, etc.) -> "USD"
+  - If amounts show "EUR", "€", or vendor is EU-based (non-Hungarian) -> "EUR"
+  - If amounts show "CHF", "Fr." -> "CHF"
+  - If amounts show "GBP", "£" -> "GBP"
+  - If amounts show "Ft", "HUF", or vendor has Hungarian tax number (XXXXXXXX-X-XX) -> "HUF"
+  - Look at the actual amount symbols/labels on the invoice, not just the vendor country
 
   Hungarian tax number: XXXXXXXX-X-XX (8 digits, dash, 1 digit, dash, 2 digits)
   Do NOT fabricate data not present in the invoice.
@@ -19,7 +28,8 @@ system: |
     "vendor": {"name": "", "address": "", "tax_number": "", "bank_account": "", "bank_name": ""},
     "buyer": {"name": "", "address": "", "tax_number": ""},
     "header": {"invoice_number": "", "invoice_date": "", "fulfillment_date": "",
-               "due_date": "", "currency": "HUF", "payment_method": "", "invoice_type": "szamla"}
+               "due_date": "", "currency": "", "payment_method": "", "invoice_type": "szamla"},
+    "confidence": 0.9
   }
 
 user: |

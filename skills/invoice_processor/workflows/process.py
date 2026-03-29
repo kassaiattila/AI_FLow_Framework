@@ -259,12 +259,20 @@ async def extract_invoice_data(data: dict) -> dict:
         f["totals"] = lines_data.get("totals", {})
         f["extraction_time_ms"] = round((time.monotonic() - start) * 1000, 1)
 
+        # Merge confidence from both LLM calls (average)
+        header_conf = float(header_data.get("confidence", 0.5))
+        lines_conf = float(lines_data.get("confidence", 0.5))
+        f["extraction_confidence"] = round((header_conf + lines_conf) / 2, 3)
+
         logger.info(
             "extract_invoice.done",
             file=f.get("filename"),
             vendor=f["vendor"].get("name", "?"),
+            buyer=f["buyer"].get("name", "?"),
+            currency=f["header"].get("currency", "?"),
             items=len(f["line_items"]),
             gross=f["totals"].get("gross_total", 0),
+            confidence=f["extraction_confidence"],
         )
 
     return data

@@ -74,15 +74,32 @@ async def cmd_ingest(args: argparse.Namespace) -> None:
             continue
         valid = f.get("validation", {}).get("is_valid", False)
         icon = "+" if valid else "!"
-        vendor = f.get("vendor", {}).get("name", "?")
-        gross = f.get("totals", {}).get("gross_total", 0)
-        inv_num = f.get("header", {}).get("invoice_number", "?")
-        print(f"  [{icon}] {f.get('filename')}")
-        print(f"      Szallito: {vendor} | Szamlaszam: {inv_num} | Brutto: {gross:,.0f} Ft")
+        vendor = f.get("vendor", {})
+        buyer = f.get("buyer", {})
+        header = f.get("header", {})
+        totals = f.get("totals", {})
+        conf = f.get("extraction_confidence", 0)
+        currency = header.get("currency", "?")
+        gross = totals.get("gross_total", 0)
+
+        print(f"  [{icon}] {f.get('filename')}  (confidence: {conf:.0%})")
+        print(f"      Szamlaszam: {header.get('invoice_number', '?')} | "
+              f"Datum: {header.get('invoice_date', '?')} | "
+              f"Brutto: {gross:,.0f} {currency}")
+        print(f"      Szallito:   {vendor.get('name', '?')}"
+              f"{' | Ado.sz: ' + vendor.get('tax_number') if vendor.get('tax_number') else ''}")
+        print(f"      Vevo:       {buyer.get('name', '?')}"
+              f"{' | Ado.sz: ' + buyer.get('tax_number') if buyer.get('tax_number') else ''}"
+              f"{' | Cim: ' + buyer.get('address') if buyer.get('address') else ''}")
+
         errors = f.get("validation", {}).get("errors", [])
+        warnings = f.get("validation", {}).get("warnings", [])
         if errors:
             for e in errors:
                 print(f"      HIBA: {e}")
+        if warnings:
+            for w in warnings:
+                print(f"      FIGY: {w}")
 
     exported = result.get("exported_files", [])
     if exported:
