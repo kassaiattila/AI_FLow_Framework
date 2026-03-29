@@ -1,0 +1,139 @@
+# RAG Production Pipeline - Ugyfelenkenti Reprodukalhato Architektura
+
+**Datum:** 2026-03-29
+**Alapja:** Valos RAG teszt eredmenyek + Cubix RAG referencia tananyag + felulvizsgalat
+
+---
+
+## Jelenlegi problemak
+
+### 1. Alembic nem hasznalt
+- 12 migracio letezik de soha nem futott a valos DB-n
+- A `rag_chunks` tablat kozvetlenul SQL-lel hoztuk letre
+- Nem reprodukalhato, nem verziozott
+
+### 2. Referencia tananyag nem alkalmazott
+- A Cubix RAG kurzus 7 modulja bemasoltuk a skill/reference-be
+- De a pipeline nem koveti a tananyag ajanlasait
+- Hianyzo: recursive chunking, heading-based split, evaluation, golden dataset
+
+### 3. Egyetlen flat pipeline
+- Nincs ugyfal/collection izolacio
+- Nincs konfiguralhato chunking/embedding/search strategia
+- Nincs reprodukalhato pipeline (ujrafuttathato uj dokumentumokkal)
+
+---
+
+## Cel architektura
+
+### Collection-alapu izolacio
+```
+PostgreSQL (aiflow_dev)
+  |
+  rag_chunks tabla:
+    collection='azhu-aszf-2024'    -> AZHU ASZF dokumentumok
+    collection='azhu-hr-policy'    -> AZHU HR szabalyzatok
+    collection='npra-faq-2024'     -> NPRA FAQ
+    collection='bestix-internal'   -> BESTIX belso
+```
+
+Minden collection sajat:
+- Chunking strategia (chunk_size, overlap, separators)
+- Embedding model
+- Search konfig (vector_weight, keyword_weight, top_k)
+- System prompt template (role-based)
+- Evaluation golden dataset
+
+### Instance config integralas
+```yaml
+# deployments/azhu/instances/azhu-aszf-rag.yaml
+data_sources:
+  collections:
+    - name: azhu-aszf-2024
+      priority: 1
+      chunking:
+        strategy: recursive      # A Cubix tananyag altal ajanlott
+        chunk_size: 2500         # Allianz pilot meret
+        overlap: 300
+        separators: ["\n## ", "\n### ", "\n\n", "\n", ". "]
+      embedding:
+        model: text-embedding-3-small
+        batch_size: 5            # Magyar szoveg: konzervativan
+```
+
+---
+
+## Implementacios fazisok
+
+### F1: Alembic integracio (1-2 ora)
+1. `alembic/versions/013_add_rag_chunks.py` - Migracio a rag_chunks tablahoz
+2. `alembic upgrade head` futtatas a Docker PG-n
+3. Meglevo kozvetlenul letrehozott tabla torleseTES ujraltrehozas alembic-kel
+
+### F2: Chunking strategia a tananyag alapjan (1 nap)
+A referencia tananyag (02_rag_pipeline) 4 strategiat ir le:
+1. **Fixed-size** - egyszeru, de kontextust veszt
+2. **Recursive** (AJANLOTT) - hierarchikus spliteles: paragraph -> sentence -> word
+3. **Heading-based** - Markdown fejlecek menten
+4. **Semantic** - embedding alapu (draga, lassu)
+
+Implementacio:
+- `src/aiflow/ingestion/chunkers/` - boviteni a recursive es heading-based strategiakkal
+- A `skill_config.yaml`-ban konfiguralhato melyiket hasznalja
+- Default: recursive (a legjobb kompromisszum)
+
+### F3: Evaluation framework (2-3 nap)
+A referencia tananyag (05_evaluacio) altal ajanlott:
+1. **Golden dataset** - 50+ kerdes/valasz par per collection
+2. **LLM-as-Judge** - automatikus minoseg ertekeles
+3. **Metrikak**: retrieval precision, answer relevance, hallucination rate
+4. **Promptfoo integracio** - CI/CD-be beepitheto
+
+### F4: Ugyfal-specifikus pipeline konfiguracio (1-2 nap)
+- Instance config -> collection config -> chunking/embedding/search parameterek
+- CLI: `python -m skills.aszf_rag_chat ingest --config deployments/azhu/instances/azhu-aszf-rag.yaml`
+- Automatikus collection izolacio
+
+---
+
+## Cubix RAG tananyag checklist
+
+### Modul 01: LLM alapok ✅ (hasznaljuk a ModelClient-et)
+### Modul 02: RAG Pipeline ⚠️ (alap mukodik, chunking javitando)
+- [x] Dokumentum betoltes (docling)
+- [x] Chunking (alap paragraph split)
+- [ ] Recursive chunking (tananyag ajanlasa!)
+- [ ] Heading-based chunking
+- [x] Metadata enrichment (collection, skill_name)
+- [ ] Metadata: fejezet, oldal, datum
+
+### Modul 03: Embedding + VectorDB ✅ (pgvector mukodik)
+- [x] text-embedding-3-small (1536 dim)
+- [x] Batch embedding (batch=5)
+- [x] pgvector cosine search
+- [ ] IVFFlat index optimalizacio (lists parameter)
+- [ ] BM25 tsvector integracio (hybrid search)
+
+### Modul 04: Backend + API ⚠️
+- [x] CLI interface
+- [x] Reflex GUI (alap)
+- [ ] Streaming valasz
+- [ ] Conversation memory (DB)
+- [ ] API endpoint (FastAPI)
+
+### Modul 05: Evaluacio ❌ (nincs implementalva)
+- [ ] Golden dataset (50+ kerdes/valasz)
+- [ ] LLM-as-Judge scoring
+- [ ] Promptfoo teszt config
+- [ ] Retrieval precision merika
+
+### Modul 06: Eszkozok + CI/CD ❌
+- [ ] Promptfoo CI/CD pipeline
+- [ ] Feedback pipeline
+- [ ] Langfuse integracio
+
+### Modul 07: Monitoring + Production ❌
+- [ ] Query log (DB)
+- [ ] Dashboard (Grafana/Reflex)
+- [ ] Cost tracking per collection
+- [ ] SLA monitoring
