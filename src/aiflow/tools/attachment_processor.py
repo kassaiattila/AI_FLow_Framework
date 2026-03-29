@@ -54,37 +54,86 @@ class AttachmentProcessor:
     async def process(
         self, filename: str, content: bytes, mime_type: str
     ) -> ProcessedAttachment:
-        """Process an attachment through the appropriate processor."""
+        """Process attachment with intelligent routing.
+
+        Cost-optimized 3-layer strategy:
+        1. Docling (local, free, fast) - always try first for supported types
+        2. Azure DI (cloud, paid) - ONLY when docling fails quality check:
+           - Empty/too short text vs file size (= likely scan/image PDF)
+           - Image files (PNG/JPG/TIFF) needing OCR
+           - Docling returned text but quality is poor (ratio check)
+        3. LLM Vision - images where text extraction isn't enough
+
+        Azure DI cost: ~$1-10 per 1000 pages. Used sparingly.
+        """
         if len(content) > self.config.max_size_mb * 1024 * 1024:
             return ProcessedAttachment(
                 filename=filename, error=f"File too large: {len(content)} bytes"
             )
 
-        result = ProcessedAttachment(filename=filename, mime_type=mime_type)
+        file_size_kb = len(content) / 1024
 
-        # Layer 1: Docling (local, free)
+        # --- Images: always need OCR (Azure DI or LLM Vision) ---
+        if mime_type in self.OCR_TYPES:
+            if self.config.azure_enabled:
+                result = await self._process_azure(filename, content, mime_type)
+                if result.text:
+                    logger.info("azure_di_ocr_image", filename=filename, chars=len(result.text))
+                    return result
+            # Fallback: LLM Vision for images
+            return await self._process_llm_vision(filename, content, mime_type)
+
+        # --- Documents (PDF/DOCX/XLSX etc): try docling first ---
         if mime_type in self.DOCLING_TYPES or self._extension_matches_docling(filename):
             result = await self._process_docling(filename, content)
-            if result.text:
-                return result
-            logger.info("docling_fallback", filename=filename, reason="empty result")
 
-        # Layer 2: Azure Document Intelligence (cloud, OCR)
-        if self.config.azure_enabled and (
-            mime_type in self.OCR_TYPES or not result.text
-        ):
-            result = await self._process_azure(filename, content, mime_type)
             if result.text:
+                # Quality check: is the extracted text reasonable for the file size?
+                chars_per_kb = len(result.text) / max(file_size_kb, 1)
+                has_tables = len(result.tables) > 0
+
+                # Heuristic: if very few chars per KB, might be scanned PDF
+                is_likely_scan = chars_per_kb < 2.0 and file_size_kb > 50
+                # Heuristic: very short text from a large file = poor extraction
+                is_poor_quality = len(result.text) < 100 and file_size_kb > 100
+
+                if is_likely_scan or is_poor_quality:
+                    logger.info(
+                        "docling_quality_low",
+                        filename=filename,
+                        chars=len(result.text),
+                        file_kb=round(file_size_kb),
+                        chars_per_kb=round(chars_per_kb, 1),
+                        reason="likely_scan" if is_likely_scan else "poor_quality",
+                    )
+                    # Escalate to Azure DI for better OCR
+                    if self.config.azure_enabled:
+                        azure_result = await self._process_azure(filename, content, mime_type)
+                        if azure_result.text and len(azure_result.text) > len(result.text):
+                            logger.info(
+                                "azure_di_improved",
+                                filename=filename,
+                                docling_chars=len(result.text),
+                                azure_chars=len(azure_result.text),
+                            )
+                            return azure_result
+                        # Azure didn't improve - keep docling result
+                        logger.info("azure_di_no_improvement", filename=filename)
+
+                # Docling result is good enough
                 return result
 
-        # Layer 3: LLM Vision (for images)
-        if mime_type.startswith("image/"):
-            return await self._process_llm_vision(filename, content, mime_type)
+            # Docling returned empty - try Azure DI
+            logger.info("docling_empty", filename=filename, file_kb=round(file_size_kb))
+            if self.config.azure_enabled:
+                result = await self._process_azure(filename, content, mime_type)
+                if result.text:
+                    return result
 
         return ProcessedAttachment(
             filename=filename,
             mime_type=mime_type,
-            error="Unsupported format",
+            error="Unsupported format or all processors failed",
             processor_used="none",
         )
 
