@@ -43,7 +43,9 @@ _model_client = ModelClient(generation_backend=_backend, embedding_backend=_back
 _prompt_manager = PromptManager()
 _prompt_manager.register_yaml_dir(Path(__file__).parent.parent / "prompts")
 
-_vector_store = PgVectorStore()  # auto-detects pg or in-memory fallback
+import os as _os
+_db_url = _os.getenv("AIFLOW_DATABASE_URL", "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev")
+_vector_store = PgVectorStore(database_url=_db_url, table_name="rag_chunks")
 _embedder = Embedder(
     _model_client,
     default_model="openai/text-embedding-3-small",

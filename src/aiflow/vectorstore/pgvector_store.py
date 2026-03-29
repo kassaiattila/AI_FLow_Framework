@@ -204,8 +204,9 @@ class _InMemoryBackend:
 class _PgBackend:
     """Real PostgreSQL + pgvector backend using asyncpg."""
 
-    def __init__(self, database_url: str) -> None:
+    def __init__(self, database_url: str, table_name: str = "rag_chunks") -> None:
         self._database_url = database_url
+        self._table = table_name
         self._pool: Any = None  # asyncpg.Pool
 
     async def _ensure_pool(self) -> Any:
@@ -230,54 +231,43 @@ class _PgBackend:
     ) -> int:
         pool = await self._ensure_pool()
 
-        sql = """
-            INSERT INTO document_chunks (
-                id, document_id, collection, skill_name,
-                chunk_index, chunk_text, embedding,
-                chunk_metadata, section_title, page_start
+        sql = f"""
+            INSERT INTO {self._table} (
+                id, collection, content, embedding,
+                metadata, skill_name, document_name, chunk_index
             )
             VALUES (
-                $1, $2, $3, $4,
-                $5, $6, $7::vector,
-                $8::jsonb, $9, $10
+                $1, $2, $3, $4::vector,
+                $5::jsonb, $6, $7, $8
             )
             ON CONFLICT (id) DO UPDATE SET
-                chunk_text    = EXCLUDED.chunk_text,
-                embedding     = EXCLUDED.embedding,
-                chunk_metadata = EXCLUDED.chunk_metadata,
-                section_title = EXCLUDED.section_title,
-                page_start    = EXCLUDED.page_start,
-                updated_at    = NOW()
+                content   = EXCLUDED.content,
+                embedding = EXCLUDED.embedding,
+                metadata  = EXCLUDED.metadata
         """
 
         upserted = 0
         async with pool.acquire() as conn:
             async with conn.transaction():
                 for chunk, embedding in zip(chunks, embeddings):
-                    chunk_id = chunk.get("chunk_id", uuid.uuid4())
-                    if isinstance(chunk_id, str):
-                        chunk_id = uuid.UUID(chunk_id)
+                    chunk_id = chunk.get("chunk_id", str(uuid.uuid4()))
+                    if not isinstance(chunk_id, str):
+                        chunk_id = str(chunk_id)
 
-                    document_id = chunk.get("document_id")
-                    if isinstance(document_id, str):
-                        document_id = uuid.UUID(document_id)
-
-                    metadata = chunk.get("metadata", chunk.get("chunk_metadata", {}))
+                    metadata = chunk.get("metadata", {})
                     if not isinstance(metadata, str):
                         metadata = json.dumps(metadata)
 
                     await conn.execute(
                         sql,
                         chunk_id,
-                        document_id,
                         collection,
-                        skill_name,
-                        chunk.get("chunk_index", 0),
                         chunk.get("content", chunk.get("chunk_text", "")),
                         _embedding_to_pgvector(embedding),
                         metadata,
-                        chunk.get("section_title"),
-                        chunk.get("page_start"),
+                        skill_name,
+                        chunk.get("document_name", ""),
+                        chunk.get("chunk_index", 0),
                     )
                     upserted += 1
         return upserted
@@ -299,88 +289,40 @@ class _PgBackend:
         # ------------------------------------------------------------------
         # Build WHERE clause dynamically
         # ------------------------------------------------------------------
-        conditions = [
-            "dc.collection = $1",
-            "dc.skill_name = $2",
-        ]
-        params: list[Any] = [collection, skill_name]
-        param_idx = 3  # next positional parameter
+        conditions = ["rc.collection = $1"]
+        params: list[Any] = [collection]
+        param_idx = 2
 
-        if filters:
-            if filters.language:
-                conditions.append(f"dc.chunk_metadata->>'language' = ${param_idx}")
-                params.append(filters.language)
-                param_idx += 1
-            if filters.department:
-                conditions.append(f"dc.chunk_metadata->>'department' = ${param_idx}")
-                params.append(filters.department)
-                param_idx += 1
-            if filters.document_status:
-                conditions.append(f"COALESCE(dc.chunk_metadata->>'status', 'active') = ${param_idx}")
-                params.append(filters.document_status)
-                param_idx += 1
+        if skill_name:
+            conditions.append(f"rc.skill_name = ${param_idx}")
+            params.append(skill_name)
+            param_idx += 1
+
+        if filters and filters.language:
+            conditions.append(f"rc.metadata->>'language' = ${param_idx}")
+            params.append(filters.language)
+            param_idx += 1
 
         where = " AND ".join(conditions)
 
-        # ------------------------------------------------------------------
-        # Vector-only search
-        # ------------------------------------------------------------------
-        if search_mode == "vector" or not query_text:
-            sql = f"""
-                SELECT
-                    dc.id               AS chunk_id,
-                    dc.chunk_text       AS content,
-                    dc.document_id,
-                    dc.chunk_metadata,
-                    dc.section_title,
-                    dc.page_start,
-                    1 - (dc.embedding <-> '{embedding_literal}'::vector) AS vector_score
-                FROM document_chunks dc
-                WHERE {where}
-                ORDER BY dc.embedding <-> '{embedding_literal}'::vector
-                LIMIT ${param_idx}
-            """
-            params.append(top_k)
-            param_idx += 1
-
-            async with pool.acquire() as conn:
-                rows = await conn.fetch(sql, *params)
-
-            return [
-                self._row_to_result(row, keyword_score=0.0)
-                for row in rows
-            ]
-
-        # ------------------------------------------------------------------
-        # Hybrid search: vector + tsvector BM25, both scored in SQL
-        # ------------------------------------------------------------------
-        # We fetch top_k from each ranking, then merge in Python with RRF
-        # weights applied by the HybridSearchEngine caller.
-        vector_sql = f"""
+        # Vector cosine similarity search
+        sql = f"""
             SELECT
-                dc.id               AS chunk_id,
-                dc.chunk_text       AS content,
-                dc.document_id,
-                dc.chunk_metadata,
-                dc.section_title,
-                dc.page_start,
-                1 - (dc.embedding <-> '{embedding_literal}'::vector) AS vector_score,
-                ts_rank_cd(
-                    to_tsvector('simple', dc.chunk_text),
-                    plainto_tsquery('simple', ${param_idx})
-                ) AS keyword_score
-            FROM document_chunks dc
+                rc.id               AS chunk_id,
+                rc.content,
+                rc.metadata,
+                rc.document_name,
+                rc.chunk_index,
+                1 - (rc.embedding <-> '{embedding_literal}'::vector) AS vector_score
+            FROM {self._table} rc
             WHERE {where}
-            ORDER BY dc.embedding <-> '{embedding_literal}'::vector
-            LIMIT ${param_idx + 1}
+            ORDER BY rc.embedding <-> '{embedding_literal}'::vector
+            LIMIT ${param_idx}
         """
-        params.append(query_text)
-        param_idx += 1
         params.append(top_k)
-        param_idx += 1
 
         async with pool.acquire() as conn:
-            rows = await conn.fetch(vector_sql, *params)
+            rows = await conn.fetch(sql, *params)
 
         return [self._row_to_result(row) for row in rows]
 
@@ -389,11 +331,11 @@ class _PgBackend:
     ) -> int:
         pool = await self._ensure_pool()
 
-        sql = """
-            DELETE FROM document_chunks
+        sql = f"""
+            DELETE FROM {self._table}
             WHERE collection = $1
               AND skill_name = $2
-              AND document_id = $3
+              AND document_name = $3
         """
         async with pool.acquire() as conn:
             result = await conn.execute(sql, collection, skill_name, document_id)
@@ -427,7 +369,7 @@ class _PgBackend:
         row: Any,
         keyword_score: float | None = None,
     ) -> SearchResult:
-        meta_raw = row["chunk_metadata"]
+        meta_raw = row.get("metadata", row.get("chunk_metadata", "{}"))
         if isinstance(meta_raw, str):
             try:
                 meta = json.loads(meta_raw)
@@ -438,24 +380,17 @@ class _PgBackend:
         else:
             meta = {}
 
-        vs = float(row["vector_score"]) if row["vector_score"] is not None else 0.0
+        vs = float(row["vector_score"]) if row.get("vector_score") is not None else 0.0
         ks = keyword_score if keyword_score is not None else float(row.get("keyword_score", 0.0))
         combined = 0.6 * vs + 0.4 * ks
 
-        doc_id = row["document_id"]
-        if isinstance(doc_id, str):
-            doc_id = uuid.UUID(doc_id)
-
         return SearchResult(
-            chunk_id=row["chunk_id"],
+            chunk_id=str(row["chunk_id"]),
             content=row["content"],
             score=combined,
             vector_score=vs,
             keyword_score=ks,
-            document_id=doc_id,
-            document_title=meta.get("document_title"),
-            section_title=row.get("section_title"),
-            page_start=row.get("page_start"),
+            document_title=row.get("document_name", meta.get("source_document", "")),
             metadata=meta,
         )
 
@@ -474,7 +409,7 @@ class PgVectorStore(VectorStore):
     (created by Alembic migration 004).
     """
 
-    def __init__(self, database_url: str | None = None) -> None:
+    def __init__(self, database_url: str | None = None, table_name: str = "rag_chunks") -> None:
         resolved_url = database_url or os.environ.get("DATABASE_URL", "")
         self._mode: str = "unknown"
         self._backend: _InMemoryBackend | _PgBackend
@@ -483,7 +418,7 @@ class PgVectorStore(VectorStore):
             try:
                 import asyncpg  # noqa: F401
 
-                self._backend = _PgBackend(resolved_url)
+                self._backend = _PgBackend(resolved_url, table_name=table_name)
                 self._mode = "postgresql"
                 logger.info(
                     "pgvector_store_init",
