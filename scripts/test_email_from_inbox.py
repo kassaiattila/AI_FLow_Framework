@@ -81,11 +81,25 @@ async def process_eml_files(eml_dir: str) -> None:
             r5 = await score_priority(r4)
             r6 = await decide_routing(r5)
 
-            intent = r3.get("primary_intent", "unknown")
-            confidence = r3.get("intent_confidence", 0)
-            priority = r5.get("priority", 3)
+            # Extract intent from nested dict structure
+            intent_data = r3.get("intent", {})
+            if isinstance(intent_data, dict):
+                intent = intent_data.get("intent_id", r3.get("primary_intent", "unknown"))
+                confidence = intent_data.get("confidence", 0)
+            else:
+                intent = r3.get("primary_intent", "unknown")
+                confidence = r3.get("intent_confidence", 0)
+            priority_data = r5.get("priority", {})
+            if isinstance(priority_data, dict):
+                priority = priority_data.get("priority_level", 3)
+            else:
+                priority = priority_data
             entities = r4.get("extracted_entities", [])
-            queue = r6.get("routed_to", "")
+            routing_data = r6.get("routing", {})
+            if isinstance(routing_data, dict):
+                queue = routing_data.get("queue_id", r6.get("routed_to", ""))
+            else:
+                queue = r6.get("routed_to", "")
 
             print(f"  -> Intent: {intent} ({confidence:.0%})")
             print(f"  -> Priority: {priority}/5")
