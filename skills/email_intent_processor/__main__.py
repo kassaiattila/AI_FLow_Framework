@@ -113,21 +113,68 @@ async def main(input_source: str, subject: str, output_dir: str) -> None:
     print()
 
 
+async def cmd_discover(args: argparse.Namespace) -> None:
+    """Discover intent categories from real emails."""
+    from skills.email_intent_processor.discovery.intent_discoverer import discover_intents
+
+    print("=" * 60)
+    print("Intent Discovery - analyzing real emails")
+    print("=" * 60)
+
+    result = await discover_intents(
+        email_dir=Path(args.emails),
+        output_path=Path(args.output) if args.output else None,
+        batch_size=args.batch_size,
+    )
+
+    print(f"\nAnalyzed: {result.total_emails} emails")
+    print(f"Cost: ${result.total_cost_usd:.4f}")
+    print(f"\nDiscovered {len(result.discovered_intents)} intent categories:")
+    for intent in result.discovered_intents:
+        freq = f"{intent.estimated_frequency:.0%}" if intent.estimated_frequency else f"{intent.email_count}x"
+        print(f"  - {intent.id}: {intent.display_name} ({freq})")
+        if intent.keywords_hu:
+            print(f"    Keywords: {', '.join(intent.keywords_hu[:5])}")
+
+    print(f"\nSchema comparison:")
+    for comp in result.schema_comparison:
+        icon = {"validated": "+", "missing_from_data": "-", "new_in_data": "*"}.get(comp.status, "?")
+        name = comp.schema_intent_id or comp.discovered_match
+        print(f"  [{icon}] {name} — {comp.status} {comp.notes}")
+
+    if args.output:
+        print(f"\nFull results saved to: {args.output}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Email Intent Processor - classify and route emails"
+        description="Email Intent Processor - classify, discover, and train"
     )
-    parser.add_argument(
-        "--input", "-i", required=True,
-        help="Path to .eml file or raw email body text",
-    )
-    parser.add_argument(
-        "--subject", "-s", default="",
-        help="Email subject (when using raw text input)",
-    )
-    parser.add_argument(
-        "--output", "-o", default="",
-        help="Output directory for JSON results",
-    )
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # classify (default behavior, backward compatible)
+    p_classify = subparsers.add_parser("classify", help="Classify a single email")
+    p_classify.add_argument("--input", "-i", required=True, help="Path to .eml or raw text")
+    p_classify.add_argument("--subject", "-s", default="", help="Email subject")
+    p_classify.add_argument("--output", "-o", default="", help="Output directory")
+
+    # discover
+    p_discover = subparsers.add_parser("discover", help="Discover intents from real emails")
+    p_discover.add_argument("--emails", "-e", required=True, help="Directory with .eml files")
+    p_discover.add_argument("--output", "-o", default="", help="Output JSON path")
+    p_discover.add_argument("--batch-size", type=int, default=8, help="Emails per LLM batch")
+
     args = parser.parse_args()
-    asyncio.run(main(args.input, args.subject, args.output))
+
+    if args.command == "discover":
+        asyncio.run(cmd_discover(args))
+    elif args.command == "classify" or not args.command:
+        # Backward compatible: no subcommand = classify
+        if not args.command:
+            parser.add_argument("--input", "-i", required=True)
+            parser.add_argument("--subject", "-s", default="")
+            parser.add_argument("--output", "-o", default="")
+            args = parser.parse_args()
+        asyncio.run(main(args.input, args.subject, args.output))
+    else:
+        parser.print_help()

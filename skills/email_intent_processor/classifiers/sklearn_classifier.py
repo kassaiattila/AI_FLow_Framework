@@ -167,10 +167,19 @@ class SklearnClassifier:
     @staticmethod
     def _clean_text(text: str) -> str:
         """Text preprocessing matching the CFPB pipeline."""
-        if not text or not isinstance(text, str):
-            return ""
-        text = text.lower()
-        text = re.sub(r"x{2,}", "redacted", text)
-        text = re.sub(r"[^a-z0-9\u00e0-\u017e\s]", " ", text)  # Keep accented chars
-        text = re.sub(r"\s+", " ", text).strip()
-        return text
+        return clean_text_for_ml(text)
+
+
+def clean_text_for_ml(text: str) -> str:
+    """Clean text for ML classification (shared between training and inference).
+
+    Preserves Hungarian accented characters (á, é, ö, ü, ő, ű, etc.).
+    Must be used identically in both training and prediction to avoid mismatch.
+    """
+    if not text or not isinstance(text, str):
+        return ""
+    text = text.lower()
+    text = re.sub(r"x{2,}", "redacted", text)
+    text = re.sub(r"[^a-z0-9\u00e0-\u017e\s]", " ", text)  # Keep accented chars
+    text = re.sub(r"\s+", " ", text).strip()
+    return text

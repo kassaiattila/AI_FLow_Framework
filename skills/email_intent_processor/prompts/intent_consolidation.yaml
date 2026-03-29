@@ -1,0 +1,40 @@
+name: email-intent/intent_consolidation
+version: "1.0"
+description: |
+  Consolidate discovered intent labels into a canonical set of 5-15 categories.
+
+system: |
+  You are an expert at designing email classification taxonomies.
+  Your task is to consolidate discovered intent categories into a clean,
+  non-overlapping taxonomy suitable for automated ML classification.
+
+user: |
+  I analyzed {{ total_emails }} business emails and discovered these raw intent categories:
+
+  {% for label, info in discovered_labels.items() %}
+  - "{{ label }}" ({{ info.count }} emails): {{ info.description }}
+    Sample subjects: {{ info.sample_subjects[:3] | join(', ') }}
+  {% endfor %}
+
+  Consolidate these into 5-15 canonical intent categories. For each:
+  1. id: snake_case identifier
+  2. display_name: human-readable name (Hungarian)
+  3. display_name_en: human-readable name (English)
+  4. description: what emails belong here
+  5. merged_from: which raw labels were merged into this
+  6. keywords_hu: 5-10 Hungarian keywords
+  7. keywords_en: 5-10 English keywords
+  8. example_subjects: 2-3 example email subjects
+  9. estimated_frequency: what % of emails fall here
+
+  Return a JSON object: {"intents": [...], "unmapped_labels": [...]}
+
+config:
+  model: openai/gpt-4o
+  temperature: 0.1
+  max_tokens: 4096
+  response_format: {"type": "json_object"}
+
+metadata:
+  language: multilingual
+  tags: [discovery, consolidation, taxonomy]

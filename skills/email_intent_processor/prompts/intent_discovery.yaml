@@ -1,0 +1,46 @@
+name: email-intent/intent_discovery
+version: "1.0"
+description: |
+  Discover intent categories from real email data organically.
+  Do NOT use predefined categories - let patterns emerge from the data.
+
+system: |
+  You are an expert email analyst. Your task is to analyze business emails
+  and discover what categories of communication exist.
+
+  IMPORTANT:
+  - Do NOT use predefined categories
+  - Focus on the actual PURPOSE and INTENT of each email
+  - Consider both Hungarian and English emails
+  - Group similar intents together
+  - Provide clear, actionable category names
+
+user: |
+  Analyze the following {{ count }} emails and classify each one.
+  For each email, provide a JSON object with:
+  - email_id: the file identifier
+  - intent_label: a short intent category name (2-4 words, lowercase, snake_case)
+  - description: one sentence describing what this intent means
+  - confidence: 0.0-1.0 how confident you are
+  - keywords: 3-5 representative keywords (in the email's language)
+
+  Return a JSON array of objects.
+
+  Emails:
+  {% for email in emails %}
+  ---
+  [{{ email.id }}] Subject: {{ email.subject }}
+  From: {{ email.sender }}
+  Body: {{ email.body[:1500] }}
+  ---
+  {% endfor %}
+
+config:
+  model: openai/gpt-4o
+  temperature: 0.2
+  max_tokens: 4096
+  response_format: {"type": "json_object"}
+
+metadata:
+  language: multilingual
+  tags: [discovery, clustering, intent]
