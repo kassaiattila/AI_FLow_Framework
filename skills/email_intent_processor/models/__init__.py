@@ -52,14 +52,14 @@ class EmailInput(BaseModel):
 class IntentResult(BaseModel):
     """Result of intent classification."""
 
-    intent_id: str  # From intents.json
+    intent_id: str = ""  # From intents.json
     intent_display_name: str = ""
-    confidence: float = Field(ge=0.0, le=1.0)
-    sub_intent: str = ""
+    confidence: float = 0.0
+    sub_intent: str | None = ""
     method: str = ""  # "sklearn", "llm", "hybrid"
-    sklearn_intent: str = ""
+    sklearn_intent: str | None = ""
     sklearn_confidence: float = 0.0
-    llm_intent: str = ""
+    llm_intent: str | None = ""
     llm_confidence: float = 0.0
     alternatives: list[dict[str, Any]] = Field(default_factory=list)
     reasoning: str = ""
