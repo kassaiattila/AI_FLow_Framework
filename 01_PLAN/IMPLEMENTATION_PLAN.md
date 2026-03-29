@@ -565,14 +565,57 @@ F4 (1 nap): DB infra (Alembic 013+)
   - Per-collection statisztikak view
 ```
 
+### FAZIS A6: Modul 06-07 (CI/CD + Monitoring) - KESZ 2026-03-29
+
+```
+STATUSZ: KESZ
+
+MODUL 06 (CI/CD):
+1. [KESZ] Promptfoo config (7 teszt eset, provider script)
+2. [KESZ] Feedback API (POST /v1/feedback + GET /v1/feedback/stats)
+
+MODUL 07 (Monitoring):
+1. [KESZ] Query logging (log_query step -> rag_query_log tabla)
+2. [KESZ] Health endpoint (valos DB/pgvector/Redis/RAG check)
+
+CUBIX RAG CHECKLIST: MIND A 7 MODUL ALAPSZINTEN TELJESITVE
+```
+
+### AKTUALIS: Email + Csatolmany Feldolgozo Szolgaltatas
+
+```
+RESZLETES TERV: .claude/plans/delegated-nibbling-summit.md (v7)
+REFERENCIA: CFPB ML pilot (sklearn TF-IDF + LinearSVC, 10 routing csoport)
+
+ARCHITEKTURA:
+  1. Konfiguralhato JSON schema rendszer (schemas/v1/*.json)
+     - intents.json, entities.json, document_types.json, routing_rules.json
+     - Verziozott, ugyfal-specifikus, kodmodositas nelkul bovitheto
+  2. Harom retegu csatolmany feldolgozas
+     - Docling (lokalis) -> Azure Document Intelligence (felho/OCR) -> LLM Vision
+  3. Hibrid intent klasszifikacio
+     - sklearn ML (CFPB port, <1ms) + LLM finomitas (gpt-4o-mini)
+     - Intent meghatarozas email + csatolmany EGYUTTES tartalmabol
+  4. Strukturalt adatpont tarolas
+     - email_processing_results tabla (JSONB: entitasok, csatolmanyok, routing)
+     - Csatolmany-specifikus mező kinyerés (document_types.json vezerelt)
+
+FAZISOK:
+  E1 (1 nap): Framework eszkozok (email_parser, attachment_processor, azure_di, schema_registry)
+  E2 (2-3 nap): Email Intent skill (models, classifiers, workflow, prompts, schemas)
+  E3 (0.5 nap): API integracio
+  E4 (1 nap): Tesztek + evaluation
+```
+
 ### FAZIS B: Hatra levo framework munka (2-3 het)
 
 ```
 FELADATOK:
 1. Langfuse integracio (PromptManager Phase B)
-2. API endpoint-ok veglegesitese (FastAPI)
+2. Streaming valasz (SSE/WebSocket)
 3. CI/CD pipeline (GitHub Actions + Promptfoo)
-4. Tovabbi skillek portalasa (email_intent, qbpp_test)
+4. Tovabbi skillek (qbpp_test_automation)
+5. Multi-tenant deployment veglegesites
 ```
 
 ### FAZIS C: Skill Portalas - Prioritasi Sorrend (12-16 het)

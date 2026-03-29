@@ -17,7 +17,30 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 ## Working Skills (tested with real data)
 - **process_documentation** (ai) - Natural language -> BPMN diagrams (Mermaid + DrawIO + BPMN swimlane + SVG)
 - **cubix_course_capture** (hybrid) - Video transcript pipeline (ffmpeg + Whisper STT + LLM structuring) + RPA (Robot Framework)
-- **aszf_rag_chat** (ai) - RAG chat (docling PDF parse + pgvector + OpenAI) - WORKING with Allianz test docs
+- **aszf_rag_chat** (ai) - RAG chat (docling PDF parse + pgvector + OpenAI + Open WebUI) - evaluation 86% pass
+- **email_intent_processor** (ai) - IN DEVELOPMENT: email + csatolmany feldolgozo (hibrid ML+LLM, JSON schema vezerelt)
+
+## Architecture Patterns
+
+### Configurable JSON Schema System
+Skills use versioned JSON schemas for flexible, code-free configuration:
+```
+skills/{name}/schemas/v1/
+  intents.json          # Intent definiciok (nev, peldak, routing)
+  entities.json         # Entity tipusok (regex, LLM hint, validacio)
+  document_types.json   # Csatolmany tipusok + feldolgozasi strategia
+  routing_rules.json    # Routing matrix
+```
+This enables: new intents/entities without code changes, per-customer customization, versioning.
+
+### Multi-layer Document Processing
+1. **Docling** (local, free) - PDF/DOCX/XLSX/HTML - always first
+2. **Azure Document Intelligence** (cloud) - scan/OCR/handwriting - if docling can't
+3. **LLM Vision** (OpenAI) - image content interpretation - last resort
+
+### Hybrid Classification
+- **sklearn ML** (CFPB-ported TF-IDF + LinearSVC) - <1ms, $0 - fast screening
+- **LLM** (gpt-4o-mini) - if ML confidence < threshold, refines the result
 
 ## MANDATORY Development Rules (NEVER skip these!)
 

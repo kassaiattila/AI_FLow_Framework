@@ -34,8 +34,19 @@ skills/{name}/
     models/
         __init__.py         # Pydantic I/O models for every step
 
+    schemas/                # Configurable JSON schema definitions (versioned!)
+        v1/
+            intents.json    # Intent definitions (if classification skill)
+            entities.json   # Entity types + extraction methods
+            document_types.json  # Attachment processing strategies
+            routing_rules.json   # Routing matrix
+
     prompts/
         {step_name}.yaml    # PromptDefinition YAML for each LLM step
+
+    classifiers/            # ML + LLM classifiers (if hybrid skill)
+        sklearn_classifier.py   # Classical ML (if porting from pilot)
+        llm_classifier.py       # LLM-based classification
 
     tools/                  # Skill-specific tools (drawio, ffmpeg, etc.)
 
