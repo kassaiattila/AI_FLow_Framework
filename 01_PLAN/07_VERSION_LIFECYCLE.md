@@ -106,7 +106,7 @@ Egy skill team fejlesztesi ciklusa:
 2. **Framework public API-t importalnak:**
    ```python
    from aiflow.engine import step, workflow
-   from aiflow.agents import SpecialistAgent
+   from aiflow.engine.skill_runner import SkillRunner
    from aiflow.prompts import PromptManager
    ```
 3. **Sajat skill tesztjeiket futtatjak:** `aiflow eval run --skill <name>`
@@ -120,11 +120,11 @@ Egy skill team fejlesztesi ciklusa:
 # Csak ezek az exportok stabilak skill-ek szamara
 from aiflow.engine.step import step
 from aiflow.engine.workflow import workflow
-from aiflow.agents.specialist import SpecialistAgent
-from aiflow.agents.orchestrator import OrchestratorAgent
-from aiflow.agents.quality_gate import QualityGate
+from aiflow.engine.skill_runner import SkillRunner
 from aiflow.core.context import ExecutionContext
 from aiflow.core.errors import AIFlowError
+from aiflow.models.client import ModelClient
+from aiflow.prompts.manager import PromptManager
 ```
 
 | Stabilitasi szint | Jelentes | API-k |

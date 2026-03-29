@@ -82,10 +82,9 @@ class SkillRunner:
 
 Ez az amit a test scriptek mar csinalnak, csak formalizalva. A `WorkflowRunner` marad aki a DAG-ot is kezeli.
 
-#### O1.3 Holt kod soft-deprecation
-- `src/aiflow/agents/` -> `DEPRECATED` flag a docstring-ben
+#### O1.3 Holt kod eltavolitasa (KESZ - 2026-03-29)
+- `src/aiflow/agents/` -> **TOROLVE** (Step + SkillRunner architektura helyettesiti)
 - `src/aiflow/core/di.py` -> `DEPRECATED`
-- Nem toroljuk, hanem jeloljuk hogy Phase B-ben lesz hasznalva (ha lesz)
 
 ### FAZIS O2: Skill onallosag (1-2 het)
 **Cel:** Minden skill futtathatoegy paranccsal, fuggetlen a framework reszleteitol.
@@ -150,7 +149,7 @@ skills/                            # Onallo skill csomagok
 #### O3.2 Torolheto mappak
 | Mappa | Miert torolheto | Alternativa |
 |-------|----------------|-------------|
-| `src/aiflow/agents/` | Nem hasznalt | Torles vagy Phase B-re halasztva |
+| `src/aiflow/agents/` | **TOROLVE (2026-03-29)** | Step + SkillRunner architektura |
 | `src/aiflow/core/di.py` | Nem hasznalt | SkillRunner.from_env() helyettesiti |
 | `src/aiflow/api/v1/` | Stubbok | API Phase B-ben, ha kell |
 | `src/aiflow/ui/` | Ures | Phase B |
@@ -202,7 +201,7 @@ db = ["sqlalchemy[asyncio]>=2.0", "alembic>=1.13", "asyncpg>=0.29"]
 | 1 | **aszf_rag_chat** | allianz-rag-unified | Multi-instance RAG, 3 ugyfel |
 | 2 | **email_intent_processor** | uj fejlesztes | Kafka trigger, intent routing |
 | 3 | **qbpp_test_automation** | MultiApp_AutoTester | Playwright E2E tesztek |
-| 4 | **cfpb_complaint_router** | 01_cfpb_complaints | sklearn ML pipeline |
+| ~~4~~ | ~~cfpb_complaint_router~~ | ~~01_cfpb_complaints~~ | ~~Beolvadt email_intent_processor-ba (2026-03-29)~~ |
 
 ### Skill versioning es release
 - Semantic versioning: `skill.yaml` version mezo

@@ -1,4 +1,7 @@
 """
+REFERENCE ONLY - Not used in production workflow.
+Merged into email_intent_processor sklearn_classifier.py (2026-03-29).
+
 CFPB Panasz Intent Routing Pipeline
 ====================================
 Train-inference pipeline: panasz szöveg → intent → routing csoport.

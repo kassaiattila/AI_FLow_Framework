@@ -6,7 +6,7 @@ Check all documents in 01_PLAN/ for:
    - DB table names match between 03_DATABASE_SCHEMA.md and all other docs
    - Directory paths match between 02_DIRECTORY_STRUCTURE.md and all other docs
    - Phase/week numbers consistent across all docs (Phase 7 = Het 19-22, total = 22)
-   - Skill names consistent (6 skills: process_documentation, aszf_rag_chat, email_intent_processor, cfpb_complaint_router, cubix_course_capture, qbpp_test_automation)
+   - Skill names consistent (5 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, qbpp_test_automation)
 
 2. **Broken links**:
    - All markdown links [text](file.md) point to existing files

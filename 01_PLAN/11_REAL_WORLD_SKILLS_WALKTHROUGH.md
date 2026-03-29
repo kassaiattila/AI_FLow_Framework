@@ -34,7 +34,7 @@ classify_intent ──┬── [process] ──→ elaborate ──→ extract 
                   └── [off_topic] ──→ reject
 ```
 
-**Specialist Agent-ek (5 db - 2-szintu szabaly: max 6):**
+**Pipeline Step-ek (5 db):**
 
 | Agent | Feladat | Model | ~Koltseg |
 |-------|---------|-------|----------|

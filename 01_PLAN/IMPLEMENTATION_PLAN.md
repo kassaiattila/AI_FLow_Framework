@@ -1,8 +1,10 @@
 # AIFlow Implementation Plan - Claude Code Execution Guide
 
 **Cel:** Ez a fajl a Claude Code szamara keszult, hogy a teljes AIFlow keretrendszert
-es a 6 skill-t felepigtse, lepesrol lepesre. A `` mappa 23 dokumentuma alapjan,
-6 meglevo pilot projekt mintainak felhasznalasaval.
+es az 5 skill-t felepigtse, lepesrol lepesre. A `01_PLAN/` mappa 23 dokumentuma alapjan.
+
+**Utolso frissites:** 2026-03-29 (atfogo audit alapjan)
+**Statusz:** Framework KESZ, 2/5 skill PRODUCTION, 2/5 IN DEVELOPMENT, 1/5 STUB
 
 ---
 
@@ -12,15 +14,71 @@ es a 6 skill-t felepigtse, lepesrol lepesre. A `` mappa 23 dokumentuma alapjan,
 |---|-------|--------------|-------------------|---------------|
 | 1 | process_documentation | Diagram Gen AI Agent | `C:\Users\kassaiattila\OneDrive - BestIxCom Kft\00_BESTIX_KFT\11_DEV\80_Sample_Projects\06_Diagram_Gen_AI_Agent\data` | Langfuse SSOT, Workflow Registry, Promptfoo |
 | 2 | aszf_rag_chat | Allianz RAG Unified | `C:\Users\kassaiattila\OneDrive - BestIxCom Kft\00_BESTIX_KFT\11_DEV\94_Cubix_RAG_AI\allianz-rag-unified\` | pgvector, hybrid search, reranker, Next.js UI |
-| 3 | email_intent_processor | (uj, nincs pilot) | - | Kafka trigger minta a 19_RPA-bol |
+| 3 | email_intent_processor | CFPB ML Pilot + uj | CFPB sklearn logika beepitve | Hibrid ML+LLM, JSON schema vezerelt, 10 intent |
 | 4 | cubix_course_capture | Cubix Automation + Transcript | `C:\Users\kassaiattila\BestIxCom Kft\Bestix Kft. - Documents\07_Szakmai_Anyagok\AI\Cubix_AI_ML\automation\` ES `C:\Users\kassaiattila\BestIxCom Kft\Bestix Kft. - Documents\07_Szakmai_Anyagok\AI\Cubix_AI_ML\transcript_pipeline\` | Temporal->AIFlow, Playwright, ffmpeg, STT |
-| 5 | cfpb_complaint_router | CFPB ML Pilot | `C:\Users\kassaiattila\BestIxCom Kft\Bestix Kft. - Documents\07_Szakmai_Anyagok\AI\Cubix_AI_ML\01_Pilot_ML\01_cfpb_complaints\` | sklearn pipeline, TF-IDF, FastAPI serving |
-| 6 | qbpp_test_automation | AZHU MultiApp AutoTester | `C:\Users\kassaiattila\OneDrive - BestIxCom Kft\00_BESTIX_KFT\11_DEV\50_AZHU\03_AZHU_AutoTest\MultiApp_AutoTester\` | Playwright, registry-driven, BDD, strategy-based |
+| 5 | qbpp_test_automation | AZHU MultiApp AutoTester | `C:\Users\kassaiattila\OneDrive - BestIxCom Kft\00_BESTIX_KFT\11_DEV\50_AZHU\03_AZHU_AutoTest\MultiApp_AutoTester\` | Playwright, registry-driven, BDD, strategy-based |
 
-> **Megjegyzes:** A fenti pilot projektek mind mukodnek a sajat kornyezetukben. A portalas soran
-> az AIFlow keretrendszerbe kell adaptalni oket (workflow DAG, agent rendszer, prompt management).
+> **Megjegyzes:** A cfpb_complaint_router (korabbi #5) osszevonva az email_intent_processor-ral (2026-03-29).
+> Az sklearn classifier logika (TF-IDF + LinearSVC) mar az email_intent_processor reszekent mukodik.
 
 ---
+
+## SKILL DASHBOARD (2026-03-29)
+
+| # | Skill | Statusz | Tesztek | Ugyfelek | Megjegyzes |
+|---|-------|---------|---------|----------|------------|
+| 1 | process_documentation | **PRODUCTION** | ~25 teszt | BESTIX | 5 step, multi-format export |
+| 2 | cubix_course_capture | **75%** | ~30 teszt | BESTIX | Transcript pipeline mukodik, RPA reszleges |
+| 3 | aszf_rag_chat | **85%** | 0 valos teszt! | AZHU, NPRA, BESTIX | RAG pipeline mukodik, tesztek hianyoznak |
+| 4 | email_intent_processor | **80%** | ~15 teszt | AZHU, BESTIX | Aktiv fejlesztes, hibrid ML+LLM |
+| 5 | qbpp_test_automation | **STUB** | 0 | AZHU, NPRA | Varja az AZHU portal hozzaferest |
+
+---
+
+## FAZIS 1-7: FRAMEWORK IMPLEMENTACIO - KESZ
+
+> **Statusz:** Az alabbi fazisok (Het 1-22) leirasa eredeti tervkent keszult.
+> A framework kod (`src/aiflow/`) 2026-03-28-29-en teljes egeszeben implementalva lett.
+> Az `agents/` modul torolve (2026-03-29, egyetlen skill sem hasznalta).
+> Reszletes modulterkep: `src/aiflow/CLAUDE.md`
+
+### Fazis 1 (Het 1-3): Foundation - KESZ
+- core/ (config, context, DI, errors, events, registry, types)
+- state/ (SQLAlchemy ORM, repository, 13 Alembic migracio, 25+ tabla)
+- Docker Compose, Makefile, CI/CD
+
+### Fazis 2 (Het 4-6): Engine + Models + VectorStore - KESZ
+- engine/ (@step, DAG, WorkflowRunner, SkillRunner, checkpoint, policies)
+- models/ (ModelClient, LiteLLM, 5 protocol, cost, router)
+- vectorstore/ (pgvector, hybrid search, embedder)
+
+### Fazis 3 (Het 7-9): Prompts + Documents + Ingestion - KESZ
+- prompts/ (PromptManager, YAML + Jinja2, A/B testing)
+- documents/ (DocumentRegistry, versioning, freshness)
+- ingestion/ (PDF/DOCX/Docling parsers, recursive/semantic chunkers)
+
+### Fazis 4 (Het 10-13): Skills - RESZLEGES (lasd dashboard fent)
+
+### Fazis 5 (Het 14-16): Execution + API + Security - KESZ
+- execution/ (JobQueue, Worker, Scheduler, RateLimiter, DLQ)
+- api/v1/ (FastAPI, health, chat_completions, feedback)
+- security/ (JWT RS256, RBAC 4 role, audit, guardrails)
+
+### Fazis 6 (Het 17-19): CLI + Observability - KESZ
+- cli/ (typer, 6 command group)
+- observability/ (tracing, cost_tracker, metrics, SLA) - Langfuse TODO-k megmaradtak
+
+### Fazis 7 (Het 20-22): Production - RESZLEGES
+- K8s base manifesztek kesz, overlay-ek uresek
+- Vault integracio TODO
+- CI/CD workflow-ok kesz
+
+---
+
+## RESZLETES EREDETI TERVEK (referencia)
+
+> Az alabbi reszletes fazis leirasok az eredeti terv reszei.
+> A framework implementacio soran keszultek el. Referenciakent megorizve.
 
 ## FAZIS 1: FOUNDATION (Het 1-3)
 
@@ -247,21 +305,9 @@ FELADATOK:
 VERIFIKACIO: aiflow skill install + teszt dokumentum ingest + Q&A kerdes -> helyes valasz citacioval
 ```
 
-### Het 12: 3. Skill (CFPB ML Complaint Router)
-
-```
-FELADATOK:
-1. skills/cfpb_complaint_router/ - PORTALAS az ML pilot-bol:
-   FORRAS: 01_cfpb_complaints/src/pipeline.py (train, predict, predict_proba)
-   FORRAS: 01_cfpb_complaints/src/api.py (FastAPI endpoints)
-   FORRAS: 01_cfpb_complaints/models/intent_routing_model.joblib
-   ADAPTACIO: sklearn Pipeline -> AIFlow LocalModelBackend
-   ADAPTACIO: intent_mapping dict -> AIFlow config
-2. AIFlow workflow: clean_text -> classify -> route -> respond
-3. 100+ teszt eset (10 routing group, edge cases)
-
-VERIFIKACIO: aiflow workflow run cfpb-complaint-router --input '{"text": "..."}'
-```
+### ~~Het 12: CFPB ML Complaint Router~~ - OSSZEVONVA email_intent_processor-ral (2026-03-29)
+> Az sklearn classifier logika (TF-IDF + LinearSVC) beepult az email_intent_processor skillbe.
+> Lasd: skills/email_intent_processor/classifiers/sklearn_classifier.py
 
 ### Het 13: 4+5. Skill (Cubix RPA + QBPP Test)
 
@@ -662,22 +708,13 @@ PORTALASI PRIORITAS:
    - pytest-bdd -> AIFlow workflow (registry load -> generate -> run -> analyze)
    - Instance: deployments/azhu/instances/azhu-portal-test.yaml
 
-5. email_intent_processor - 2-3 het
-   Uj skill, nincs meglevo pilot (Kafka trigger minta a 19_RPA-bol)
-   FORRAS: (uj fejlesztes, nincs pilot)
+5. email_intent_processor - AKTIV FEJLESZTES (2026-03-29)
+   Hibrid ML+LLM email feldolgozo (CFPB sklearn logika beepitve)
    UGYFELEK: AZHU, BESTIX
-   FELADATOK:
-   - Kafka trigger -> intent klasszifikacio -> routing
-   - Instance-ok: azhu/claims_email, bestix/support_email
+   STATUSZ: 80% kesz, 10 intent, JSON schema vezerelt
+   KOVETKEZO: Intent discovery valos adatokbol, Docling/AzureDI quality routing
 
-6. cfpb_complaint_router - 1-2 het
-   BESTIX ML demo (sklearn pipeline portalas, legkisebb scope)
-   FORRAS: C:\Users\kassaiattila\BestIxCom Kft\Bestix Kft. - Documents\07_Szakmai_Anyagok\AI\Cubix_AI_ML\01_Pilot_ML\01_cfpb_complaints\
-   UGYFELEK: BESTIX
-   FELADATOK:
-   - sklearn Pipeline -> AIFlow LocalModelBackend adaptacio
-   - 100+ teszt eset
-   - Instance: deployments/bestix/instances/bestix-cfpb-demo.yaml
+   > cfpb_complaint_router osszevonva ide (2026-03-29)
 ```
 
 ### FAZIS D: Customer Deployment Infra (2-3 het, parhuzamos a skill portalassal)

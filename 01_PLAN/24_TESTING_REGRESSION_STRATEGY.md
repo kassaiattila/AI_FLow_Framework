@@ -121,14 +121,6 @@ suites:
     coverage_target: 90
     components: [engine.step, engine.dag, engine.workflow, engine.runner, engine.policies, engine.checkpoint]
 
-  agents-unit:
-    description: "Agent system unit tesztek"
-    path: "tests/unit/agents/"
-    run_on: [pr, merge]
-    max_duration_seconds: 30
-    coverage_target: 85
-    components: [agents.specialist, agents.orchestrator, agents.quality_gate, agents.human_loop]
-
   models-unit:
     description: "Model client unit tesztek"
     path: "tests/unit/models/"
@@ -235,14 +227,6 @@ suites:
     skill: email_intent_processor
     components: [skills.email_intent_processor.*]
 
-  skill-cfpb:
-    description: "CFPB Complaint Router skill tesztek"
-    path: "skills/cfpb_complaint_router/tests/"
-    run_on: [pr, merge]
-    max_duration_seconds: 90
-    skill: cfpb_complaint_router
-    components: [skills.cfpb_complaint_router.*]
-
   skill-cubix:
     description: "Cubix Course Capture skill tesztek"
     path: "skills/cubix_course_capture/tests/"
@@ -297,9 +281,9 @@ rules:
 
   # --- ENGINE ---
   "src/aiflow/engine/step.py":
-    suites: [engine-unit, agents-unit, integration-api, e2e-pipeline,
+    suites: [engine-unit, integration-api, e2e-pipeline,
              skill-process-doc, skill-aszf-rag, skill-email-intent,
-             skill-cfpb, skill-cubix, skill-qbpp]
+             skill-cubix, skill-qbpp]
     reason: "Step decorator MINDEN workflow-t es skill-t erint"
 
   "src/aiflow/engine/dag.py":
@@ -311,15 +295,19 @@ rules:
   "src/aiflow/engine/policies.py":
     suites: [engine-unit, integration-api]
 
-  # --- AGENTS ---
-  "src/aiflow/agents/**":
-    suites: [agents-unit, integration-api, e2e-pipeline,
+  # --- SKILL SYSTEM ---
+  "src/aiflow/skill_system/**":
+    suites: [skills-unit, integration-api, e2e-pipeline,
              skill-process-doc, skill-aszf-rag, skill-email-intent]
+
+  # --- TOOLS ---
+  "src/aiflow/tools/**":
+    suites: [skills-unit, integration-api, e2e-pipeline]
 
   # --- MODELS ---
   "src/aiflow/models/**":
     suites: [models-unit, integration-api, e2e-pipeline, promptfoo-all,
-             skill-process-doc, skill-aszf-rag, skill-email-intent, skill-cfpb]
+             skill-process-doc, skill-aszf-rag, skill-email-intent]
 
   # --- PROMPTS ---
   "src/aiflow/prompts/**":
@@ -363,8 +351,6 @@ rules:
     suites: [skill-aszf-rag, promptfoo-all]
   "skills/email_intent_processor/**":
     suites: [skill-email-intent, promptfoo-all]
-  "skills/cfpb_complaint_router/**":
-    suites: [skill-cfpb]
   "skills/cubix_course_capture/**":
     suites: [skill-cubix]
   "skills/qbpp_test_automation/**":

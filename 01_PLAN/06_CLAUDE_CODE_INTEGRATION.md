@@ -227,7 +227,7 @@ AI-powered automation workflows at scale.
 
 ## Architecture
 - `src/aiflow/engine/` - Workflow engine (DAG-based)
-- `src/aiflow/agents/` - 2-level agent system (max 6 specialists)
+- `src/aiflow/engine/` - Step, SkillRunner, WorkflowRunner, DAG, checkpoint
 - `src/aiflow/skills/` - Domain knowledge packages
 - `src/aiflow/prompts/` - Langfuse SSOT prompt management
 - `skills/` - Installed skill packages

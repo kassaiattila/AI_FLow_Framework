@@ -147,7 +147,7 @@ class WorkflowBuilder:
 
         Args:
             after: Step name to gate
-            gate: QualityGate instance (from aiflow.agents.quality_gate)
+            gate: QualityGate instance
             on_fail: Step to run if gate fails (e.g., "refine")
             on_exhausted: Step to run if max iterations exhausted (e.g., "human_review")
         """

@@ -148,7 +148,7 @@ A tervcsomag **rendkivul alapos** egy tervezesi fazisban levo projekthez:
 - **API spec** (22): 40+ endpoint teljes request/response-szal
 - **Deployment** (21): K8s, blue-green, DR, runbook-ok
 - **GitHub kutatas** (13): Valos kodanalzis 3 framework-bol (LangGraph, CrewAI, Haystack)
-- **Skill rendszer** (11-12): 6 skill teljes eletciklusa
+- **Skill rendszer** (11-12): 5 skill teljes eletciklusa (cfpb beolvadt email_intent-be)
 - **Claude Code integracio** (26, CLAUDE.md): 10 slash command, strict testing rules
 
 A 69 talalt hiba 80%-a MEDIUM/LOW, a 4 CRITICAL kozvetlen javithato.

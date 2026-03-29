@@ -11,7 +11,7 @@
 |--------|-----|--------|------------|
 | Allianz Hungaria | AZHU | aszf_rag_chat (RAG Chat), email_intent_processor (Intent), qbpp_test_automation (AutoTest) | Fo ugyfel, enterprise tier |
 | NPRA | NPRA | aszf_rag_chat (RAG Chat), qbpp_test_automation (AutoTest) | Business tier |
-| BestIxCom Kft | BESTIX | process_documentation (Diagram Gen), cubix_course_capture (RPA+Transcript), cfpb_complaint_router (ML), email_intent_processor, aszf_rag_chat - minden skill sajat hasznalatra | Belso hasznalat, teszteles, demo |
+| BestIxCom Kft | BESTIX | process_documentation (Diagram Gen), cubix_course_capture (RPA+Transcript), email_intent_processor (hibrid ML+LLM), aszf_rag_chat - minden skill sajat hasznalatra | Belso hasznalat, teszteles, demo |
 
 ---
 
@@ -68,9 +68,8 @@ Skill Template: process_documentation
   |
   +-- Instance: bestix_process_docs    (BESTIX belso folyamatok, framework validacio)
 
-Skill Template: cfpb_complaint_router
-  |
-  +-- Instance: bestix_cfpb_demo       (BESTIX ML demo, belso teszteles)
+> **Megjegyzes:** A cfpb_complaint_router skill beolvadt az email_intent_processor-ba (2026-03-29).
+> Az ML klasszifikacios logika (sklearn TF-IDF + LinearSVC) az email_intent_processor hibrid retegekent mukodik.
 ```
 
 **Fontos:** A skill template **NEM** tartalmaz ugyfel-specifikus adatot. Az instance config tartalmazza
@@ -731,7 +730,6 @@ deployments/
 |   |   |-- bestix-internal-rag.yaml
 |   |   |-- bestix-process-docs.yaml
 |   |   |-- bestix-cubix-capture.yaml
-|   |   |-- bestix-cfpb-demo.yaml
 |   |   |-- bestix-support-email.yaml
 |   |-- k8s/                         # Phase 2 - K8s cluster elerhetosegekor
 |       |-- namespace.yaml
@@ -859,8 +857,6 @@ skill_templates:                  # MINDEN skill - belso hasznalat, teszteles, d
     version: "1.2.0"
   - name: cubix_course_capture
     version: "1.0.0"
-  - name: cfpb_complaint_router
-    version: "1.0.0"
   - name: email_intent_processor
     version: "1.0.0"
   - name: qbpp_test_automation
@@ -870,7 +866,6 @@ instances:
   - file: instances/bestix-internal-rag.yaml
   - file: instances/bestix-process-docs.yaml
   - file: instances/bestix-cubix-capture.yaml
-  - file: instances/bestix-cfpb-demo.yaml
   - file: instances/bestix-support-email.yaml
 
 infrastructure:
@@ -907,7 +902,7 @@ ghcr.io/bestixcom/aiflow-base:v1.2.0          # (1) Framework only
     |
     +-- ghcr.io/bestixcom/aiflow-azhu:v1.2.0        # (3) Customer: base + 3 skill
     +-- ghcr.io/bestixcom/aiflow-npra:v1.2.0         # (3) Customer: base-rpa + 2 skill
-    +-- ghcr.io/bestixcom/aiflow-bestix:v1.2.0       # (3) Customer: base-rpa + 6 skill (minden)
+    +-- ghcr.io/bestixcom/aiflow-bestix:v1.2.0       # (3) Customer: base-rpa + 5 skill (minden)
 ```
 
 ### 5.2 Base Image (Framework Only)
@@ -1327,7 +1322,6 @@ Langfuse projektek:
   |-- bestix-aiflow                       # BESTIX production (belso hasznalat + demo)
       |-- Prompt: bestix/internal-rag/system-prompt (label: bestix-prod)
       |-- Prompt: bestix/process-docs/classifier (label: bestix-prod)
-      |-- Prompt: bestix/cfpb-demo/classifier (label: bestix-prod)
       |-- Prompt: bestix/support-email/system-prompt (label: bestix-prod)
 ```
 
@@ -1582,7 +1576,7 @@ A 28_MODULAR_DEPLOYMENT.md bevezetesekor az alabbi meglevo dokumentumokat kell f
 | [16_RAG_VECTORSTORE.md](16_RAG_VECTORSTORE.md) | Collection per-instance izolacio megerosites. Instance-szintu embedding config. | **P3** |
 | [19_RPA_AUTOMATION.md](19_RPA_AUTOMATION.md) | RPA worker instance-aware routing. Base-rpa image referencia. | **P3** |
 | [20_SECURITY_HARDENING.md](20_SECURITY_HARDENING.md) | Per-customer database izolacio. GDPR: ugyfel adat torles = DB drop. | **P3** |
-| [CLAUDE.md](CLAUDE.md) | Frissitett szamok: 36 tabla, 14 view, 20 migracio. Uj dokumentum referencia: 28_MODULAR_DEPLOYMENT.md. deployments/ konyvtar hozzaadasa a kontextushoz. | **P1** |
+| [CLAUDE.md](CLAUDE.md) | Frissitett szamok: 36 tabla, 13 view, 20 migracio. Uj dokumentum referencia: 28_MODULAR_DEPLOYMENT.md. deployments/ konyvtar hozzaadasa a kontextushoz. | **P1** |
 
 **Osszesen:** 16 dokumentum modositando (4 P1, 7 P2, 5 P3).
 

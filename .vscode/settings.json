@@ -18,6 +18,20 @@
   },
   "search.exclude": {
     ".venv": true,
-    "**/__pycache__": true
+    "**/__pycache__": true,
+    ".web/node_modules": true
+  },
+  "files.watcherExclude": {
+    "**/.venv/**": true,
+    "**/__pycache__/**": true,
+    "**/node_modules/**": true,
+    "**/test_output/**": true,
+    "**/tests/artifacts/**": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true
+  },
+  "files.associations": {
+    "*.eml": "plaintext",
+    "*.msg": "plaintext"
   }
 }

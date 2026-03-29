@@ -3,7 +3,7 @@
 ## Valtozas a v1-hez kepest
 - Egysegitett idovonal: 22 het (7 fazis)
 - Integralt: ML Model reteg (15_ML), VectorStore (16_RAG), Frontend (14_FRONTEND), RPA (19_RPA)
-- Integralt: 6 skill (nem csak 3)
+- Integralt: 5 skill (cfpb_complaint_router beolvadt email_intent_processor-ba)
 - Integralt: Security hardening (20_SECURITY)
 - Integralt: GUI tesztek (18_TESTING)
 - Javitva: llm/ -> models/ konyvtar mindenhol
@@ -17,7 +17,7 @@
 | 1. Foundation | 1-3 | Core kernel, State, Models, Docker, structlog | Mukodo dev kornyezet |
 | 2. Engine + Vector | 4-6 | Step, DAG, Workflow, Runner, ModelRouter, VectorStore | Lokalis workflow futtatas |
 | 3. Agents + Prompts + Docs | 7-9 | Agent system, Langfuse SSOT, Document lifecycle | Agentic workflow-k |
-| 4. Skills (6 db) | 10-13 | POC portalas, 6 skill, 600+ teszt | Mukodo skill-ek |
+| 4. Skills (5 db) | 10-13 | POC portalas, 5 skill, 600+ teszt | Mukodo skill-ek |
 | 5. Execution + API + Security | 14-16 | Queue, Worker, FastAPI, RBAC, Frontend scaffold | Teljes API + UI |
 | 6. CLI + Observability | 17-19 | CLI, Tracing, Cost, SLA, Dashboards, E2E tesztek | Teljes lifecycle |
 | 7. Production | 20-22 | Checkpoint, HITL, Scheduler, Kafka, K8s, CI/CD, Audit | Production-ready |
@@ -133,19 +133,21 @@ curl http://localhost:8000/health           # API elerheto (ha make dev-docker)
 
 ---
 
-## Phase 3: Agents + Prompts + Documents (Het 7-9)
+## Phase 3: Prompts + Documents (Het 7-9)
 
-### Het 7: Agent System
+### Het 7: Skill System + Tools
 
 **Feladatok:**
-1. `src/aiflow/agents/specialist.py` - SpecialistAgent base class
-2. `src/aiflow/agents/messages.py` - AgentRequest/AgentResponse (generikus)
-3. `src/aiflow/agents/orchestrator.py` - OrchestratorAgent (max 6 specialist!)
-4. `src/aiflow/agents/quality_gate.py` - QualityGate + score-alapu kapuk
-5. `src/aiflow/agents/human_loop.py` - HumanReviewRequest + pauzalas
-6. `src/aiflow/agents/reflection.py` - Generate-Critique-Improve loop
+1. `src/aiflow/skill_system/manifest.py` - SkillManifest (progressive disclosure)
+2. `src/aiflow/skill_system/loader.py` - Skill felfedeztes es betoltes
+3. `src/aiflow/skill_system/registry.py` - Skill registry
+4. `src/aiflow/skill_system/instance.py` - Skill Instance (multi-customer)
+5. `src/aiflow/tools/` - Shell, Playwright, HumanLoop, Kafka integraciok
 
-**Teszt:** `tests/unit/agents/test_specialist.py`, `test_quality_gate.py`
+> **Megjegyzes:** Az agents/ modul torolve lett. A Step + SkillRunner architektura
+> helyettesiti - lasd engine/skill_runner.py.
+
+**Teszt:** `tests/unit/skill_system/test_manifest.py`, `test_loader.py`
 
 ### Het 8: Prompt Platform
 
@@ -168,11 +170,11 @@ curl http://localhost:8000/health           # API elerheto (ha make dev-docker)
 6. `src/aiflow/ingestion/chunkers/semantic_chunker.py` - Szemantikus chunking
 7. `src/aiflow/ingestion/pipeline.py` - IngestionPipeline (AIFlow workflow!)
 
-**Milestone:** Agent-alapu workflow mukodik Langfuse promptokkal, quality gate-ekkel, document ingest pipeline mukodik
+**Milestone:** Skill system mukodik Langfuse promptokkal, document ingest pipeline mukodik
 
 ---
 
-## Phase 4: 6 Skill Portalasa (Het 10-13)
+## Phase 4: 5 Skill Portalasa (Het 10-13)
 
 ### Het 10: Skill System + Skill 1 (Process Documentation)
 
@@ -192,21 +194,18 @@ curl http://localhost:8000/health           # API elerheto (ha make dev-docker)
 **Feladatok:**
 1. `skills/aszf_rag_chat/` - Allianz RAG portalas
    - Ingestion workflow + Q&A workflow + 6 agent + 150+ teszt
-2. `skills/email_intent_processor/` - Uj skill
-   - 5 intent kategoria, routing, auto-respond, 200 teszt eset
+2. `skills/email_intent_processor/` - Uj skill (cfpb_complaint_router beolvasztva)
+   - Hibrid ML+LLM klasszifikacio, 10 intent, JSON schema vezerelt, 200 teszt eset
 
-### Het 12: Skill 4 (CFPB ML) + Skill 5 (Cubix RPA)
+### Het 12: Skill 4 (Cubix RPA)
 
 **Feladatok:**
-1. `skills/cfpb_complaint_router/` - sklearn pipeline portalas
-   - `src/aiflow/models/backends/local_backend.py` - LocalModelBackend (sklearn, transformers)
-   - 100+ teszt eset
-2. `skills/cubix_course_capture/` - Temporal->AIFlow migracio
+1. `skills/cubix_course_capture/` - Temporal->AIFlow migracio
    - `src/aiflow/contrib/playwright/browser.py` - PlaywrightBrowser DI
    - `src/aiflow/contrib/shell/executor.py` - ShellExecutor (ffmpeg sandbox)
    - Playwright + ffmpeg + OpenAI STT + GPT workflow-k
 
-### Het 13: Skill 6 (QBPP Test) + Evaluation finalizalas
+### Het 13: Skill 5 (QBPP Test) + Evaluation finalizalas
 
 **Feladatok:**
 1. `skills/qbpp_test_automation/` - MultiApp AutoTester portalas
@@ -215,7 +214,7 @@ curl http://localhost:8000/health           # API elerheto (ha make dev-docker)
 3. `src/aiflow/evaluation/reports.py` - Evaluacios riportok
 4. Minden skill: 90%+ pass rate ellenorzes
 
-**Milestone:** 6 skill telepitve, 600+ teszt eset ossz., mind 90%+ pass rate
+**Milestone:** 5 skill telepitve, 600+ teszt eset ossz., mind 90%+ pass rate
 
 ---
 
@@ -305,7 +304,7 @@ curl http://localhost:8000/health           # API elerheto (ha make dev-docker)
 
 **Feladatok:**
 1. `src/aiflow/engine/checkpoint.py` - checkpoint/resume hosszu workflow-khoz (bovitett)
-2. `src/aiflow/agents/human_loop.py` - Human-in-the-loop teljes implementacio
+2. `src/aiflow/tools/human_loop.py` - Human-in-the-loop teljes implementacio
 3. `src/aiflow/execution/scheduler.py` - cron, event, webhook triggerek
 4. DB migracio: 007_add_scheduling.py, 008_add_human_reviews.py
 
@@ -332,7 +331,7 @@ curl http://localhost:8000/health           # API elerheto (ha make dev-docker)
 7. Compliance riportok: AI Governance, GDPR, SOC2 elokeszites
 8. Performance benchmark + load test
 
-**Milestone:** Production-ready: K8s deployment, CI/CD, audit, checkpoint/resume, 6 skill mukodik
+**Milestone:** Production-ready: K8s deployment, CI/CD, audit, checkpoint/resume, 5 skill mukodik
 
 ---
 
@@ -348,11 +347,11 @@ pytest tests/unit/ -v
 pytest tests/unit/engine/ -v && pytest tests/unit/vectorstore/ -v
 
 # Phase 3 (Het 9):
-# Agent-alapu workflow Langfuse promptokkal -> trace megjelenik
-pytest tests/unit/agents/ -v && pytest tests/unit/prompts/ -v
+# Skill system + prompt platform mukodik -> trace megjelenik
+pytest tests/unit/skill_system/ -v && pytest tests/unit/prompts/ -v
 
 # Phase 4 (Het 13):
-aiflow skill list  # 6 skill megjelenik
+aiflow skill list  # 5 skill megjelenik
 aiflow eval run --skill process_documentation  # 90%+
 npx promptfoo eval -c skills/*/tests/promptfooconfig.yaml
 

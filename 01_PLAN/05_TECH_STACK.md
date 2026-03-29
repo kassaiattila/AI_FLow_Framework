@@ -84,8 +84,8 @@
 | python-docx | >= 1.1 | Word export | process_documentation |
 | openpyxl | >= 3.1 | Excel export | process_documentation, qbpp_test |
 | drawpyo | >= 0.2 | Draw.io XML | process_documentation |
-| scikit-learn | >= 1.4 | ML pipeline | cfpb_complaint_router |
-| xgboost | >= 2.0 | Gradient boosting | cfpb_complaint_router |
+| scikit-learn | >= 1.4 | ML pipeline | email_intent_processor (hibrid ML+LLM) |
+| xgboost | >= 2.0 | Gradient boosting | email_intent_processor (opcionalis) |
 | pdfplumber | >= 0.10 | PDF extraction | aszf_rag_chat |
 | beautifulsoup4 | >= 4.12 | Web scraping | aszf_rag_chat |
 

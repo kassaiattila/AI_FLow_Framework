@@ -156,11 +156,12 @@ src/aiflow/
     cli/           # typer CLI
     skills/        # Backward compat re-exports -> skill_system/
     contrib/       # Backward compat re-exports -> tools/
-    agents/        # DEPRECATED - not used by working skills
 skills/            # Self-contained skill packages (each with own tools, tests, UI)
   process_documentation/  # WORKING - diagram generation
   cubix_course_capture/   # WORKING - video transcript pipeline + RPA
-  aszf_rag_chat/          # PLANNED - RAG chat
+  aszf_rag_chat/          # WORKING - RAG chat (86% eval pass)
+  email_intent_processor/ # IN DEVELOPMENT - email + attachment processing
+  qbpp_test_automation/   # PLANNED - insurance calculator test automation
 deployments/       # Per-customer deployment configs (AZHU, NPRA, BESTIX)
 tests/             # unit/, integration/, e2e/, conftest.py
 ```
@@ -179,8 +180,7 @@ result = await runner.run_steps([step1, step2], {"input": "..."})
 
 ## Coding Conventions
 - **Every step MUST have typed Pydantic input/output** (BaseModel subclasses)
-- **Max 6 specialist agent types** per orchestrator (2-level rule)
-- **Specialists MUST be stateless** - no instance variables modified during execute()
+- **Steps MUST be stateless** - no instance variables modified during execute()
 - **Prompts MUST be in YAML**, synced to Langfuse - never hardcode prompt text in Python
 - **Every skill MUST have 100+ test cases** (Promptfoo + pytest)
 - **structlog for logging** - never print(), always `logger.info("event", key=value)`
@@ -231,12 +231,11 @@ Every code change MUST follow this exact sequence:
 |--------|---------|--------|
 | core/ | 90% | 95% |
 | engine/ | 85% | 90% |
-| agents/ | 80% | 85% |
 | api/ | 80% | 90% |
 | security/ | 90% | 95% |
 | models/ | 80% | 85% |
 | vectorstore/ | 75% | 80% |
-| skills/*/agents/ | 70% | 80% |
+| skills/*/workflows/ | 70% | 80% |
 | **OVERALL** | **80%** | **85%** |
 
 ### Test File Registry Header (REQUIRED on every test file)

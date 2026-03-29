@@ -30,13 +30,11 @@ tests/
 |   |   |-- test_checkpoint.py           # Checkpoint/resume
 |   |   |-- test_conditions.py           # Elagazas feltetel kiertekeles
 |   |   |-- test_serialization.py        # YAML export/import
-|   |-- agents/
-|   |   |-- test_specialist.py           # SpecialistAgent base
-|   |   |-- test_orchestrator.py         # OrchestratorAgent (max 6 check)
-|   |   |-- test_quality_gate.py         # Score-alapu kapuk
-|   |   |-- test_human_loop.py           # HumanReviewRequest
-|   |   |-- test_reflection.py           # Generate-Critique-Improve
-|   |   |-- test_messages.py             # AgentRequest/Response
+|   |-- skill_system/
+|   |   |-- test_manifest.py             # SkillManifest
+|   |   |-- test_loader.py               # Skill felfedeztes es betoltes
+|   |   |-- test_registry.py             # Skill registry
+|   |   |-- test_instance.py             # Skill Instance
 |   |-- models/
 |   |   |-- test_client.py               # ModelClient facade
 |   |   |-- test_registry.py             # ModelRegistry CRUD
@@ -250,13 +248,11 @@ rules:
   - pattern: "src/aiflow/engine/step.py"
     suites:
       - engine-unit
-      - agents-unit
       - integration-api
       - e2e-pipeline
       - skill-process-doc
       - skill-aszf-rag
       - skill-email-intent
-      - skill-cfpb
       - skill-cubix
       - skill-qbpp
     reason: "Step decorator minden workflow-t erint"

@@ -87,23 +87,6 @@ suites:
       - engine.checkpoint
       - engine.serialization
 
-  agents-unit:
-    description: "Agent system unit tests (orchestrator, specialists, quality gates, human loop, reflection)"
-    path: "tests/unit/agents/"
-    suite_type: unit
-    run_on: [commit, pr, merge]
-    priority: critical
-    max_duration_seconds: 30
-    coverage_target: 90.0
-    requires_services: []
-    components:
-      - agents.messages
-      - agents.specialist
-      - agents.orchestrator
-      - agents.quality_gate
-      - agents.human_loop
-      - agents.reflection
-
   prompts-unit:
     description: "Prompt platform unit tests (schema, manager, sync, A/B testing)"
     path: "tests/unit/prompts/"

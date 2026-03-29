@@ -50,16 +50,21 @@ aiflow/
 |   |   |   |-- conditions.py             # Feltetelek elagazasokhoz
 |   |   |   |-- serialization.py        # Workflow YAML export/import (Haystack minta)
 |   |   |
-|   |   |-- agents/                         # 2-szintu agent rendszer
+|   |   |-- skill_system/                   # Skill rendszer (canonical)
 |   |   |   |-- __init__.py
-|   |   |   |-- orchestrator.py             # Orchestrator bazis osztaly
-|   |   |   |-- specialist.py              # Specialist agent bazis osztaly
-|   |   |   |-- messages.py                # AgentRequest, AgentResponse (tipusos)
-|   |   |   |-- quality_gate.py            # Score-alapu minosegi kapuk
-|   |   |   |-- human_loop.py             # Human-in-the-loop integracio
-|   |   |   |-- reflection.py             # Generate-Critique-Improve loop
+|   |   |   |-- manifest.py               # SkillManifest (progressive disclosure)
+|   |   |   |-- loader.py                  # Skill felfedeztes es betoltes
+|   |   |   |-- registry.py               # Skill registry
+|   |   |   |-- instance.py               # Skill Instance (multi-customer)
 |   |   |
-|   |   |-- skills/                         # Skill (domain knowledge) rendszer
+|   |   |-- tools/                          # Skill tools (canonical)
+|   |   |   |-- __init__.py
+|   |   |   |-- shell.py                   # ShellExecutor (ffmpeg, pandoc)
+|   |   |   |-- playwright_tool.py         # PlaywrightBrowser DI service
+|   |   |   |-- human_loop.py             # Human-in-the-loop integracio
+|   |   |   |-- kafka.py                   # Kafka adapter
+|   |   |
+|   |   |-- skills/                         # Backward compat re-exports -> skill_system/
 |   |   |   |-- __init__.py
 |   |   |   |-- base.py                    # Skill bazis osztaly
 |   |   |   |-- loader.py                  # Skill felfedeztes es betoltes
@@ -272,7 +277,7 @@ aiflow/
 |   |   |-- prompts/                        # answer_generator.yaml, citation.yaml, etc.
 |   |   |-- tests/
 |   |
-|   |-- email_intent_processor/             # Skill 3: AI+Kafka - Email routing
+|   |-- email_intent_processor/             # Skill 3: AI+Kafka - Email routing (cfpb_complaint_router beolvasztva)
 |   |   |-- skill.yaml
 |   |   |-- workflow.py
 |   |   |-- agents/                         # classifier, extractor, faq_search, drafter
@@ -287,14 +292,7 @@ aiflow/
 |   |   |-- prompts/structurer.yaml
 |   |   |-- tests/
 |   |
-|   |-- cfpb_complaint_router/              # Skill 5: ML - Szoveg klasszifikacio
-|   |   |-- skill.yaml
-|   |   |-- workflow.py
-|   |   |-- agents/                         # text_cleaner, classifier, router
-|   |   |-- models/                         # intent_mapping, routing_groups
-|   |   |-- tests/
-|   |
-|   |-- qbpp_test_automation/              # Skill 6: RPA - Biztositasi kalkulátor teszt
+|   |-- qbpp_test_automation/              # Skill 5: RPA - Biztositasi kalkulátor teszt
 |   |   |-- skill.yaml
 |   |   |-- workflow.py
 |   |   |-- agents/                         # registry_loader, data_generator, test_runner, analyzer
@@ -326,7 +324,6 @@ aiflow/
 |       |   |-- bestix-internal-rag.yaml
 |       |   |-- bestix-process-docs.yaml
 |       |   |-- bestix-cubix-capture.yaml
-|       |   |-- bestix-cfpb-demo.yaml
 |       |   |-- bestix-support-email.yaml
 |       |-- k8s/                            # Phase 2 - K8s cluster elerhetosegekor
 |           |-- kustomization.yaml
@@ -362,9 +359,9 @@ aiflow/
 |   |   |   |-- test_workflow.py
 |   |   |   |-- test_runner.py
 |   |   |   |-- test_policies.py
-|   |   |-- agents/
-|   |   |   |-- test_specialist.py
-|   |   |   |-- test_quality_gate.py
+|   |   |-- skill_system/
+|   |   |   |-- test_manifest.py
+|   |   |   |-- test_loader.py
 |   |   |-- prompts/
 |   |   |   |-- test_manager.py
 |   |   |-- security/

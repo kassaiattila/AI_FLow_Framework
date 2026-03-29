@@ -170,7 +170,7 @@ async def classify(
 ```python
 # workflow.py
 from aiflow.engine import workflow, WorkflowBuilder
-from aiflow.agents.quality_gate import QualityGate
+# Quality gates are configured via step metadata (see engine/workflow.py)
 from .agents.classifier import classify
 from .agents.extractor import extract
 

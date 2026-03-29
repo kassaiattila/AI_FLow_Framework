@@ -25,7 +25,7 @@ modularitassal, teljes DEV-TEST-UAT-PROD eletciklussal.
 
 | Elv | Forras | Jelentes |
 |-----|--------|---------|
-| 2-szintu max | Andrew Ng, Anthropic | Orchestrator + max 6 Specialist. Tobb = debug lehetetlen |
+| 2-szintu max | Andrew Ng, Anthropic | Orchestrator + Specialist-ek. Tobb = debug lehetetlen |
 | Stateless subagent | Iparagi consensus | "When you add state, you add bugs" |
 | Evaluation-driven | Anthropic best practice | 100+ teszt eset MINIMUM, kulonben nem production |
 | Skill = onallo csomag | CrewAI Skills + sajat | Workflow + agents + prompts + tests egyutt |
@@ -51,10 +51,10 @@ modularitassal, teljes DEV-TEST-UAT-PROD eletciklussal.
             +------+-----------+-----------+
                    |           |
         +----------+    +------+------+
-        |  Agent   |    |   Skill     |
+        |  Skill   |    |   Skill     |
         |  System  |    |  Registry   |
-        | (2-level)|    |  (install,  |
-        | Orch+Spec|    |  upgrade)   |
+        | (steps,  |    |  (install,  |
+        |  tools)  |    |  upgrade)   |
         +----+-----+    +------+------+
              |                 |
         +----+-----+    +-----+------+
@@ -205,8 +205,7 @@ tobb PELDANY (instance) futhat kulonbozo konfiguracioval:
   - `process_documentation` instance **"Belso Folyamatok"** (framework validacio)
   - `aszf_rag_chat` instance **"Belso Docs Chat"** (belso dokumentumok)
   - `cubix_course_capture` instance **"Cubix Kurzus"** (Cubix AI/ML kurzusok)
-  - `cfpb_complaint_router` instance **"ML Demo"** (ML klasszifikacio demo)
-  - `email_intent_processor` instance **"Support Email"** (support@bestix.hu)
+  - `email_intent_processor` instance **"Support Email"** (support@bestix.hu, ML klasszifikacio integralt)
   - Minden skill sajat hasznalatra - teszteles, demo, belso automatizacio
 
 Minden instance sajat: collection, prompt namespace, budget, SLA, adatforrasok.
@@ -381,7 +380,7 @@ main (mindig deployolhato, CODEOWNERS vedett)
 | **1. Foundation** | 1-3 | Core, State, LLM, Docker, structlog | Dev kornyezet | - |
 | **2. Engine** | 4-6 | Step (@output_types), DAG, Workflow Builder, Runner | Lokalis workflow | Haystack component, LangGraph retry |
 | **3. Agents + Prompts** | 7-9 | Specialist, Orchestrator, QualityGate, Langfuse SSOT, Event Bus | Agentic workflow | CrewAI events |
-| **4. Skills (6 db)** | 10-13 | POC portalas, 6 skill, 600+ teszt | Mukodo skill-ek | - |
+| **4. Skills (5 db)** | 10-13 | POC portalas, 5 skill, 600+ teszt | Mukodo skill-ek | - |
 | **5. Execution + API + Security** | 14-16 | Queue, Worker, FastAPI, RBAC, Frontend scaffold | Teljes API + UI | - |
 | **6. CLI + Observability** | 17-19 | aiflow CLI, Langfuse+OTel tracing, Cost, SLA, Dashboards | Teljes lifecycle | - |
 | **7. Production** | 20-22 | Checkpoint (LangGraph minta), HITL, Scheduler, Kafka adapter, Docker Compose prod, CI/CD, Audit | Production-ready | LangGraph checkpoint |
@@ -402,24 +401,23 @@ POC adaptalas. 5 agent, 7 step DAG, quality gate + refine loop.
 150 teszt eset. "Nem tudom" felismeres kulonos figyelemmel.
 
 ### Skill 3: Email Intent Feldolgozo (Small-Medium, 2-3 het, $0.03/run)
-Kafka trigger -> 5 intent kategoria -> routing. Auto-respond ha confidence >0.9.
-Kafka publish: tickets.created, orders.new, invoices.received.
+Hibrid ML+LLM klasszifikacio (cfpb_complaint_router beolvasztva), 10 intent kategoria,
+JSON schema vezerelt konfiguracio, csatolmany feldolgozas (Docling + Azure DI).
 200 email teszt. Napi ~200 email, havi $180, ~80 ora/ho megtakaritas.
 
 ### Skill 4: Cubix Course Capture (Hybrid RPA, 4 het, ~$3/run)
 Temporal->AIFlow migracio. Playwright web navigacio + operator lepesek + OpenAI STT + GPT strukturalas.
 Reszletek: 19_RPA_AUTOMATION.md
 
-### Skill 5: CFPB Complaint Router (ML, 2 het, ~$0.01/run)
-sklearn pipeline portalas. TF-IDF + classification. 10 routing group.
-LocalModelBackend integracio. 100+ teszt eset.
-
-### Skill 6: QBPP Test Automation (RPA, 2 het, ~$0.05/run)
+### Skill 5: QBPP Test Automation (RPA, 2 het, ~$0.05/run)
 Biztositasi kalkulátor teszteles. Registry-driven Playwright automatizacio.
 BDD -> AIFlow workflow adaptalas. Strategy-based teszt generálas.
 
-**Parhuzamos fejlesztes:** Mind a 6 skill fuggetlen.
-**Osszes havi koltseg (Skill 1-6):** ~$1,230, ~500 futtatas/nap.
+**Parhuzamos fejlesztes:** Mind az 5 skill fuggetlen.
+**Osszes havi koltseg (Skill 1-5):** ~$1,230, ~500 futtatas/nap.
+
+> **Megjegyzes:** A korabban tervezett `cfpb_complaint_router` skill beolvadt az `email_intent_processor`-ba
+> mint hibrid ML+LLM klasszifikacios reteg (sklearn TF-IDF + LLM fallback).
 
 ---
 
@@ -492,11 +490,12 @@ aiflow/
 |   |   |-- conditions.py
 |   |   |-- serialization.py        # Workflow YAML export/import (Haystack minta)  <- UJ
 |   |
-|   |-- agents/
-|   |   |-- specialist.py / orchestrator.py / messages.py
-|   |   |-- quality_gate.py / human_loop.py / reflection.py
+|   |-- skill_system/                     # Skill manifest, loader, registry, instance
+|   |   |-- manifest.py / loader.py / registry.py / instance.py
 |   |
-|   |-- skills/
+|   |-- tools/                            # Shell, Playwright, RobotFramework, HumanLoop, Kafka
+|   |
+|   |-- skills/                           # Backward compat re-exports -> skill_system/
 |   |   |-- base.py / manifest.py / loader.py / registry.py
 |   |
 |   |-- prompts/
@@ -556,8 +555,9 @@ aiflow/
 |-- skills/
 |   |-- process_documentation/       # Skill 1: AI (POC portalas)
 |   |-- aszf_rag_chat/               # Skill 2: AI+RAG
-|   |-- email_intent_processor/      # Skill 3: AI+Kafka
+|   |-- email_intent_processor/      # Skill 3: AI+Kafka (cfpb_complaint_router beolvasztva)
 |   |-- cubix_course_capture/        # Skill 4: Hybrid RPA (19_RPA_AUTOMATION)
+|   |-- qbpp_test_automation/        # Skill 5: RPA
 |
 |-- templates/ (small_linear, medium_branching, large_orchestrated, web_scraper, hybrid_automation)
 |-- tests/ (unit, integration, e2e, ui/)

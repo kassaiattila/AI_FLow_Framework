@@ -3,7 +3,6 @@
 ## Module Map
 - core/ - Kernel (config, context, errors, events, DI, registry, types)
 - engine/ - Workflow execution (step, dag, workflow, runner) [Phase 2]
-- agents/ - 2-level agent system [Phase 3]
 - models/ - ML model abstraction [Phase 2]
 - prompts/ - Langfuse SSOT prompt management [Phase 3]
 - execution/ - Async queue (arq), worker, scheduler [Phase 5]

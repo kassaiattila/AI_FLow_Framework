@@ -60,7 +60,7 @@ grep -rn "19 migra\|18 migra" 01_PLAN/*.md CLAUDE.md
 # Week count
 grep -rn "22 het\|21 het\|22 week" 01_PLAN/*.md CLAUDE.md
 # Skill count
-grep -rn "6 skill\|4 skill" 01_PLAN/*.md CLAUDE.md
+grep -rn "6 skill\|4 skill\|6 db skill" 01_PLAN/*.md CLAUDE.md
 # Phase week ranges
 grep -rn "Het 10-1[0-9]\|Het 14-1[0-9]\|Het 17-1[0-9]\|Het 20-2[0-9]" 01_PLAN/*.md
 ```

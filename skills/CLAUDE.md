@@ -13,11 +13,22 @@
   - State: pipeline_state.json with resume support
   - Run: `python -m skills.cubix_course_capture transcript --input video.mkv`
 
+## In Development
+- **aszf_rag_chat** (ai) - RAG chat for legal documents (docling + pgvector + OpenAI)
+  - Ingest: load -> parse/docling -> chunk -> embed -> store/pgvector -> verify
+  - Query: rewrite -> search -> context -> answer -> cite -> hallucination check
+  - Evaluation: 86% pass rate (14 golden queries)
+  - Run: `python -m skills.aszf_rag_chat ingest --source ./docs/` / `query --question "..."`
+
+- **email_intent_processor** (ai) - Email + attachment processing (hybrid ML+LLM)
+  - 10 intents, 8 entity types, 8 doc types, JSON schema driven
+  - Hybrid: sklearn ML (<1ms) + LLM refinement (gpt-4o-mini)
+  - Multi-layer doc processing: Docling -> Azure DI -> LLM Vision
+  - IMAP + Graph API email fetchers
+  - Run: `python -m skills.email_intent_processor --input email.eml`
+
 ## Planned Skills
-- **aszf_rag_chat** (ai) - RAG chat for legal documents (IN PROGRESS)
-- **email_intent_processor** (ai) - Email classification and routing (TODO)
-- **cfpb_complaint_router** (ai) - ML-based complaint classification (TODO)
-- **qbpp_test_automation** (rpa) - Insurance calculator test automation (TODO)
+- **qbpp_test_automation** (rpa) - Insurance calculator test automation (STUB)
 
 ## Skill Structure (every skill is self-contained)
 ```

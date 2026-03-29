@@ -36,12 +36,12 @@
 |------------|---------------|
 | 00_EXECUTIVE_SUMMARY.md | 3 skill (walking through) |
 | 11_REAL_WORLD_SKILLS_WALKTHROUGH.md | 3 skill |
-| IMPLEMENTATION_PLAN.md | 6 skill |
-| 02_DIRECTORY_STRUCTURE.md | 6 skill |
-| AIFLOW_MASTER_PLAN.md | "4+" skill |
+| IMPLEMENTATION_PLAN.md | 5 skill |
+| 02_DIRECTORY_STRUCTURE.md | 5 skill |
+| AIFLOW_MASTER_PLAN.md | 5 skill |
 
-**JAVITAS:** Egysegesen **6 skill** (process_doc, aszf_rag, email_intent, cubix_capture, cfpb_complaint, qbpp_test).
-Az Executive Summary es Master Plan frissitendo.
+**JAVITAS (2026-03-29):** Egysegesen **5 skill** (process_doc, aszf_rag, email_intent, cubix_capture, qbpp_test).
+A cfpb_complaint_router beolvadt az email_intent_processor-ba mint hibrid ML+LLM klasszifikacios reteg.
 
 ### 2.3 llm/ vs models/ Konyvtar
 
@@ -88,8 +88,7 @@ Belso kereszthivatkozasok frissitve.
 | src/aiflow/contrib/docs/ | 10_BUSINESS_AUDIT_DOCS (auto-gen docs) |
 | src/aiflow/contrib/mcp_server.py | 06_CLAUDE_CODE_INTEGRATION (MCP server) |
 | src/aiflow/models/finetuning/ | 15_ML_MODEL_INTEGRATION (FineTuneManager) |
-| skills/cfpb_complaint_router/ | IMPLEMENTATION_PLAN (5. skill) |
-| skills/qbpp_test_automation/ | IMPLEMENTATION_PLAN (6. skill) |
+| skills/qbpp_test_automation/ | IMPLEMENTATION_PLAN (5. skill) |
 
 **MEGJEGYZES:** Az AIFLOW_MASTER_PLAN.md konyvtar listaja MAR tartalmazza ezeket, de a reszletes 02_DIRECTORY_STRUCTURE.md nem.
 
@@ -124,7 +123,7 @@ A kovetkezo temak nincsenek fazisokba sorolva a 04-ben:
 | RPA Framework (Playwright, Shell) | 19_RPA_AUTOMATION | Phase 4 (Het 13) |
 | GUI Tesztek (Playwright) | 18_TESTING_AUTOMATION | Phase 6 (Het 18) |
 | Security Hardening | 20_SECURITY_HARDENING | Phase 5 (Het 15) + Phase 7 (Het 20) |
-| CFPB + QBPP Skill | IMPLEMENTATION_PLAN | Phase 4 (Het 12-13) |
+| QBPP Skill | IMPLEMENTATION_PLAN | Phase 4 (Het 13) |
 
 **MEGJEGYZES:** Az IMPLEMENTATION_PLAN.md MAR tartalmazza ezeket a bovitett fasizokat. A 04 frissitendo.
 

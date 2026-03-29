@@ -32,9 +32,13 @@ rules:
     suites: [engine-unit, core-unit, integration-state]
     reason: "Engine changes may affect core and state"
 
-  - pattern: "src/aiflow/agents/**"
-    suites: [agents-unit, engine-unit, core-unit]
-    reason: "Agent changes may affect orchestration, engine, and core"
+  - pattern: "src/aiflow/skill_system/**"
+    suites: [skills-unit, engine-unit, core-unit]
+    reason: "Skill system changes may affect engine and core"
+
+  - pattern: "src/aiflow/tools/**"
+    suites: [skills-unit, core-unit]
+    reason: "Tools changes may affect skills and core"
 
   - pattern: "src/aiflow/prompts/**"
     suites: [prompts-unit, core-unit]
@@ -98,7 +102,6 @@ default_suites:
   - models-unit
   - vectorstore-unit
   - engine-unit
-  - agents-unit
   - prompts-unit
   - documents-unit
   - ingestion-unit

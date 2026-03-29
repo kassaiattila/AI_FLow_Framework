@@ -5,7 +5,7 @@
 **Projekt:** AIFlow Enterprise AI Automation Framework
 **Ceg:** BestIx Kft (BestIxCom Kft)
 **Datum:** 2026-03-27
-**Status:** Terv
+**Status:** Active Development
 
 ---
 
@@ -28,7 +28,7 @@ De a POC korlatai (linearis pipeline, in-memory state, tight coupling) nem bovit
 |--------|----------|
 | DAG-alapu workflow engine | Nem linearis - elagazas, ciklus, sub-workflow |
 | Step mint first-class citizen | Ujrahasznosithato, tipusos I/O, fuggetlenul tesztelheto |
-| 2-szintu agent rendszer | Andrew Ng: max 6 specialist, orchestrator + specialist |
+| Step + SkillRunner architektura | Szekvencialis step executor, service injection (models, prompts, ctx) |
 | Skill = onallo csomag | Workflow + agents + prompts + tests egyutt, plugin-szeru |
 | arq + Redis queue | Nativ asyncio, horizontalis skalazas worker-ekkel |
 | PostgreSQL state | Elosztott, checkpoint/resume, audit, cost tracking |
@@ -47,7 +47,7 @@ A POC-ot az **elso Skill**-kent portoljuk at az uj keretrendszerbe:
 | 1. Foundation | 1-3 | Core, State, LLM, Docker, structlog |
 | 2. Engine + Models | 4-6 | Step, DAG, Workflow, Runner, ModelClient, RetryPolicy |
 | 3. Agents + Prompts + Vectors | 7-9 | Agent system, Langfuse SSOT, Embedding, pgvector |
-| 4. Skills (6 db) | 10-13 | POC portalas, 6 skill, 600+ teszt |
+| 4. Skills (5 db) | 10-13 | POC portalas, 5 skill, 600+ teszt |
 | 5. Execution + API + Security | 14-16 | Queue, Worker, FastAPI, RBAC, Frontend scaffold |
 | 6. CLI + Observability | 17-19 | CLI, Tracing, Cost, SLA, Dashboards |
 | 7. Production | 20-22 | Checkpoint, HITL, Scheduler, Kafka, K8s, CI/CD, Audit |
@@ -59,7 +59,7 @@ A POC-ot az **elso Skill**-kent portoljuk at az uj keretrendszerbe:
 |------|----------|
 | [01_ARCHITECTURE.md](01_ARCHITECTURE.md) | Reszletes architektura (Engine, Agents, Skills, Prompts, Execution, Security) |
 | [02_DIRECTORY_STRUCTURE.md](02_DIRECTORY_STRUCTURE.md) | Teljes konyvtar struktura |
-| [03_DATABASE_SCHEMA.md](03_DATABASE_SCHEMA.md) | PostgreSQL schema (35 tabla, 13 view, indexek) |
+| [03_DATABASE_SCHEMA.md](03_DATABASE_SCHEMA.md) | PostgreSQL schema (36 tabla, 13 view, indexek) |
 | [04_IMPLEMENTATION_PHASES.md](04_IMPLEMENTATION_PHASES.md) | 7 fazis, 22 het, heti lebontas |
 | [05_TECH_STACK.md](05_TECH_STACK.md) | Tech stack, fuggosegek, pyproject.toml |
 | [06_CLAUDE_CODE_INTEGRATION.md](06_CLAUDE_CODE_INTEGRATION.md) | Claude Code + MCP a teljes eletciklusban |
