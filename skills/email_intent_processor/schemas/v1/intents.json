@@ -1,12 +1,30 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "intents": [
     {
       "id": "complaint",
       "display_name": "Panasz / Reklamacio",
       "description": "Ugyfel elegedetlen, panaszt tesz termekre, szolgaltatasra vagy ugyintezesre",
-      "keywords_hu": ["reklamacio", "panasz", "elegedetlen", "problema", "kifogasol", "felhaboritott", "elfogadhatatlan", "rossz minoseg", "nem megfelelo"],
-      "keywords_en": ["complaint", "dissatisfied", "problem", "unacceptable", "terrible", "outraged", "poor quality"],
+      "keywords_hu": [
+        "reklamacio",
+        "panasz",
+        "elegedetlen",
+        "problema",
+        "kifogasol",
+        "felhaboritott",
+        "elfogadhatatlan",
+        "rossz minoseg",
+        "nem megfelelo"
+      ],
+      "keywords_en": [
+        "complaint",
+        "dissatisfied",
+        "problem",
+        "unacceptable",
+        "terrible",
+        "outraged",
+        "poor quality"
+      ],
       "examples": [
         "Reklamaciom van a szamlaval kapcsolatban",
         "Panaszt szeretnek tenni a kiszolgalas miatt",
@@ -19,14 +37,38 @@
         "sla_hours": 24
       },
       "ml_label": "complaint",
-      "sub_intents": ["billing_complaint", "service_complaint", "product_complaint", "staff_complaint"]
+      "sub_intents": [
+        "billing_complaint",
+        "service_complaint",
+        "product_complaint",
+        "staff_complaint"
+      ]
     },
     {
       "id": "inquiry",
       "display_name": "Informacio keres",
-      "description": "Ugyfel tajekoztatast ker termekrol, szolgaltatasrol, feltételekrol vagy folyamatokrol",
-      "keywords_hu": ["kerdes", "erdekel", "informacio", "tudnak", "szeretnem megtudni", "tájékoztatás", "hogyan", "mikor", "mennyibe"],
-      "keywords_en": ["question", "information", "interested", "how", "when", "what", "details", "inquiry"],
+      "description": "Ugyfel tajekoztatast ker termekrol, szolgaltatasrol, feltĂ©telekrol vagy folyamatokrol",
+      "keywords_hu": [
+        "kerdes",
+        "erdekel",
+        "informacio",
+        "tudnak",
+        "szeretnem megtudni",
+        "tĂˇjĂ©koztatĂˇs",
+        "hogyan",
+        "mikor",
+        "mennyibe"
+      ],
+      "keywords_en": [
+        "question",
+        "information",
+        "interested",
+        "how",
+        "when",
+        "what",
+        "details",
+        "inquiry"
+      ],
       "examples": [
         "Erdeklodnek a biztositasi csomagjaikrol",
         "Szeretnem megtudni a dijszabast",
@@ -39,14 +81,37 @@
         "sla_hours": 48
       },
       "ml_label": "inquiry",
-      "sub_intents": ["product_inquiry", "pricing_inquiry", "process_inquiry", "status_inquiry"]
+      "sub_intents": [
+        "product_inquiry",
+        "pricing_inquiry",
+        "process_inquiry",
+        "status_inquiry"
+      ]
     },
     {
       "id": "order",
       "display_name": "Rendeles / Szerzodes",
       "description": "Ugyfel rendelest ad le, szerzodest kot vagy modosit, vagy szolgaltatast igenyel",
-      "keywords_hu": ["rendeles", "megrendelem", "szerzodes", "megkotni", "igenylem", "megvasarolni", "elofizetes", "csomag", "modositas"],
-      "keywords_en": ["order", "purchase", "contract", "subscribe", "buy", "sign up", "modify contract"],
+      "keywords_hu": [
+        "rendeles",
+        "megrendelem",
+        "szerzodes",
+        "megkotni",
+        "igenylem",
+        "megvasarolni",
+        "elofizetes",
+        "csomag",
+        "modositas"
+      ],
+      "keywords_en": [
+        "order",
+        "purchase",
+        "contract",
+        "subscribe",
+        "buy",
+        "sign up",
+        "modify contract"
+      ],
       "examples": [
         "Szeretnek egy uj biztositast kotni",
         "Megrendelnem a premium csomagot",
@@ -59,14 +124,39 @@
         "sla_hours": 24
       },
       "ml_label": "order",
-      "sub_intents": ["new_contract", "contract_modification", "product_order", "upgrade"]
+      "sub_intents": [
+        "new_contract",
+        "contract_modification",
+        "product_order",
+        "upgrade"
+      ]
     },
     {
       "id": "support",
       "display_name": "Technikai segitseg",
       "description": "Ugyfel technikai problemat jelent, tamogatast ker rendszer- vagy alkalmazashasznalati ugyekben",
-      "keywords_hu": ["nem mukodik", "hiba", "technikai", "segitseg", "tamogatas", "nem erem el", "bejelentkezes", "jelszó", "rendszer"],
-      "keywords_en": ["not working", "error", "technical", "help", "support", "cannot access", "login", "password", "bug"],
+      "keywords_hu": [
+        "nem mukodik",
+        "hiba",
+        "technikai",
+        "segitseg",
+        "tamogatas",
+        "nem erem el",
+        "bejelentkezes",
+        "jelszĂł",
+        "rendszer"
+      ],
+      "keywords_en": [
+        "not working",
+        "error",
+        "technical",
+        "help",
+        "support",
+        "cannot access",
+        "login",
+        "password",
+        "bug"
+      ],
       "examples": [
         "Nem tudok bejelentkezni a fiokamba",
         "Hibat jelzi az online felulet",
@@ -79,19 +169,42 @@
         "sla_hours": 8
       },
       "ml_label": "support",
-      "sub_intents": ["login_issue", "app_error", "portal_issue", "system_outage"]
+      "sub_intents": [
+        "login_issue",
+        "app_error",
+        "portal_issue",
+        "system_outage"
+      ]
     },
     {
       "id": "feedback",
       "display_name": "Visszajelzes",
       "description": "Ugyfel visszajelzest, ertekelest vagy javaslatot ad a szolgaltatasrol",
-      "keywords_hu": ["visszajelzes", "velemeny", "javaslat", "ertekeles", "koszonom", "elegedett", "dicsernem", "fejlesztes"],
-      "keywords_en": ["feedback", "suggestion", "opinion", "review", "thank you", "satisfied", "improvement", "praise"],
+      "keywords_hu": [
+        "visszajelzes",
+        "velemeny",
+        "javaslat",
+        "ertekeles",
+        "koszonom",
+        "elegedett",
+        "dicsernem",
+        "fejlesztes"
+      ],
+      "keywords_en": [
+        "feedback",
+        "suggestion",
+        "opinion",
+        "review",
+        "thank you",
+        "satisfied",
+        "improvement",
+        "praise"
+      ],
       "examples": [
         "Szeretnek pozitiv visszajelzest adni az ugyintezesrol",
         "Javaslatom lenne a szolgaltatas javitasara",
         "Koszonom a gyors ugyintezest",
-        "Elégedett vagyok, de lenne egy javaslatom"
+        "ElĂ©gedett vagyok, de lenne egy javaslatom"
       ],
       "routing": {
         "queue": "minoseg",
@@ -99,14 +212,39 @@
         "sla_hours": 72
       },
       "ml_label": "feedback",
-      "sub_intents": ["positive_feedback", "negative_feedback", "suggestion", "survey_response"]
+      "sub_intents": [
+        "positive_feedback",
+        "negative_feedback",
+        "suggestion",
+        "survey_response"
+      ]
     },
     {
       "id": "claim",
       "display_name": "Karbejelentes",
       "description": "Ugyfel kart jelent be, biztositasi esemenyt, balesetet vagy lopast jelez",
-      "keywords_hu": ["karbejelentes", "kar", "baleset", "lopas", "tuz", "vihar", "betores", "biztositasi esemeny", "karrendezes"],
-      "keywords_en": ["claim", "damage", "accident", "theft", "fire", "storm", "burglary", "insurance event", "loss"],
+      "keywords_hu": [
+        "karbejelentes",
+        "kar",
+        "baleset",
+        "lopas",
+        "tuz",
+        "vihar",
+        "betores",
+        "biztositasi esemeny",
+        "karrendezes"
+      ],
+      "keywords_en": [
+        "claim",
+        "damage",
+        "accident",
+        "theft",
+        "fire",
+        "storm",
+        "burglary",
+        "insurance event",
+        "loss"
+      ],
       "examples": [
         "Karbejelentest szeretnek tenni, betortek a lakasomba",
         "Kozlekedesi balesetem volt, biztositasi igenyt nyujtanek be",
@@ -119,14 +257,37 @@
         "sla_hours": 4
       },
       "ml_label": "claim",
-      "sub_intents": ["property_damage", "vehicle_accident", "theft_claim", "natural_disaster", "health_claim"]
+      "sub_intents": [
+        "property_damage",
+        "vehicle_accident",
+        "theft_claim",
+        "natural_disaster",
+        "health_claim"
+      ]
     },
     {
       "id": "cancellation",
       "display_name": "Lemondas / Felmondas",
       "description": "Ugyfel szerzodest, elofizetest vagy szolgaltatast mond le vagy mond fel",
-      "keywords_hu": ["lemondas", "felmondas", "megszuntetes", "torles", "lemond", "felmond", "nem kerem tovabb", "kilepni"],
-      "keywords_en": ["cancellation", "cancel", "terminate", "unsubscribe", "close account", "end contract", "quit"],
+      "keywords_hu": [
+        "lemondas",
+        "felmondas",
+        "megszuntetes",
+        "torles",
+        "lemond",
+        "felmond",
+        "nem kerem tovabb",
+        "kilepni"
+      ],
+      "keywords_en": [
+        "cancellation",
+        "cancel",
+        "terminate",
+        "unsubscribe",
+        "close account",
+        "end contract",
+        "quit"
+      ],
       "examples": [
         "Fel szeretnem mondani a biztositasomat",
         "Szerzodes torlesere lenne szuksegem",
@@ -139,7 +300,131 @@
         "sla_hours": 24
       },
       "ml_label": "cancellation",
-      "sub_intents": ["contract_cancellation", "subscription_cancel", "service_termination", "partial_cancel"]
+      "sub_intents": [
+        "contract_cancellation",
+        "subscription_cancel",
+        "service_termination",
+        "partial_cancel"
+      ]
+    },
+    {
+      "id": "marketing",
+      "display_name": "Marketing / Hirlevel",
+      "description": "Marketing email, hirlevel, promociok, ajanlatok - automatikusan kezelheto",
+      "keywords_hu": [
+        "hirlevel",
+        "akcio",
+        "kedvezmeny",
+        "promoci",
+        "ajanla",
+        "leiratkozas",
+        "unsubscribe",
+        "newsletter"
+      ],
+      "keywords_en": [
+        "newsletter",
+        "promotion",
+        "offer",
+        "discount",
+        "unsubscribe",
+        "marketing"
+      ],
+      "examples": [
+        "Uj akciok a hetvegere!",
+        "Iratkozzon fel hirlevelunkre",
+        "50% kedvezmeny minden termekre"
+      ],
+      "routing": {
+        "queue": "archive",
+        "priority_boost": 0,
+        "sla_hours": 168
+      },
+      "ml_label": "marketing",
+      "sub_intents": [
+        "newsletter",
+        "promotion",
+        "advertisement"
+      ],
+      "auto_action": "archive"
+    },
+    {
+      "id": "notification",
+      "display_name": "Automatikus ertesites",
+      "description": "Rendszer altal generalt automatikus ertesites (CI/CD, monitoring, rendszer)",
+      "keywords_hu": [
+        "ertesites",
+        "automatikus",
+        "rendszer",
+        "notification",
+        "alert",
+        "build",
+        "deploy"
+      ],
+      "keywords_en": [
+        "notification",
+        "automated",
+        "system",
+        "alert",
+        "build failed",
+        "deploy",
+        "CI/CD"
+      ],
+      "examples": [
+        "Build failed: Framework CI",
+        "Your subscription is expiring",
+        "System alert: disk space low"
+      ],
+      "routing": {
+        "queue": "auto_process",
+        "priority_boost": 0,
+        "sla_hours": 72
+      },
+      "ml_label": "notification",
+      "sub_intents": [
+        "system_alert",
+        "subscription",
+        "ci_cd"
+      ],
+      "auto_action": "classify_and_route"
+    },
+    {
+      "id": "internal",
+      "display_name": "Belso kommunikacio",
+      "description": "Ceges belso emailek, kollegak kozotti kommunikacio",
+      "keywords_hu": [
+        "belso",
+        "kollega",
+        "megbeszeles",
+        "meeting",
+        "projekt",
+        "felkeres",
+        "tender"
+      ],
+      "keywords_en": [
+        "internal",
+        "team",
+        "meeting",
+        "project",
+        "colleague",
+        "forwarded"
+      ],
+      "examples": [
+        "Fw: Projekt megbeszeles holnap 10:00",
+        "RE: Tender dokumentacio",
+        "Kollegak, kerem velemenyezzetek"
+      ],
+      "routing": {
+        "queue": "internal",
+        "priority_boost": 0,
+        "sla_hours": 48
+      },
+      "ml_label": "internal",
+      "sub_intents": [
+        "meeting",
+        "project",
+        "request"
+      ],
+      "auto_action": "none"
     }
   ]
 }
