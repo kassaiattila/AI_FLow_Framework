@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import asyncpg
 import structlog
 
 from aiflow.engine.step import step
@@ -32,6 +33,7 @@ __all__ = [
     "generate_answer",
     "extract_citations",
     "detect_hallucination",
+    "log_query",
     "aszf_rag_query",
 ]
 
@@ -513,15 +515,100 @@ async def detect_hallucination(data: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Query logging helper
+# ---------------------------------------------------------------------------
+
+
+async def _log_query_to_db(data: dict[str, Any]) -> None:
+    """Persist query data to rag_query_log (best-effort, never raises).
+
+    Connects to PostgreSQL and INSERTs one row. If anything fails the
+    error is logged via structlog but the pipeline is NOT affected.
+    """
+    try:
+        conn = await asyncpg.connect(_db_url)
+        try:
+            await conn.execute(
+                """
+                INSERT INTO rag_query_log
+                    (collection, question, rewritten_query, answer,
+                     sources_count, hallucination_score, response_time_ms,
+                     cost_usd, role)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                """,
+                data.get("collection", "default"),
+                data.get("question", ""),
+                data.get("rewritten_query", ""),
+                data.get("answer", ""),
+                data.get("sources_count", 0),
+                data.get("hallucination_score"),
+                data.get("response_time_ms"),
+                data.get("cost_usd", 0.0),
+                data.get("role", "baseline"),
+            )
+        finally:
+            await conn.close()
+        logger.info(
+            "log_query_to_db.saved",
+            collection=data.get("collection", "default"),
+        )
+    except Exception as exc:
+        logger.warning(
+            "log_query_to_db.failed",
+            error=str(exc),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Log query step
+# ---------------------------------------------------------------------------
+
+
+@step(name="log_query", description="Persist query analytics to rag_query_log")
+async def log_query(data: dict) -> dict:
+    """Log the completed query pipeline result to rag_query_log.
+
+    Best-effort: failures are logged but do not break the pipeline.
+    Passes all data through unchanged so downstream consumers are unaffected.
+
+    Input:
+        answer: str
+        citations: list[dict]
+        search_results: list[dict]
+        hallucination_score: float
+        processing_time_ms: float
+        tokens_used: int
+        cost_usd: float
+        (plus any pass-through fields from earlier steps)
+
+    Output:
+        Same as input (pass-through).
+    """
+    await _log_query_to_db({
+        "collection": data.get("collection", "default"),
+        "question": data.get("question", data.get("original_question", "")),
+        "rewritten_query": data.get("rewritten_query", ""),
+        "answer": data.get("answer", ""),
+        "sources_count": len(data.get("search_results", [])),
+        "hallucination_score": data.get("hallucination_score"),
+        "response_time_ms": data.get("processing_time_ms"),
+        "cost_usd": data.get("cost_usd", 0.0),
+        "role": data.get("role", "baseline"),
+    })
+    return data
+
+
+# ---------------------------------------------------------------------------
 # Workflow registration
 # ---------------------------------------------------------------------------
 
 @workflow(name="aszf-rag-query", version="1.0.0", skill="aszf_rag_chat")
 def aszf_rag_query(wf: WorkflowBuilder) -> None:
-    """RAG query pipeline: rewrite -> search -> context -> answer -> cite -> verify."""
+    """RAG query pipeline: rewrite -> search -> context -> answer -> cite -> verify -> log."""
     wf.step(rewrite_query)
     wf.step(search_documents, depends_on=["rewrite_query"])
     wf.step(build_context, depends_on=["search_documents"])
     wf.step(generate_answer, depends_on=["build_context"])
     wf.step(extract_citations, depends_on=["generate_answer"])
     wf.step(detect_hallucination, depends_on=["extract_citations"])
+    wf.step(log_query, depends_on=["detect_hallucination"])

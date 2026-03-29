@@ -33,9 +33,11 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.health import router as health_router
     from aiflow.api.v1.workflows import router as workflows_router
     from aiflow.api.v1.chat_completions import router as chat_router
+    from aiflow.api.v1.feedback import router as feedback_router
     app.include_router(health_router)
     app.include_router(workflows_router)
     app.include_router(chat_router)
+    app.include_router(feedback_router)
     # Global exception handler for debugging
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):

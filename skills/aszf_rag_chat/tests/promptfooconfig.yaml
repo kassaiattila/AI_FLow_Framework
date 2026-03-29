@@ -1,0 +1,65 @@
+# Promptfoo evaluation config for ASZF RAG Chat
+# Run: npx promptfoo eval -c skills/aszf_rag_chat/tests/promptfooconfig.yaml
+# View: npx promptfoo view
+
+description: "ASZF RAG Chat - Hungarian legal document Q&A evaluation"
+
+providers:
+  - id: "exec:python scripts/promptfoo_provider.py"
+    label: "AIFlow RAG Expert"
+    config:
+      skill: aszf-rag
+      collection: azhu-test-v2
+      role: expert
+
+prompts:
+  - "{{question}}"
+
+tests:
+  # Positive tests - should find relevant content
+  - vars:
+      question: "Milyen adatokat kezel az Allianz a toborzas soran?"
+    assert:
+      - type: contains-any
+        value: ["adatkezeles", "toborzas", "szemelyes"]
+      - type: not-contains
+        value: "nem talalhato"
+
+  - vars:
+      question: "Meddig tarolja az Allianz a palyazok adatait?"
+    assert:
+      - type: contains-any
+        value: ["megorzesi", "tarolasi", "torles", "ido"]
+
+  - vars:
+      question: "Milyen marketing celu adatkezelest vegez az Allianz?"
+    assert:
+      - type: contains-any
+        value: ["marketing", "direkt", "megkereses"]
+
+  - vars:
+      question: "Hogyan vonhato vissza a marketing hozzajarulas?"
+    assert:
+      - type: contains-any
+        value: ["visszavonas", "hozzajarulas", "leiratkozas"]
+
+  - vars:
+      question: "Ki az adatkezelo a marketing celu adatkezeles kapcsan?"
+    assert:
+      - type: contains-any
+        value: ["Allianz", "adatkezelo"]
+
+  # Negative tests - should indicate no relevant content
+  - vars:
+      question: "Mi a focimeccs eredmenye?"
+    assert:
+      - type: contains-any
+        value: ["nem talalhato", "nem all", "nem tudok", "nem vonatkoz"]
+
+  - vars:
+      question: "Hogy kell pizzat sutni?"
+    assert:
+      - type: contains-any
+        value: ["nem talalhato", "nem all", "nem tudok", "nem vonatkoz"]
+
+outputPath: test_output/promptfoo/aszf_rag_results.json
