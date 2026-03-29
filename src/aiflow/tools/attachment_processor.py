@@ -20,6 +20,7 @@ class AttachmentConfig(BaseModel):
     azure_api_key: str = ""
     azure_model: str = "prebuilt-layout"
     max_size_mb: int = 25
+    quality_threshold: float = 0.5  # Below this, escalate to Azure DI
 
 
 class ProcessedAttachment(BaseModel):
@@ -88,36 +89,33 @@ class AttachmentProcessor:
             result = await self._process_docling(filename, content)
 
             if result.text:
-                # Quality check: is the extracted text reasonable for the file size?
-                chars_per_kb = len(result.text) / max(file_size_kb, 1)
-                has_tables = len(result.tables) > 0
+                # Structural quality score (multi-factor, not just char count)
+                quality = _compute_quality_score(result, file_size_kb)
+                result.metadata["quality_score"] = round(quality.score, 3)
+                result.metadata["quality_factors"] = quality.factors
 
-                # Heuristic: if very few chars per KB, might be scanned PDF
-                is_likely_scan = chars_per_kb < 2.0 and file_size_kb > 50
-                # Heuristic: very short text from a large file = poor extraction
-                is_poor_quality = len(result.text) < 100 and file_size_kb > 100
-
-                if is_likely_scan or is_poor_quality:
+                if quality.score < self.config.quality_threshold:
                     logger.info(
                         "docling_quality_low",
                         filename=filename,
-                        chars=len(result.text),
-                        file_kb=round(file_size_kb),
-                        chars_per_kb=round(chars_per_kb, 1),
-                        reason="likely_scan" if is_likely_scan else "poor_quality",
+                        score=round(quality.score, 3),
+                        factors=quality.factors,
                     )
-                    # Escalate to Azure DI for better OCR
+                    # Escalate to Azure DI for better extraction
                     if self.config.azure_enabled:
                         azure_result = await self._process_azure(filename, content, mime_type)
-                        if azure_result.text and len(azure_result.text) > len(result.text):
-                            logger.info(
-                                "azure_di_improved",
-                                filename=filename,
-                                docling_chars=len(result.text),
-                                azure_chars=len(azure_result.text),
-                            )
-                            return azure_result
-                        # Azure didn't improve - keep docling result
+                        if azure_result.text:
+                            azure_quality = _compute_quality_score(azure_result, file_size_kb)
+                            azure_result.metadata["quality_score"] = round(azure_quality.score, 3)
+                            azure_result.metadata["quality_factors"] = azure_quality.factors
+                            if azure_quality.score > quality.score:
+                                logger.info(
+                                    "azure_di_improved",
+                                    filename=filename,
+                                    docling_score=round(quality.score, 3),
+                                    azure_score=round(azure_quality.score, 3),
+                                )
+                                return azure_result
                         logger.info("azure_di_no_improvement", filename=filename)
 
                 # Docling result is good enough
@@ -221,3 +219,92 @@ class AttachmentProcessor:
             ".md",
             ".txt",
         }
+
+
+# ---------------------------------------------------------------------------
+# Quality scoring
+# ---------------------------------------------------------------------------
+
+class _QualityResult:
+    """Multi-factor quality assessment for extracted text."""
+
+    __slots__ = ("score", "factors")
+
+    def __init__(self, score: float, factors: dict[str, float]):
+        self.score = score
+        self.factors = factors
+
+
+def _compute_quality_score(
+    result: ProcessedAttachment, file_size_kb: float
+) -> _QualityResult:
+    """Compute structural quality score for extracted text (0.0 - 1.0).
+
+    Factors (weighted):
+    - text_density:     chars per KB of original file (scan detection)
+    - word_coherence:   ratio of real words (not broken fragments)
+    - table_extraction: tables found vs file size expectation
+    - line_structure:   meaningful lines vs noise lines
+    - content_length:   absolute text length reasonableness
+    """
+    import re
+
+    text = result.text
+    factors: dict[str, float] = {}
+
+    # 1. Text density: chars per KB (low = likely scan/image PDF)
+    chars_per_kb = len(text) / max(file_size_kb, 1)
+    if chars_per_kb >= 10:
+        factors["text_density"] = 1.0
+    elif chars_per_kb >= 2:
+        factors["text_density"] = chars_per_kb / 10.0
+    else:
+        factors["text_density"] = max(0.0, chars_per_kb / 5.0)
+
+    # 2. Word coherence: ratio of words with 3+ letters vs fragments
+    words = text.split()
+    if words:
+        real_words = sum(1 for w in words if len(w) >= 3 and re.match(r"[\w]+", w))
+        factors["word_coherence"] = min(1.0, real_words / len(words))
+    else:
+        factors["word_coherence"] = 0.0
+
+    # 3. Table extraction: bonus if tables were found (expected for PDF/XLSX)
+    if result.tables:
+        factors["table_quality"] = min(1.0, len(result.tables) * 0.3 + 0.4)
+    else:
+        # No tables: neutral if small file, penalty if large (tables expected)
+        factors["table_quality"] = 0.5 if file_size_kb < 200 else 0.3
+
+    # 4. Line structure: ratio of meaningful lines (not empty/noise)
+    lines = text.split("\n")
+    if lines:
+        meaningful = sum(
+            1 for line in lines
+            if len(line.strip()) > 10  # More than just a number or header artifact
+        )
+        factors["line_structure"] = min(1.0, meaningful / max(len(lines), 1))
+    else:
+        factors["line_structure"] = 0.0
+
+    # 5. Content length: absolute minimum for the file to be considered "extracted"
+    if len(text) >= 500:
+        factors["content_length"] = 1.0
+    elif len(text) >= 100:
+        factors["content_length"] = len(text) / 500.0
+    elif len(text) > 0:
+        factors["content_length"] = 0.1
+    else:
+        factors["content_length"] = 0.0
+
+    # Weighted average
+    weights = {
+        "text_density": 0.25,
+        "word_coherence": 0.25,
+        "table_quality": 0.15,
+        "line_structure": 0.20,
+        "content_length": 0.15,
+    }
+    score = sum(factors[k] * weights[k] for k in weights)
+
+    return _QualityResult(score=min(1.0, max(0.0, score)), factors=factors)
