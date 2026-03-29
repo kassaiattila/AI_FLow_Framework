@@ -38,19 +38,25 @@ services:
     ports:
       - "8080:8000"
 
-  # === CHAT UI (OpenChat - professional chat interface) ===
+  # === CHAT UI (Open WebUI - professional ChatGPT-style interface) ===
   # Start: docker compose --profile chat up -d
   # Access: http://localhost:3000
-  # Configure: Settings -> Add Provider -> Custom -> http://host.docker.internal:8200/v1
-  openchat:
-    image: ghcr.io/openchatui/openchat:latest
+  # AIFlow API: automatically connected via OPENAI_API_BASE_URL
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
     profiles: ["chat"]
     ports:
-      - "3000:3000"
+      - "3100:8080"
     environment:
-      DATABASE_URL: file:./db.sqlite
+      # Connect to AIFlow API (OpenAI-compatible endpoint)
+      OPENAI_API_BASE_URL: http://host.docker.internal:8200/v1
+      OPENAI_API_KEY: "aiflow-local"
+      # Disable Ollama (we use our own backend)
+      OLLAMA_BASE_URL: ""
+      ENABLE_OLLAMA_API: "false"
+      WEBUI_AUTH: "false"
     volumes:
-      - openchat_data:/app/data
+      - open_webui_data:/app/backend/data
 
   # === FULL PROFILE (docker compose --profile full up) ===
   api:
@@ -98,4 +104,4 @@ services:
 volumes:
   pgdata:
   redisdata:
-  openchat_data:
+  open_webui_data:
