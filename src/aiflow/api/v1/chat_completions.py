@@ -35,6 +35,50 @@ router = APIRouter(prefix="/v1", tags=["chat"])
 
 
 # ---------------------------------------------------------------------------
+# /v1/models - Required by Open WebUI and other chat UIs
+# ---------------------------------------------------------------------------
+
+@router.get("/models")
+async def list_models() -> dict:
+    """List available models (OpenAI-compatible format).
+
+    Open WebUI calls this to populate the model selector dropdown.
+    Each model maps to a skill:collection:role combination.
+    """
+    models = [
+        {
+            "id": "aszf-rag:azhu-test:expert",
+            "object": "model",
+            "created": 1711670400,
+            "owned_by": "aiflow",
+            "name": "ASZF RAG Expert (Allianz)",
+        },
+        {
+            "id": "aszf-rag:azhu-test:mentor",
+            "object": "model",
+            "created": 1711670400,
+            "owned_by": "aiflow",
+            "name": "ASZF RAG Mentor (Allianz)",
+        },
+        {
+            "id": "aszf-rag:azhu-test:baseline",
+            "object": "model",
+            "created": 1711670400,
+            "owned_by": "aiflow",
+            "name": "ASZF RAG Baseline (Allianz)",
+        },
+        {
+            "id": "process-doc",
+            "object": "model",
+            "created": 1711670400,
+            "owned_by": "aiflow",
+            "name": "Process Documentation (BPMN)",
+        },
+    ]
+    return {"object": "list", "data": models}
+
+
+# ---------------------------------------------------------------------------
 # Request / Response models (OpenAI format)
 # ---------------------------------------------------------------------------
 
