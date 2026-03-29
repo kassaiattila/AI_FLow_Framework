@@ -1,317 +1,295 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import type { ProcessedInvoice } from "@/lib/types";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
+import { UploadZone } from "@/components/invoice/upload-zone";
+import { DocumentTable, type SortField } from "@/components/invoice/document-table";
+import { BatchBanner, type BatchState, type BatchItem, saveBatchToSession, loadBatchFromSession, clearBatchSession } from "@/components/invoice/batch-banner";
+import { ScheduleDialog } from "@/components/invoice/schedule-dialog";
+import { KpiCard, getDocStatus, type DocStatus } from "@/components/invoice/shared";
+import type { ProcessedInvoice, WorkflowRun } from "@/lib/types";
 
-export default function InvoiceViewerPage() {
+type StatusFilter = "all" | "new" | "completed" | "failed";
+type TimeFilter = "all" | "24h" | "7d" | "30d";
+
+export default function InvoiceProcessorPage() {
+  const router = useRouter();
   const [invoices, setInvoices] = useState<ProcessedInvoice[]>([]);
-  const [selected, setSelected] = useState<ProcessedInvoice | null>(null);
+  const [runs, setRuns] = useState<WorkflowRun[]>([]);
+  const [docStatuses, setDocStatuses] = useState<Map<string, DocStatus>>(new Map());
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+  const [onlyUnprocessed, setOnlyUnprocessed] = useState(false);
+  const [autoProcess, setAutoProcess] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [batchState, setBatchState] = useState<BatchState>(() => {
+    const saved = loadBatchFromSession();
+    if (!saved) return { status: "idle" };
+    // If page reloaded during "running", the async loop is dead — show as completed
+    if (saved.status === "running") {
+      const items = saved.items || [];
+      const succeeded = items.filter((i) => i.status === "completed").length;
+      const failed = items.filter((i) => i.status === "failed").length;
+      return { status: "completed", total: saved.total, succeeded, failed, durationMs: 0, items };
+    }
+    return saved;
+  });
+  const [page, setPage] = useState(0);
+  const batchAbortRef = useRef(false);
+  const batchItemsRef = useRef<BatchItem[]>([]);
 
-  useEffect(() => {
-    fetch("/data/invoices.json")
+  // Load data from API
+  const loadData = useCallback(() => {
+    fetch("/api/documents")
       .then((r) => r.json())
-      .then((data) => setInvoices(data))
-      .catch(() => setInvoices([]));
+      .then((data: { documents: ProcessedInvoice[] }) => {
+        setInvoices(data.documents);
+        const s = new Map<string, DocStatus>();
+        for (const inv of data.documents) s.set(inv.source_file, getDocStatus(inv));
+        setDocStatuses(s);
+      })
+      .catch(() => {});
+    fetch("/api/runs?skill=invoice_processor")
+      .then((r) => r.json())
+      .then((data: { runs: WorkflowRun[] }) => setRuns(data.runs))
+      .catch(() => {});
   }, []);
 
-  const totalGrossHUF = invoices
-    .filter((i) => i.header.currency === "HUF")
-    .reduce((sum, i) => sum + i.totals.gross_total, 0);
-  const totalGrossUSD = invoices
-    .filter((i) => i.header.currency === "USD")
-    .reduce((sum, i) => sum + i.totals.gross_total, 0);
-  const totalGrossEUR = invoices
-    .filter((i) => i.header.currency === "EUR")
-    .reduce((sum, i) => sum + i.totals.gross_total, 0);
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Persist batch state to sessionStorage (survives navigation)
+  useEffect(() => {
+    saveBatchToSession(batchState);
+  }, [batchState]);
+
+  // Filtered invoices
+  const filtered = invoices.filter((inv) => {
+    if (statusFilter !== "all") {
+      const s = docStatuses.get(inv.source_file) || "completed";
+      if (s !== statusFilter) return false;
+    }
+    if (timeFilter !== "all") {
+      const ms = timeFilter === "24h" ? 86400000 : timeFilter === "7d" ? 604800000 : 2592000000;
+      if (Date.now() - new Date(inv.header.invoice_date).getTime() > ms) return false;
+    }
+    if (onlyUnprocessed) {
+      const s = docStatuses.get(inv.source_file) || "completed";
+      if (s !== "new") return false;
+    }
+    return true;
+  });
+
+  // Handlers
+  const handleToggleCheck = useCallback((sf: string) => {
+    setCheckedIds((prev) => { const n = new Set(prev); n.has(sf) ? n.delete(sf) : n.add(sf); return n; });
+  }, []);
+
+  const handleToggleAll = useCallback(() => {
+    setCheckedIds((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((i) => i.source_file)));
+  }, [filtered]);
+
+  const handleSelectUnprocessed = useCallback(() => {
+    const unproc = invoices.filter((i) => (docStatuses.get(i.source_file) || "completed") === "new").map((i) => i.source_file);
+    setCheckedIds(new Set(unproc));
+  }, [invoices, docStatuses]);
+
+  const handleOpenReview = useCallback((inv: ProcessedInvoice) => {
+    const ids = filtered.map((i) => i.source_file);
+    sessionStorage.setItem("review_queue", JSON.stringify(ids));
+    router.push(`/skills/invoice_processor/review?file=${encodeURIComponent(inv.source_file)}`);
+  }, [router, filtered]);
+
+  // Upload — persist via API
+  // Called after upload API has saved files + updated invoices.json
+  const handleFilesUploaded = useCallback((fileNames: string[]) => {
+    loadData(); // Reload to pick up the new entries
+
+    if (autoProcess && fileNames.length > 0) {
+      const ids = new Set(fileNames);
+      setCheckedIds(ids);
+      setTimeout(() => startBatch(ids), 500);
+    }
+  }, [autoProcess, loadData]);
+
+  // Batch — calls API for each batch, results are persisted + items tracked
+  const startBatch = useCallback(async (overrideIds?: Set<string>) => {
+    const targets = overrideIds || checkedIds;
+    const toProcess = Array.from(targets);
+    if (toProcess.length === 0) return;
+
+    batchAbortRef.current = false;
+    const total = toProcess.length;
+    const startedAt = Date.now();
+    let current = 0;
+    let succeeded = 0;
+    let failed = 0;
+
+    // Initialize batch items
+    const items: BatchItem[] = toProcess.map((file) => ({
+      file,
+      displayName: file.replace(/\.pdf$/i, "").replace(/_/g, " ").slice(0, 25),
+      status: "pending" as const,
+    }));
+    batchItemsRef.current = items;
+
+    const updateItems = () => [...batchItemsRef.current];
+
+    setBatchState({ status: "running", total, current: 0, currentFile: toProcess[0], startedAt, items: updateItems() });
+
+    async function processNext() {
+      if (batchAbortRef.current || current >= total) {
+        setBatchState({ status: "completed", total, succeeded, failed, durationMs: Date.now() - startedAt, items: updateItems() });
+        setCheckedIds(new Set());
+        loadData();
+        return;
+      }
+
+      const file = toProcess[current];
+
+      // Update item to processing with step info
+      batchItemsRef.current[current] = { ...batchItemsRef.current[current], status: "processing", step: "parse_pdf" };
+      setBatchState({ status: "running", total, current, currentFile: file, startedAt, items: updateItems() });
+      setDocStatuses((p) => new Map(p).set(file, "processing"));
+
+      try {
+        // Simulate step progress visually
+        const stepNames = ["parse_pdf", "extract_fields", "validate_output", "export_csv"];
+        let stepIdx = 0;
+        const stepTimer = setInterval(() => {
+          stepIdx = Math.min(stepIdx + 1, stepNames.length - 1);
+          batchItemsRef.current[current] = { ...batchItemsRef.current[current], step: stepNames[stepIdx] };
+          setBatchState((prev) => prev.status === "running" ? { ...prev, items: updateItems() } : prev);
+        }, 1500);
+
+        const res = await fetch("/api/documents/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ files: [file] }),
+        });
+        const result = await res.json();
+        clearInterval(stepTimer);
+
+        const conf = result.processed?.[0]?.confidence || 0;
+        if (result.processed?.[0]?.success) {
+          succeeded++;
+          batchItemsRef.current[current] = { ...batchItemsRef.current[current], status: "completed", step: undefined, confidence: conf };
+          setDocStatuses((p) => new Map(p).set(file, "completed"));
+        } else {
+          failed++;
+          batchItemsRef.current[current] = { ...batchItemsRef.current[current], status: "failed", step: undefined };
+          setDocStatuses((p) => new Map(p).set(file, "failed"));
+        }
+      } catch {
+        failed++;
+        batchItemsRef.current[current] = { ...batchItemsRef.current[current], status: "failed", step: undefined };
+        setDocStatuses((p) => new Map(p).set(file, "failed"));
+      }
+
+      current++;
+      await processNext();
+    }
+
+    await processNext();
+  }, [checkedIds, loadData]);
+
+  const handleBatchStop = useCallback(() => { batchAbortRef.current = true; }, []);
+  const handleBatchDismiss = useCallback(() => {
+    setBatchState({ status: "idle" });
+    clearBatchSession();
+    setCheckedIds(new Set());
+    loadData();
+  }, [loadData]);
+
+  // KPIs
+  const completedCount = Array.from(docStatuses.values()).filter((s) => s === "completed" || s === "verified").length;
+  const totalCost = runs.reduce((s, r) => s + r.total_cost_usd, 0);
+  const totalHUF = invoices.filter((i) => i.header.currency === "HUF").reduce((s, i) => s + i.totals.gross_total, 0);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Invoice Processor</h2>
-          <p className="text-muted-foreground">
-            {invoices.length} szamla feldolgozva
-          </p>
-        </div>
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 text-sm px-3 py-1">
-          70% complete
-        </Badge>
+    <div className="p-6 space-y-4">
+      <UploadZone onFilesUploaded={handleFilesUploaded} autoProcess={autoProcess} onAutoProcessChange={setAutoProcess} />
+
+      <div className="grid grid-cols-4 gap-3">
+        <KpiCard title="Dokumentumok" value={invoices.length.toString()} sub={`${completedCount} feldolgozva`} />
+        <KpiCard title="HUF osszesen" value={totalHUF >= 1000 ? `${Math.round(totalHUF / 1000)}k Ft` : `${totalHUF} Ft`} sub={`${invoices.filter((i) => i.header.currency === "HUF").length} szamla`} />
+        <KpiCard title="Futasok" value={runs.length.toString()} sub={`${runs.filter((r) => r.status === "completed").length} sikeres`} />
+        <KpiCard title="LLM koltseg" value={`$${totalCost.toFixed(3)}`} sub={`${runs.length} futasbol`} />
       </div>
 
-      {/* KPI */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Szamlak</p>
-            <p className="text-3xl font-bold">{invoices.length}</p>
-            <p className="text-xs text-muted-foreground">
-              {invoices.filter((i) => i.validation.is_valid).length} valid
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">HUF osszesen</p>
-            <p className="text-3xl font-bold">
-              {totalGrossHUF.toLocaleString("hu-HU")}
-            </p>
-            <p className="text-xs text-muted-foreground">Ft</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">EUR osszesen</p>
-            <p className="text-3xl font-bold">
-              {totalGrossEUR.toLocaleString("hu-HU", { minimumFractionDigits: 2 })}
-            </p>
-            <p className="text-xs text-muted-foreground">EUR</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">USD osszesen</p>
-            <p className="text-3xl font-bold">
-              {totalGrossUSD.toLocaleString("hu-HU", { minimumFractionDigits: 2 })}
-            </p>
-            <p className="text-xs text-muted-foreground">USD</p>
-          </CardContent>
-        </Card>
-      </div>
+      {batchState.status !== "idle" && (
+        <BatchBanner state={batchState} onStop={handleBatchStop} onDismiss={handleBatchDismiss} />
+      )}
 
-      <Tabs defaultValue="list">
-        <TabsList>
-          <TabsTrigger value="list">Szamla lista</TabsTrigger>
-          <TabsTrigger value="detail">Reszletek</TabsTrigger>
-        </TabsList>
-
-        {/* Invoice list */}
-        <TabsContent value="list">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8">V</TableHead>
-                    <TableHead>Szallito</TableHead>
-                    <TableHead>Szamlaszam</TableHead>
-                    <TableHead>Datum</TableHead>
-                    <TableHead>Vevo</TableHead>
-                    <TableHead className="text-right">Brutto</TableHead>
-                    <TableHead className="text-right">Conf.</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoices.map((inv, idx) => (
-                    <TableRow
-                      key={idx}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => setSelected(inv)}
-                    >
-                      <TableCell>
-                        {inv.validation.is_valid ? (
-                          <span className="text-green-600">&#10003;</span>
-                        ) : (
-                          <span className="text-red-600">!</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium text-sm">
-                        {inv.vendor.name}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {inv.header.invoice_number}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {inv.header.invoice_date}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {inv.buyer.name}
-                        {inv.buyer.tax_number && (
-                          <span className="ml-1 text-xs">
-                            ({inv.buyer.tax_number})
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm">
-                        {inv.totals.gross_total.toLocaleString("hu-HU")}{" "}
-                        {inv.header.currency}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <ConfidenceBadge value={inv.extraction_confidence || inv.validation.confidence_score} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Invoice detail */}
-        <TabsContent value="detail">
-          {selected ? (
-            <InvoiceDetail invoice={selected} />
-          ) : (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                Valassz egy szamlat a listabol
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
-
-function InvoiceDetail({ invoice }: { invoice: ProcessedInvoice }) {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Left: Header data */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center justify-between">
-            {invoice.source_file}
-            <ConfidenceBadge value={invoice.extraction_confidence || invoice.validation.confidence_score} />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Szallito</p>
-              <p className="font-medium">{invoice.vendor.name}</p>
-              {invoice.vendor.address && <p className="text-sm text-muted-foreground">{invoice.vendor.address}</p>}
-              {invoice.vendor.tax_number && <p className="text-sm font-mono">{invoice.vendor.tax_number}</p>}
-              {invoice.vendor.bank_account && (
-                <p className="text-xs text-muted-foreground mt-1">Bank: {invoice.vendor.bank_account}</p>
-              )}
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Vevo</p>
-              <p className="font-medium">{invoice.buyer.name}</p>
-              {invoice.buyer.address && <p className="text-sm text-muted-foreground">{invoice.buyer.address}</p>}
-              {invoice.buyer.tax_number && <p className="text-sm font-mono">{invoice.buyer.tax_number}</p>}
-            </div>
+        <CardContent className="py-3 px-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <select value={timeFilter} onChange={(e) => { setTimeFilter(e.target.value as TimeFilter); setPage(0); }} className="h-8 px-2 text-xs rounded-md border border-input bg-background">
+              <option value="all">Osszes ido</option>
+              <option value="24h">Utolso 24 ora</option>
+              <option value="7d">Utolso 7 nap</option>
+              <option value="30d">Utolso 30 nap</option>
+            </select>
+            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setPage(0); }} className="h-8 px-2 text-xs rounded-md border border-input bg-background">
+              <option value="all">Minden statusz</option>
+              <option value="new">Feldolgozatlan</option>
+              <option value="completed">Kesz</option>
+              <option value="failed">Hibas</option>
+            </select>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+              <input type="checkbox" checked={onlyUnprocessed} onChange={(e) => setOnlyUnprocessed(e.target.checked)} className="size-3.5 accent-primary" />
+              Csak feldolgozatlanok
+            </label>
+            <div className="flex-1" />
+            <button onClick={handleSelectUnprocessed} className="px-3 py-1.5 rounded-md text-xs border border-border text-muted-foreground hover:bg-muted">
+              Feldolgozatlanok kivalasztasa
+            </button>
+            <button
+              disabled={checkedIds.size === 0 || batchState.status === "running"}
+              onClick={() => startBatch()}
+              className="px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
+            >
+              Batch feldolgozas ({checkedIds.size})
+            </button>
+            <button onClick={() => setScheduleOpen(true)} className="px-2 py-1.5 rounded-md text-xs border border-border hover:bg-muted" title="Utemezes">
+              &#9200;
+            </button>
+            <button
+              onClick={async () => {
+                if (!confirm("Minden adat torlodik (dokumentumok, futasok, kepek). Biztosan?")) return;
+                await fetch("/api/documents/reset", { method: "POST" });
+                loadData();
+              }}
+              className="px-2 py-1.5 rounded-md text-xs border border-red-200 text-red-600 hover:bg-red-50"
+              title="Minden adat torlese"
+            >
+              Reset
+            </button>
           </div>
-
-          <div className="grid grid-cols-3 gap-3 pt-2 border-t">
-            <div>
-              <p className="text-xs text-muted-foreground">Szamlaszam</p>
-              <p className="text-sm font-mono">{invoice.header.invoice_number}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Datum</p>
-              <p className="text-sm">{invoice.header.invoice_date}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Fizetesi hatarido</p>
-              <p className="text-sm">{invoice.header.due_date || "-"}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <p className="text-xs text-muted-foreground">Penznem</p>
-              <p className="text-sm font-semibold">{invoice.header.currency}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Fizetesi mod</p>
-              <p className="text-sm">{invoice.header.payment_method || "-"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Parser</p>
-              <p className="text-sm">{invoice.parser_used}</p>
-            </div>
-          </div>
-
-          {/* Validation */}
-          {(invoice.validation.errors.length > 0 || invoice.validation.warnings.length > 0) && (
-            <div className="pt-2 border-t space-y-1">
-              {invoice.validation.errors.map((e, i) => (
-                <p key={i} className="text-sm text-red-600">HIBA: {e}</p>
-              ))}
-              {invoice.validation.warnings.map((w, i) => (
-                <p key={i} className="text-sm text-yellow-600">FIGY: {w}</p>
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Right: Line items + totals */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            Tetelek ({invoice.line_items.length} db)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Megnevezes</TableHead>
-                <TableHead className="text-right">Menny.</TableHead>
-                <TableHead className="text-right">Netto</TableHead>
-                <TableHead className="text-right">AFA</TableHead>
-                <TableHead className="text-right">Brutto</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoice.line_items.map((item, i) => (
-                <TableRow key={i}>
-                  <TableCell className="text-xs">{item.line_number}</TableCell>
-                  <TableCell className="text-sm">{item.description}</TableCell>
-                  <TableCell className="text-right text-sm">
-                    {item.quantity} {item.unit}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {item.net_amount.toLocaleString("hu-HU")}
-                  </TableCell>
-                  <TableCell className="text-right text-sm">
-                    {item.vat_rate}%
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm font-semibold">
-                    {item.gross_amount.toLocaleString("hu-HU")}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {/* Totals */}
-          <div className="mt-4 pt-3 border-t space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Netto:</span>
-              <span className="font-mono">
-                {invoice.totals.net_total.toLocaleString("hu-HU")} {invoice.header.currency}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">AFA:</span>
-              <span className="font-mono">
-                {invoice.totals.vat_total.toLocaleString("hu-HU")} {invoice.header.currency}
-              </span>
-            </div>
-            <div className="flex justify-between text-base font-bold pt-1 border-t">
-              <span>Brutto:</span>
-              <span className="font-mono">
-                {invoice.totals.gross_total.toLocaleString("hu-HU")} {invoice.header.currency}
-              </span>
-            </div>
-          </div>
+        <CardContent className="p-0">
+          <DocumentTable
+            invoices={filtered}
+            docStatuses={docStatuses}
+            checkedIds={checkedIds}
+            onToggleCheck={handleToggleCheck}
+            onToggleAll={handleToggleAll}
+            onOpenReview={handleOpenReview}
+            sortField={sortField}
+            onSortChange={setSortField}
+            page={page}
+            pageSize={25}
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
+
+      <ScheduleDialog open={scheduleOpen} onClose={() => setScheduleOpen(false)} />
     </div>
   );
-}
-
-function ConfidenceBadge({ value }: { value: number }) {
-  const pct = Math.round(value * 100);
-  const color = pct >= 90 ? "bg-green-100 text-green-800" : pct >= 70 ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800";
-  return <Badge className={`${color} hover:${color} text-xs`}>{pct}%</Badge>;
 }
