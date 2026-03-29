@@ -288,33 +288,44 @@ async def chunk_documents(data: dict) -> dict:
     collection = data.get("collection", "default")
     language = data.get("language", "hu")
 
-    # Approximate token-to-char ratio for Hungarian text
-    target_chars = 500 * 4  # ~2000 chars for 500 tokens
-    overlap_chars = 100 * 4  # ~400 chars for 100 tokens
-    separators = ["\n\n", "\n", ". "]
+    # Use RecursiveChunker (Cubix tananyag recommended strategy)
+    from aiflow.ingestion.chunkers.recursive_chunker import RecursiveChunker, ChunkingConfig
+
+    chunker = RecursiveChunker(ChunkingConfig(
+        strategy="recursive",
+        chunk_size=2000,     # ~500 tokens for Hungarian
+        chunk_overlap=200,   # ~50 tokens overlap
+        separators=["\n## ", "\n### ", "\n\n", "\n", ". ", " "],
+        min_chunk_size=100,
+    ))
 
     all_chunks: list[dict[str, Any]] = []
 
     for doc in documents:
         doc_name = doc["name"]
-        text = doc["text"]
-        file_type = doc.get("file_type", "")
+        text = doc.get("text", doc.get("markdown", ""))
         doc_id = str(uuid.uuid4())
 
-        doc_chunks = _semantic_chunk(text, target_chars, overlap_chars, separators)
+        doc_chunks = chunker.chunk_text(text, metadata={
+            "source_document": doc_name,
+            "language": language,
+            "file_type": doc.get("file_type", ""),
+        })
 
-        for idx, chunk_text in enumerate(doc_chunks):
+        for chunk in doc_chunks:
             all_chunks.append({
                 "chunk_id": str(uuid.uuid4()),
                 "document_id": doc_id,
-                "content": chunk_text,
+                "content": chunk.text,
+                "document_name": doc_name,
+                "chunk_index": chunk.index,
                 "metadata": {
-                    "source_document": doc_name,
+                    **chunk.metadata,
                     "document_title": doc_name,
-                    "chunk_index": idx,
+                    "chunk_index": chunk.index,
                     "chunk_type": "semantic",
                     "language": language,
-                    "file_type": file_type,
+                    "file_type": doc.get("file_type", ""),
                     "collection": collection,
                 },
             })

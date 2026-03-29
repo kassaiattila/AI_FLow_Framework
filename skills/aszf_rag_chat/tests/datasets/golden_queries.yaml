@@ -1,0 +1,101 @@
+# Golden dataset for ASZF RAG Chat evaluation
+# 20 test queries with expected answers and source documents
+# Based on Allianz test documents (adatkezelesi tajekoztatok)
+
+queries:
+  # --- Adatkezeles toborzas ---
+  - id: q001
+    question: "Milyen adatokat kezel az Allianz a toborzas soran?"
+    expected_topics: ["szemelyes adatok", "toborzas", "oneletrajz"]
+    expected_sources: ["AHE-43287-3_datkezelesi_tajekoztato_toborzas.pdf"]
+    min_relevance: 0.5
+
+  - id: q002
+    question: "Meddig tarolja az Allianz a palyazok adatait?"
+    expected_topics: ["megorzesi ido", "torles", "tarolasi idotartam"]
+    expected_sources: ["AHE-43287-3_datkezelesi_tajekoztato_toborzas.pdf"]
+    min_relevance: 0.5
+
+  - id: q003
+    question: "Kik ferhetnek hozza a toborzasi adatokhoz?"
+    expected_topics: ["hozzaferes", "jogosultsag", "HR", "adat megismero"]
+    expected_sources: ["AHE-43287-3_datkezelesi_tajekoztato_toborzas.pdf"]
+    min_relevance: 0.5
+
+  - id: q004
+    question: "Milyen jogai vannak az adatalanynak a toborzas kapcsán?"
+    expected_topics: ["erintett jogai", "hozzaferes jog", "torles jog", "tiltakozas"]
+    expected_sources: ["AHE-43287-3_datkezelesi_tajekoztato_toborzas.pdf"]
+    min_relevance: 0.5
+
+  - id: q005
+    question: "Mi az adatkezeles jogalapja a toborzasnal?"
+    expected_topics: ["jogalap", "hozzajarulas", "jogos erdek", "GDPR"]
+    expected_sources: ["AHE-43287-3_datkezelesi_tajekoztato_toborzas.pdf"]
+    min_relevance: 0.5
+
+  # --- Marketing celu adatkezeles ---
+  - id: q006
+    question: "Milyen marketing celu adatkezelest vegez az Allianz?"
+    expected_topics: ["marketing", "direkt marketing", "megkereses"]
+    expected_sources: ["AHE-43285-2_Adatkezelesi_nyilatkozat_marketing_celu_adatkezelesrol.pdf"]
+    min_relevance: 0.5
+
+  - id: q007
+    question: "Hogyan vonhato vissza a marketing hozzajarulas?"
+    expected_topics: ["visszavonas", "hozzajarulas", "leiratkozas"]
+    expected_sources: ["AHE-43285-2_Adatkezelesi_nyilatkozat_marketing_celu_adatkezelesrol.pdf"]
+    min_relevance: 0.5
+
+  - id: q008
+    question: "Milyen csatornákon keresztul kuldhet az Allianz marketing uzenetet?"
+    expected_topics: ["email", "telefon", "posta", "sms", "csatorna"]
+    expected_sources: ["AHE-43285-2_Adatkezelesi_nyilatkozat_marketing_celu_adatkezelesrol.pdf"]
+    min_relevance: 0.5
+
+  - id: q009
+    question: "Ki az adatkezelo a marketing celú adatkezeles kapcsan?"
+    expected_topics: ["adatkezelo", "Allianz Hungaria", "kapcsolat"]
+    expected_sources: ["AHE-43285-2_Adatkezelesi_nyilatkozat_marketing_celu_adatkezelesrol.pdf"]
+    min_relevance: 0.5
+
+  - id: q010
+    question: "Milyen szemelyes adatokat kezelnek marketing celbol?"
+    expected_topics: ["nev", "email", "telefonszam", "cim", "szemelyes adat"]
+    expected_sources: ["AHE-43285-2_Adatkezelesi_nyilatkozat_marketing_celu_adatkezelesrol.pdf"]
+    min_relevance: 0.5
+
+  # --- Altalanos kerdesek ---
+  - id: q011
+    question: "Ki az adatvedelmi tisztviselo?"
+    expected_topics: ["adatvedelmi tisztviselo", "DPO", "kapcsolat"]
+    min_relevance: 0.3
+
+  - id: q012
+    question: "Hol nyujthatok be panaszt adatkezelesi ugyekben?"
+    expected_topics: ["panasz", "NAIH", "birosag", "jogorvoslat"]
+    min_relevance: 0.3
+
+  # --- Negativ tesztek (nem az adatkezelesrol szolnak) ---
+  - id: q_neg01
+    question: "Mi a focimeccs eredmenye?"
+    expected_answer_contains: "nem talalhato"
+    expect_no_results: true
+
+  - id: q_neg02
+    question: "Hogy kell pizzat sutni?"
+    expected_answer_contains: "nem talalhato"
+    expect_no_results: true
+
+# Evaluation config
+evaluation:
+  metrics:
+    - retrieval_precision  # Top-5 talalatok relevanciaraja
+    - answer_relevance     # LLM-as-Judge: mennyire valaszol a kerdesre
+    - hallucination_rate   # Valasz vs kontextus egyezes
+    - citation_accuracy    # Hivatkozasok pontossaga
+  thresholds:
+    retrieval_precision: 0.6
+    answer_relevance: 0.7
+    hallucination_rate: 0.3  # max 30% hallucinalas
+    citation_accuracy: 0.5
