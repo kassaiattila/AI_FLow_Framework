@@ -8,6 +8,10 @@ from aiflow.tools.shell import ShellExecutor, ShellResult, ShellCommandDeniedErr
 from aiflow.tools.playwright_browser import PlaywrightBrowser, BrowserConfig
 from aiflow.tools.human_loop import HumanLoopManager, HumanLoopResponse, ApprovalRequest
 from aiflow.tools.kafka import KafkaConfig, KafkaProducer, KafkaConsumer
+from aiflow.tools.email_parser import EmailParser, ParsedEmail, EmailAttachment
+from aiflow.tools.attachment_processor import AttachmentProcessor, ProcessedAttachment, AttachmentConfig
+from aiflow.tools.azure_doc_intelligence import AzureDocIntelligence
+from aiflow.tools.schema_registry import SchemaRegistry
 
 __all__ = [
     # Robot Framework
@@ -30,4 +34,16 @@ __all__ = [
     "KafkaConfig",
     "KafkaProducer",
     "KafkaConsumer",
+    # Email processing
+    "EmailParser",
+    "ParsedEmail",
+    "EmailAttachment",
+    # Attachment processing
+    "AttachmentProcessor",
+    "ProcessedAttachment",
+    "AttachmentConfig",
+    # Azure Document Intelligence
+    "AzureDocIntelligence",
+    # Schema registry
+    "SchemaRegistry",
 ]
