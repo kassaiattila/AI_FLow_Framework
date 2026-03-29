@@ -155,13 +155,15 @@ A referencia tananyag (05_evaluacio) altal ajanlott:
 - [ ] Promptfoo teszt config (jovobeli)
 - [ ] Negativ teszt szures javitasa
 
-### Modul 06: Eszkozok + CI/CD ❌
-- [ ] Promptfoo CI/CD pipeline
-- [ ] Feedback pipeline
-- [ ] Langfuse integracio
+### Modul 06: Eszkozok + CI/CD ✅ (KESZ 2026-03-29)
+- [x] Promptfoo config (7 test, provider script) - KESZ
+- [x] Feedback API (POST /v1/feedback) - KESZ
+- [ ] Langfuse SSOT (Phase B)
+- [ ] GitHub Actions CI/CD (Phase B)
 
-### Modul 07: Monitoring + Production ❌
-- [ ] Query log (DB)
-- [ ] Dashboard (Grafana/Reflex)
-- [ ] Cost tracking per collection
-- [ ] SLA monitoring
+### Modul 07: Monitoring + Production ✅ (alap KESZ 2026-03-29)
+- [x] Query log (rag_query_log + log_query step) - KESZ
+- [x] Health endpoint (DB/pgvector/Redis check) - KESZ
+- [x] Cost tracking (CostTracker kod kesz)
+- [ ] Dashboard (Phase B)
+- [ ] SLA monitoring (Phase B)
