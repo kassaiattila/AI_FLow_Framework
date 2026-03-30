@@ -88,10 +88,12 @@ export interface CostSummary {
   per_model: Record<string, number>;
 }
 
+export type SkillStatus = "production" | "in-development" | "results-viewer" | "stub";
+
 export interface SkillInfo {
   name: string;
   display_name: string;
-  status: string;
+  status: SkillStatus;
   test_count: number;
   description: string;
 }
@@ -421,9 +423,9 @@ export interface CubixCourseResult {
 
 export const SKILLS: SkillInfo[] = [
   { name: "process_documentation", display_name: "Process Documentation", status: "production", test_count: 13, description: "BPMN diagrams from natural language" },
-  { name: "aszf_rag_chat", display_name: "ASZF RAG Chat", status: "85%", test_count: 52, description: "Legal document RAG chat" },
-  { name: "email_intent_processor", display_name: "Email Intent Processor", status: "90%", test_count: 54, description: "Email classification & routing" },
-  { name: "invoice_processor", display_name: "Invoice Processor", status: "70%", test_count: 22, description: "PDF invoice data extraction" },
-  { name: "cubix_course_capture", display_name: "Cubix Course Capture", status: "75%", test_count: 13, description: "Video transcript pipeline" },
-  { name: "qbpp_test_automation", display_name: "QBPP Test Automation", status: "stub", test_count: 3, description: "Insurance calculator testing" },
+  { name: "aszf_rag_chat", display_name: "ASZF RAG Chat", status: "production", test_count: 52, description: "Legal document RAG chat (86% eval pass)" },
+  { name: "email_intent_processor", display_name: "Email Intent Processor", status: "in-development", test_count: 54, description: "Email classification & routing (hybrid ML+LLM)" },
+  { name: "invoice_processor", display_name: "Invoice Processor", status: "in-development", test_count: 22, description: "PDF invoice extraction (parse step only)" },
+  { name: "cubix_course_capture", display_name: "Cubix Course Capture", status: "results-viewer", test_count: 13, description: "Video transcript pipeline (CLI only, results viewer)" },
+  { name: "qbpp_test_automation", display_name: "QBPP Test Automation", status: "stub", test_count: 3, description: "Insurance calculator testing (not implemented)" },
 ];
