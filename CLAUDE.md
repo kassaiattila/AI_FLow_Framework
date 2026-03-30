@@ -14,12 +14,19 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - **Skill Instance** = configured deployment of a Skill template per customer
 - **VectorStore** = pgvector hybrid search (vector HNSW + BM25 tsvector + RRF)
 
-## Working Skills (tested with real data)
+## Skills (6 db)
+
+### Working (tested with real data)
 - **process_documentation** (ai) - Natural language -> BPMN diagrams (Mermaid + DrawIO + BPMN swimlane + SVG)
 - **cubix_course_capture** (hybrid) - Video transcript pipeline (ffmpeg + Whisper STT + LLM structuring) + RPA (Robot Framework)
 - **aszf_rag_chat** (ai) - RAG chat (docling PDF parse + pgvector + OpenAI + Open WebUI) - evaluation 86% pass
 - **email_intent_processor** (ai) - Email + csatolmany feldolgozo (hibrid ML+LLM, intent discovery, JSON schema vezerelt)
-- **invoice_processor** (ai) - PDF szamla feldolgozas (Docling + gpt-4o extraction, CSV/Excel/JSON export) - 20 valos szamla tesztelve
+
+### In Development
+- **invoice_processor** (ai) - PDF szamla feldolgozas (Docling + gpt-4o extraction, CSV/Excel/JSON export) - Next.js UI + valos Docling integracio
+
+### Stub
+- **qbpp_test_automation** (rpa) - Insurance calculator test automation - STUB (__main__.py hianyzik)
 
 ## Architecture Patterns
 
@@ -65,7 +72,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 
 ### Database:
 - PostgreSQL pgvector @ localhost:5433 (Docker: `docker compose up -d db`)
-- Alembic: `alembic upgrade head` (12 migracio, 25 tabla)
+- Alembic: `alembic upgrade head` (26 migracio, 36 tabla + 13 view)
 - **SOHA ne hozz letre tablat Alembic nelkul!**
 
 ## Tech Stack
@@ -73,7 +80,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 - LiteLLM (multi-LLM), instructor (structured output), Langfuse (LLM observability)
 - PyJWT[crypto] (RS256 JWT auth), bcrypt (hashing), APScheduler 4.x (async cron)
 - Promptfoo (prompt testing), structlog (JSON logging), Alembic (DB migrations), ruff (lint+format)
-- Reflex or NiceGUI or Next.js (frontend - see 01_PLAN/14_FRONTEND.md), typer (CLI)
+- Next.js 16 + React 19 + TypeScript + shadcn/ui (production frontend - aiflow-ui/), typer (CLI)
 - Playwright (GUI testing + RPA skills), ffmpeg (media processing in RPA skills)
 
 ## Development Environment
@@ -153,7 +160,7 @@ src/aiflow/
     security/      # JWT+API key auth, RBAC, audit
     api/v1/        # FastAPI endpoints (stub - Phase B)
     observability/ # Tracing, cost_tracker (partial)
-    ui/            # Reflex frontend (planned - Phase 4)
+    # ui/ torolve — Next.js UI az aiflow-ui/ mappaban
     cli/           # typer CLI
     skills/        # Backward compat re-exports -> skill_system/
     contrib/       # Backward compat re-exports -> tools/
