@@ -207,6 +207,49 @@ result = await runner.run_steps([step1, step2], {"input": "..."})
 - **Pydantic everywhere** - config, API models, step I/O, agent messages, DB schemas
 - All errors inherit from `AIFlowError` with `is_transient` flag for retry decisions
 
+## MANDATORY Next.js UI Development Rules (STRICT!)
+
+### The Depth Rule
+> **Finish ONE feature properly before starting the next.**
+> Never build 5 viewers in parallel — build 1, test it manually, fix it, THEN move to the next.
+> A feature is NOT "KESZ" until it works end-to-end with HU/EN toggle.
+
+### i18n Rules (NEVER skip!)
+- **EVERY user-visible string MUST use `t()` from `useI18n()`** — no exceptions
+- Wire i18n AS YOU BUILD — not after. Every new component must import `useI18n` from the start
+- Check: page titles, button labels, table headers, KPI labels, error messages, empty states, placeholders
+- Test: click HU/EN toggle → EVERY string on screen must change
+- i18n keys go in `src/lib/i18n.ts` — add both `hu` and `en` entries SIMULTANEOUSLY
+
+### Next.js 16 Rules (avoid common pitfalls!)
+- **proxy.ts NOT middleware.ts** — Next.js 16 renamed the convention
+- **No `<script>` tags in React components** — use component `useEffect` for client-side init
+- **No `localStorage` in `useState()` initializer** — causes hydration mismatch. Use `useEffect` to read after mount
+- **No `sessionStorage` in `useState()` initializer** — same reason. Defer to `useEffect`
+- **No hardcoded `localhost` URLs** — use env vars or relative paths via `/api/` proxy routes
+- **Data fetches: always use `/api/` routes** — never fetch from `/data/` or `/public/data/` directly in pages
+- **All client components need `"use client"` directive** — especially if using hooks
+
+### UI Component Checklist (verify BEFORE marking done)
+Every new page/component MUST have:
+1. [ ] `useI18n()` hook imported and all strings use `t()`
+2. [ ] Loading state (show spinner/skeleton while data loads)
+3. [ ] Error state (show error message + retry button)
+4. [ ] Empty state (meaningful message when no data)
+5. [ ] Data fetched from `/api/` routes (not `/data/` static files)
+6. [ ] No hardcoded Hungarian/English strings
+7. [ ] Works in both light and dark mode
+8. [ ] Vitest unit test for pure logic (utilities, type guards)
+9. [ ] Manual test: page loads, HU/EN toggle works, all actions work
+
+### UI Testing Protocol
+```bash
+# After EVERY UI change:
+npx vitest run                    # Unit tests pass
+npx next build                    # TypeScript + build clean
+npm run dev                       # Manual check: page loads, toggle HU/EN, click all buttons
+```
+
 ## MANDATORY Testing & Regression Rules (STRICT - NO EXCEPTIONS)
 
 ### The Golden Rule
