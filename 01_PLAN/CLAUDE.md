@@ -24,7 +24,7 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - 5 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, qbpp_test_automation (cfpb_complaint_router merged into email_intent_processor)
 
 ## Key numbers to keep consistent
-- 36 DB tables, 13 views, 20 migrations, 60+ indexes
+- 36 DB tables, 13 views, 26 migrations, 60+ indexes
 - 22 weeks, 7 phases (Phase 4=Het 10-13, Phase 5=14-16, Phase 6=17-19, Phase 7=20-22)
 - 5 skills, 35 plan documents
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock

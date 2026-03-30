@@ -246,15 +246,16 @@ curl http://localhost:8000/health           # API elerheto (ha make dev-docker)
 
 **Teszt:** `tests/integration/test_api.py`
 
-### Het 16: Frontend (Reflex) scaffold
+### Het 16: Frontend (Next.js) — MEGVALOSITVA
 
-**Feladatok:**
-1. `src/aiflow/ui/` scaffold (Reflex framework)
-2. Operator Dashboard (KPI kartyak, job management)
-3. Chat Interface skeleton (RAG, streaming)
-4. Developer Portal skeleton (DAG viewer, prompt editor)
-5. Admin Panel skeleton (users, teams, RBAC)
-6. Login + Auth integracio
+**Megvalositas (aiflow-ui/ — Next.js 16 + React 19 + shadcn/ui):**
+1. `aiflow-ui/` projekt setup (Next.js App Router, TypeScript, Tailwind)
+2. Dashboard oldal (KPI kartyak, skill grid, run/cost monitoring)
+3. Document Processing UI (upload, batch, review, verification)
+4. Invoice Processor valos Docling + GPT-4o integracio (PDF→PNG, OCR bbox)
+5. Next.js API routes (documents CRUD, upload, process, runs)
+6. 3 skill viewer stub oldal (email_intent, aszf_rag, process_documentation)
+> **Megjegyzes:** Az eredeti Reflex terv helyett Next.js lett valasztva (lasd 33_PRODUCTION_UI_PLAN.md). A `src/aiflow/ui/` torolve, `aiflow_ui/` archivalva `deprecated/`-be.
 
 **Milestone:** Teljes API mukodik auth-tal, async workflow queue-val, alapszintu UI
 
