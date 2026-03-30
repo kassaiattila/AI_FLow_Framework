@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmailTable } from "@/components/email/email-table";
 import { EmailPreview } from "@/components/email/email-preview";
@@ -12,6 +11,7 @@ import { RoutingCard } from "@/components/email/routing-card";
 import { EmailUploadZone } from "@/components/email/email-upload-zone";
 import { ProcessingPipeline } from "@/components/processing-pipeline";
 import { ExportButton } from "@/components/export-button";
+import { SkillViewerLayout, KpiCard } from "@/components/skill-viewer";
 import { useI18n } from "@/hooks/use-i18n";
 import type { EmailProcessingResult, StepExecution } from "@/lib/types";
 
@@ -82,18 +82,6 @@ function buildEmailPipelineSteps(email: EmailProcessingResult | null): StepExecu
   });
 }
 
-function KpiCard({ title, value, sub }: { title: string; value: string; sub: string }) {
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <p className="text-xs text-muted-foreground">{title}</p>
-        <p className="text-2xl font-bold">{value}</p>
-        <p className="text-xs text-muted-foreground">{sub}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function EmailIntentProcessorPage() {
   const { t } = useI18n();
   const [emails, setEmails] = useState<EmailProcessingResult[]>([]);
@@ -154,10 +142,9 @@ export default function EmailIntentProcessorPage() {
     }
     setUploadedFiles([]);
     setProcessing(false);
-    loadData(); // refresh list
+    loadData();
   }, [uploadedFiles, loadData]);
 
-  // Unique intent/priority values for filters
   const intentOptions = useMemo(() => {
     const intents = new Set(emails.map((e) => e.intent?.intent_id).filter(Boolean));
     return [...intents] as string[];
@@ -168,7 +155,6 @@ export default function EmailIntentProcessorPage() {
     return [...priorities].sort() as number[];
   }, [emails]);
 
-  // Filtered emails
   const filtered = useMemo(() => {
     return emails.filter((e) => {
       if (intentFilter !== "all" && e.intent?.intent_id !== intentFilter) return false;
@@ -177,60 +163,37 @@ export default function EmailIntentProcessorPage() {
     });
   }, [emails, intentFilter, priorityFilter]);
 
-  // KPI calculations on ALL emails (not filtered)
   const totalEmails = emails.length;
-  const avgConfidence =
-    totalEmails > 0
-      ? emails.reduce((sum, e) => sum + (e.intent?.confidence || 0), 0) / totalEmails
-      : 0;
+  const avgConfidence = totalEmails > 0
+    ? emails.reduce((sum, e) => sum + (e.intent?.confidence || 0), 0) / totalEmails
+    : 0;
   const mlCount = emails.filter((e) => e.intent?.method === "sklearn").length;
   const mlRate = totalEmails > 0 ? (mlCount / totalEmails) * 100 : 0;
   const highPriorityCount = emails.filter((e) => (e.priority?.priority_level || 5) <= 2).length;
   const withAttachments = emails.filter((e) => e.has_attachments).length;
 
+  const exportButton = (
+    <ExportButton
+      filename={`emails_${new Date().toISOString().slice(0, 10)}.csv`}
+      headers={[t("table.sender"), t("table.subject"), t("table.intent"), "Confidence", t("table.priority"), t("email.department"), t("common.date")]}
+      rows={filtered.map((e) => [
+        e.sender, e.subject, e.intent?.intent_display_name || "",
+        String(e.intent?.confidence || 0), String(e.priority?.priority_level || ""),
+        e.routing?.department_name || "", e.received_date,
+      ])}
+    />
+  );
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">{t("email.title")}</h2>
-          <p className="text-muted-foreground">{t("email.desc")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ExportButton
-            filename={`emails_${new Date().toISOString().slice(0, 10)}.csv`}
-            headers={[t("table.sender"), t("table.subject"), t("table.intent"), "Confidence", t("table.priority"), t("email.department"), t("common.date")]}
-            rows={filtered.map((e) => [
-              e.sender,
-              e.subject,
-              e.intent?.intent_display_name || "",
-              String(e.intent?.confidence || 0),
-              String(e.priority?.priority_level || ""),
-              e.routing?.department_name || "",
-              e.received_date,
-            ])}
-          />
-          {source === "demo" ? (
-            <Badge className="bg-yellow-100 text-yellow-800 text-sm px-3 py-1">{t("backend.demo")}</Badge>
-          ) : source === "backend" || source === "subprocess" ? (
-            <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("backend.live")}</Badge>
-          ) : (
-            <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1">{t("common.inDevelopment")}</Badge>
-          )}
-        </div>
-      </div>
-
-      {loading && (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">{t("common.loading")}</CardContent></Card>
-      )}
-
-      {error && (
-        <Card><CardContent className="py-8 text-center">
-          <p className="text-red-600 text-sm mb-2">{t("common.errorPrefix")}{error}</p>
-          <button onClick={loadData} className="text-sm text-blue-600 underline">{t("common.retry")}</button>
-        </CardContent></Card>
-      )}
-
-      {!loading && !error && <>
+    <SkillViewerLayout
+      skillName="email"
+      source={source}
+      loading={loading}
+      error={error}
+      onRetry={loadData}
+      badgeFallbackKey="common.inDevelopment"
+      headerActions={exportButton}
+    >
       {/* Upload zone + process button */}
       <div className="flex items-center gap-3">
         <div className="flex-1">
@@ -247,80 +210,36 @@ export default function EmailIntentProcessorPage() {
         )}
       </div>
 
-      {/* KPIs — meaningful metrics */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <KpiCard
-          title={t("email.processed")}
-          value={String(totalEmails)}
-          sub={`${filtered.length} ${t("email.emailUnit")}`}
-        />
-        <KpiCard
-          title={t("email.avgConfidence")}
-          value={`${(avgConfidence * 100).toFixed(0)}%`}
-          sub={t("email.intentRecognition")}
-        />
-        <KpiCard
-          title={t("email.mlRate")}
-          value={`${mlRate.toFixed(0)}%`}
-          sub={`${mlCount} / ${totalEmails}`}
-        />
-        <KpiCard
-          title={t("email.highPriority")}
-          value={String(highPriorityCount)}
-          sub={`P1-P2`}
-        />
-        <KpiCard
-          title={t("email.withAttachments")}
-          value={String(withAttachments)}
-          sub={`/ ${totalEmails}`}
-        />
+        <KpiCard title={t("email.processed")} value={String(totalEmails)} sub={`${filtered.length} ${t("email.emailUnit")}`} />
+        <KpiCard title={t("email.avgConfidence")} value={`${(avgConfidence * 100).toFixed(0)}%`} sub={t("email.intentRecognition")} />
+        <KpiCard title={t("email.mlRate")} value={`${mlRate.toFixed(0)}%`} sub={`${mlCount} / ${totalEmails}`} />
+        <KpiCard title={t("email.highPriority")} value={String(highPriorityCount)} sub="P1-P2" />
+        <KpiCard title={t("email.withAttachments")} value={String(withAttachments)} sub={`/ ${totalEmails}`} />
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <select
-          value={intentFilter}
-          onChange={(e) => setIntentFilter(e.target.value)}
-          className="h-8 px-2 text-xs rounded-md border border-input bg-background"
-        >
+        <select value={intentFilter} onChange={(e) => setIntentFilter(e.target.value)} className="h-8 px-2 text-xs rounded-md border border-input bg-background">
           <option value="all">{t("email.filterAll")} — Intent</option>
-          {intentOptions.map((intent) => (
-            <option key={intent} value={intent}>{intent}</option>
-          ))}
+          {intentOptions.map((intent) => <option key={intent} value={intent}>{intent}</option>)}
         </select>
-        <select
-          value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
-          className="h-8 px-2 text-xs rounded-md border border-input bg-background"
-        >
+        <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="h-8 px-2 text-xs rounded-md border border-input bg-background">
           <option value="all">{t("email.filterAll")} — {t("table.priority")}</option>
-          {priorityOptions.map((p) => (
-            <option key={p} value={String(p)}>P{p}</option>
-          ))}
+          {priorityOptions.map((p) => <option key={p} value={String(p)}>P{p}</option>)}
         </select>
         {(intentFilter !== "all" || priorityFilter !== "all") && (
-          <button
-            onClick={() => { setIntentFilter("all"); setPriorityFilter("all"); }}
-            className="text-xs text-blue-600 underline"
-          >
-            {t("common.reset")}
-          </button>
+          <button onClick={() => { setIntentFilter("all"); setPriorityFilter("all"); }} className="text-xs text-blue-600 underline">{t("common.reset")}</button>
         )}
-        <span className="text-xs text-muted-foreground ml-auto">
-          {filtered.length} / {totalEmails}
-        </span>
+        <span className="text-xs text-muted-foreground ml-auto">{filtered.length} / {totalEmails}</span>
       </div>
 
       {/* Main content: table + detail */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <EmailTable
-            emails={filtered}
-            selectedId={selected?.email_id || null}
-            onSelect={setSelected}
-          />
+          <EmailTable emails={filtered} selectedId={selected?.email_id || null} onSelect={setSelected} />
         </div>
-
         <div>
           {selected ? (
             <Tabs defaultValue="preview">
@@ -335,53 +254,24 @@ export default function EmailIntentProcessorPage() {
               <TabsContent value="preview" className="mt-4">
                 <EmailPreview email={selected} highlightedEntity={highlightedEntity} />
               </TabsContent>
-
               <TabsContent value="intent" className="mt-4">
-                {selected.intent ? (
-                  <IntentBadgeDetail intent={selected.intent} />
-                ) : (
-                  <p className="text-muted-foreground text-sm">{t("email.noIntent")}</p>
-                )}
+                {selected.intent ? <IntentBadgeDetail intent={selected.intent} /> : <p className="text-muted-foreground text-sm">{t("email.noIntent")}</p>}
               </TabsContent>
-
               <TabsContent value="entities" className="mt-4">
-                {selected.entities ? (
-                  <EntityList
-                    entities={selected.entities}
-                    highlightedEntity={highlightedEntity}
-                    onEntityHover={setHighlightedEntity}
-                  />
-                ) : (
-                  <p className="text-muted-foreground text-sm">{t("email.noEntity")}</p>
-                )}
+                {selected.entities ? <EntityList entities={selected.entities} highlightedEntity={highlightedEntity} onEntityHover={setHighlightedEntity} /> : <p className="text-muted-foreground text-sm">{t("email.noEntity")}</p>}
               </TabsContent>
-
               <TabsContent value="routing" className="mt-4">
-                {selected.routing && selected.priority ? (
-                  <RoutingCard routing={selected.routing} priority={selected.priority} />
-                ) : (
-                  <p className="text-muted-foreground text-sm">{t("email.noRouting")}</p>
-                )}
+                {selected.routing && selected.priority ? <RoutingCard routing={selected.routing} priority={selected.priority} /> : <p className="text-muted-foreground text-sm">{t("email.noRouting")}</p>}
               </TabsContent>
-
               <TabsContent value="pipeline" className="mt-4">
-                <ProcessingPipeline
-                  steps={buildEmailPipelineSteps(selected)}
-                  source={source}
-                  isProcessing={processing}
-                />
+                <ProcessingPipeline steps={buildEmailPipelineSteps(selected)} source={source} isProcessing={processing} />
               </TabsContent>
             </Tabs>
           ) : (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                {t("email.selectEmail")}
-              </CardContent>
-            </Card>
+            <Card><CardContent className="py-12 text-center text-muted-foreground">{t("email.selectEmail")}</CardContent></Card>
           )}
         </div>
       </div>
-      </>}
-    </div>
+    </SkillViewerLayout>
   );
 }

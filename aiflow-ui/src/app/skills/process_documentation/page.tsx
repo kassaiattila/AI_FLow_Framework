@@ -5,24 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useI18n } from "@/hooks/use-i18n";
+import { SkillViewerLayout, KpiCard } from "@/components/skill-viewer";
 import { TextInputForm } from "@/components/process-docs/text-input-form";
 import { DiagramPreview } from "@/components/process-docs/diagram-preview";
 import { ReviewScores } from "@/components/process-docs/review-scores";
 import { GenerationGallery } from "@/components/process-docs/generation-gallery";
 import { ProcessStepTrace } from "@/components/process-docs/process-step-trace";
 import type { ProcessDocResult } from "@/lib/types";
-
-function KpiCard({ title, value, sub }: { title: string; value: string; sub: string }) {
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <p className="text-xs text-muted-foreground">{title}</p>
-        <p className="text-2xl font-bold">{value}</p>
-        <p className="text-xs text-muted-foreground">{sub}</p>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function ProcessDocumentationPage() {
   const { t } = useI18n();
@@ -68,7 +57,7 @@ export default function ProcessDocumentationPage() {
       const { source: src, ...doc } = data as ProcessDocResult & { source?: string };
       if (src) setSource(src as "backend" | "subprocess" | "demo");
       setSelected(doc as ProcessDocResult);
-      loadData(); // refresh gallery
+      loadData();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("processdoc.generateError"));
     } finally {
@@ -76,47 +65,22 @@ export default function ProcessDocumentationPage() {
     }
   };
 
-  // KPI calculations
   const totalDocs = documents.length;
-  const avgScore =
-    documents.length > 0
-      ? documents.reduce((sum, d) => sum + d.review.score, 0) / documents.length
-      : 0;
+  const avgScore = documents.length > 0
+    ? documents.reduce((sum, d) => sum + d.review.score, 0) / documents.length
+    : 0;
   const totalActors = documents.reduce((sum, d) => sum + d.extraction.actors.length, 0);
   const totalSteps = documents.reduce((sum, d) => sum + d.extraction.steps.length, 0);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">{t("processdoc.title")}</h2>
-          <p className="text-muted-foreground">
-            {t("processdoc.desc")}
-          </p>
-        </div>
-        {source === "demo" ? (
-          <Badge className="bg-yellow-100 text-yellow-800 text-sm px-3 py-1">{t("backend.demo")}</Badge>
-        ) : source === "subprocess" ? (
-          <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1">{t("backend.subprocess")}</Badge>
-        ) : source === "backend" ? (
-          <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("backend.live")}</Badge>
-        ) : (
-          <Badge className="bg-gray-100 text-gray-600 text-sm px-3 py-1">{t("processdoc.title")}</Badge>
-        )}
-      </div>
-
-      {loading && (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">{t("common.loading")}</CardContent></Card>
-      )}
-
-      {error && (
-        <Card><CardContent className="py-8 text-center">
-          <p className="text-red-600 text-sm mb-2">{t("common.error")}: {error}</p>
-          <button onClick={loadData} className="text-sm text-blue-600 underline">{t("common.retry")}</button>
-        </CardContent></Card>
-      )}
-
-      {!loading && !error && <>
+    <SkillViewerLayout
+      skillName="processdoc"
+      source={source}
+      loading={loading}
+      error={error}
+      onRetry={loadData}
+      badgeFallbackKey="processdoc.title"
+    >
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <KpiCard title={t("processdoc.generated")} value={String(totalDocs)} sub={t("common.total")} />
@@ -142,10 +106,7 @@ export default function ProcessDocumentationPage() {
           </TabsList>
 
           <TabsContent value="diagram" className="mt-4">
-            <DiagramPreview
-              mermaidCode={selected.mermaid_code}
-              title={selected.extraction.title}
-            />
+            <DiagramPreview mermaidCode={selected.mermaid_code} title={selected.extraction.title} />
           </TabsContent>
 
           <TabsContent value="review" className="mt-4">
@@ -157,11 +118,7 @@ export default function ProcessDocumentationPage() {
           </TabsContent>
 
           <TabsContent value="gallery" className="mt-4">
-            <GenerationGallery
-              documents={documents}
-              selectedId={selected.doc_id}
-              onSelect={setSelected}
-            />
+            <GenerationGallery documents={documents} selectedId={selected.doc_id} onSelect={setSelected} />
           </TabsContent>
         </Tabs>
       ) : (
@@ -171,7 +128,6 @@ export default function ProcessDocumentationPage() {
           </CardContent>
         </Card>
       )}
-      </>}
-    </div>
+    </SkillViewerLayout>
   );
 }

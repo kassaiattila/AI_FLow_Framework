@@ -9,6 +9,7 @@ import { ChatInput } from "@/components/rag-chat/chat-input";
 import { CitationPanel } from "@/components/rag-chat/citation-panel";
 import { SearchRelevance } from "@/components/rag-chat/search-relevance";
 import { StepTrace } from "@/components/rag-chat/step-trace";
+import { SkillViewerLayout } from "@/components/skill-viewer";
 import { useI18n } from "@/hooks/use-i18n";
 import type { RagConversation, RagMessage, QueryOutput } from "@/lib/types";
 
@@ -70,7 +71,6 @@ export default function AszfRagChatPage() {
     setLoading(true);
     setActiveCitation(null);
 
-    // Add placeholder assistant message for streaming
     const thinkingMsg: RagMessage = { role: "assistant", content: `_${t("rag.thinking")}_` };
     setMessages((prev) => [...prev, thinkingMsg]);
 
@@ -108,10 +108,7 @@ export default function AszfRagChatPage() {
               streamedContent += event.content;
               setMessages((prev) => {
                 const updated = [...prev];
-                updated[updated.length - 1] = {
-                  role: "assistant",
-                  content: streamedContent,
-                };
+                updated[updated.length - 1] = { role: "assistant", content: streamedContent };
                 return updated;
               });
             } else if (event.type === "metadata") {
@@ -131,7 +128,6 @@ export default function AszfRagChatPage() {
         }
       }
 
-      // Update final message with metadata
       if (finalOutput) {
         setMessages((prev) => {
           const updated = [...prev];
@@ -147,10 +143,7 @@ export default function AszfRagChatPage() {
     } catch {
       setMessages((prev) => {
         const updated = [...prev];
-        updated[updated.length - 1] = {
-          role: "assistant",
-          content: t("rag.queryError"),
-        };
+        updated[updated.length - 1] = { role: "assistant", content: t("rag.queryError") };
         return updated;
       });
     } finally {
@@ -159,35 +152,16 @@ export default function AszfRagChatPage() {
   };
 
   return (
-    <div className="p-6 space-y-4 h-[calc(100vh-0px)]">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">{t("rag.title")}</h2>
-          <p className="text-muted-foreground">
-            {t("rag.desc")}
-          </p>
-        </div>
-        {source === "demo" ? (
-          <Badge className="bg-yellow-100 text-yellow-800 text-sm px-3 py-1">{t("backend.demo")}</Badge>
-        ) : source === "backend" ? (
-          <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("backend.live")} — {t("rag.evalBadge")}</Badge>
-        ) : (
-          <Badge className="bg-gray-100 text-gray-600 text-sm px-3 py-1">{t("rag.evalBadge")}</Badge>
-        )}
-      </div>
-
-      {pageLoading && (
-        <Card><div className="py-12 text-center text-muted-foreground">{t("common.loading")}</div></Card>
-      )}
-
-      {error && (
-        <Card><div className="py-8 text-center">
-          <p className="text-red-600 text-sm mb-2">{t("common.errorPrefix")}{error}</p>
-          <button onClick={loadConversations} className="text-sm text-blue-600 underline">{t("common.retry")}</button>
-        </div></Card>
-      )}
-
-      {!pageLoading && !error && <>
+    <SkillViewerLayout
+      skillName="rag"
+      source={source}
+      loading={pageLoading}
+      error={error}
+      onRetry={loadConversations}
+      badgeExtra={source === "backend" ? t("rag.evalBadge") : undefined}
+      badgeFallbackKey="rag.evalBadge"
+      fullHeight
+    >
       {/* Conversation selector */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {conversations.map((conv) => (
@@ -209,11 +183,7 @@ export default function AszfRagChatPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 flex-1" style={{ height: "calc(100vh - 200px)" }}>
         {/* Left: Chat (3/5) */}
         <Card className="lg:col-span-3 flex flex-col overflow-hidden">
-          <ChatMessages
-            messages={messages}
-            activeCitation={activeCitation}
-            onCitationClick={setActiveCitation}
-          />
+          <ChatMessages messages={messages} activeCitation={activeCitation} onCitationClick={setActiveCitation} />
           <ChatInput onSend={handleSend} disabled={loading} />
         </Card>
 
@@ -234,10 +204,7 @@ export default function AszfRagChatPage() {
             </TabsList>
 
             <TabsContent value="citations" className="mt-3 max-h-[calc(100vh-300px)] overflow-y-auto">
-              <CitationPanel
-                citations={lastOutput?.citations || []}
-                activeCitation={activeCitation}
-              />
+              <CitationPanel citations={lastOutput?.citations || []} activeCitation={activeCitation} />
             </TabsContent>
 
             <TabsContent value="search" className="mt-3 max-h-[calc(100vh-300px)] overflow-y-auto">
@@ -248,15 +215,12 @@ export default function AszfRagChatPage() {
               {lastOutput ? (
                 <StepTrace queryOutput={lastOutput} source={source} isProcessing={loading} />
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  {t("rag.noOutput")}
-                </p>
+                <p className="text-sm text-muted-foreground text-center py-8">{t("rag.noOutput")}</p>
               )}
             </TabsContent>
           </Tabs>
         </div>
       </div>
-      </>}
-    </div>
+    </SkillViewerLayout>
   );
 }
