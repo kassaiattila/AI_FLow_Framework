@@ -32,6 +32,9 @@ export async function POST(request: Request) {
 
   const stream = new ReadableStream({
     async start(controller) {
+      // Send source indicator first
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "source", mode: "demo" })}\n\n`));
+
       // Simulate token-by-token streaming of the answer
       const words = output.answer.split(" ");
       for (let i = 0; i < words.length; i++) {

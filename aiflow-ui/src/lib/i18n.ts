@@ -5,6 +5,13 @@ export type Locale = "hu" | "en";
 
 const translations: Record<Locale, Record<string, string>> = {
   hu: {
+    // Backend status
+    "backend.connected": "Backend: Kapcsolodva",
+    "backend.offline": "Demo mod — mock adatok",
+    "backend.checking": "Kapcsolodas ellenorzese...",
+    "backend.demo": "Demo",
+    "backend.live": "Live",
+
     // Sidebar
     "sidebar.dashboard": "Dashboard",
     "sidebar.skills": "Skills",
@@ -271,6 +278,13 @@ const translations: Record<Locale, Record<string, string>> = {
   },
 
   en: {
+    // Backend status
+    "backend.connected": "Backend: Connected",
+    "backend.offline": "Demo mode — mock data",
+    "backend.checking": "Checking connection...",
+    "backend.demo": "Demo",
+    "backend.live": "Live",
+
     // Sidebar
     "sidebar.dashboard": "Dashboard",
     "sidebar.skills": "Skills",

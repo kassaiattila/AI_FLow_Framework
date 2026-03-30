@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/hooks/use-i18n";
 import { SidebarUser } from "@/components/sidebar-user";
+import { BackendDot } from "@/components/connection-status";
 
 export function Sidebar() {
   const { t } = useI18n();
@@ -17,7 +18,10 @@ export function Sidebar() {
   return (
     <aside className="w-56 border-r bg-background flex flex-col h-screen sticky top-0">
       <div className="p-4 border-b">
-        <h1 className="text-lg font-bold">AIFlow</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold">AIFlow</h1>
+          <BackendDot />
+        </div>
         <p className="text-xs text-muted-foreground">Workflow Dashboard</p>
       </div>
       <nav className="flex-1 p-2 space-y-1">

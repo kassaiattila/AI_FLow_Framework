@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   if (backend) {
     // Persist backend result
     await updateJsonFile<ProcessDocResult[]>("process_docs.json", (docs) => [backend.data, ...docs]);
-    return NextResponse.json(backend.data);
+    return NextResponse.json({ ...backend.data, source: "backend" });
   }
 
   // Fallback: clone first mock doc with new ID + user's input
@@ -48,5 +48,5 @@ export async function POST(request: Request) {
   // Save to data store so it appears in the gallery
   await updateJsonFile<ProcessDocResult[]>("process_docs.json", (existing) => [newDoc, ...existing]);
 
-  return NextResponse.json(newDoc);
+  return NextResponse.json({ ...newDoc, source: "demo" });
 }

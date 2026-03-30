@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     `/api/v1/runs${query}`
   );
   if (backend) {
-    return NextResponse.json(backend.data);
+    return NextResponse.json({ ...backend.data, source: "backend" });
   }
 
   // Fallback to local JSON
@@ -23,5 +23,5 @@ export async function GET(request: Request) {
     runs = runs.filter((r: any) => r.skill_name === skill);
   }
 
-  return NextResponse.json({ runs, total: runs.length });
+  return NextResponse.json({ runs, total: runs.length, source: "demo" });
 }
