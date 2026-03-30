@@ -120,17 +120,31 @@ A felhasznalo jogos kritikaja: "kirakati baba" — szep felulet, de nincs mogott
 - Hasznalva: invoice, process-docs, email, rag-chat feldolgozas kozben
 - `source` badge: "Demo" vagy "Live"
 
-## Vegrehajtasi sorrend
+## Vegrehajtasi sorrend es statusz (2026-03-30)
 
 ```
-Fazis 1 (Alapozas)     → 1 session
-Fazis 2 (Process Docs)  → 1 session (subprocess minta mar letezik)
-Fazis 3 (RAG Chat)      → 1 session
-Fazis 4 (Email)          → 1-2 session (uj upload + process route)
-Fazis 5 (Cubix)          → gyors (cimke csere)
-Fazis 6 (Invoice batch)  → 1 session
-Fazis 7 (Egysegesites)   → 1 session
+Fazis 1 (Alapozas)      → KESZ ✓ — health check, useBackendStatus, connection-status, source tag
+Fazis 2 (Process Docs)   → KESZ ✓ — subprocess fallback, review.json export, source badge
+Fazis 3 (RAG Chat)       → KESZ ✓ — fetchBackend 60s, SSE source event, dynamic badge
+Fazis 4 (Email)           → KESZ ✓ — upload zone, /api/emails/upload+process, source badge
+Fazis 5 (Cubix)           → KESZ ✓ — filesystem scan, "Results Viewer" badge + hint
+Fazis 6 (Invoice batch)   → KESZ ✓ — fake step timer torolve, honest progress
+Fazis 7 (Egysegesites)    → KESZ ✓ — ProcessingPipeline, PipelineBar, SkillViewerLayout
+Fazis 8 (Szabalyok)       → RESZBEN — CLAUDE.md frissitve, command fajlok NINCS
+
+EXTRA: i18n cleanup       → KESZ ✓ — 0 hardcoded Hungarian string
+EXTRA: Honest statuszok   → KESZ ✓ — SkillStatus tipus, dashboard + sidebar frissitve
+EXTRA: Layout redesign    → KESZ ✓ — egyseges Input→KPIs→PipelineBar→Tabs sorrend
 ```
+
+### MI NEM TORTENT MEG (valos backend)
+A fazisok a UI OLDALT egysegesitettek es oszinteve tettek.
+A VALOS FELDOLGOZAS meg mindig fugg:
+1. API kulcsoktol (.env: OPENAI_API_KEY)
+2. Docker servicektol (PostgreSQL, Redis, Kroki)
+3. FastAPI backend futasatol
+
+Reszletek: `01_PLAN/38_UI_REALITY_STATUS.md`
 
 ## Kritikus fajlok
 
