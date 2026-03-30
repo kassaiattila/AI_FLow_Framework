@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useI18n } from "@/hooks/use-i18n";
 import type { ProcessedInvoice } from "@/lib/types";
 import { ConfidenceBadge } from "./shared";
 
@@ -10,6 +11,8 @@ interface DocumentDetailProps {
 }
 
 export function DocumentDetail({ invoice }: DocumentDetailProps) {
+  const { t } = useI18n();
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Left: parties + header */}
@@ -22,29 +25,29 @@ export function DocumentDetail({ invoice }: DocumentDetailProps) {
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div className="grid grid-cols-2 gap-4">
-            <PartyBlock label="SZALLITO" party={invoice.vendor} />
-            <PartyBlock label="VEVO" party={invoice.buyer} />
+            <PartyBlock label={t("invoice.vendor")} party={invoice.vendor} />
+            <PartyBlock label={t("invoice.buyer")} party={invoice.buyer} />
           </div>
 
           <div className="grid grid-cols-3 gap-2 pt-2 border-t">
-            <Field label="Szamlaszam" value={invoice.header.invoice_number} mono />
-            <Field label="Datum" value={invoice.header.invoice_date} mono />
-            <Field label="Fiz. hatarido" value={invoice.header.due_date || "\u2014"} mono />
+            <Field label={t("invoice.invoiceNumber")} value={invoice.header.invoice_number} mono />
+            <Field label={t("invoice.invoiceDate")} value={invoice.header.invoice_date} mono />
+            <Field label={t("invoice.dueDate")} value={invoice.header.due_date || "\u2014"} mono />
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            <Field label="Penznem" value={invoice.header.currency} mono bold />
-            <Field label="Fizetesi mod" value={invoice.header.payment_method || "\u2014"} />
-            <Field label="Parser" value={invoice.parser_used} />
+            <Field label={t("invoice.currency")} value={invoice.header.currency} mono bold />
+            <Field label={t("invoice.paymentMethod")} value={invoice.header.payment_method || "\u2014"} />
+            <Field label={t("invoice.parser")} value={invoice.parser_used} />
           </div>
 
           {(invoice.validation.errors.length > 0 || invoice.validation.warnings.length > 0) && (
             <div className="pt-2 border-t space-y-1">
               {invoice.validation.errors.map((e, i) => (
-                <p key={i} className="text-xs text-red-600">HIBA: {e}</p>
+                <p key={i} className="text-xs text-red-600">{t("invoice.validationError")}: {e}</p>
               ))}
               {invoice.validation.warnings.map((w, i) => (
-                <p key={i} className="text-xs text-yellow-600">FIGY: {w}</p>
+                <p key={i} className="text-xs text-yellow-600">{t("invoice.validationWarning")}: {w}</p>
               ))}
             </div>
           )}
@@ -54,18 +57,18 @@ export function DocumentDetail({ invoice }: DocumentDetailProps) {
       {/* Right: line items + totals */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Tetelek ({invoice.line_items.length} db)</CardTitle>
+          <CardTitle className="text-sm">{t("invoice.lineItems")} ({invoice.line_items.length} {t("invoice.lineItemUnit")})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10">#</TableHead>
-                <TableHead className="min-w-[180px]">Megnevezes</TableHead>
-                <TableHead className="w-20 text-right">Menny.</TableHead>
-                <TableHead className="w-24 text-right">Netto</TableHead>
-                <TableHead className="w-16 text-right">AFA</TableHead>
-                <TableHead className="w-28 text-right">Brutto</TableHead>
+                <TableHead className="min-w-[180px]">{t("invoice.description")}</TableHead>
+                <TableHead className="w-20 text-right">{t("invoice.quantity")}</TableHead>
+                <TableHead className="w-24 text-right">{t("invoice.netAmount")}</TableHead>
+                <TableHead className="w-16 text-right">{t("invoice.vatRate")}</TableHead>
+                <TableHead className="w-28 text-right">{t("invoice.grossAmount")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -83,10 +86,10 @@ export function DocumentDetail({ invoice }: DocumentDetailProps) {
           </Table>
 
           <div className="mt-3 pt-2 border-t space-y-1">
-            <TotalRow label="Netto" value={invoice.totals.net_total} currency={invoice.header.currency} />
-            <TotalRow label="AFA" value={invoice.totals.vat_total} currency={invoice.header.currency} />
+            <TotalRow label={t("invoice.netAmount")} value={invoice.totals.net_total} currency={invoice.header.currency} />
+            <TotalRow label={t("invoice.vatRate")} value={invoice.totals.vat_total} currency={invoice.header.currency} />
             <div className="flex justify-between text-sm font-bold pt-1 border-t">
-              <span>Brutto</span>
+              <span>{t("invoice.grossAmount")}</span>
               <span className="font-mono">{invoice.totals.gross_total.toLocaleString("hu-HU")} {invoice.header.currency}</span>
             </div>
           </div>
@@ -97,7 +100,7 @@ export function DocumentDetail({ invoice }: DocumentDetailProps) {
 }
 
 function PartyBlock({ label, party }: { label: string; party: { name?: string; address?: string; tax_number?: string; bank_account?: string; bank_name?: string } | null | undefined }) {
-  if (!party) return <div><p className="text-[10px] font-bold text-muted-foreground uppercase">{label}</p><p className="text-xs text-muted-foreground">Nincs adat</p></div>;
+  if (!party) return <div><p className="text-[10px] font-bold text-muted-foreground uppercase">{label}</p><p className="text-xs text-muted-foreground">—</p></div>;
   return (
     <div>
       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{label}</p>

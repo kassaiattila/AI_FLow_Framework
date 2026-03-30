@@ -9,12 +9,14 @@ import { BatchBanner, type BatchState, type BatchItem, saveBatchToSession, loadB
 import { ScheduleDialog } from "@/components/invoice/schedule-dialog";
 import { KpiCard, getDocStatus, type DocStatus } from "@/components/invoice/shared";
 import { ExportButton } from "@/components/export-button";
+import { useI18n } from "@/hooks/use-i18n";
 import type { ProcessedInvoice, WorkflowRun } from "@/lib/types";
 
 type StatusFilter = "all" | "new" | "completed" | "failed";
 type TimeFilter = "all" | "24h" | "7d" | "30d";
 
 export default function InvoiceProcessorPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [invoices, setInvoices] = useState<ProcessedInvoice[]>([]);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
@@ -207,10 +209,10 @@ export default function InvoiceProcessorPage() {
       <UploadZone onFilesUploaded={handleFilesUploaded} autoProcess={autoProcess} onAutoProcessChange={setAutoProcess} />
 
       <div className="grid grid-cols-4 gap-3">
-        <KpiCard title="Dokumentumok" value={invoices.length.toString()} sub={`${completedCount} feldolgozva`} />
-        <KpiCard title="HUF osszesen" value={totalHUF >= 1000 ? `${Math.round(totalHUF / 1000)}k Ft` : `${totalHUF} Ft`} sub={`${invoices.filter((i) => i.header.currency === "HUF").length} szamla`} />
-        <KpiCard title="Futasok" value={runs.length.toString()} sub={`${runs.filter((r) => r.status === "completed").length} sikeres`} />
-        <KpiCard title="LLM koltseg" value={`$${totalCost.toFixed(3)}`} sub={`${runs.length} futasbol`} />
+        <KpiCard title={t("invoice.documents")} value={invoices.length.toString()} sub={`${completedCount} ${t("invoice.processed")}`} />
+        <KpiCard title={t("invoice.hufTotal")} value={totalHUF >= 1000 ? `${Math.round(totalHUF / 1000)}k Ft` : `${totalHUF} Ft`} sub={`${invoices.filter((i) => i.header.currency === "HUF").length} ${t("invoice.invoiceUnit")}`} />
+        <KpiCard title={t("invoice.runs")} value={runs.length.toString()} sub={`${runs.filter((r) => r.status === "completed").length} ${t("invoice.successful")}`} />
+        <KpiCard title={t("invoice.llmCost")} value={`$${totalCost.toFixed(3)}`} sub={`${runs.length} ${t("invoice.fromRuns")}`} />
       </div>
 
       {batchState.status !== "idle" && (
@@ -221,25 +223,25 @@ export default function InvoiceProcessorPage() {
         <CardContent className="py-3 px-4">
           <div className="flex items-center gap-3 flex-wrap">
             <select value={timeFilter} onChange={(e) => { setTimeFilter(e.target.value as TimeFilter); setPage(0); }} className="h-8 px-2 text-xs rounded-md border border-input bg-background">
-              <option value="all">Osszes ido</option>
-              <option value="24h">Utolso 24 ora</option>
-              <option value="7d">Utolso 7 nap</option>
-              <option value="30d">Utolso 30 nap</option>
+              <option value="all">{t("invoice.timeAll")}</option>
+              <option value="24h">{t("invoice.time24h")}</option>
+              <option value="7d">{t("invoice.time7d")}</option>
+              <option value="30d">{t("invoice.time30d")}</option>
             </select>
             <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setPage(0); }} className="h-8 px-2 text-xs rounded-md border border-input bg-background">
-              <option value="all">Minden statusz</option>
-              <option value="new">Feldolgozatlan</option>
-              <option value="completed">Kesz</option>
-              <option value="failed">Hibas</option>
+              <option value="all">{t("invoice.statusAll")}</option>
+              <option value="new">{t("invoice.statusNew")}</option>
+              <option value="completed">{t("invoice.statusDone")}</option>
+              <option value="failed">{t("invoice.statusFailed")}</option>
             </select>
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
               <input type="checkbox" checked={onlyUnprocessed} onChange={(e) => setOnlyUnprocessed(e.target.checked)} className="size-3.5 accent-primary" />
-              Csak feldolgozatlanok
+              {t("invoice.onlyUnprocessed")}
             </label>
             <div className="flex-1" />
             <ExportButton
               filename={`szamlak_${new Date().toISOString().slice(0, 10)}.csv`}
-              headers={["Fajl", "Szallito", "Szamlaszam", "Datum", "Netto", "AFA", "Brutto", "Penznem", "Statusz"]}
+              headers={[t("common.file"), t("invoice.vendor"), t("invoice.invoiceNumber"), t("common.date"), t("invoice.netAmount"), t("invoice.vatRate"), t("invoice.grossAmount"), t("invoice.currency"), t("common.status")]}
               rows={filtered.map((inv) => [
                 inv.source_file,
                 inv.vendor?.name || "",
@@ -253,26 +255,26 @@ export default function InvoiceProcessorPage() {
               ])}
             />
             <button onClick={handleSelectUnprocessed} className="px-3 py-1.5 rounded-md text-xs border border-border text-muted-foreground hover:bg-muted">
-              Feldolgozatlanok kivalasztasa
+              {t("invoice.selectUnprocessed")}
             </button>
             <button
               disabled={checkedIds.size === 0 || batchState.status === "running"}
               onClick={() => startBatch()}
               className="px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
             >
-              Batch feldolgozas ({checkedIds.size})
+              {t("invoice.batchProcess")} ({checkedIds.size})
             </button>
-            <button onClick={() => setScheduleOpen(true)} className="px-2 py-1.5 rounded-md text-xs border border-border hover:bg-muted" title="Utemezes">
+            <button onClick={() => setScheduleOpen(true)} className="px-2 py-1.5 rounded-md text-xs border border-border hover:bg-muted" title={t("invoice.schedule")}>
               &#9200;
             </button>
             <button
               onClick={async () => {
-                if (!confirm("Minden adat torlodik (dokumentumok, futasok, kepek). Biztosan?")) return;
+                if (!confirm(t("invoice.resetConfirm"))) return;
                 await fetch("/api/documents/reset", { method: "POST" });
                 loadData();
               }}
               className="px-2 py-1.5 rounded-md text-xs border border-red-200 text-red-600 hover:bg-red-50"
-              title="Minden adat torlese"
+              title={t("invoice.resetAll")}
             >
               Reset
             </button>

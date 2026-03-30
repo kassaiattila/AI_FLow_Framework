@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     formData = await request.formData();
   } catch (err) {
     return NextResponse.json(
-      { error: "Feltoltes sikertelen: tul nagy fajlmeret vagy ervenytelen formatum", details: String(err) },
+      { error: "Upload failed: file too large or invalid format", details: String(err) },
       { status: 413 }
     );
   }
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   );
 
   if (files.length === 0) {
-    return NextResponse.json({ error: "Nincs fajl a feltoltesben" }, { status: 400 });
+    return NextResponse.json({ error: "No files in upload" }, { status: 400 });
   }
 
   const added: string[] = [];
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
 
       if (isDuplicate) {
         // File already in system — still save the PDF (update), but note it
-        errors.push(`${safeName}: mar letezik (PDF felulirva)`);
+        errors.push(`${safeName}: already exists (PDF overwritten)`);
       }
       added.push(safeName);
     } catch (err) {

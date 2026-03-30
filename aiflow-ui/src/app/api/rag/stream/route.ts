@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     const firstConv = conversations[0];
     const lastAssistant = firstConv?.messages.findLast((m) => m.role === "assistant");
     mockOutput = lastAssistant?.query_output || {
-      answer: "A RAG backend jelenleg nem elerheto. Mock valasz: " + question,
+      answer: "RAG backend unavailable. Mock answer for: " + question,
       citations: [],
       search_results: [],
       hallucination_score: 0.5,

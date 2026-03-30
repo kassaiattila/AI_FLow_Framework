@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
   if (!lastAssistant?.query_output) {
     const fallback: QueryOutput = {
-      answer: "A RAG backend jelenleg nem elerheto. Mock valasz a kerdesre: " + question,
+      answer: "RAG backend unavailable. Mock answer for: " + question,
       citations: [],
       search_results: [],
       hallucination_score: 0.5,

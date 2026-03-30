@@ -114,7 +114,7 @@ export async function POST(request: Request) {
   // === Priority 3: Mock fallback (labeled as demo) ===
   const docs = await readJsonFile<ProcessDocResult[]>("process_docs.json");
   if (docs.length === 0) {
-    return NextResponse.json({ error: "Backend nem elerheto, mock data hianyzik" }, { status: 503 });
+    return NextResponse.json({ error: "Backend unavailable and no mock data" }, { status: 503 });
   }
 
   const template = docs[0];

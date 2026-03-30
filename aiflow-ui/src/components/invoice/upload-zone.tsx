@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { useI18n } from "@/hooks/use-i18n";
 
 interface UploadZoneProps {
   onFilesUploaded: (fileNames: string[]) => void;
@@ -9,6 +10,7 @@ interface UploadZoneProps {
 }
 
 export function UploadZone({ onFilesUploaded, autoProcess, onAutoProcessChange }: UploadZoneProps) {
+  const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState<string>("");
@@ -18,16 +20,11 @@ export function UploadZone({ onFilesUploaded, autoProcess, onAutoProcessChange }
     async (fileList: FileList | File[] | null) => {
       if (!fileList) return;
       const allFiles = Array.from(fileList);
-      console.log(`[UploadZone] Total files received: ${allFiles.length}`);
-      allFiles.slice(0, 5).forEach((f, i) =>
-        console.log(`  [${i}] name="${f.name}" type="${f.type}" size=${f.size}`)
-      );
       const pdfFiles = allFiles.filter((f) =>
         f.name.toLowerCase().endsWith(".pdf") || f.type === "application/pdf"
       );
-      console.log(`[UploadZone] PDF files after filter: ${pdfFiles.length}`);
       if (pdfFiles.length === 0) {
-        setStatus(`Nincs PDF (${allFiles.length} fajl a mappaban, de 0 PDF)`);
+        setStatus(`${t("invoice.noPdf")} (${allFiles.length} ${t("invoice.filesInFolder")})`);
         setTimeout(() => setStatus(""), 5000);
         return;
       }
@@ -35,12 +32,12 @@ export function UploadZone({ onFilesUploaded, autoProcess, onAutoProcessChange }
       setUploading(true);
       const totalCount = pdfFiles.length;
       const allUploaded: string[] = [];
-      const BATCH_SIZE = 5; // Upload in batches to avoid body size limits
+      const BATCH_SIZE = 5;
 
       try {
         for (let i = 0; i < pdfFiles.length; i += BATCH_SIZE) {
           const batch = pdfFiles.slice(i, i + BATCH_SIZE);
-          setStatus(`Feltoltes: ${Math.min(i + BATCH_SIZE, totalCount)}/${totalCount} PDF...`);
+          setStatus(`${t("invoice.uploadProgress")} ${Math.min(i + BATCH_SIZE, totalCount)}/${totalCount} ${t("invoice.uploadPdf")}`);
 
           const formData = new FormData();
           for (const f of batch) formData.append("files", f);
@@ -50,44 +47,36 @@ export function UploadZone({ onFilesUploaded, autoProcess, onAutoProcessChange }
             body: formData,
           });
 
-          if (!res.ok) {
-            const text = await res.text();
-            console.error(`Upload batch failed (${res.status}):`, text);
-            continue;
-          }
+          if (!res.ok) continue;
 
           let data: { files?: string[]; error?: string };
           try {
             data = await res.json();
           } catch {
-            console.error("Upload response not JSON");
             continue;
           }
 
-          console.log(`[UploadZone] Batch response:`, data);
           if (data.files?.length) {
             allUploaded.push(...data.files);
           }
         }
 
         if (allUploaded.length > 0) {
-          setStatus(`+${allUploaded.length} fajl feltoltve`);
+          setStatus(`+${allUploaded.length} ${t("invoice.uploadDone")}`);
           onFilesUploaded(allUploaded);
         } else {
-          setStatus("Hiba: 0 fajl sikerult feltolteni");
+          setStatus(t("invoice.uploadZeroSuccess"));
         }
-      } catch (err) {
-        setStatus("Feltoltes sikertelen");
-        console.error("Upload failed:", err);
+      } catch {
+        setStatus(t("invoice.uploadFailed"));
       } finally {
         setUploading(false);
         setTimeout(() => setStatus(""), 4000);
       }
     },
-    [onFilesUploaded]
+    [onFilesUploaded, t]
   );
 
-  // File input: browse for files
   const handleBrowseFiles = useCallback(() => {
     const input = document.createElement("input");
     input.type = "file";
@@ -97,7 +86,6 @@ export function UploadZone({ onFilesUploaded, autoProcess, onAutoProcessChange }
     input.click();
   }, [uploadFiles]);
 
-  // Folder input: browse for folder
   const handleBrowseFolder = useCallback(() => {
     const input = document.createElement("input");
     input.type = "file";
@@ -107,7 +95,6 @@ export function UploadZone({ onFilesUploaded, autoProcess, onAutoProcessChange }
     input.click();
   }, [uploadFiles]);
 
-  // Drag & drop
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
@@ -155,27 +142,19 @@ export function UploadZone({ onFilesUploaded, autoProcess, onAutoProcessChange }
     >
       <div className="flex items-center justify-center gap-3 text-sm">
         {uploading ? (
-          <span className="text-primary font-medium animate-pulse">Feltoltes folyamatban...</span>
+          <span className="text-primary font-medium animate-pulse">{t("invoice.uploading")}</span>
         ) : isDragging ? (
-          <span className="text-primary font-medium">Engedd el a fajlokat ide...</span>
+          <span className="text-primary font-medium">{t("invoice.dropHere")}</span>
         ) : (
           <>
-            <span className="text-muted-foreground">Huzd ide a PDF fajlokat</span>
+            <span className="text-muted-foreground">{t("invoice.dragPdf")}</span>
             <span className="text-muted-foreground/30">|</span>
-            <button
-              type="button"
-              onClick={handleBrowseFiles}
-              className="text-primary hover:underline text-sm font-medium"
-            >
-              Tallozas
+            <button type="button" onClick={handleBrowseFiles} className="text-primary hover:underline text-sm font-medium">
+              {t("invoice.browseFiles")}
             </button>
             <span className="text-muted-foreground/30">|</span>
-            <button
-              type="button"
-              onClick={handleBrowseFolder}
-              className="text-primary hover:underline text-sm font-medium"
-            >
-              Mappa
+            <button type="button" onClick={handleBrowseFolder} className="text-primary hover:underline text-sm font-medium">
+              {t("invoice.browseFolder")}
             </button>
           </>
         )}
@@ -189,10 +168,10 @@ export function UploadZone({ onFilesUploaded, autoProcess, onAutoProcessChange }
             onChange={(e) => onAutoProcessChange(e.target.checked)}
             className="size-3.5 rounded border-border accent-primary"
           />
-          Auto feldolgozas feltoltes utan
+          {t("invoice.autoProcess")}
         </label>
         {status && (
-          <span className={`text-xs font-medium ${status.startsWith("+") ? "text-green-600" : status.startsWith("Hiba") || status.startsWith("Nincs") || status.startsWith("Feltoltes s") ? "text-red-600" : "text-blue-600"}`}>
+          <span className={`text-xs font-medium ${status.startsWith("+") ? "text-green-600" : status.includes("0") || status.toLowerCase().includes("fail") || status.toLowerCase().includes("hiba") ? "text-red-600" : "text-blue-600"}`}>
             {status}
           </span>
         )}
