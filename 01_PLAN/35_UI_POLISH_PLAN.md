@@ -1,127 +1,71 @@
 # UI Polish Plan — Melyseg javitas (2026-03-31+)
 
-## Problema osszefoglalo
+## Elkeszult
 
-A P0-P7 session soran 92 fajlbol allo UI-t epitettunk 1 nap alatt.
-Az eredmeny: szelessegben kesz (5 viewer, auth, dark mode, i18n infra, CSV, SSE, CI/CD),
-de **melysegben hianyos**:
-- i18n: 92 kulcs definiálva, de 0% hasznalat a komponensekben
-- Viewerek: adat megjelenites van, de nincs workflow erzet
-- Diagram: Kroki nem mukodik → semmit nem lat a felhasznalo
-- Hardcoded stringek: 88 db szetszorodva 30+ fajlban
+### 1. fazis: i18n bekotes — KESZ (8bc89fa)
+- 170+ kulcs (hu + en) az i18n.ts-ben
+- 26 fajl modositva: mind a 8 oldal + 20+ komponens hasznalja `t()`-t
+- HU/EN toggle valoban leforditja a teljes feluletet
+- 58 Vitest teszt pass
 
-## 1. fazis: i18n bekotes (PRIORITAS 1)
+### Fejlesztesi szabalyok rogzitve — KESZ (0582b49)
+- CLAUDE.md: "MANDATORY Next.js UI Development Rules" szekcio
+- 4 command fajl frissitve (/ui-component, /ui-page, /ui-viewer, /dev-step)
+- Memory: feedback_ui_depth.md (6 szabaly)
 
-**Cel:** Mind a 88 hardcoded string → `t()` hivas
+## Kovetkezo feladatok
 
-### Erintett fajlok:
-```
-# Oldalak (8 fajl)
-src/app/page.tsx                              — 6 string
-src/app/costs/page.tsx                        — 4 string
-src/app/runs/page.tsx                         — 12 string
-src/app/skills/email_intent_processor/page.tsx — 10 string
-src/app/skills/process_documentation/page.tsx — 8 string
-src/app/skills/cubix_course_capture/page.tsx  — 8 string
-src/app/skills/aszf_rag_chat/page.tsx         — 6 string
-src/app/login/page.tsx                        — 4 string
+### 2. fazis: Process Docs UX — diagram megjelenites (PRIORITAS 1)
+**Fo problema:** Kroki szerver nincs futva → diagram nem latszik → oldal ertelmetlen
 
-# Komponensek (12+ fajl)
-src/components/email/shared.tsx               — label stringek
-src/components/email/email-table.tsx           — fejlec stringek
-src/components/email/routing-card.tsx          — label stringek
-src/components/process-docs/text-input-form.tsx — placeholder, gomb
-src/components/process-docs/diagram-preview.tsx — hiba, tab labelek
-src/components/process-docs/review-scores.tsx  — score labelek
-src/components/process-docs/generation-gallery.tsx — ures allapot
-src/components/cubix/pipeline-progress.tsx     — stage labelek
-src/components/cubix/lesson-results.tsx        — fejlec stringek
-src/components/rag-chat/chat-input.tsx         — role labelek, placeholder
-src/components/rag-chat/hallucination-indicator.tsx — szint labelek
-src/components/verification/audit-history.tsx  — action labelek
-```
+**Megoldas:**
+1. `npm install mermaid` → client-side rendereles (nem fugg kulso szervertol)
+2. `diagram-preview.tsx` → `mermaid.render()` hasznalata, Kroki marad fallback
+3. Review scores — tooltip/legend: "7+ = jo, 4-6 = elfogadhato, 1-3 = gyenge"
+4. Form pozicio — elso elem az oldalon
+5. Galeria — mindig latszodik
 
-### i18n.ts bovites:
-Uj kulcsok szuksegesek (becsles: +40 kulcs hu/en):
-- email.* (table fejlecek, KPI labelek, ures allapotok)
-- processdoc.* (form placeholder, score labelek, hiba uzenetek)
-- cubix.* (stage labelek, table fejlecek)
-- rag.* (role labelek, hiba uzenetek)
-- runs.* (table fejlecek, statusz labelek)
-- costs.* (KPI labelek)
+**Erintett fajlok:**
+- `components/process-docs/diagram-preview.tsx`
+- `components/process-docs/review-scores.tsx`
+- `skills/process_documentation/page.tsx`
 
-### Minta:
-```tsx
-// ELOTTE (hardcoded):
-<p>Betoltes...</p>
+### 3. fazis: Email Viewer UX
+1. **Szures UI** — intent dropdown, priority dropdown
+2. **Statusz badge** — uj/feldolgozott/hiba
+3. **KPI javitas** — szazalekok, context
+4. **Ures allapot** — ertelmesebb szoveg
 
-// UTANA (i18n):
-const { t } = useI18n();
-<p>{t("common.loading")}</p>
-```
+### 4. fazis: Cubix + RAG polish
+**Cubix:**
+- Pipeline stage: szoveges labelek (mar bekotve i18n-nel)
+- Progress bar szinezese (zold/kek/piros/szurke — mar mukodik)
 
-## 2. fazis: Email Viewer UX
+**RAG Chat:**
+- Streaming: "Gondolkodik..." jelzes
+- Role tooltip
+- Conversation nevez
 
-### Jelenlegi allapot:
-- Email lista tabla (sortable)
-- Intent/entity/routing detail panelek
-- KPI kartya (szamok)
+### 5. fazis: Tesztek + validalas
+- i18n coverage test: grep minden oldalban van-e `useI18n` import
+- Component render test: minden komponens renderelheto hiba nelkul
+- Manualis checklist (lasd lent)
 
-### Hianyzo:
-1. **Szures UI** — intent dropdown, priority dropdown, datum range
-2. **Statusz jelzes** — uj/feldolgozott/hiba badge
-3. **KPI javitas** — szazalekok, baseline context
-4. **Ures allapot** — "Nincs feldolgozott email. Toltsön fel egy .eml fajlt..." szoveg
-
-### Fajlok:
-- `email_intent_processor/page.tsx` — szures state + UI
-- `email/email-table.tsx` — szures prop fogadas
-- `email/shared.tsx` — uj badge-ek
-
-## 3. fazis: Process Docs UX
-
-### Fo problema:
-Kroki szerver nincs futva → diagram nem latszik → oldal ertelmetlen
-
-### Megoldas:
-1. **npm install mermaid** → client-side rendereles
-2. `diagram-preview.tsx` → `mermaid.render()` hasznalata Kroki helyett
-3. Kroki marad opcionalisan (ha elerheto, azt hasznalja)
-
-### Tovabbi javitasok:
-1. **Review scores** — legend/tooltip: "7+ = jo, 4-6 = elfogadhato, 1-3 = gyenge"
-2. **Form pozicio** — elso elem az oldalon (KPI-k alatta)
-3. **Galeria** — mindig latszodik (nem csak general utan)
-
-## 4. fazis: Cubix + RAG polish
-
-### Cubix:
-1. Pipeline stage labelek: "Probe → Audio → Chunk → STT → Merge → Struktura" (szoveg, nem szimbolum)
-2. Szinezett progress bar (zold=kesz, kek=fut, piros=hiba, szurke=varakozik)
-3. Osszefoglalo KPI javitas
-
-### RAG Chat:
-1. Role selector: tooltip magyarazat
-2. Streaming: "Gondolkodik..." jelzes a placeholder uzenetben
-3. Conversation nevez/torol
-
-## 5. fazis: Tesztek + validalas
-
-### Uj tesztek:
-- i18n-coverage.test.ts: minden oldalban van useI18n() import
-- component-render.test.tsx: React Testing Library rendereles (nem crashel)
-
-### Manualis checklist:
-- [ ] Minden oldal betolt hiba nelkul
-- [ ] HU/EN toggle megvaltoztatja MINDEN szoveget
-- [ ] Diagram megjelenik (legalabb raw kod)
-- [ ] Email tabla filterelheto
-- [ ] Cubix pipeline lepesek olvashatoak
+## Manualis teszt checklist
+- [ ] Dashboard betolt, KPI-k valos adatokat mutatnak
+- [ ] HU/EN toggle MINDEN szoveget valtoztat minden oldalon
+- [ ] Process docs: diagram latszik (Mermaid client-side VAGY raw kod)
+- [ ] Email tabla betolt, detail panelek mukodnek
+- [ ] RAG Chat: kerdes kuldheto, streaming valasz erkezik
+- [ ] Cubix pipeline: fajlok kivalaszthatok, stage-ek lathatok
+- [ ] Costs/Runs: adatok betoltodnek /api/-bol
+- [ ] Login/logout/re-login mukodik
+- [ ] Dark mode: minden oldal jol nez ki
+- [ ] CSV Export mukodik (invoice, runs, costs, email)
 
 ## Verifikacio
-
 ```bash
 npx vitest run          # 58+ teszt pass
 npx next build          # 0 hiba
-npm run dev             # manualis ellenorzes
+npm run dev             # manualis ellenorzes a checklist alapjan
 ```
