@@ -211,6 +211,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "processdoc.suggestions": "Javaslatok:",
     "processdoc.noGallery": "Nincs korabbi generalas",
     "processdoc.generatePrompt": "Irja le a folyamatot es nyomja meg a \"Diagram generalas\" gombot",
+    "processdoc.emptyState": "Irja le a folyamatot es kattintson a \"Diagram generalas\" gombra",
+    "processdoc.generateError": "Generalasi hiba",
     "processdoc.actor": "szereplo",
     "processdoc.step": "lepes",
 
@@ -460,6 +462,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "processdoc.suggestions": "Suggestions:",
     "processdoc.noGallery": "No previous generations",
     "processdoc.generatePrompt": "Describe the process and click \"Generate diagram\"",
+    "processdoc.emptyState": "Describe a process and click \"Generate diagram\"",
+    "processdoc.generateError": "Generation error",
     "processdoc.actor": "actors",
     "processdoc.step": "steps",
 

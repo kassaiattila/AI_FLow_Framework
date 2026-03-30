@@ -39,12 +39,17 @@ export function ReviewScores({ review }: ReviewScoresProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground mb-2">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> 7-10 = {t("processdoc.acceptable")}</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500" /> 4-6</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> 1-3 = {t("processdoc.needsWork")}</span>
+        </div>
         <div className="grid grid-cols-5 gap-2">
-          <ScoreBox label={t("processdoc.scoreOverall")} score={review.score} />
-          <ScoreBox label={t("processdoc.scoreCompleteness")} score={review.completeness_score} />
-          <ScoreBox label={t("processdoc.scoreLogic")} score={review.logic_score} />
-          <ScoreBox label={t("processdoc.scoreActors")} score={review.actors_score} />
-          <ScoreBox label={t("processdoc.scoreDecisions")} score={review.decisions_score} />
+          <ScoreBox label={t("processdoc.overall")} score={review.score} />
+          <ScoreBox label={t("processdoc.completeness")} score={review.completeness_score} />
+          <ScoreBox label={t("processdoc.logic")} score={review.logic_score} />
+          <ScoreBox label={t("processdoc.actorsScore")} score={review.actors_score} />
+          <ScoreBox label={t("processdoc.decisions")} score={review.decisions_score} />
         </div>
 
         {review.issues.length > 0 && (
