@@ -28,11 +28,7 @@ export function SidebarUser() {
       <div className="flex items-center gap-1 px-3">
         <ThemeToggle />
         <button
-          onClick={() => {
-            const next = locale === "hu" ? "en" : "hu";
-            switchLocale(next);
-            window.location.reload();
-          }}
+          onClick={() => switchLocale(locale === "hu" ? "en" : "hu")}
           className="px-2 py-1.5 rounded-md hover:bg-muted text-xs font-medium"
           title={locale === "hu" ? "Switch to English" : "Valtson magyarra"}
         >

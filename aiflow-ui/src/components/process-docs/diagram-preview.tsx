@@ -20,11 +20,15 @@ export function DiagramPreview({ mermaidCode, title }: DiagramPreviewProps) {
     setLoading(true);
     setSvgError(null);
 
-    // Try Kroki server for rendering
-    fetch("http://localhost:8000/kroki", {
+    // Try Kroki server for rendering (2s timeout)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+
+    fetch("/api/kroki", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ diagram_type: "mermaid", source: mermaidCode, output_format: "svg" }),
+      signal: controller.signal,
     })
       .then((r) => {
         if (!r.ok) throw new Error(`Kroki ${r.status}`);
@@ -32,9 +36,12 @@ export function DiagramPreview({ mermaidCode, title }: DiagramPreviewProps) {
       })
       .then((svg) => setSvgHtml(svg))
       .catch(() => {
-        setSvgError("Kroki szerver nem elerheto — nyers kod megjelenitese");
+        setSvgError("Kroki szerver nem elerheto — nyers Mermaid kod megjelenitese");
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        clearTimeout(timeout);
+        setLoading(false);
+      });
   }, [mermaidCode]);
 
   return (

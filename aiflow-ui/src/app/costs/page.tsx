@@ -37,9 +37,10 @@ export default function CostsPage() {
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
 
   useEffect(() => {
-    fetch("/data/runs.json")
+    fetch("/api/runs")
       .then((r) => r.json())
-      .then(setRuns);
+      .then((data: { runs: WorkflowRun[] }) => setRuns(data.runs || []))
+      .catch(() => setRuns([]));
   }, []);
 
   // Aggregate by skill
@@ -136,8 +137,8 @@ export default function CostsPage() {
         <KpiCard title="Total Tokens" value={totalTokens.toLocaleString()} subtitle="input + output" />
         <KpiCard
           title="Today"
-          value={`$${(dailyRows.find((d) => d.date === "2026-03-29")?.cost || 0).toFixed(4)}`}
-          subtitle={`${dailyRows.find((d) => d.date === "2026-03-29")?.runs || 0} runs`}
+          value={`$${(dailyRows.find((d) => d.date === new Date().toISOString().slice(0, 10))?.cost || 0).toFixed(4)}`}
+          subtitle={`${dailyRows.find((d) => d.date === new Date().toISOString().slice(0, 10))?.runs || 0} runs`}
         />
       </div>
 

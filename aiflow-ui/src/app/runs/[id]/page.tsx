@@ -31,18 +31,18 @@ export default function RunDetailPage() {
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/data/runs.json")
+    fetch("/api/runs")
       .then((r) => r.json())
-      .then((runs: WorkflowRun[]) => {
-        const found = runs.find((r) => r.run_id === params.id);
+      .then((data: { runs: WorkflowRun[] }) => {
+        const found = (data.runs || []).find((r: WorkflowRun) => r.run_id === params.id);
         if (found) {
           setRun(found);
-          // Auto-select first non-pending step or the failed one
           const failedStep = found.steps.find((s) => s.status === "failed");
           const firstActive = found.steps.find((s) => s.status !== "pending");
           setSelectedStep((failedStep || firstActive)?.step_name || null);
         }
-      });
+      })
+      .catch(() => {});
   }, [params.id]);
 
   if (!run) {

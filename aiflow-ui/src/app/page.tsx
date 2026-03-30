@@ -1,8 +1,25 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SKILLS } from "@/lib/types";
+import { SKILLS, type WorkflowRun } from "@/lib/types";
 
 export default function DashboardPage() {
+  const [runs, setRuns] = useState<WorkflowRun[]>([]);
+
+  useEffect(() => {
+    fetch("/api/runs")
+      .then((r) => r.json())
+      .then((data: { runs: WorkflowRun[] }) => setRuns(data.runs || []))
+      .catch(() => {});
+  }, []);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todayRuns = runs.filter((r) => r.started_at?.startsWith(today));
+  const todayCost = todayRuns.reduce((s, r) => s + r.total_cost_usd, 0);
+  const activeSkills = SKILLS.filter((s) => s.status !== "stub").length;
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -10,12 +27,12 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">AIFlow Workflow Monitoring</p>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — real data */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <KpiCard title="Skills" value="6" subtitle="4 aktiv, 1 stub" />
-        <KpiCard title="Tesztek" value="157" subtitle="869 PASS" />
-        <KpiCard title="Mai futasok" value="20" subtitle="szamla feldolgozas" />
-        <KpiCard title="Mai koltseg" value="$0.14" subtitle="gpt-4o extraction" />
+        <KpiCard title="Skills" value={String(SKILLS.length)} subtitle={`${activeSkills} aktiv, ${SKILLS.length - activeSkills} stub`} />
+        <KpiCard title="Osszes futas" value={String(runs.length)} subtitle={`${runs.filter((r) => r.status === "completed").length} sikeres`} />
+        <KpiCard title="Mai futasok" value={String(todayRuns.length)} subtitle={today} />
+        <KpiCard title="Mai koltseg" value={`$${todayCost.toFixed(4)}`} subtitle="osszesen" />
       </div>
 
       {/* Skill Grid */}
