@@ -174,9 +174,9 @@ skills/            # Self-contained skill packages (each with own tools, tests, 
   email_intent_processor/ # IN DEVELOPMENT - email + attachment processing
   invoice_processor/      # IN DEVELOPMENT - PDF invoice extraction + Next.js UI
   qbpp_test_automation/   # STUB - insurance calculator test automation
-aiflow-ui/         # Next.js 16 + React 19 + shadcn/ui production dashboard (91 fajl)
+aiflow-ui/         # Next.js 16 + React 19 + shadcn/ui production dashboard (92 fajl)
   src/app/           # 11 oldal (/, /login, /costs, /runs, /runs/[id], 6 skill viewer)
-  src/components/    # 47 komponens (ui/, invoice/, email/, rag-chat/, process-docs/, cubix/, workflow/, verification/ + standalone)
+  src/components/    # 48 komponens (ui/, invoice/, email/, rag-chat/, process-docs/, cubix/, workflow/, verification/ + sidebar, sidebar-user, theme-toggle, export-button, print-button)
   src/lib/           # 9 fajl (types, data-store, backend, csv-export, i18n, api, utils, verification-types, document-layout)
   src/hooks/         # 4 hook (use-auth, use-i18n, use-verification-state, use-workflow-simulation)
   src/app/api/       # 18 API route (auth, documents, emails, rag, process-docs, cubix, runs)

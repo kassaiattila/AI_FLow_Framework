@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -36,12 +36,51 @@ function formatTime(iso: string): string {
 export default function RunsPage() {
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [filter, setFilter] = useState<string>("all");
+  const [live, setLive] = useState(false);
+  const eventSourceRef = useRef<AbortController | null>(null);
+
+  const loadRuns = useCallback(() => {
+    fetch("/api/runs")
+      .then((r) => r.json())
+      .then((data: { runs: WorkflowRun[] }) => setRuns(data.runs))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
-    fetch("/data/runs.json")
-      .then((r) => r.json())
-      .then(setRuns);
-  }, []);
+    loadRuns();
+  }, [loadRuns]);
+
+  // SSE live updates when toggled on
+  useEffect(() => {
+    if (!live) return;
+    const ctrl = new AbortController();
+    eventSourceRef.current = ctrl;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/runs/stream", { signal: ctrl.signal });
+        if (!res.body) return;
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          for (const line of chunk.split("\n")) {
+            if (!line.startsWith("data: ") || line.includes("[DONE]")) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.runs) setRuns(data.runs);
+            } catch { /* skip */ }
+          }
+        }
+      } catch { /* aborted or error */ }
+      setLive(false);
+    })();
+
+    return () => ctrl.abort();
+  }, [live]);
 
   const skills = ["all", ...new Set(runs.map((r) => r.skill_name))];
   const filtered = filter === "all" ? runs : runs.filter((r) => r.skill_name === filter);
@@ -74,6 +113,14 @@ export default function RunsPage() {
           ])}
         />
         <PrintButton />
+        <button
+          onClick={() => setLive(!live)}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+            live ? "bg-green-600 text-white border-green-600" : "border-border text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          {live ? "Live ON" : "Live"}
+        </button>
       </div>
 
       {/* KPI Row */}

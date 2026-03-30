@@ -51,10 +51,10 @@
 ## Fajl osszefoglalo (jelenlegi allapot)
 
 ```
-aiflow-ui/src/ — 91 fajl
+aiflow-ui/src/ — 92 fajl
   app/                    — 11 oldal (/, /login, /costs, /runs, /runs/[id], 6 skill viewer)
   app/api/                — 18 API route (auth, documents, emails, rag, process-docs, cubix, runs)
-  components/             — 47 komponens (6 ui, 7 invoice, 7 verification, 3 workflow, 6 email, 6 rag-chat, 5 process-docs, 3 cubix + standalone: sidebar-user, theme-toggle, export-button, print-button)
+  components/             — 48 komponens (6 ui, 7 invoice, 7 verification, 3 workflow, 6 email, 6 rag-chat, 5 process-docs, 3 cubix + standalone: sidebar, sidebar-user, theme-toggle, export-button, print-button)
   lib/                    — 9 utility fajl (types, data-store, backend, csv-export, i18n, api, utils, verification-types, document-layout)
   hooks/                  — 4 hook (use-auth, use-i18n, use-verification-state, use-workflow-simulation)
   proxy.ts                — Auth proxy + RBAC (cookie JWT, login redirect, role check)
