@@ -15,9 +15,9 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [role, setRole] = useState("baseline");
 
   const ROLES = [
-    { value: "baseline", label: t("rag.roleBaseline") },
-    { value: "mentor", label: t("rag.roleMentor") },
-    { value: "expert", label: t("rag.roleExpert") },
+    { value: "baseline", label: t("rag.roleBaseline"), tip: t("rag.roleBaselineTip") },
+    { value: "mentor", label: t("rag.roleMentor"), tip: t("rag.roleMentorTip") },
+    { value: "expert", label: t("rag.roleExpert"), tip: t("rag.roleExpertTip") },
   ];
 
   const handleSend = () => {
@@ -41,13 +41,17 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           value={role}
           onChange={(e) => setRole(e.target.value)}
           className="text-xs border rounded px-2 py-1 bg-background"
+          title={ROLES.find((r) => r.value === role)?.tip}
         >
           {ROLES.map((r) => (
-            <option key={r.value} value={r.value}>
+            <option key={r.value} value={r.value} title={r.tip}>
               {r.label}
             </option>
           ))}
         </select>
+        <span className="text-[10px] text-muted-foreground">
+          {ROLES.find((r) => r.value === role)?.tip}
+        </span>
       </div>
       <div className="flex gap-2">
         <textarea

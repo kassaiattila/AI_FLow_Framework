@@ -70,8 +70,8 @@ export default function AszfRagChatPage() {
     setActiveCitation(null);
 
     // Add placeholder assistant message for streaming
-    const placeholderMsg: RagMessage = { role: "assistant", content: "" };
-    setMessages((prev) => [...prev, placeholderMsg]);
+    const thinkingMsg: RagMessage = { role: "assistant", content: `_${t("rag.thinking")}_` };
+    setMessages((prev) => [...prev, thinkingMsg]);
 
     try {
       const res = await fetch("/api/rag/stream", {

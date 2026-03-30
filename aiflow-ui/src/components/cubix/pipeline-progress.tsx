@@ -63,11 +63,13 @@ export function PipelineProgress({ files, selectedSlug, onSelect }: PipelineProg
               </div>
               <div className="flex gap-0.5">
                 {STAGES.map((stage) => (
-                  <div
-                    key={stage}
-                    className={`h-1.5 flex-1 rounded-full ${STATUS_COLORS[file[stage]]}`}
-                    title={`${t(STAGE_KEYS[stage])}: ${file[stage]}`}
-                  />
+                  <div key={stage} className="flex-1 space-y-0.5">
+                    <div
+                      className={`h-1.5 rounded-full ${STATUS_COLORS[file[stage]]}`}
+                      title={`${t(STAGE_KEYS[stage])}: ${file[stage]}`}
+                    />
+                    <p className="text-[8px] text-muted-foreground text-center truncate">{t(STAGE_KEYS[stage])}</p>
+                  </div>
                 ))}
               </div>
             </div>
