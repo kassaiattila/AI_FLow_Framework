@@ -250,6 +250,38 @@ npx next build                    # TypeScript + build clean
 npm run dev                       # Manual check: page loads, toggle HU/EN, click all buttons
 ```
 
+## MANDATORY: No Silent Mock Data (STRICT!)
+
+### The Honesty Rule
+> **A user MUST always know whether they see real or demo data.**
+> Silent fallback to mock data is FORBIDDEN. Every mock must be visibly labeled.
+
+### Backend Connection Rules
+- Every API route that uses `fetchBackend()` MUST return a `source` field: `"backend"` or `"demo"`
+- Every page MUST show "Demo mod" banner when `source === "demo"`
+- NEVER pretend mock data is real (no fake streaming of hardcoded answers)
+- Connection status (`useBackendStatus` hook) MUST be visible in the sidebar
+
+### Viewer Completeness Rules
+- A viewer is NOT complete unless it has: INPUT mechanism → REAL PROCESSING → REAL OUTPUT
+- If a skill cannot process (backend down), show "Demo" label + mock data
+- If a skill has no input mechanism, it's a "Results Viewer" not a "Viewer"
+- Status badges must be honest: "Production" only if actually works, "Demo" if mock, "Results Viewer" if read-only
+- NEVER mark a viewer as "KESZ" or "Production" if it only shows mock data
+
+### Subprocess Pattern (for skill execution from UI)
+- Reference implementation: `aiflow-ui/src/app/api/documents/process/route.ts`
+- Pattern: `execFileAsync(PYTHON, ["-m", "skills.<name>", ...args])`
+- Priority: 1. FastAPI backend (fetchBackend) → 2. subprocess (Python CLI) → 3. mock (labeled as demo)
+- ALWAYS tag output with `source` field
+
+### Viewer Checklist (extends the UI Component Checklist above)
+10. [ ] API route returns `source: "backend"|"demo"` field
+11. [ ] Page shows Demo/Live badge based on source
+12. [ ] Input mechanism exists (upload, text form, URL input)
+13. [ ] Real processing callable (subprocess or FastAPI)
+14. [ ] Mock data clearly labeled — NEVER silent fallback
+
 ## MANDATORY Testing & Regression Rules (STRICT - NO EXCEPTIONS)
 
 ### The Golden Rule

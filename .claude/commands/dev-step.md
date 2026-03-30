@@ -31,9 +31,15 @@ Arguments: $ARGUMENTS
 7. **Data fetch check**: no `fetch("/data/...")` in page files — must use `/api/`
 8. **State check**: no `localStorage`/`sessionStorage` in `useState()` initializer
 
+### Mock vs Real audit (if viewer/skill page changed):
+9. **Source tag check**: API routes return `source: "backend"|"demo"` field
+10. **Demo label check**: pages show "Demo" badge when source is demo
+11. **No silent mock**: NEVER fall back to mock data without visible indicator
+12. **Input check**: does the viewer have an input mechanism? If not → "Results Viewer" label
+
 ### Quality gate:
-9. `git status` — no untracked files that should be tracked
-10. Generate conventional commit message
+13. `git status` — no untracked files that should be tracked
+14. Generate conventional commit message
 
 ## CRITICAL RULES:
 
@@ -42,6 +48,9 @@ Arguments: $ARGUMENTS
 - NEVER hardcode user-visible strings without `t()` in UI code
 - NEVER fetch from `/data/` in page components — always `/api/`
 - NEVER claim a feature is "KESZ" without manual browser test
+- NEVER fall back to mock data silently — always show "Demo" label
+- NEVER mark a viewer as "Production" if it only shows mock data
+- ALWAYS include `source` field in API responses that use fetchBackend
 - NEVER use `<script>` tags in React components
 - NEVER use localStorage/sessionStorage in useState initializer
 - ALWAYS use proxy.ts (NOT middleware.ts) for Next.js 16

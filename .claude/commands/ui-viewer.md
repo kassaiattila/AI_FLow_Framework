@@ -55,13 +55,23 @@ The invoice viewer is the reference implementation.
 5. i18n keys (both hu and en) in `lib/i18n.ts`
 6. Mock data seed file in `public/data/{name}.json`
 
-## Checklist (verify before marking done):
+## Backend Integration Checklist (MANDATORY — no silent mock!):
+- [ ] API route tries: 1. fetchBackend → 2. subprocess → 3. mock fallback
+- [ ] Response includes `source: "backend"|"demo"` field
+- [ ] Page shows Demo/Live badge based on source
+- [ ] Input mechanism exists (upload, text form, etc.)
+- [ ] Real processing callable (subprocess `python -m skills.<name>` or FastAPI)
+- [ ] Mock data clearly labeled — NEVER silent fallback
+- [ ] Status badge honest: NOT "Production" if only mock
+
+## Full Checklist (verify before marking done):
 - [ ] HU/EN toggle changes all text
 - [ ] Loading/error/empty states work
 - [ ] All tabs/sections functional
 - [ ] Dark mode looks correct
+- [ ] Backend Integration Checklist above — ALL checked
 - [ ] `npx vitest run` passes
 - [ ] `npx next build` passes
-- [ ] Manual browser test passes
+- [ ] Manual browser test: backend ON (Live) + OFF (Demo) both work
 
 ARGUMENTS: $ARGUMENTS
