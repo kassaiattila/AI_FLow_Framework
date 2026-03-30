@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/hooks/use-i18n";
 import type { CourseStructure as CourseStructureType, LessonResult } from "@/lib/types";
 
 interface CourseStructureProps {
@@ -18,6 +19,7 @@ function statusBadge(status: string) {
 }
 
 export function CourseStructureView({ structure, results }: CourseStructureProps) {
+  const { t } = useI18n();
   const resultMap = new Map(results.map((r) => [`${r.week_index}-${r.lesson_index}`, r]));
 
   return (
@@ -26,7 +28,7 @@ export function CourseStructureView({ structure, results }: CourseStructureProps
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm">{structure.title}</CardTitle>
           <span className="text-xs text-muted-foreground">
-            {structure.total_video_lessons} video / {structure.total_lessons} lecke
+            {structure.total_video_lessons} {t("cubix.video")} / {structure.total_lessons} {t("cubix.lesson")}
           </span>
         </div>
       </CardHeader>

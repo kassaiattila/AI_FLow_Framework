@@ -1,4 +1,7 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useI18n } from "@/hooks/use-i18n";
 import type { ReviewOutput } from "@/lib/types";
 
 interface ReviewScoresProps {
@@ -22,30 +25,31 @@ function ScoreBox({ label, score }: { label: string; score: number }) {
 }
 
 export function ReviewScores({ review }: ReviewScoresProps) {
+  const { t } = useI18n();
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm">Minosegi ertekeles</CardTitle>
+          <CardTitle className="text-sm">{t("processdoc.qualityTitle")}</CardTitle>
           <span
             className={`text-sm font-bold ${review.is_acceptable ? "text-green-600" : "text-red-600"}`}
           >
-            {review.is_acceptable ? "Elfogadhato" : "Javitando"}
+            {review.is_acceptable ? t("processdoc.acceptable") : t("processdoc.needsWork")}
           </span>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-5 gap-2">
-          <ScoreBox label="Osszesitett" score={review.score} />
-          <ScoreBox label="Teljesség" score={review.completeness_score} />
-          <ScoreBox label="Logika" score={review.logic_score} />
-          <ScoreBox label="Szereplok" score={review.actors_score} />
-          <ScoreBox label="Dontesek" score={review.decisions_score} />
+          <ScoreBox label={t("processdoc.scoreOverall")} score={review.score} />
+          <ScoreBox label={t("processdoc.scoreCompleteness")} score={review.completeness_score} />
+          <ScoreBox label={t("processdoc.scoreLogic")} score={review.logic_score} />
+          <ScoreBox label={t("processdoc.scoreActors")} score={review.actors_score} />
+          <ScoreBox label={t("processdoc.scoreDecisions")} score={review.decisions_score} />
         </div>
 
         {review.issues.length > 0 && (
           <div>
-            <p className="text-xs font-medium mb-1">Problémák:</p>
+            <p className="text-xs font-medium mb-1">{t("processdoc.issues")}:</p>
             <ul className="text-xs text-muted-foreground space-y-1">
               {review.issues.map((issue, i) => (
                 <li key={i} className="flex gap-1">
@@ -58,7 +62,7 @@ export function ReviewScores({ review }: ReviewScoresProps) {
 
         {review.suggestions.length > 0 && (
           <div>
-            <p className="text-xs font-medium mb-1">Javaslatok:</p>
+            <p className="text-xs font-medium mb-1">{t("processdoc.suggestions")}:</p>
             <ul className="text-xs text-muted-foreground space-y-1">
               {review.suggestions.map((sug, i) => (
                 <li key={i} className="flex gap-1">

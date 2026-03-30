@@ -1,4 +1,7 @@
+"use client";
+
 import { Card, CardContent } from "@/components/ui/card";
+import { useI18n } from "@/hooks/use-i18n";
 import type { IntentResult } from "@/lib/types";
 import { ConfidenceBar, MethodBadge } from "./shared";
 
@@ -7,6 +10,7 @@ interface IntentBadgeDetailProps {
 }
 
 export function IntentBadgeDetail({ intent }: IntentBadgeDetailProps) {
+  const { t } = useI18n();
   return (
     <Card>
       <CardContent className="pt-4 space-y-3">
@@ -23,7 +27,7 @@ export function IntentBadgeDetail({ intent }: IntentBadgeDetailProps) {
         <div className="space-y-2">
           <div>
             <div className="flex items-center justify-between text-xs mb-1">
-              <span>Eredmény</span>
+              <span>{t("email.result")}</span>
               <span className="font-medium">{(intent.confidence * 100).toFixed(1)}%</span>
             </div>
             <ConfidenceBar value={intent.confidence} />

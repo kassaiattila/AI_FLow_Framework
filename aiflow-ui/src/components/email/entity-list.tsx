@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/hooks/use-i18n";
 import type { EntityResult } from "@/lib/types";
 import { ConfidenceBar } from "./shared";
 
@@ -12,11 +13,12 @@ interface EntityListProps {
 }
 
 export function EntityList({ entities, highlightedEntity, onEntityHover }: EntityListProps) {
+  const { t } = useI18n();
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm">Entitások ({entities.entity_count})</CardTitle>
+          <CardTitle className="text-sm">{t("email.entities")} ({entities.entity_count})</CardTitle>
           <div className="flex gap-1">
             {entities.extraction_methods_used.map((m) => (
               <Badge key={m} className="bg-gray-100 text-gray-600 text-[9px]">

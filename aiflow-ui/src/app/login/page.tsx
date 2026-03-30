@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/hooks/use-i18n";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Bejelentkezes sikertelen");
+        setError(data.error || t("login.failed"));
         return;
       }
 
@@ -40,7 +42,7 @@ export default function LoginPage() {
       sessionStorage.setItem("aiflow_user", JSON.stringify({ user_id: data.user_id, role: data.role }));
       router.push("/");
     } catch {
-      setError("Szerverhiba");
+      setError(t("common.serverError"));
     } finally {
       setLoading(false);
     }
@@ -51,13 +53,13 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-xl">AIFlow</CardTitle>
-          <p className="text-sm text-muted-foreground">Bejelentkezes</p>
+          <p className="text-sm text-muted-foreground">{t("login.title")}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="text-sm font-medium" htmlFor="username">
-                Felhasznalonev
+                {t("login.username")}
               </label>
               <input
                 id="username"
@@ -71,7 +73,7 @@ export default function LoginPage() {
             </div>
             <div>
               <label className="text-sm font-medium" htmlFor="password">
-                Jelszo
+                {t("login.password")}
               </label>
               <input
                 id="password"
@@ -88,7 +90,7 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading || !username || !password}>
-              {loading ? "Bejelentkezes..." : "Bejelentkezes"}
+              {loading ? t("login.submitting") : t("login.submit")}
             </Button>
 
             {process.env.NODE_ENV === "development" && (

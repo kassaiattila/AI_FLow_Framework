@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/hooks/use-i18n";
 import type { ProcessDocResult } from "@/lib/types";
 
 interface GenerationGalleryProps {
@@ -20,10 +21,11 @@ function formatDate(iso: string): string {
 }
 
 export function GenerationGallery({ documents, selectedId, onSelect }: GenerationGalleryProps) {
+  const { t } = useI18n();
   if (documents.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-12 text-sm">
-        Nincs korabbi generalas
+        {t("processdoc.noGallery")}
       </div>
     );
   }
@@ -53,8 +55,8 @@ export function GenerationGallery({ documents, selectedId, onSelect }: Generatio
               </div>
 
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{doc.extraction.actors.length} szereplo</span>
-                <span>{doc.extraction.steps.length} lepes</span>
+                <span>{doc.extraction.actors.length} {t("processdoc.actor")}</span>
+                <span>{doc.extraction.steps.length} {t("processdoc.step")}</span>
               </div>
 
               <pre className="text-[10px] text-muted-foreground bg-muted rounded p-2 max-h-[60px] overflow-hidden font-mono">

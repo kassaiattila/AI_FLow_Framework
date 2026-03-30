@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useI18n } from "@/hooks/use-i18n";
 import { TextInputForm } from "@/components/process-docs/text-input-form";
 import { DiagramPreview } from "@/components/process-docs/diagram-preview";
 import { ReviewScores } from "@/components/process-docs/review-scores";
@@ -24,6 +25,7 @@ function KpiCard({ title, value, sub }: { title: string; value: string; sub: str
 }
 
 export default function ProcessDocumentationPage() {
+  const { t } = useI18n();
   const [documents, setDocuments] = useState<ProcessDocResult[]>([]);
   const [selected, setSelected] = useState<ProcessDocResult | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -65,7 +67,7 @@ export default function ProcessDocumentationPage() {
       setSelected(doc);
       loadData(); // refresh gallery
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Generalasi hiba");
+      setError(e instanceof Error ? e.message : t("processdoc.generateError"));
     } finally {
       setGenerating(false);
     }
@@ -84,32 +86,32 @@ export default function ProcessDocumentationPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Process Documentation</h2>
+          <h2 className="text-2xl font-bold">{t("processdoc.title")}</h2>
           <p className="text-muted-foreground">
-            Natural language &rarr; BPMN diagramok (Mermaid + DrawIO + SVG)
+            {t("processdoc.desc")}
           </p>
         </div>
-        <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">Production</Badge>
+        <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("common.production")}</Badge>
       </div>
 
       {loading && (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Betoltes...</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">{t("common.loading")}</CardContent></Card>
       )}
 
       {error && (
         <Card><CardContent className="py-8 text-center">
-          <p className="text-red-600 text-sm mb-2">Hiba: {error}</p>
-          <button onClick={loadData} className="text-sm text-blue-600 underline">Ujraprobalkozas</button>
+          <p className="text-red-600 text-sm mb-2">{t("common.error")}: {error}</p>
+          <button onClick={loadData} className="text-sm text-blue-600 underline">{t("common.retry")}</button>
         </CardContent></Card>
       )}
 
       {!loading && !error && <>
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <KpiCard title="Generalt diagramok" value={String(totalDocs)} sub="osszesen" />
-        <KpiCard title="Atl. pontszam" value={avgScore.toFixed(1)} sub="/ 10" />
-        <KpiCard title="Szereplok" value={String(totalActors)} sub="osszesen" />
-        <KpiCard title="Lepesek" value={String(totalSteps)} sub="osszesen" />
+        <KpiCard title={t("processdoc.generated")} value={String(totalDocs)} sub={t("common.total")} />
+        <KpiCard title={t("processdoc.avgScore")} value={avgScore.toFixed(1)} sub="/ 10" />
+        <KpiCard title={t("processdoc.actors")} value={String(totalActors)} sub={t("common.total")} />
+        <KpiCard title={t("processdoc.steps")} value={String(totalSteps)} sub={t("common.total")} />
       </div>
 
       {/* Input form */}
@@ -119,11 +121,11 @@ export default function ProcessDocumentationPage() {
       {selected ? (
         <Tabs defaultValue="diagram">
           <TabsList>
-            <TabsTrigger value="diagram">Diagram</TabsTrigger>
-            <TabsTrigger value="review">Ertekeles</TabsTrigger>
-            <TabsTrigger value="trace">Pipeline</TabsTrigger>
+            <TabsTrigger value="diagram">{t("processdoc.diagram")}</TabsTrigger>
+            <TabsTrigger value="review">{t("processdoc.review")}</TabsTrigger>
+            <TabsTrigger value="trace">{t("processdoc.pipeline")}</TabsTrigger>
             <TabsTrigger value="gallery">
-              Galeria
+              {t("processdoc.gallery")}
               <Badge className="ml-1 bg-gray-100 text-gray-700 text-[9px]">{totalDocs}</Badge>
             </TabsTrigger>
           </TabsList>
@@ -154,7 +156,7 @@ export default function ProcessDocumentationPage() {
       ) : (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            Irja le a folyamatot es nyomja meg a &quot;Diagram generalas&quot; gombot
+            {t("processdoc.emptyState")}
           </CardContent>
         </Card>
       )}

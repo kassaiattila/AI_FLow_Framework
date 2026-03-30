@@ -3,17 +3,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useI18n } from "@/hooks/use-i18n";
 import type { FileProcessingState, StageStatus } from "@/lib/types";
 
 const STAGES = ["probe", "extract", "chunk", "transcribe", "merge", "structure"] as const;
 
-const STAGE_LABELS: Record<string, string> = {
-  probe: "Probe",
-  extract: "Audio",
-  chunk: "Chunk",
-  transcribe: "STT",
-  merge: "Merge",
-  structure: "Struktura",
+const STAGE_KEYS: Record<string, string> = {
+  probe: "cubix.stageProbe",
+  extract: "cubix.stageExtract",
+  chunk: "cubix.stageChunk",
+  transcribe: "cubix.stageTranscribe",
+  merge: "cubix.stageMerge",
+  structure: "cubix.stageStructure",
 };
 
 const STATUS_COLORS: Record<StageStatus, string> = {
@@ -31,12 +32,13 @@ interface PipelineProgressProps {
 }
 
 export function PipelineProgress({ files, selectedSlug, onSelect }: PipelineProgressProps) {
+  const { t } = useI18n();
   const fileList = Object.values(files).sort((a, b) => a.global_index - b.global_index);
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm">Pipeline allapot ({fileList.length} fajl)</CardTitle>
+        <CardTitle className="text-sm">{t("cubix.pipelineState")} ({fileList.length} {t("common.file")})</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {fileList.map((file) => {
@@ -55,7 +57,7 @@ export function PipelineProgress({ files, selectedSlug, onSelect }: PipelineProg
               <div className="flex items-center justify-between mb-1">
                 <span className="font-medium truncate max-w-[200px]">{file.title}</span>
                 <div className="flex items-center gap-1">
-                  {hasError && <Badge className="bg-red-100 text-red-800 text-[9px]">Hiba</Badge>}
+                  {hasError && <Badge className="bg-red-100 text-red-800 text-[9px]">{t("cubix.errorBadge")}</Badge>}
                   <span className="text-xs text-muted-foreground">{pct}%</span>
                 </div>
               </div>
@@ -64,7 +66,7 @@ export function PipelineProgress({ files, selectedSlug, onSelect }: PipelineProg
                   <div
                     key={stage}
                     className={`h-1.5 flex-1 rounded-full ${STATUS_COLORS[file[stage]]}`}
-                    title={`${STAGE_LABELS[stage]}: ${file[stage]}`}
+                    title={`${t(STAGE_KEYS[stage])}: ${file[stage]}`}
                   />
                 ))}
               </div>
@@ -77,6 +79,7 @@ export function PipelineProgress({ files, selectedSlug, onSelect }: PipelineProg
 }
 
 export function FileDetail({ file }: { file: FileProcessingState }) {
+  const { t } = useI18n();
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -85,15 +88,15 @@ export function FileDetail({ file }: { file: FileProcessingState }) {
       <CardContent className="space-y-3">
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="p-2 bg-muted/50 rounded text-center">
-            <p className="text-muted-foreground">Idotartam</p>
-            <p className="font-bold">{Math.round(file.duration_seconds / 60)} perc</p>
+            <p className="text-muted-foreground">{t("cubix.duration")}</p>
+            <p className="font-bold">{Math.round(file.duration_seconds / 60)} {t("cubix.minute")}</p>
           </div>
           <div className="p-2 bg-muted/50 rounded text-center">
-            <p className="text-muted-foreground">Chunk-ok</p>
+            <p className="text-muted-foreground">{t("cubix.chunks")}</p>
             <p className="font-bold">{file.chunk_count}</p>
           </div>
           <div className="p-2 bg-muted/50 rounded text-center">
-            <p className="text-muted-foreground">Koltseg</p>
+            <p className="text-muted-foreground">{t("common.cost")}</p>
             <p className="font-bold">${file.total_cost.toFixed(4)}</p>
           </div>
         </div>
@@ -113,7 +116,7 @@ export function FileDetail({ file }: { file: FileProcessingState }) {
 
             return (
               <div key={stage} className="flex items-center justify-between text-xs">
-                <span className={color}>{icon} {STAGE_LABELS[stage]}</span>
+                <span className={color}>{icon} {t(STAGE_KEYS[stage])}</span>
                 <span className="text-muted-foreground">{status}</span>
               </div>
             );

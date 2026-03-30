@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ExportButton } from "@/components/export-button";
 import { PrintButton } from "@/components/print-button";
+import { useI18n } from "@/hooks/use-i18n";
 import type { WorkflowRun } from "@/lib/types";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -34,6 +35,7 @@ function formatTime(iso: string): string {
 }
 
 export default function RunsPage() {
+  const { t } = useI18n();
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [live, setLive] = useState(false);
@@ -97,8 +99,8 @@ export default function RunsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Workflow Runs</h2>
-          <p className="text-muted-foreground">Execution history and monitoring</p>
+          <h2 className="text-2xl font-bold">{t("runs.title")}</h2>
+          <p className="text-muted-foreground">{t("runs.subtitle")}</p>
         </div>
         <ExportButton
           filename={`runs_${new Date().toISOString().slice(0, 10)}.csv`}
@@ -119,17 +121,17 @@ export default function RunsPage() {
             live ? "bg-green-600 text-white border-green-600" : "border-border text-muted-foreground hover:bg-muted"
           }`}
         >
-          {live ? "Live ON" : "Live"}
+          {live ? t("runs.liveOn") : t("runs.liveOff")}
         </button>
       </div>
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <MiniKpi label="Total" value={stats.total} />
-        <MiniKpi label="Completed" value={stats.completed} color="text-green-600" />
-        <MiniKpi label="Failed" value={stats.failed} color="text-red-600" />
-        <MiniKpi label="Running" value={stats.running} color="text-blue-600" />
-        <MiniKpi label="Total Cost" value={`$${stats.totalCost.toFixed(4)}`} />
+        <MiniKpi label={t("common.total")} value={stats.total} />
+        <MiniKpi label={t("common.completed")} value={stats.completed} color="text-green-600" />
+        <MiniKpi label={t("common.failed")} value={stats.failed} color="text-red-600" />
+        <MiniKpi label={t("common.running")} value={stats.running} color="text-blue-600" />
+        <MiniKpi label={t("runs.totalCost")} value={`$${stats.totalCost.toFixed(4)}`} />
       </div>
 
       {/* Skill filter */}
@@ -144,7 +146,7 @@ export default function RunsPage() {
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
-            {s === "all" ? "All Skills" : SKILL_LABELS[s] || s}
+            {s === "all" ? t("runs.allSkills") : SKILL_LABELS[s] || s}
           </button>
         ))}
       </div>
@@ -155,13 +157,13 @@ export default function RunsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[160px]">Run ID</TableHead>
-                <TableHead>Skill</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="w-[160px]">{t("table.runId")}</TableHead>
+                <TableHead>{t("table.skill")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
                 <TableHead>Input</TableHead>
-                <TableHead className="text-right">Duration</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead className="text-right">Started</TableHead>
+                <TableHead className="text-right">{t("table.duration")}</TableHead>
+                <TableHead className="text-right">{t("common.cost")}</TableHead>
+                <TableHead className="text-right">{t("table.started")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -195,7 +197,7 @@ export default function RunsPage() {
               {filtered.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    No runs found
+                    {t("runs.noRuns")}
                   </TableCell>
                 </TableRow>
               )}

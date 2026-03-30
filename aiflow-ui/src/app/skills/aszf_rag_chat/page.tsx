@@ -9,9 +9,11 @@ import { ChatInput } from "@/components/rag-chat/chat-input";
 import { CitationPanel } from "@/components/rag-chat/citation-panel";
 import { SearchRelevance } from "@/components/rag-chat/search-relevance";
 import { StepTrace } from "@/components/rag-chat/step-trace";
+import { useI18n } from "@/hooks/use-i18n";
 import type { RagConversation, RagMessage, QueryOutput } from "@/lib/types";
 
 export default function AszfRagChatPage() {
+  const { t } = useI18n();
   const [conversations, setConversations] = useState<RagConversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<RagMessage[]>([]);
@@ -144,7 +146,7 @@ export default function AszfRagChatPage() {
         const updated = [...prev];
         updated[updated.length - 1] = {
           role: "assistant",
-          content: "Hiba tortent a kerdes feldolgozasa soran.",
+          content: t("rag.queryError"),
         };
         return updated;
       });
@@ -157,22 +159,22 @@ export default function AszfRagChatPage() {
     <div className="p-6 space-y-4 h-[calc(100vh-0px)]">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">ASZF RAG Chat</h2>
+          <h2 className="text-2xl font-bold">{t("rag.title")}</h2>
           <p className="text-muted-foreground">
-            Jogi dokumentum RAG chat (docling + pgvector + OpenAI)
+            {t("rag.desc")}
           </p>
         </div>
-        <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">86% eval pass</Badge>
+        <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("rag.evalBadge")}</Badge>
       </div>
 
       {pageLoading && (
-        <Card><div className="py-12 text-center text-muted-foreground">Betoltes...</div></Card>
+        <Card><div className="py-12 text-center text-muted-foreground">{t("common.loading")}</div></Card>
       )}
 
       {error && (
         <Card><div className="py-8 text-center">
-          <p className="text-red-600 text-sm mb-2">Hiba: {error}</p>
-          <button onClick={loadConversations} className="text-sm text-blue-600 underline">Ujraprobalkozas</button>
+          <p className="text-red-600 text-sm mb-2">{t("common.errorPrefix")}{error}</p>
+          <button onClick={loadConversations} className="text-sm text-blue-600 underline">{t("common.retry")}</button>
         </div></Card>
       )}
 
@@ -211,15 +213,15 @@ export default function AszfRagChatPage() {
           <Tabs defaultValue="citations">
             <TabsList>
               <TabsTrigger value="citations">
-                Hivatkozasok
+                {t("rag.citations")}
                 {lastOutput && lastOutput.citations.length > 0 && (
                   <Badge className="ml-1 bg-blue-100 text-blue-800 text-[9px]">
                     {lastOutput.citations.length}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="search">Kereses</TabsTrigger>
-              <TabsTrigger value="trace">Pipeline</TabsTrigger>
+              <TabsTrigger value="search">{t("rag.search")}</TabsTrigger>
+              <TabsTrigger value="trace">{t("rag.pipeline")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="citations" className="mt-3 max-h-[calc(100vh-300px)] overflow-y-auto">
@@ -238,7 +240,7 @@ export default function AszfRagChatPage() {
                 <StepTrace queryOutput={lastOutput} />
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  Kuldjön egy kerdest a pipeline megtekintéséhez
+                  {t("rag.noOutput")}
                 </p>
               )}
             </TabsContent>

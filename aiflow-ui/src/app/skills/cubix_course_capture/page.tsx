@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PipelineProgress, FileDetail } from "@/components/cubix/pipeline-progress";
 import { CourseStructureView } from "@/components/cubix/course-structure";
 import { LessonResults } from "@/components/cubix/lesson-results";
+import { useI18n } from "@/hooks/use-i18n";
 import type { CubixCourseResult } from "@/lib/types";
 
 function KpiCard({ title, value, sub }: { title: string; value: string; sub: string }) {
@@ -22,6 +23,7 @@ function KpiCard({ title, value, sub }: { title: string; value: string; sub: str
 }
 
 export default function CubixCourseCapturePage() {
+  const { t } = useI18n();
   const [courses, setCourses] = useState<CubixCourseResult[]>([]);
   const [selected, setSelected] = useState<CubixCourseResult | null>(null);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
@@ -58,22 +60,22 @@ export default function CubixCourseCapturePage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Cubix Course Capture</h2>
+          <h2 className="text-2xl font-bold">{t("cubix.title")}</h2>
           <p className="text-muted-foreground">
-            Video transcript pipeline (ffmpeg + Whisper STT + LLM strukturalas)
+            {t("cubix.desc")}
           </p>
         </div>
-        <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">Production</Badge>
+        <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("common.production")}</Badge>
       </div>
 
       {loading && (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Betoltes...</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">{t("common.loading")}</CardContent></Card>
       )}
 
       {error && (
         <Card><CardContent className="py-8 text-center">
-          <p className="text-red-600 text-sm mb-2">Hiba: {error}</p>
-          <button onClick={loadData} className="text-sm text-blue-600 underline">Ujraprobalkozas</button>
+          <p className="text-red-600 text-sm mb-2">{t("common.errorPrefix")}{error}</p>
+          <button onClick={loadData} className="text-sm text-blue-600 underline">{t("common.retry")}</button>
         </CardContent></Card>
       )}
 
@@ -99,35 +101,35 @@ export default function CubixCourseCapturePage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <KpiCard title="Kurzus" value={selected.course_title} sub={selected.course_name} />
+        <KpiCard title={t("cubix.course")} value={selected.course_title} sub={selected.course_name} />
         <KpiCard
-          title="Haladás"
+          title={t("cubix.progress")}
           value={`${completedPct}%`}
-          sub={`${ps?.completed_files || 0} / ${ps?.total_files || 0} fajl`}
+          sub={`${ps?.completed_files || 0} / ${ps?.total_files || 0} ${t("common.file")}`}
         />
         <KpiCard
-          title="Sikertelen"
+          title={t("cubix.failedFiles")}
           value={String(ps?.failed_files || 0)}
-          sub="fajl"
+          sub={t("common.file")}
         />
         <KpiCard
-          title="Koltseg"
+          title={t("cubix.cost")}
           value={`$${selected.total_cost_usd.toFixed(4)}`}
-          sub="osszesen"
+          sub={t("common.total")}
         />
         <KpiCard
-          title="Video lecke"
+          title={t("cubix.videoLessons")}
           value={String(selected.structure.total_video_lessons)}
-          sub={`/ ${selected.structure.total_lessons} lecke`}
+          sub={`/ ${selected.structure.total_lessons} ${t("cubix.lesson")}`}
         />
       </div>
 
       {/* Main content */}
       <Tabs defaultValue="pipeline">
         <TabsList>
-          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
-          <TabsTrigger value="structure">Kurzus</TabsTrigger>
-          <TabsTrigger value="results">Eredmenyek</TabsTrigger>
+          <TabsTrigger value="pipeline">{t("cubix.pipeline")}</TabsTrigger>
+          <TabsTrigger value="structure">{t("cubix.structure")}</TabsTrigger>
+          <TabsTrigger value="results">{t("cubix.results")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pipeline" className="mt-4">
@@ -142,7 +144,7 @@ export default function CubixCourseCapturePage() {
             ) : (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground text-sm">
-                  Valasszon egy fajlt a pipeline allapot megtekitesehez
+                  {t("cubix.selectFile")}
                 </CardContent>
               </Card>
             )}

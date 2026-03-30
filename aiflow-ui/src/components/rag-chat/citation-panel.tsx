@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/hooks/use-i18n";
 import type { Citation } from "@/lib/types";
 
 interface CitationPanelProps {
@@ -11,12 +12,13 @@ interface CitationPanelProps {
 }
 
 export function CitationPanel({ citations, activeCitation }: CitationPanelProps) {
+  const { t } = useI18n();
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   if (citations.length === 0) {
     return (
       <div className="text-sm text-muted-foreground text-center py-8">
-        Nincs hivatkozas
+        {t("rag.noCitations")}
       </div>
     );
   }

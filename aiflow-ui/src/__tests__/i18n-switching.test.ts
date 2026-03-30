@@ -57,9 +57,9 @@ describe("i18n locale switching", () => {
 
   it("switching locale changes page titles", () => {
     const pageKeys = [
-      "page.costs.title", "page.costs.subtitle",
-      "page.runs.title", "page.runs.subtitle",
-      "page.login.title", "page.login.username", "page.login.password",
+      "costs.title", "costs.subtitle",
+      "runs.title", "runs.subtitle",
+      "login.title", "login.username", "login.password",
     ];
     for (const key of pageKeys) {
       const hu = tWithLocale(key, "hu");

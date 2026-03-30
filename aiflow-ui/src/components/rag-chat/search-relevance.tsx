@@ -1,3 +1,4 @@
+import { useI18n } from "@/hooks/use-i18n";
 import type { SearchResult } from "@/lib/types";
 
 interface SearchRelevanceProps {
@@ -5,10 +6,11 @@ interface SearchRelevanceProps {
 }
 
 export function SearchRelevance({ results }: SearchRelevanceProps) {
+  const { t } = useI18n();
   if (results.length === 0) {
     return (
       <div className="text-sm text-muted-foreground text-center py-8">
-        Nincs keresesi eredmeny
+        {t("rag.noSearch")}
       </div>
     );
   }
@@ -17,7 +19,7 @@ export function SearchRelevance({ results }: SearchRelevanceProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">{results.length} chunk</p>
+      <p className="text-xs text-muted-foreground">{results.length} {t("rag.chunks")}</p>
       {results.map((result, idx) => {
         const pct = maxScore > 0 ? (result.similarity_score / maxScore) * 100 : 0;
         const scorePct = Math.round(result.similarity_score * 100);

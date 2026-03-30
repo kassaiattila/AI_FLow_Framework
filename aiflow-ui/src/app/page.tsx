@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/hooks/use-i18n";
 import { SKILLS, type WorkflowRun } from "@/lib/types";
 
 export default function DashboardPage() {
+  const { t } = useI18n();
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
 
   useEffect(() => {
@@ -23,21 +25,21 @@ export default function DashboardPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Dashboard</h2>
-        <p className="text-muted-foreground">AIFlow Workflow Monitoring</p>
+        <h2 className="text-2xl font-bold">{t("dashboard.title")}</h2>
+        <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
       </div>
 
       {/* KPI Cards — real data */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <KpiCard title="Skills" value={String(SKILLS.length)} subtitle={`${activeSkills} aktiv, ${SKILLS.length - activeSkills} stub`} />
-        <KpiCard title="Osszes futas" value={String(runs.length)} subtitle={`${runs.filter((r) => r.status === "completed").length} sikeres`} />
-        <KpiCard title="Mai futasok" value={String(todayRuns.length)} subtitle={today} />
-        <KpiCard title="Mai koltseg" value={`$${todayCost.toFixed(4)}`} subtitle="osszesen" />
+        <KpiCard title="Skills" value={String(SKILLS.length)} subtitle={`${activeSkills} ${t("common.active")}, ${SKILLS.length - activeSkills} ${t("common.stub")}`} />
+        <KpiCard title={t("dashboard.allRuns")} value={String(runs.length)} subtitle={`${runs.filter((r) => r.status === "completed").length} ${t("common.successful")}`} />
+        <KpiCard title={t("dashboard.todayRuns")} value={String(todayRuns.length)} subtitle={today} />
+        <KpiCard title={t("dashboard.todayCost")} value={`$${todayCost.toFixed(4)}`} subtitle={t("common.total")} />
       </div>
 
       {/* Skill Grid */}
       <div>
-        <h3 className="text-lg font-semibold mb-3">Skill-ek</h3>
+        <h3 className="text-lg font-semibold mb-3">{t("dashboard.skills")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {SKILLS.map((skill) => (
             <a key={skill.name} href={`/skills/${skill.name}`}>
@@ -50,7 +52,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground mb-2">{skill.description}</p>
-                  <p className="text-xs text-muted-foreground">{skill.test_count} teszt</p>
+                  <p className="text-xs text-muted-foreground">{skill.test_count} {t("dashboard.tests")}</p>
                 </CardContent>
               </Card>
             </a>

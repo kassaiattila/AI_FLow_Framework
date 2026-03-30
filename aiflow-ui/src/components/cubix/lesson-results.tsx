@@ -7,6 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/hooks/use-i18n";
 import type { LessonResult } from "@/lib/types";
 
 interface LessonResultsProps {
@@ -21,16 +22,17 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function LessonResults({ results }: LessonResultsProps) {
+  const { t } = useI18n();
   return (
     <div className="border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[50px]">Het</TableHead>
-            <TableHead>Lecke</TableHead>
-            <TableHead className="w-[90px]">Statusz</TableHead>
-            <TableHead className="w-[80px]">Koltseg</TableHead>
-            <TableHead>Hiba</TableHead>
+            <TableHead className="w-[50px]">{t("table.week")}</TableHead>
+            <TableHead>{t("table.lesson")}</TableHead>
+            <TableHead className="w-[90px]">{t("common.status")}</TableHead>
+            <TableHead className="w-[80px]">{t("common.cost")}</TableHead>
+            <TableHead>{t("table.error")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -56,7 +58,7 @@ export function LessonResults({ results }: LessonResultsProps) {
           {results.length === 0 && (
             <TableRow>
               <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                Nincs feldolgozasi eredmeny
+                {t("cubix.noResults")}
               </TableCell>
             </TableRow>
           )}

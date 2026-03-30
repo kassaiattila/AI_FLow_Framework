@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { ExportButton } from "@/components/export-button";
 import { PrintButton } from "@/components/print-button";
+import { useI18n } from "@/hooks/use-i18n";
 import type { WorkflowRun } from "@/lib/types";
 
 const SKILL_LABELS: Record<string, string> = {
@@ -34,6 +35,7 @@ interface StepCostRow {
 }
 
 export default function CostsPage() {
+  const { t } = useI18n();
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
 
   useEffect(() => {
@@ -114,8 +116,8 @@ export default function CostsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Cost Dashboard</h2>
-          <p className="text-muted-foreground">LLM usage and cost analysis</p>
+          <h2 className="text-2xl font-bold">{t("costs.title")}</h2>
+          <p className="text-muted-foreground">{t("costs.subtitle")}</p>
         </div>
         <ExportButton
           filename={`costs_${new Date().toISOString().slice(0, 10)}.csv`}
@@ -132,11 +134,11 @@ export default function CostsPage() {
 
       {/* Top-level KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard title="Total Cost" value={`$${totalCost.toFixed(4)}`} subtitle={`${totalRuns} runs`} />
-        <KpiCard title="Avg / Run" value={`$${avgCostPerRun.toFixed(4)}`} subtitle="across all skills" />
-        <KpiCard title="Total Tokens" value={totalTokens.toLocaleString()} subtitle="input + output" />
+        <KpiCard title={t("costs.totalCost")} value={`$${totalCost.toFixed(4)}`} subtitle={`${totalRuns} runs`} />
+        <KpiCard title={t("costs.avgPerRun")} value={`$${avgCostPerRun.toFixed(4)}`} subtitle={t("costs.perRun")} />
+        <KpiCard title={t("costs.totalTokens")} value={totalTokens.toLocaleString()} subtitle={t("costs.inputOutput")} />
         <KpiCard
-          title="Today"
+          title={t("costs.today")}
           value={`$${(dailyRows.find((d) => d.date === new Date().toISOString().slice(0, 10))?.cost || 0).toFixed(4)}`}
           subtitle={`${dailyRows.find((d) => d.date === new Date().toISOString().slice(0, 10))?.runs || 0} runs`}
         />
@@ -145,7 +147,7 @@ export default function CostsPage() {
       {/* Per-skill breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Cost by Skill</CardTitle>
+          <CardTitle className="text-base">{t("costs.bySkill")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -167,8 +169,8 @@ export default function CostsPage() {
                 </div>
                 <Progress value={(row.totalCost / maxSkillCost) * 100} className="h-2" />
                 <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>Avg: ${row.avgCost.toFixed(4)} / run</span>
-                  <span>Avg duration: {(row.avgDuration / 1000).toFixed(1)}s</span>
+                  <span>{t("costs.avgCost")}: ${row.avgCost.toFixed(4)} {t("costs.perRun")}</span>
+                  <span>{t("costs.avgDuration")}: {(row.avgDuration / 1000).toFixed(1)}s</span>
                 </div>
               </div>
             ))}
@@ -180,16 +182,16 @@ export default function CostsPage() {
         {/* Per-step breakdown */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Cost by Step (LLM steps only)</CardTitle>
+            <CardTitle className="text-base">{t("costs.byStep")}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Step</TableHead>
-                  <TableHead className="text-right">Calls</TableHead>
-                  <TableHead className="text-right">Tokens</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
+                  <TableHead>{t("table.step")}</TableHead>
+                  <TableHead className="text-right">{t("table.calls")}</TableHead>
+                  <TableHead className="text-right">{t("table.tokens")}</TableHead>
+                  <TableHead className="text-right">{t("common.cost")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -211,7 +213,7 @@ export default function CostsPage() {
         {/* Daily breakdown */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Daily Cost</CardTitle>
+            <CardTitle className="text-base">{t("costs.daily")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

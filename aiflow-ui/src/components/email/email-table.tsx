@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useI18n } from "@/hooks/use-i18n";
 import type { EmailProcessingResult } from "@/lib/types";
 import { PriorityBadge, IntentBadge, MethodBadge, formatDate } from "./shared";
 
@@ -18,18 +19,19 @@ interface EmailTableProps {
 }
 
 export function EmailTable({ emails, selectedId, onSelect }: EmailTableProps) {
+  const { t } = useI18n();
   return (
     <div className="border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[180px]">Feladó</TableHead>
-            <TableHead>Tárgy</TableHead>
-            <TableHead className="w-[120px]">Intent</TableHead>
-            <TableHead className="w-[80px]">Módszer</TableHead>
-            <TableHead className="w-[90px]">Prioritás</TableHead>
-            <TableHead className="w-[60px]">Csatol.</TableHead>
-            <TableHead className="w-[130px]">Dátum</TableHead>
+            <TableHead className="w-[180px]">{t("table.sender")}</TableHead>
+            <TableHead>{t("table.subject")}</TableHead>
+            <TableHead className="w-[120px]">{t("table.intent")}</TableHead>
+            <TableHead className="w-[80px]">{t("table.method")}</TableHead>
+            <TableHead className="w-[90px]">{t("table.priority")}</TableHead>
+            <TableHead className="w-[60px]">{t("table.attachments")}</TableHead>
+            <TableHead className="w-[130px]">{t("common.date")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -70,7 +72,7 @@ export function EmailTable({ emails, selectedId, onSelect }: EmailTableProps) {
           {emails.length === 0 && (
             <TableRow>
               <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                Nincs feldolgozott email
+                {t("email.noEmails")}
               </TableCell>
             </TableRow>
           )}

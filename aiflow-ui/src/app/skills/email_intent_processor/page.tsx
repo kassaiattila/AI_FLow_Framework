@@ -10,6 +10,7 @@ import { IntentBadgeDetail } from "@/components/email/intent-badge";
 import { EntityList } from "@/components/email/entity-list";
 import { RoutingCard } from "@/components/email/routing-card";
 import { ExportButton } from "@/components/export-button";
+import { useI18n } from "@/hooks/use-i18n";
 import type { EmailProcessingResult } from "@/lib/types";
 
 function KpiCard({ title, value, sub }: { title: string; value: string; sub: string }) {
@@ -25,6 +26,7 @@ function KpiCard({ title, value, sub }: { title: string; value: string; sub: str
 }
 
 export default function EmailIntentProcessorPage() {
+  const { t } = useI18n();
   const [emails, setEmails] = useState<EmailProcessingResult[]>([]);
   const [selected, setSelected] = useState<EmailProcessingResult | null>(null);
   const [highlightedEntity, setHighlightedEntity] = useState<string | null>(null);
@@ -76,9 +78,9 @@ export default function EmailIntentProcessorPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Email Intent Processor</h2>
+          <h2 className="text-2xl font-bold">{t("email.title")}</h2>
           <p className="text-muted-foreground">
-            Email + csatolmany feldolgozo (hibrid ML+LLM)
+            {t("email.desc")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -96,18 +98,18 @@ export default function EmailIntentProcessorPage() {
               e.received_date,
             ])}
           />
-          <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1">In Development</Badge>
+          <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1">{t("common.inDevelopment")}</Badge>
         </div>
       </div>
 
       {loading && (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Betoltes...</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">{t("common.loading")}</CardContent></Card>
       )}
 
       {error && (
         <Card><CardContent className="py-8 text-center">
-          <p className="text-red-600 text-sm mb-2">Hiba: {error}</p>
-          <button onClick={loadData} className="text-sm text-blue-600 underline">Ujraprobalkozas</button>
+          <p className="text-red-600 text-sm mb-2">{t("common.errorPrefix")}{error}</p>
+          <button onClick={loadData} className="text-sm text-blue-600 underline">{t("common.retry")}</button>
         </CardContent></Card>
       )}
 
@@ -115,26 +117,26 @@ export default function EmailIntentProcessorPage() {
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <KpiCard
-          title="Feldolgozott"
+          title={t("email.processed")}
           value={String(totalEmails)}
-          sub="email"
+          sub={t("email.emailUnit")}
         />
         <KpiCard
-          title="Atl. confidence"
+          title={t("email.avgConfidence")}
           value={`${(avgConfidence * 100).toFixed(1)}%`}
-          sub="intent felismeres"
+          sub={t("email.intentRecognition")}
         />
         <KpiCard
-          title="Atl. feldolgozas"
+          title={t("email.avgProcessing")}
           value={`${avgProcessingMs.toFixed(0)} ms`}
-          sub="per email"
+          sub={t("email.perEmail")}
         />
         <KpiCard
-          title="Modszer"
+          title={t("email.methodLabel")}
           value={Object.entries(methodBreakdown)
             .map(([k, v]) => `${k}: ${v}`)
             .join(", ") || "-"}
-          sub="ML / LLM / hybrid"
+          sub={t("email.methodTypes")}
         />
       </div>
 
@@ -154,10 +156,10 @@ export default function EmailIntentProcessorPage() {
           {selected ? (
             <Tabs defaultValue="preview">
               <TabsList>
-                <TabsTrigger value="preview">Email</TabsTrigger>
-                <TabsTrigger value="intent">Intent</TabsTrigger>
-                <TabsTrigger value="entities">Entitasok</TabsTrigger>
-                <TabsTrigger value="routing">Routing</TabsTrigger>
+                <TabsTrigger value="preview">{t("email.tabEmail")}</TabsTrigger>
+                <TabsTrigger value="intent">{t("email.tabIntent")}</TabsTrigger>
+                <TabsTrigger value="entities">{t("email.tabEntities")}</TabsTrigger>
+                <TabsTrigger value="routing">{t("email.tabRouting")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="preview" className="mt-4">
@@ -171,7 +173,7 @@ export default function EmailIntentProcessorPage() {
                 {selected.intent ? (
                   <IntentBadgeDetail intent={selected.intent} />
                 ) : (
-                  <p className="text-muted-foreground text-sm">Nincs intent adat</p>
+                  <p className="text-muted-foreground text-sm">{t("email.noIntent")}</p>
                 )}
               </TabsContent>
 
@@ -183,7 +185,7 @@ export default function EmailIntentProcessorPage() {
                     onEntityHover={setHighlightedEntity}
                   />
                 ) : (
-                  <p className="text-muted-foreground text-sm">Nincs entity adat</p>
+                  <p className="text-muted-foreground text-sm">{t("email.noEntity")}</p>
                 )}
               </TabsContent>
 
@@ -191,14 +193,14 @@ export default function EmailIntentProcessorPage() {
                 {selected.routing && selected.priority ? (
                   <RoutingCard routing={selected.routing} priority={selected.priority} />
                 ) : (
-                  <p className="text-muted-foreground text-sm">Nincs routing adat</p>
+                  <p className="text-muted-foreground text-sm">{t("email.noRouting")}</p>
                 )}
               </TabsContent>
             </Tabs>
           ) : (
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
-                Valassz egy emailt a listabol
+                {t("email.selectEmail")}
               </CardContent>
             </Card>
           )}

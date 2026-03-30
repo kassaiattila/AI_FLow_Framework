@@ -2,21 +2,23 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/hooks/use-i18n";
 
 interface ChatInputProps {
   onSend: (question: string, role: string) => void;
   disabled?: boolean;
 }
 
-const ROLES = [
-  { value: "baseline", label: "Alapszint" },
-  { value: "mentor", label: "Mentor" },
-  { value: "expert", label: "Szakerto" },
-];
-
 export function ChatInput({ onSend, disabled }: ChatInputProps) {
+  const { t } = useI18n();
   const [question, setQuestion] = useState("");
   const [role, setRole] = useState("baseline");
+
+  const ROLES = [
+    { value: "baseline", label: t("rag.roleBaseline") },
+    { value: "mentor", label: t("rag.roleMentor") },
+    { value: "expert", label: t("rag.roleExpert") },
+  ];
 
   const handleSend = () => {
     const q = question.trim();
@@ -52,7 +54,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Kerdes..."
+          placeholder={t("rag.placeholder")}
           className="flex-1 resize-none border rounded-lg px-3 py-2 text-sm min-h-[40px] max-h-[120px] bg-background"
           rows={1}
           disabled={disabled}
@@ -63,7 +65,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           size="sm"
           className="self-end"
         >
-          Kuldes
+          {t("common.send")}
         </Button>
       </div>
     </div>

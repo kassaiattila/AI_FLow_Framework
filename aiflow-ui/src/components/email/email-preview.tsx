@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/hooks/use-i18n";
 import type { EmailProcessingResult, Entity } from "@/lib/types";
 import { formatDate } from "./shared";
 
@@ -58,26 +59,27 @@ function highlightEntities(
 }
 
 export function EmailPreview({ email, highlightedEntity, onEntityClick }: EmailPreviewProps) {
+  const { t } = useI18n();
   const entities = email.entities?.entities || [];
   const bodyParts = highlightEntities(email.body || "", entities, highlightedEntity);
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm">Email</CardTitle>
+        <CardTitle className="text-sm">{t("email.cardEmail")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-[80px_1fr] gap-y-1 text-sm">
-          <span className="text-muted-foreground">Feladó:</span>
+          <span className="text-muted-foreground">{t("email.senderLabel")}</span>
           <span className="font-medium">{email.sender}</span>
-          <span className="text-muted-foreground">Tárgy:</span>
+          <span className="text-muted-foreground">{t("email.subjectLabel")}</span>
           <span className="font-medium">{email.subject}</span>
-          <span className="text-muted-foreground">Dátum:</span>
+          <span className="text-muted-foreground">{t("email.dateLabel")}</span>
           <span>{formatDate(email.received_date)}</span>
           {email.has_attachments && (
             <>
-              <span className="text-muted-foreground">Csatolm.:</span>
-              <span>{email.attachment_count} fájl</span>
+              <span className="text-muted-foreground">{t("email.attachLabel")}</span>
+              <span>{email.attachment_count} {t("common.file")}</span>
             </>
           )}
         </div>
@@ -88,7 +90,7 @@ export function EmailPreview({ email, highlightedEntity, onEntityClick }: EmailP
 
         {email.attachment_summaries.length > 0 && (
           <div className="border-t pt-3 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Csatolmányok</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("email.attachSection")}</p>
             {email.attachment_summaries.map((att) => (
               <div
                 key={att.filename}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useI18n } from "@/hooks/use-i18n";
 
 interface DiagramPreviewProps {
   mermaidCode: string;
@@ -10,6 +11,7 @@ interface DiagramPreviewProps {
 }
 
 export function DiagramPreview({ mermaidCode, title }: DiagramPreviewProps) {
+  const { t } = useI18n();
   const [svgHtml, setSvgHtml] = useState<string | null>(null);
   const [svgError, setSvgError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ export function DiagramPreview({ mermaidCode, title }: DiagramPreviewProps) {
       })
       .then((svg) => setSvgHtml(svg))
       .catch(() => {
-        setSvgError("Kroki szerver nem elerheto — nyers Mermaid kod megjelenitese");
+        setSvgError(t("processdoc.krokiError"));
       })
       .finally(() => {
         clearTimeout(timeout);
@@ -52,14 +54,14 @@ export function DiagramPreview({ mermaidCode, title }: DiagramPreviewProps) {
       <CardContent>
         <Tabs defaultValue="diagram">
           <TabsList>
-            <TabsTrigger value="diagram">Diagram</TabsTrigger>
-            <TabsTrigger value="code">Mermaid kod</TabsTrigger>
+            <TabsTrigger value="diagram">{t("processdoc.diagram")}</TabsTrigger>
+            <TabsTrigger value="code">{t("processdoc.tabMermaid")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="diagram" className="mt-3">
             {loading && (
               <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                Diagram renderelese...
+                {t("processdoc.rendering")}
               </div>
             )}
             {!loading && svgHtml && (
@@ -78,14 +80,14 @@ export function DiagramPreview({ mermaidCode, title }: DiagramPreviewProps) {
             )}
             {!loading && !svgHtml && !svgError && !mermaidCode && (
               <div className="text-center text-muted-foreground py-12 text-sm">
-                Generaljon egy diagramot a folyamat leirasabol
+                {t("processdoc.emptyDiagram")}
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="code" className="mt-3">
             <pre className="p-4 bg-muted rounded text-xs overflow-x-auto whitespace-pre-wrap font-mono">
-              {mermaidCode || "Nincs mermaid kod"}
+              {mermaidCode || t("processdoc.noMermaid")}
             </pre>
           </TabsContent>
         </Tabs>
