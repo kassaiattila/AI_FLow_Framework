@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Clear stale session data on login page load
+  useEffect(() => {
+    sessionStorage.removeItem("aiflow_user");
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,9 +91,11 @@ export default function LoginPage() {
               {loading ? "Bejelentkezes..." : "Bejelentkezes"}
             </Button>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Dev: admin/admin, operator/operator, viewer/viewer
-            </p>
+            {process.env.NODE_ENV === "development" && (
+              <p className="text-xs text-muted-foreground text-center">
+                Dev: admin/admin, operator/operator, viewer/viewer
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>

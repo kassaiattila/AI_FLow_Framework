@@ -60,8 +60,10 @@ export default function ProcessDocumentationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_input: userInput }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const doc: ProcessDocResult = await res.json();
       setSelected(doc);
+      loadData(); // refresh gallery
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generalasi hiba");
     } finally {
