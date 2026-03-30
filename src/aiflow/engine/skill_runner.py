@@ -106,12 +106,13 @@ class SkillRunner:
         steps: list[Callable],
         input_data: dict[str, Any],
     ) -> dict[str, Any]:
-        """Run steps sequentially. Each step's output becomes the next step's input."""
-        data = input_data
+        """Run steps sequentially. Each step's output is merged with accumulated data."""
+        data = dict(input_data)
         total_start = time.monotonic()
 
         for step_func in steps:
-            data = await self.run_step(step_func, data)
+            result = await self.run_step(step_func, data)
+            data = {**data, **result}
 
         total_duration = (time.monotonic() - total_start) * 1000
         logger.info(
