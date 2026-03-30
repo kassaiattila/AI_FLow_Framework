@@ -68,6 +68,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "common.retryBtn": "Ujraprobalkozas",
 
     // Invoice page
+    "invoice.title": "Invoice Processor",
+    "invoice.desc": "PDF szamla feldolgozas (Docling + GPT-4o)",
     "invoice.documents": "Dokumentumok",
     "invoice.processed": "feldolgozva",
     "invoice.hufTotal": "HUF osszesen",
@@ -419,6 +421,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "common.retryBtn": "Retry",
 
     // Invoice page
+    "invoice.title": "Invoice Processor",
+    "invoice.desc": "PDF invoice extraction (Docling + GPT-4o)",
     "invoice.documents": "Documents",
     "invoice.processed": "processed",
     "invoice.hufTotal": "HUF total",

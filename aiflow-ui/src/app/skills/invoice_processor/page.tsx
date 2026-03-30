@@ -8,7 +8,7 @@ import { DocumentTable, type SortField } from "@/components/invoice/document-tab
 import { BatchBanner, type BatchState, type BatchItem, saveBatchToSession, loadBatchFromSession, clearBatchSession } from "@/components/invoice/batch-banner";
 import { ScheduleDialog } from "@/components/invoice/schedule-dialog";
 import { getDocStatus, type DocStatus } from "@/components/invoice/shared";
-import { KpiCard } from "@/components/skill-viewer";
+import { SkillViewerLayout, KpiCard } from "@/components/skill-viewer";
 import { ExportButton } from "@/components/export-button";
 import { useI18n } from "@/hooks/use-i18n";
 import type { ProcessedInvoice, WorkflowRun } from "@/lib/types";
@@ -206,10 +206,19 @@ export default function InvoiceProcessorPage() {
   const totalHUF = invoices.filter((i) => i.header.currency === "HUF").reduce((s, i) => s + i.totals.gross_total, 0);
 
   return (
-    <div className="p-6 space-y-4">
+    <SkillViewerLayout
+      skillName="invoice"
+      source={null}
+      loading={false}
+      error={null}
+      onRetry={() => loadData()}
+      badgeFallbackKey="common.inDevelopment"
+    >
+      {/* 1. Input — upload zone */}
       <UploadZone onFilesUploaded={handleFilesUploaded} autoProcess={autoProcess} onAutoProcessChange={setAutoProcess} />
 
-      <div className="grid grid-cols-4 gap-3">
+      {/* 2. KPIs — 4 columns */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard title={t("invoice.documents")} value={invoices.length.toString()} sub={`${completedCount} ${t("invoice.processed")}`} />
         <KpiCard title={t("invoice.hufTotal")} value={totalHUF >= 1000 ? `${Math.round(totalHUF / 1000)}k Ft` : `${totalHUF} Ft`} sub={`${invoices.filter((i) => i.header.currency === "HUF").length} ${t("invoice.invoiceUnit")}`} />
         <KpiCard title={t("invoice.runs")} value={runs.length.toString()} sub={`${runs.filter((r) => r.status === "completed").length} ${t("invoice.successful")}`} />
@@ -302,6 +311,6 @@ export default function InvoiceProcessorPage() {
       </Card>
 
       <ScheduleDialog open={scheduleOpen} onClose={() => setScheduleOpen(false)} />
-    </div>
+    </SkillViewerLayout>
   );
 }

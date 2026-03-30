@@ -5,13 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useI18n } from "@/hooks/use-i18n";
-import { SkillViewerLayout, KpiCard } from "@/components/skill-viewer";
+import { SkillViewerLayout, KpiCard, PipelineBar } from "@/components/skill-viewer";
 import { TextInputForm } from "@/components/process-docs/text-input-form";
 import { DiagramPreview } from "@/components/process-docs/diagram-preview";
 import { ReviewScores } from "@/components/process-docs/review-scores";
 import { GenerationGallery } from "@/components/process-docs/generation-gallery";
-import { ProcessStepTrace } from "@/components/process-docs/process-step-trace";
 import type { ProcessDocResult } from "@/lib/types";
+
+const PIPELINE_STEPS = ["classify", "elaborate", "extract", "review", "generate", "export"];
 
 export default function ProcessDocumentationPage() {
   const { t } = useI18n();
@@ -26,23 +27,16 @@ export default function ProcessDocumentationPage() {
     setLoading(true);
     setError(null);
     fetch("/api/process-docs")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((data: { documents: ProcessDocResult[] }) => {
         setDocuments(data.documents);
-        if (data.documents.length > 0 && !selected) {
-          setSelected(data.documents[0]);
-        }
+        if (data.documents.length > 0 && !selected) setSelected(data.documents[0]);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleGenerate = async (userInput: string) => {
     setGenerating(true);
@@ -66,11 +60,21 @@ export default function ProcessDocumentationPage() {
   };
 
   const totalDocs = documents.length;
-  const avgScore = documents.length > 0
-    ? documents.reduce((sum, d) => sum + d.review.score, 0) / documents.length
-    : 0;
-  const totalActors = documents.reduce((sum, d) => sum + d.extraction.actors.length, 0);
-  const totalSteps = documents.reduce((sum, d) => sum + d.extraction.steps.length, 0);
+  const avgScore = totalDocs > 0 ? documents.reduce((s, d) => s + d.review.score, 0) / totalDocs : 0;
+  const totalActors = documents.reduce((s, d) => s + d.extraction.actors.length, 0);
+  const totalSteps = documents.reduce((s, d) => s + d.extraction.steps.length, 0);
+
+  // Pipeline steps status based on selected doc
+  const pipelineSteps = PIPELINE_STEPS.map((name) => ({
+    name,
+    status: (selected
+      ? "completed"
+      : generating && name === "classify"
+        ? "running"
+        : generating
+          ? "pending"
+          : "pending") as "completed" | "running" | "pending",
+  }));
 
   return (
     <SkillViewerLayout
@@ -81,42 +85,37 @@ export default function ProcessDocumentationPage() {
       onRetry={loadData}
       badgeFallbackKey="processdoc.title"
     >
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* 1. Input — always first */}
+      <TextInputForm onGenerate={handleGenerate} disabled={generating} />
+
+      {/* 2. KPIs — always 4 columns */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard title={t("processdoc.generated")} value={String(totalDocs)} sub={t("common.total")} />
         <KpiCard title={t("processdoc.avgScore")} value={avgScore.toFixed(1)} sub="/ 10" />
         <KpiCard title={t("processdoc.actors")} value={String(totalActors)} sub={t("common.total")} />
         <KpiCard title={t("processdoc.steps")} value={String(totalSteps)} sub={t("common.total")} />
       </div>
 
-      {/* Input form */}
-      <TextInputForm onGenerate={handleGenerate} disabled={generating} />
+      {/* 3. Pipeline bar — always visible */}
+      <PipelineBar steps={pipelineSteps} source={source} isProcessing={generating} />
 
-      {/* Results */}
+      {/* 4. Result tabs */}
       {selected ? (
         <Tabs defaultValue="diagram">
           <TabsList>
             <TabsTrigger value="diagram">{t("processdoc.diagram")}</TabsTrigger>
             <TabsTrigger value="review">{t("processdoc.review")}</TabsTrigger>
-            <TabsTrigger value="trace">{t("processdoc.pipeline")}</TabsTrigger>
             <TabsTrigger value="gallery">
               {t("processdoc.gallery")}
               <Badge className="ml-1 bg-gray-100 text-gray-700 text-[9px]">{totalDocs}</Badge>
             </TabsTrigger>
           </TabsList>
-
           <TabsContent value="diagram" className="mt-4">
             <DiagramPreview mermaidCode={selected.mermaid_code} title={selected.extraction.title} />
           </TabsContent>
-
           <TabsContent value="review" className="mt-4">
             <ReviewScores review={selected.review} />
           </TabsContent>
-
-          <TabsContent value="trace" className="mt-4">
-            <ProcessStepTrace doc={selected} source={source} isProcessing={generating} />
-          </TabsContent>
-
           <TabsContent value="gallery" className="mt-4">
             <GenerationGallery documents={documents} selectedId={selected.doc_id} onSelect={setSelected} />
           </TabsContent>
