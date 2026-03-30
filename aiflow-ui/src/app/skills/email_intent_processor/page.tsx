@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +32,8 @@ export default function EmailIntentProcessorPage() {
   const [highlightedEntity, setHighlightedEntity] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [intentFilter, setIntentFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -55,40 +57,49 @@ export default function EmailIntentProcessorPage() {
     loadData();
   }, [loadData]);
 
-  // KPI calculations
+  // Unique intent/priority values for filters
+  const intentOptions = useMemo(() => {
+    const intents = new Set(emails.map((e) => e.intent?.intent_id).filter(Boolean));
+    return [...intents] as string[];
+  }, [emails]);
+
+  const priorityOptions = useMemo(() => {
+    const priorities = new Set(emails.map((e) => e.priority?.priority_level).filter(Boolean));
+    return [...priorities].sort() as number[];
+  }, [emails]);
+
+  // Filtered emails
+  const filtered = useMemo(() => {
+    return emails.filter((e) => {
+      if (intentFilter !== "all" && e.intent?.intent_id !== intentFilter) return false;
+      if (priorityFilter !== "all" && String(e.priority?.priority_level) !== priorityFilter) return false;
+      return true;
+    });
+  }, [emails, intentFilter, priorityFilter]);
+
+  // KPI calculations on ALL emails (not filtered)
   const totalEmails = emails.length;
   const avgConfidence =
-    emails.length > 0
-      ? emails.reduce((sum, e) => sum + (e.intent?.confidence || 0), 0) / emails.length
+    totalEmails > 0
+      ? emails.reduce((sum, e) => sum + (e.intent?.confidence || 0), 0) / totalEmails
       : 0;
-  const avgProcessingMs =
-    emails.length > 0
-      ? emails.reduce((sum, e) => sum + e.processing_time_ms, 0) / emails.length
-      : 0;
-  const methodBreakdown = emails.reduce(
-    (acc, e) => {
-      const m = e.intent?.method || "unknown";
-      acc[m] = (acc[m] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+  const mlCount = emails.filter((e) => e.intent?.method === "sklearn").length;
+  const mlRate = totalEmails > 0 ? (mlCount / totalEmails) * 100 : 0;
+  const highPriorityCount = emails.filter((e) => (e.priority?.priority_level || 5) <= 2).length;
+  const withAttachments = emails.filter((e) => e.has_attachments).length;
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">{t("email.title")}</h2>
-          <p className="text-muted-foreground">
-            {t("email.desc")}
-          </p>
+          <p className="text-muted-foreground">{t("email.desc")}</p>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton
             filename={`emails_${new Date().toISOString().slice(0, 10)}.csv`}
-            headers={["ID", "Felado", "Targy", "Intent", "Confidence", "Prioritas", "Osztaly", "Datum"]}
-            rows={emails.map((e) => [
-              e.email_id,
+            headers={[t("table.sender"), t("table.subject"), t("table.intent"), "Confidence", t("table.priority"), t("email.department"), t("common.date")]}
+            rows={filtered.map((e) => [
               e.sender,
               e.subject,
               e.intent?.intent_display_name || "",
@@ -114,44 +125,80 @@ export default function EmailIntentProcessorPage() {
       )}
 
       {!loading && !error && <>
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* KPIs — meaningful metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <KpiCard
           title={t("email.processed")}
           value={String(totalEmails)}
-          sub={t("email.emailUnit")}
+          sub={`${filtered.length} ${t("email.emailUnit")}`}
         />
         <KpiCard
           title={t("email.avgConfidence")}
-          value={`${(avgConfidence * 100).toFixed(1)}%`}
+          value={`${(avgConfidence * 100).toFixed(0)}%`}
           sub={t("email.intentRecognition")}
         />
         <KpiCard
-          title={t("email.avgProcessing")}
-          value={`${avgProcessingMs.toFixed(0)} ms`}
-          sub={t("email.perEmail")}
+          title={t("email.mlRate")}
+          value={`${mlRate.toFixed(0)}%`}
+          sub={`${mlCount} / ${totalEmails}`}
         />
         <KpiCard
-          title={t("email.methodLabel")}
-          value={Object.entries(methodBreakdown)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(", ") || "-"}
-          sub={t("email.methodTypes")}
+          title={t("email.highPriority")}
+          value={String(highPriorityCount)}
+          sub={`P1-P2`}
         />
+        <KpiCard
+          title={t("email.withAttachments")}
+          value={String(withAttachments)}
+          sub={`/ ${totalEmails}`}
+        />
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <select
+          value={intentFilter}
+          onChange={(e) => setIntentFilter(e.target.value)}
+          className="h-8 px-2 text-xs rounded-md border border-input bg-background"
+        >
+          <option value="all">{t("email.filterAll")} — Intent</option>
+          {intentOptions.map((intent) => (
+            <option key={intent} value={intent}>{intent}</option>
+          ))}
+        </select>
+        <select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+          className="h-8 px-2 text-xs rounded-md border border-input bg-background"
+        >
+          <option value="all">{t("email.filterAll")} — {t("table.priority")}</option>
+          {priorityOptions.map((p) => (
+            <option key={p} value={String(p)}>P{p}</option>
+          ))}
+        </select>
+        {(intentFilter !== "all" || priorityFilter !== "all") && (
+          <button
+            onClick={() => { setIntentFilter("all"); setPriorityFilter("all"); }}
+            className="text-xs text-blue-600 underline"
+          >
+            {t("common.reset")}
+          </button>
+        )}
+        <span className="text-xs text-muted-foreground ml-auto">
+          {filtered.length} / {totalEmails}
+        </span>
       </div>
 
       {/* Main content: table + detail */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Email list */}
         <div>
           <EmailTable
-            emails={emails}
+            emails={filtered}
             selectedId={selected?.email_id || null}
             onSelect={setSelected}
           />
         </div>
 
-        {/* Right: Detail panel */}
         <div>
           {selected ? (
             <Tabs defaultValue="preview">
@@ -163,10 +210,7 @@ export default function EmailIntentProcessorPage() {
               </TabsList>
 
               <TabsContent value="preview" className="mt-4">
-                <EmailPreview
-                  email={selected}
-                  highlightedEntity={highlightedEntity}
-                />
+                <EmailPreview email={selected} highlightedEntity={highlightedEntity} />
               </TabsContent>
 
               <TabsContent value="intent" className="mt-4">

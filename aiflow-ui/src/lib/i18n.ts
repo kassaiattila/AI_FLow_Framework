@@ -157,6 +157,12 @@ const translations: Record<Locale, Record<string, string>> = {
     "email.noEscalation": "Nincs",
     "email.boost": "Boost",
     "email.entities": "Entitasok",
+    "email.filterAll": "Mind",
+    "email.filterIntent": "Intent szures",
+    "email.filterPriority": "Prioritas szures",
+    "email.withAttachments": "Csatolmannyal",
+    "email.mlRate": "ML arany",
+    "email.highPriority": "Magas prior.",
 
     // RAG Chat
     "rag.title": "ASZF RAG Chat",
@@ -408,6 +414,12 @@ const translations: Record<Locale, Record<string, string>> = {
     "email.noEscalation": "None",
     "email.boost": "Boost",
     "email.entities": "Entities",
+    "email.filterAll": "All",
+    "email.filterIntent": "Filter by intent",
+    "email.filterPriority": "Filter by priority",
+    "email.withAttachments": "With attachments",
+    "email.mlRate": "ML rate",
+    "email.highPriority": "High priority",
 
     // RAG Chat
     "rag.title": "ASZF RAG Chat",
