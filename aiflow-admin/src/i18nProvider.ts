@@ -1,0 +1,133 @@
+import polyglotI18nProvider from "ra-i18n-polyglot";
+import englishMessages from "ra-language-english";
+
+const hungarianMessages = {
+  ra: {
+    action: {
+      add: "Hozzaadas",
+      back: "Vissza",
+      cancel: "Megse",
+      clone: "Masolat",
+      confirm: "Megerosites",
+      create: "Letrehozas",
+      delete: "Torles",
+      edit: "Szerkesztes",
+      export: "Export",
+      list: "Lista",
+      refresh: "Frissites",
+      save: "Mentes",
+      search: "Kereses",
+      show: "Megtekintes",
+      sort: "Rendezes",
+      undo: "Visszavonas",
+      unselect: "Kivalasztas torlese",
+      clear_input_value: "Torles",
+      bulk_actions: "%{smart_count} kivalasztva",
+      remove_all_filters: "Szurok torlese",
+      select_all: "Osszes kivalasztasa",
+    },
+    boolean: { true: "Igen", false: "Nem", null: "" },
+    page: {
+      create: "%{name} letrehozasa",
+      dashboard: "Dashboard",
+      edit: "%{name} #%{id}",
+      error: "Hiba tortent",
+      list: "%{name}",
+      loading: "Betoltes...",
+      not_found: "Az oldal nem talalhato",
+      show: "%{name} #%{id}",
+      empty: "Nincs %{name} meg.",
+      invite: "Szeretne hozzaadni egyet?",
+    },
+    input: {
+      file: { upload_several: "Huzd ide a fajlokat", upload_single: "Huzd ide a fajlt" },
+      references: { all_missing: "Nem talalhato", many_missing: "Nehany hivatkozas hianyzik", single_missing: "Hivatkozas hianyzik" },
+    },
+    message: {
+      about: "About",
+      are_you_sure: "Biztosan?",
+      bulk_delete_content: "Biztosan torli ezt a(z) %{smart_count} elemet?",
+      bulk_delete_title: "%{smart_count} elem torlese",
+      delete_content: "Biztosan torli?",
+      delete_title: "%{name} torlese #%{id}",
+      details: "Reszletek",
+      error: "Szerverhiba tortent",
+      invalid_form: "Az urlap hibas",
+      loading: "Betoltes...",
+      no: "Nem",
+      not_found: "Nem talalhato",
+      yes: "Igen",
+      unsaved_changes: "Nem mentett valtozasok",
+    },
+    navigation: {
+      no_results: "Nincs talalat",
+      no_more_results: "Nincs tobb eredmeny",
+      page_out_of_boundaries: "Az oldal %{page} nem letezik",
+      page_out_from_end: "Az utolso oldal utan",
+      page_out_from_begin: "Az elso oldal elott",
+      page_range_info: "%{offsetBegin}-%{offsetEnd} / %{total}",
+      partial_page_range_info: "%{offsetBegin}-%{offsetEnd} / tobb mint %{offsetEnd}",
+      current_page: "%{page}. oldal",
+      page: "%{page}. oldal",
+      first: "Elso oldal",
+      last: "Utolso oldal",
+      next: "Kovetkezo",
+      previous: "Elozo",
+      page_rows_per_page: "Sor oldalankent:",
+      skip_nav: "Ugras a tartalomra",
+    },
+    notification: {
+      updated: "Frissitve",
+      created: "Letrehozva",
+      deleted: "Torolve",
+      bad_item: "Hibas elem",
+      item_doesnt_exist: "Az elem nem letezik",
+      http_error: "Kommunikacios hiba",
+      data_provider_error: "DataProvider hiba",
+      canceled: "Megse",
+    },
+    sort: { sort_by: "Rendezes: %{field}", ASC: "Novekvo", DESC: "Csokkeno" },
+    auth: { auth_check_error: "Kerlek jelentkezz be", user_menu: "Profil", username: "Felhasznalonev", password: "Jelszo", sign_in: "Bejelentkezes", sign_in_error: "Hiba! Ellenorizd az adatokat.", logout: "Kijelentkezes" },
+    validation: { required: "Kotelezo", minLength: "Min. %{min} karakter", maxLength: "Max. %{max} karakter", minValue: "Min. %{min}", maxValue: "Max. %{max}", number: "Szamnak kell lennie", email: "Ervenyes email cim szukseges", oneOf: "A kovetkezok egyike: %{options}", regex: "Nem megfelelo formatum" },
+  },
+  // AIFlow custom translations
+  aiflow: {
+    dashboard: { title: "AIFlow Dashboard", subtitle: "AI Workflow Automation Framework", skills: "Skills", allRuns: "Osszes futas", todayRuns: "Mai futasok", todayCost: "Mai koltseg", tests: "teszt" },
+    skills: {
+      process_documentation: "Process Documentation",
+      aszf_rag_chat: "ASZF RAG Chat",
+      email_intent_processor: "Email Intent",
+      invoice_processor: "Invoice Processor",
+      cubix_course_capture: "Cubix Course Capture",
+    },
+    status: { production: "Production", inDevelopment: "Fejlesztes alatt", resultsViewer: "Eredmeny nezo", stub: "Stub", demo: "Demo", live: "Live", subprocess: "Lokalis feldolgozas" },
+    runs: { title: "Workflow Runs", skill: "Skill", status: "Statusz", duration: "Idotartam", cost: "Koltseg", started: "Inditva", steps: "Lepesek" },
+    costs: { title: "Koltseg analitika" },
+  },
+};
+
+const englishCustom = {
+  ...englishMessages,
+  aiflow: {
+    dashboard: { title: "AIFlow Dashboard", subtitle: "AI Workflow Automation Framework", skills: "Skills", allRuns: "All Runs", todayRuns: "Today", todayCost: "Today Cost", tests: "tests" },
+    skills: {
+      process_documentation: "Process Documentation",
+      aszf_rag_chat: "ASZF RAG Chat",
+      email_intent_processor: "Email Intent",
+      invoice_processor: "Invoice Processor",
+      cubix_course_capture: "Cubix Course Capture",
+    },
+    status: { production: "Production", inDevelopment: "In Development", resultsViewer: "Results Viewer", stub: "Stub", demo: "Demo", live: "Live", subprocess: "Local processing" },
+    runs: { title: "Workflow Runs", skill: "Skill", status: "Status", duration: "Duration", cost: "Cost", started: "Started", steps: "Steps" },
+    costs: { title: "Cost Analytics" },
+  },
+};
+
+export const i18nProvider = polyglotI18nProvider(
+  (locale) => (locale === "hu" ? hungarianMessages : englishCustom),
+  "hu",
+  [
+    { locale: "hu", name: "Magyar" },
+    { locale: "en", name: "English" },
+  ]
+);
