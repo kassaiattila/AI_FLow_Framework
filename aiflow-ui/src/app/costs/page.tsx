@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { ExportButton } from "@/components/export-button";
+import { PrintButton } from "@/components/print-button";
 import type { WorkflowRun } from "@/lib/types";
 
 const SKILL_LABELS: Record<string, string> = {
@@ -109,9 +111,22 @@ export default function CostsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Cost Dashboard</h2>
-        <p className="text-muted-foreground">LLM usage and cost analysis</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Cost Dashboard</h2>
+          <p className="text-muted-foreground">LLM usage and cost analysis</p>
+        </div>
+        <ExportButton
+          filename={`costs_${new Date().toISOString().slice(0, 10)}.csv`}
+          headers={["Skill", "Runs", "Total Cost ($)", "Avg Cost ($)"]}
+          rows={skillRows.map((r) => [
+            r.skill,
+            String(r.runs),
+            r.totalCost.toFixed(4),
+            r.avgCost.toFixed(4),
+          ])}
+        />
+        <PrintButton />
       </div>
 
       {/* Top-level KPIs */}

@@ -9,6 +9,14 @@ import type {
 
 // --- State ---
 
+export interface AuditEntry {
+  timestamp: string;
+  action: string;
+  field_id: string | null;
+  old_value: string | null;
+  new_value: string | null;
+}
+
 interface VerificationState {
   dataPoints: DataPoint[];
   documentMeta: DocumentMeta | null;
@@ -18,6 +26,7 @@ interface VerificationState {
   editingPointId: string | null;
   editBuffer: string;
   originalValues: Record<string, string>;
+  auditLog: AuditEntry[];
 }
 
 const INITIAL_STATE: VerificationState = {
@@ -29,6 +38,7 @@ const INITIAL_STATE: VerificationState = {
   editingPointId: null,
   editBuffer: "",
   originalValues: {},
+  auditLog: [],
 };
 
 // --- Actions ---
@@ -89,7 +99,9 @@ function reducer(state: VerificationState, action: Action): VerificationState {
       if (!state.editingPointId) return state;
       const editId = state.editingPointId;
       const original = state.originalValues[editId] ?? "";
+      const oldVal = state.dataPoints.find((dp) => dp.id === editId)?.current_value ?? "";
       const newValue = state.editBuffer;
+      const ts = new Date().toISOString();
       return {
         ...state,
         dataPoints: state.dataPoints.map((dp) =>
@@ -103,6 +115,9 @@ function reducer(state: VerificationState, action: Action): VerificationState {
         ),
         editingPointId: null,
         editBuffer: "",
+        auditLog: oldVal !== newValue
+          ? [...state.auditLog, { timestamp: ts, action: "edit", field_id: editId, old_value: oldVal, new_value: newValue }]
+          : state.auditLog,
       };
     }
 
@@ -115,6 +130,7 @@ function reducer(state: VerificationState, action: Action): VerificationState {
         dataPoints: state.dataPoints.map((dp) =>
           dp.id === action.payload ? { ...dp, status: "confirmed" } : dp
         ),
+        auditLog: [...state.auditLog, { timestamp: new Date().toISOString(), action: "confirm", field_id: action.payload, old_value: null, new_value: null }],
       };
 
     case "CONFIRM_ALL":
@@ -124,6 +140,7 @@ function reducer(state: VerificationState, action: Action): VerificationState {
           ...dp,
           status: "confirmed",
         })),
+        auditLog: [...state.auditLog, { timestamp: new Date().toISOString(), action: "confirm_all", field_id: null, old_value: null, new_value: `${state.dataPoints.length} fields` }],
       };
 
     case "RESET":
@@ -137,6 +154,7 @@ function reducer(state: VerificationState, action: Action): VerificationState {
         editingPointId: null,
         editBuffer: "",
         selectedPointId: null,
+        auditLog: [...state.auditLog, { timestamp: new Date().toISOString(), action: "reset", field_id: null, old_value: null, new_value: null }],
       };
 
     default:

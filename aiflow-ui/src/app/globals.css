@@ -127,3 +127,14 @@
     @apply font-sans;
   }
 }
+
+/* Print styles — hide sidebar, nav, buttons; optimize layout */
+@media print {
+  aside { display: none !important; }
+  .no-print { display: none !important; }
+  body { display: block !important; }
+  main { margin: 0 !important; padding: 1rem !important; }
+  * { break-inside: avoid; }
+  table { font-size: 10px; }
+  .print-full-width { width: 100% !important; max-width: 100% !important; }
+}

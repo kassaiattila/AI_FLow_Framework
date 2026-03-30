@@ -143,6 +143,10 @@ make lock                                   # Regenerate uv.lock from pyproject.
 - `/phase-status` - Check implementation progress for a phase (1-7)
 - `/validate-plan` - Validate plan document consistency
 - `/update-plan` - **MANDATORY for plan changes**: propagate + 2-pass validation
+- `/ui-component` - Generate shadcn/ui + TypeScript component for the dashboard
+- `/ui-page` - Generate Next.js App Router page for the dashboard
+- `/ui-viewer` - Generate skill-specific result viewer component
+- `/ui-api-endpoint` - Generate FastAPI endpoint for the UI
 
 ## Directory Structure
 ```
@@ -158,9 +162,8 @@ src/aiflow/
     ingestion/     # Parsers (PDF/DOCX), chunkers (semantic)
     state/         # SQLAlchemy ORM, repository, Alembic migrations
     security/      # JWT+API key auth, RBAC, audit
-    api/v1/        # FastAPI endpoints (stub - Phase B)
+    api/v1/        # FastAPI endpoints (10 route files: health, workflows, chat, feedback, runs, costs, skills, emails, auth)
     observability/ # Tracing, cost_tracker (partial)
-    # ui/ torolve — Next.js UI az aiflow-ui/ mappaban
     cli/           # typer CLI
     skills/        # Backward compat re-exports -> skill_system/
     contrib/       # Backward compat re-exports -> tools/
@@ -169,7 +172,15 @@ skills/            # Self-contained skill packages (each with own tools, tests, 
   cubix_course_capture/   # WORKING - video transcript pipeline + RPA
   aszf_rag_chat/          # WORKING - RAG chat (86% eval pass)
   email_intent_processor/ # IN DEVELOPMENT - email + attachment processing
-  qbpp_test_automation/   # PLANNED - insurance calculator test automation
+  invoice_processor/      # IN DEVELOPMENT - PDF invoice extraction + Next.js UI
+  qbpp_test_automation/   # STUB - insurance calculator test automation
+aiflow-ui/         # Next.js 16 + React 19 + shadcn/ui production dashboard (91 fajl)
+  src/app/           # 11 oldal (/, /login, /costs, /runs, /runs/[id], 6 skill viewer)
+  src/components/    # 47 komponens (ui/, invoice/, email/, rag-chat/, process-docs/, cubix/, workflow/, verification/ + standalone)
+  src/lib/           # 9 fajl (types, data-store, backend, csv-export, i18n, api, utils, verification-types, document-layout)
+  src/hooks/         # 4 hook (use-auth, use-i18n, use-verification-state, use-workflow-simulation)
+  src/app/api/       # 18 API route (auth, documents, emails, rag, process-docs, cubix, runs)
+  src/proxy.ts       # Auth proxy + RBAC (cookie JWT, login redirect, role check)
 deployments/       # Per-customer deployment configs (AZHU, NPRA, BESTIX)
 tests/             # unit/, integration/, e2e/, conftest.py
 ```

@@ -1,0 +1,300 @@
+[
+  {
+    "email_id": "em-001",
+    "subject": "Reklamáció - Hibás számla (2024/03-0456)",
+    "sender": "kovacs.peter@example.hu",
+    "received_date": "2026-03-28T09:15:00Z",
+    "body": "Tisztelt Ügyfélszolgálat!\n\nA 2024/03-0456 számú számlán hibás összeg szerepel. A megrendelt szolgáltatás ára 125 000 Ft volt, de a számlán 152 000 Ft-ot tüntettek fel.\n\nKérem a számla javítását és az új számla kiállítását.\n\nÜdvözlettel,\nKovács Péter\nÜgyfélszám: KP-2024-789",
+    "has_attachments": true,
+    "attachment_count": 1,
+    "intent": {
+      "intent_id": "complaint",
+      "intent_display_name": "Reklamáció",
+      "confidence": 0.94,
+      "sub_intent": "billing_error",
+      "method": "hybrid",
+      "sklearn_intent": "complaint",
+      "sklearn_confidence": 0.87,
+      "llm_intent": "complaint",
+      "llm_confidence": 0.94,
+      "alternatives": [{"intent": "inquiry", "confidence": 0.04}],
+      "reasoning": "A levél egyértelműen hibás számlára vonatkozó reklamáció."
+    },
+    "entities": {
+      "entities": [
+        {"entity_type": "invoice_number", "value": "2024/03-0456", "normalized_value": "2024/03-0456", "confidence": 0.98, "source": "body", "extraction_method": "regex", "start_offset": 2, "end_offset": 14},
+        {"entity_type": "amount", "value": "125 000 Ft", "normalized_value": "125000", "confidence": 0.95, "source": "body", "extraction_method": "regex", "start_offset": 100, "end_offset": 110},
+        {"entity_type": "amount", "value": "152 000 Ft", "normalized_value": "152000", "confidence": 0.95, "source": "body", "extraction_method": "regex", "start_offset": 140, "end_offset": 150},
+        {"entity_type": "customer_id", "value": "KP-2024-789", "normalized_value": "KP-2024-789", "confidence": 0.99, "source": "body", "extraction_method": "regex", "start_offset": 260, "end_offset": 271},
+        {"entity_type": "person_name", "value": "Kovács Péter", "normalized_value": "Kovács Péter", "confidence": 0.92, "source": "body", "extraction_method": "llm", "start_offset": 240, "end_offset": 252}
+      ],
+      "entity_count": 5,
+      "extraction_methods_used": ["regex", "llm"]
+    },
+    "priority": {
+      "priority_level": 2,
+      "priority_name": "high",
+      "priority_display_name": "Magas",
+      "sla_hours": 24,
+      "matched_rule": "complaint_with_amount",
+      "boosts_applied": ["has_attachment", "billing_error"],
+      "reasoning": "Számlázási reklamáció csatolmánnyal — emelt prioritás."
+    },
+    "routing": {
+      "queue_id": "q-billing",
+      "queue_name": "Számlázás",
+      "department_id": "d-finance",
+      "department_name": "Pénzügy",
+      "department_email": "penzugy@company.hu",
+      "auto_escalate_after_minutes": 240,
+      "matched_rule": "billing_complaint_route",
+      "escalation_triggered": false,
+      "escalation_reason": "",
+      "notes": ""
+    },
+    "attachment_summaries": [
+      {"filename": "szamla_0456.pdf", "mime_type": "application/pdf", "size_bytes": 245000, "extracted_text": "Számla szám: 2024/03-0456...", "extracted_fields": {"total": "152000"}, "document_type": "invoice", "processor_used": "docling", "error": ""}
+    ],
+    "processing_time_ms": 1250,
+    "pipeline_version": "1.0.0",
+    "errors": [],
+    "warnings": []
+  },
+  {
+    "email_id": "em-002",
+    "subject": "Érdeklődés: Vállalati díjcsomagok",
+    "sender": "nagy.anna@enterprise.hu",
+    "received_date": "2026-03-28T10:30:00Z",
+    "body": "Üdvözlöm!\n\nCégünk (Enterprise Solutions Kft., adószám: 12345678-2-42) számára érdeklődnénk a vállalati díjcsomagokról. Jelenleg 45 munkaállomást használunk, és szeretnénk áttérni az Önök szolgáltatására.\n\nKérem, küldjék el az aktuális árlistát és a szerződési feltételeket.\n\nKöszönettel,\nNagy Anna\nIT vezető\n+36-30-123-4567",
+    "has_attachments": false,
+    "attachment_count": 0,
+    "intent": {
+      "intent_id": "inquiry",
+      "intent_display_name": "Érdeklődés",
+      "confidence": 0.97,
+      "sub_intent": "pricing_request",
+      "method": "sklearn",
+      "sklearn_intent": "inquiry",
+      "sklearn_confidence": 0.97,
+      "llm_intent": null,
+      "llm_confidence": 0.0,
+      "alternatives": [],
+      "reasoning": "Egyértelmű árajánlat-kérés, magas ML confidence."
+    },
+    "entities": {
+      "entities": [
+        {"entity_type": "company_name", "value": "Enterprise Solutions Kft.", "normalized_value": "Enterprise Solutions Kft.", "confidence": 0.96, "source": "body", "extraction_method": "llm", "start_offset": 30, "end_offset": 54},
+        {"entity_type": "tax_number", "value": "12345678-2-42", "normalized_value": "12345678-2-42", "confidence": 0.99, "source": "body", "extraction_method": "regex", "start_offset": 66, "end_offset": 79},
+        {"entity_type": "phone", "value": "+36-30-123-4567", "normalized_value": "+36301234567", "confidence": 0.99, "source": "body", "extraction_method": "regex", "start_offset": 280, "end_offset": 295},
+        {"entity_type": "person_name", "value": "Nagy Anna", "normalized_value": "Nagy Anna", "confidence": 0.94, "source": "body", "extraction_method": "llm", "start_offset": 260, "end_offset": 269}
+      ],
+      "entity_count": 4,
+      "extraction_methods_used": ["regex", "llm"]
+    },
+    "priority": {
+      "priority_level": 3,
+      "priority_name": "medium",
+      "priority_display_name": "Közepes",
+      "sla_hours": 48,
+      "matched_rule": "inquiry_default",
+      "boosts_applied": ["corporate_client"],
+      "reasoning": "Vállalati érdeklődés, standard SLA."
+    },
+    "routing": {
+      "queue_id": "q-sales",
+      "queue_name": "Értékesítés",
+      "department_id": "d-sales",
+      "department_name": "Értékesítés",
+      "department_email": "sales@company.hu",
+      "auto_escalate_after_minutes": 480,
+      "matched_rule": "inquiry_sales_route",
+      "escalation_triggered": false,
+      "escalation_reason": "",
+      "notes": "45 munkaállomás — enterprise tier"
+    },
+    "attachment_summaries": [],
+    "processing_time_ms": 320,
+    "pipeline_version": "1.0.0",
+    "errors": [],
+    "warnings": []
+  },
+  {
+    "email_id": "em-003",
+    "subject": "SÜRGŐS: Biztosítási kárigény bejelentés",
+    "sender": "szabo.istvan@mail.hu",
+    "received_date": "2026-03-28T11:45:00Z",
+    "body": "Tisztelt Biztosító!\n\nEzennel bejelentem a 2026. március 27-én keletkezett gépjármű káreseményt.\n\nKötvényszám: GFB-2025-12345\nRendszám: ABC-123\nKáresemény helye: Budapest, Andrássy út 45.\nKár becsült összege: 850 000 Ft\n\nA rendőrségi jegyzőkönyv és fényképek csatolva.\n\nSürgős intézkedést kérek!\n\nSzabó István\nTel: +36-20-987-6543",
+    "has_attachments": true,
+    "attachment_count": 3,
+    "intent": {
+      "intent_id": "claim",
+      "intent_display_name": "Kárigény",
+      "confidence": 0.99,
+      "sub_intent": "vehicle_damage",
+      "method": "hybrid",
+      "sklearn_intent": "claim",
+      "sklearn_confidence": 0.92,
+      "llm_intent": "claim",
+      "llm_confidence": 0.99,
+      "alternatives": [],
+      "reasoning": "Egyértelmű gépjármű kárigény bejelentés, magas sürgősség."
+    },
+    "entities": {
+      "entities": [
+        {"entity_type": "policy_number", "value": "GFB-2025-12345", "normalized_value": "GFB-2025-12345", "confidence": 0.99, "source": "body", "extraction_method": "regex", "start_offset": 107, "end_offset": 121},
+        {"entity_type": "license_plate", "value": "ABC-123", "normalized_value": "ABC123", "confidence": 0.99, "source": "body", "extraction_method": "regex", "start_offset": 133, "end_offset": 140},
+        {"entity_type": "location", "value": "Budapest, Andrássy út 45.", "normalized_value": "1061 Budapest, Andrássy út 45.", "confidence": 0.88, "source": "body", "extraction_method": "llm", "start_offset": 161, "end_offset": 186},
+        {"entity_type": "amount", "value": "850 000 Ft", "normalized_value": "850000", "confidence": 0.97, "source": "body", "extraction_method": "regex", "start_offset": 210, "end_offset": 220},
+        {"entity_type": "date", "value": "2026. március 27.", "normalized_value": "2026-03-27", "confidence": 0.95, "source": "body", "extraction_method": "llm", "start_offset": 60, "end_offset": 77},
+        {"entity_type": "person_name", "value": "Szabó István", "normalized_value": "Szabó István", "confidence": 0.93, "source": "body", "extraction_method": "llm", "start_offset": 280, "end_offset": 292}
+      ],
+      "entity_count": 6,
+      "extraction_methods_used": ["regex", "llm"]
+    },
+    "priority": {
+      "priority_level": 1,
+      "priority_name": "critical",
+      "priority_display_name": "Kritikus",
+      "sla_hours": 4,
+      "matched_rule": "urgent_claim",
+      "boosts_applied": ["urgent_keyword", "high_amount", "has_attachments"],
+      "reasoning": "Sürgős kárigény, magas összeg, csatolmányokkal."
+    },
+    "routing": {
+      "queue_id": "q-claims",
+      "queue_name": "Kárigények",
+      "department_id": "d-claims",
+      "department_name": "Kárrendezés",
+      "department_email": "claims@company.hu",
+      "auto_escalate_after_minutes": 60,
+      "matched_rule": "vehicle_claim_route",
+      "escalation_triggered": false,
+      "escalation_reason": "",
+      "notes": ""
+    },
+    "attachment_summaries": [
+      {"filename": "rendorsegi_jegyzokonyv.pdf", "mime_type": "application/pdf", "size_bytes": 520000, "extracted_text": "Rendőrségi jegyzőkönyv...", "extracted_fields": {}, "document_type": "police_report", "processor_used": "azure_di", "error": ""},
+      {"filename": "foto_1.jpg", "mime_type": "image/jpeg", "size_bytes": 2100000, "extracted_text": "", "extracted_fields": {"damage_area": "front_bumper"}, "document_type": "damage_photo", "processor_used": "llm_vision", "error": ""},
+      {"filename": "foto_2.jpg", "mime_type": "image/jpeg", "size_bytes": 1800000, "extracted_text": "", "extracted_fields": {"damage_area": "headlight"}, "document_type": "damage_photo", "processor_used": "llm_vision", "error": ""}
+    ],
+    "processing_time_ms": 3450,
+    "pipeline_version": "1.0.0",
+    "errors": [],
+    "warnings": []
+  },
+  {
+    "email_id": "em-004",
+    "subject": "Címváltozás bejelentés",
+    "sender": "toth.maria@freemail.hu",
+    "received_date": "2026-03-28T14:00:00Z",
+    "body": "Tisztelt Cím!\n\nBejelentem, hogy 2026. április 1-től az alábbi címre költözöm:\n\nRégi cím: 1052 Budapest, Váci utca 12. 3/4.\nÚj cím: 2030 Érd, Kossuth Lajos utca 88.\n\nÜgyfélszámom: TM-2023-456\nSzerződésszám: SZ-2024-7890\n\nKérem az adataim módosítását.\n\nTóth Mária",
+    "has_attachments": false,
+    "attachment_count": 0,
+    "intent": {
+      "intent_id": "address_change",
+      "intent_display_name": "Címváltozás",
+      "confidence": 0.98,
+      "sub_intent": null,
+      "method": "sklearn",
+      "sklearn_intent": "address_change",
+      "sklearn_confidence": 0.98,
+      "llm_intent": null,
+      "llm_confidence": 0.0,
+      "alternatives": [],
+      "reasoning": "Egyértelmű címváltozás bejelentés."
+    },
+    "entities": {
+      "entities": [
+        {"entity_type": "address", "value": "1052 Budapest, Váci utca 12. 3/4.", "normalized_value": "1052 Budapest, Váci utca 12. 3/4.", "confidence": 0.96, "source": "body", "extraction_method": "llm", "start_offset": 85, "end_offset": 118},
+        {"entity_type": "address", "value": "2030 Érd, Kossuth Lajos utca 88.", "normalized_value": "2030 Érd, Kossuth Lajos utca 88.", "confidence": 0.96, "source": "body", "extraction_method": "llm", "start_offset": 130, "end_offset": 162},
+        {"entity_type": "customer_id", "value": "TM-2023-456", "normalized_value": "TM-2023-456", "confidence": 0.99, "source": "body", "extraction_method": "regex", "start_offset": 178, "end_offset": 189},
+        {"entity_type": "contract_number", "value": "SZ-2024-7890", "normalized_value": "SZ-2024-7890", "confidence": 0.99, "source": "body", "extraction_method": "regex", "start_offset": 207, "end_offset": 219}
+      ],
+      "entity_count": 4,
+      "extraction_methods_used": ["regex", "llm"]
+    },
+    "priority": {
+      "priority_level": 4,
+      "priority_name": "low",
+      "priority_display_name": "Alacsony",
+      "sla_hours": 72,
+      "matched_rule": "data_change_default",
+      "boosts_applied": [],
+      "reasoning": "Rutin adatmódosítás, standard SLA."
+    },
+    "routing": {
+      "queue_id": "q-admin",
+      "queue_name": "Adminisztráció",
+      "department_id": "d-admin",
+      "department_name": "Ügyfélkezelés",
+      "department_email": "admin@company.hu",
+      "auto_escalate_after_minutes": 1440,
+      "matched_rule": "data_change_route",
+      "escalation_triggered": false,
+      "escalation_reason": "",
+      "notes": ""
+    },
+    "attachment_summaries": [],
+    "processing_time_ms": 280,
+    "pipeline_version": "1.0.0",
+    "errors": [],
+    "warnings": []
+  },
+  {
+    "email_id": "em-005",
+    "subject": "Dokumentum kérés - éves kimutatás",
+    "sender": "feher.gabor@corporate.hu",
+    "received_date": "2026-03-28T15:20:00Z",
+    "body": "Tisztelt Ügyfélszolgálat!\n\nKérném a 2025. évi éves kimutatásom megküldését PDF formátumban az alábbi e-mail címre: feher.gabor@corporate.hu\n\nÜgyfélszám: FG-2022-123\n\nKöszönöm,\nFehér Gábor",
+    "has_attachments": false,
+    "attachment_count": 0,
+    "intent": {
+      "intent_id": "document_request",
+      "intent_display_name": "Dokumentum kérés",
+      "confidence": 0.96,
+      "sub_intent": "annual_statement",
+      "method": "sklearn",
+      "sklearn_intent": "document_request",
+      "sklearn_confidence": 0.96,
+      "llm_intent": null,
+      "llm_confidence": 0.0,
+      "alternatives": [{"intent": "inquiry", "confidence": 0.03}],
+      "reasoning": "Éves kimutatás kérés, egyértelmű."
+    },
+    "entities": {
+      "entities": [
+        {"entity_type": "customer_id", "value": "FG-2022-123", "normalized_value": "FG-2022-123", "confidence": 0.99, "source": "body", "extraction_method": "regex", "start_offset": 152, "end_offset": 163},
+        {"entity_type": "email", "value": "feher.gabor@corporate.hu", "normalized_value": "feher.gabor@corporate.hu", "confidence": 0.99, "source": "body", "extraction_method": "regex", "start_offset": 105, "end_offset": 129},
+        {"entity_type": "person_name", "value": "Fehér Gábor", "normalized_value": "Fehér Gábor", "confidence": 0.91, "source": "body", "extraction_method": "llm", "start_offset": 175, "end_offset": 186}
+      ],
+      "entity_count": 3,
+      "extraction_methods_used": ["regex", "llm"]
+    },
+    "priority": {
+      "priority_level": 4,
+      "priority_name": "low",
+      "priority_display_name": "Alacsony",
+      "sla_hours": 72,
+      "matched_rule": "document_request_default",
+      "boosts_applied": [],
+      "reasoning": "Standard dokumentum kérés."
+    },
+    "routing": {
+      "queue_id": "q-docs",
+      "queue_name": "Dokumentumok",
+      "department_id": "d-admin",
+      "department_name": "Ügyfélkezelés",
+      "department_email": "admin@company.hu",
+      "auto_escalate_after_minutes": 1440,
+      "matched_rule": "document_request_route",
+      "escalation_triggered": false,
+      "escalation_reason": "",
+      "notes": ""
+    },
+    "attachment_summaries": [],
+    "processing_time_ms": 210,
+    "pipeline_version": "1.0.0",
+    "errors": [],
+    "warnings": []
+  }
+]

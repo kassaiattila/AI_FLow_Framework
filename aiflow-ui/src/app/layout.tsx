@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SidebarUser } from "@/components/sidebar-user";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,6 +27,7 @@ export default function RootLayout({
     <html
       lang="hu"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex">
         <Sidebar />
@@ -41,6 +43,7 @@ function Sidebar() {
     { name: "email_intent_processor", icon: "📧", label: "Email Intent" },
     { name: "aszf_rag_chat", icon: "💬", label: "RAG Chat" },
     { name: "process_documentation", icon: "📊", label: "Diagramok" },
+    { name: "cubix_course_capture", icon: "🎓", label: "Cubix Kurzus" },
   ];
 
   return (
@@ -67,9 +70,7 @@ function Sidebar() {
           📋 Futások
         </a>
       </nav>
-      <div className="p-3 border-t text-xs text-muted-foreground">
-        v0.1.0 &middot; BestIx Kft.
-      </div>
+      <SidebarUser />
     </aside>
   );
 }

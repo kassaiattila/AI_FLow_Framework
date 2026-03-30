@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ExportButton } from "@/components/export-button";
+import { PrintButton } from "@/components/print-button";
 import type { WorkflowRun } from "@/lib/types";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -54,9 +56,24 @@ export default function RunsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Workflow Runs</h2>
-        <p className="text-muted-foreground">Execution history and monitoring</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Workflow Runs</h2>
+          <p className="text-muted-foreground">Execution history and monitoring</p>
+        </div>
+        <ExportButton
+          filename={`runs_${new Date().toISOString().slice(0, 10)}.csv`}
+          headers={["Run ID", "Skill", "Status", "Duration (ms)", "Cost ($)", "Started"]}
+          rows={filtered.map((r) => [
+            r.run_id,
+            r.skill_name,
+            r.status,
+            String(r.total_duration_ms),
+            String(r.total_cost_usd),
+            r.started_at,
+          ])}
+        />
+        <PrintButton />
       </div>
 
       {/* KPI Row */}

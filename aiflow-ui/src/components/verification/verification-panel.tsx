@@ -7,6 +7,7 @@ import { DocumentCanvas } from "./document-canvas";
 import { DataPointEditor } from "./data-point-editor";
 import { VerificationHeader } from "./verification-header";
 import { VerificationActions } from "./verification-actions";
+import { AuditHistory } from "./audit-history";
 import type { ProcessedInvoice } from "@/lib/types";
 import type { InvoiceVerificationData, DataPoint } from "@/lib/verification-types";
 import { getAllFields, fieldToBBox, resolvePath, PAGE } from "@/lib/document-layout";
@@ -239,6 +240,9 @@ export function VerificationPanel({ invoice }: VerificationPanelProps) {
           />
         </CardContent>
       </Card>
+
+      {/* Audit log */}
+      <AuditHistory entries={state.auditLog} />
     </div>
   );
 }

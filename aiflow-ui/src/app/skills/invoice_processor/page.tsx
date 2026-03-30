@@ -8,6 +8,7 @@ import { DocumentTable, type SortField } from "@/components/invoice/document-tab
 import { BatchBanner, type BatchState, type BatchItem, saveBatchToSession, loadBatchFromSession, clearBatchSession } from "@/components/invoice/batch-banner";
 import { ScheduleDialog } from "@/components/invoice/schedule-dialog";
 import { KpiCard, getDocStatus, type DocStatus } from "@/components/invoice/shared";
+import { ExportButton } from "@/components/export-button";
 import type { ProcessedInvoice, WorkflowRun } from "@/lib/types";
 
 type StatusFilter = "all" | "new" | "completed" | "failed";
@@ -25,21 +26,24 @@ export default function InvoiceProcessorPage() {
   const [onlyUnprocessed, setOnlyUnprocessed] = useState(false);
   const [autoProcess, setAutoProcess] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [batchState, setBatchState] = useState<BatchState>(() => {
+  const [batchState, setBatchState] = useState<BatchState>({ status: "idle" });
+  const [page, setPage] = useState(0);
+  const batchAbortRef = useRef(false);
+  const batchItemsRef = useRef<BatchItem[]>([]);
+
+  // Restore batch state from sessionStorage (client-only, avoids hydration mismatch)
+  useEffect(() => {
     const saved = loadBatchFromSession();
-    if (!saved) return { status: "idle" };
-    // If page reloaded during "running", the async loop is dead — show as completed
+    if (!saved) return;
     if (saved.status === "running") {
       const items = saved.items || [];
       const succeeded = items.filter((i) => i.status === "completed").length;
       const failed = items.filter((i) => i.status === "failed").length;
-      return { status: "completed", total: saved.total, succeeded, failed, durationMs: 0, items };
+      setBatchState({ status: "completed", total: saved.total, succeeded, failed, durationMs: 0, items });
+    } else {
+      setBatchState(saved);
     }
-    return saved;
-  });
-  const [page, setPage] = useState(0);
-  const batchAbortRef = useRef(false);
-  const batchItemsRef = useRef<BatchItem[]>([]);
+  }, []);
 
   // Load data from API
   const loadData = useCallback(() => {
@@ -243,6 +247,21 @@ export default function InvoiceProcessorPage() {
               Csak feldolgozatlanok
             </label>
             <div className="flex-1" />
+            <ExportButton
+              filename={`szamlak_${new Date().toISOString().slice(0, 10)}.csv`}
+              headers={["Fajl", "Szallito", "Szamlaszam", "Datum", "Netto", "AFA", "Brutto", "Penznem", "Statusz"]}
+              rows={filtered.map((inv) => [
+                inv.source_file,
+                inv.vendor?.name || "",
+                inv.header?.invoice_number || "",
+                inv.header?.invoice_date || "",
+                String(inv.totals?.net_total || 0),
+                String(inv.totals?.vat_total || 0),
+                String(inv.totals?.gross_total || 0),
+                inv.header?.currency || "HUF",
+                inv.validation?.is_valid ? "valid" : "invalid",
+              ])}
+            />
             <button onClick={handleSelectUnprocessed} className="px-3 py-1.5 rounded-md text-xs border border-border text-muted-foreground hover:bg-muted">
               Feldolgozatlanok kivalasztasa
             </button>

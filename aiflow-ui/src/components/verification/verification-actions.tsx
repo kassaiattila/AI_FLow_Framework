@@ -13,6 +13,7 @@ interface VerificationActionsProps {
   onSave: () => void;
   onReset: () => void;
   saveStatus?: "" | "saving" | "saved" | "error";
+  readOnly?: boolean;
 }
 
 export function VerificationActions({
@@ -21,6 +22,7 @@ export function VerificationActions({
   onSave,
   onReset,
   saveStatus = "",
+  readOnly = false,
 }: VerificationActionsProps) {
   const hasUnconfirmed = stats.auto > 0 || stats.corrected > 0;
   const hasChanges = stats.corrected > 0 || stats.confirmed > 0;
@@ -47,24 +49,28 @@ export function VerificationActions({
 
       <div className="flex-1" />
 
+      {readOnly && (
+        <span className="text-xs text-muted-foreground">Csak olvasas (viewer)</span>
+      )}
+
       {/* Action buttons */}
       <button
         onClick={onReset}
-        disabled={!hasChanges}
+        disabled={!hasChanges || readOnly}
         className="px-3 py-1.5 rounded-md text-xs font-medium border border-border text-muted-foreground hover:bg-muted disabled:opacity-40 transition-colors"
       >
         Visszaallitas
       </button>
       <button
         onClick={onConfirmAll}
-        disabled={!hasUnconfirmed}
+        disabled={!hasUnconfirmed || readOnly}
         className="px-3 py-1.5 rounded-md text-xs font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 transition-colors"
       >
         Mind jovahagyva
       </button>
       <button
         onClick={onSave}
-        disabled={saveStatus === "saving"}
+        disabled={saveStatus === "saving" || readOnly}
         className="px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors"
       >
         {saveStatus === "saving" ? "Mentes..." : "Mentes"}

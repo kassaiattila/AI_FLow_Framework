@@ -1,6 +1,16 @@
 # AIFlow - Frontend Architektura
 
-## Technologiai Opciok Ertekelese
+> **STATUS (2026-03-30): DONTES MEGTORTENT — Next.js 16 + shadcn/ui**
+>
+> Az alabbi dokumentum az eredeti ertekelest tartalmazza. A vegso dontes:
+> **Next.js 16 + React 19 + TypeScript + shadcn/ui** (lasd `aiflow-ui/`).
+> A Reflex opcio nem valasztatott. Az implementacio allapota:
+> - Dashboard, /costs, /runs oldalak — KESZ
+> - 4 skill viewer (invoice, email, rag-chat, diagram) — KESZ (mock data)
+> - FastAPI backend endpoints (runs, costs, skills) — KESZ
+> - Lasd: `33_PRODUCTION_UI_PLAN.md` a reszletekert.
+
+## Technologiai Opciok Ertekelese (torteneti referencia)
 
 ### A Claude Code-bol Iranyitott Fejlesztes Szempontja
 

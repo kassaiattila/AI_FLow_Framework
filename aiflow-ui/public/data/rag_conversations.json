@@ -1,0 +1,123 @@
+[
+  {
+    "conversation_id": "rag-001",
+    "title": "Felmondási szabályok",
+    "collection": "aszf-2024",
+    "created_at": "2026-03-28T09:00:00Z",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Milyen feltételekkel mondhatom fel a szerződésemet?"
+      },
+      {
+        "role": "assistant",
+        "content": "A szerződés felmondásának feltételei az ÁSZF 12.3. pontja szerint a következők:\n\n1. **Rendes felmondás**: A szerződés határozatlan időtartamra szól, bármely fél 30 napos felmondási idővel, írásban mondhatja fel [1].\n\n2. **Rendkívüli felmondás**: Súlyos szerződésszegés esetén azonnali hatállyal felmondható, ha az érintett fél írásbeli felszólítás ellenére 15 napon belül nem orvosolja a szerződésszegést [2].\n\n3. **Határozott idejű szerződés**: A lejárat előtti felmondás esetén a hátralévő időszakra vonatkozó díj 50%-a kötbérként fizetendő [1].",
+        "query_output": {
+          "answer": "A szerződés felmondásának feltételei az ÁSZF 12.3. pontja szerint...",
+          "citations": [
+            {"document_name": "ASZF_2024_v3.pdf", "section": "12.3 Felmondás", "page": 28, "chunk_index": 45, "relevance_score": 0.94, "excerpt": "12.3. A Szerződés felmondása\n\nA jelen Szerződés határozatlan időtartamra szól. Bármely Fél jogosult a Szerződést 30 (harminc) napos felmondási idővel, a másik Félhez intézett írásbeli nyilatkozattal, indokolás nélkül felmondani. Határozott idejű szerződés lejárat előtti felmondása esetén a felmondó fél köteles a hátralévő időszakra vonatkozó díj 50%-át kötbérként megfizetni."},
+            {"document_name": "ASZF_2024_v3.pdf", "section": "12.4 Rendkívüli felmondás", "page": 29, "chunk_index": 46, "relevance_score": 0.89, "excerpt": "12.4. Rendkívüli felmondás\n\nBármely Fél jogosult a Szerződést azonnali hatállyal felmondani, amennyiben a másik Fél súlyosan megszegi a jelen Szerződésben foglalt kötelezettségeit, és az írásbeli felszólítás kézhezvételétől számított 15 napon belül a szerződésszegést nem orvosolja."}
+          ],
+          "search_results": [
+            {"chunk_id": "c-045", "content": "12.3. A Szerződés felmondása...", "similarity_score": 0.94, "document_name": "ASZF_2024_v3.pdf", "document_category": "aszf", "chunk_index": 45, "metadata": {}},
+            {"chunk_id": "c-046", "content": "12.4. Rendkívüli felmondás...", "similarity_score": 0.89, "document_name": "ASZF_2024_v3.pdf", "document_category": "aszf", "chunk_index": 46, "metadata": {}},
+            {"chunk_id": "c-047", "content": "12.5. A felmondás jogkövetkezményei...", "similarity_score": 0.82, "document_name": "ASZF_2024_v3.pdf", "document_category": "aszf", "chunk_index": 47, "metadata": {}},
+            {"chunk_id": "c-012", "content": "3.2. A szerződés módosítása...", "similarity_score": 0.61, "document_name": "ASZF_2024_v3.pdf", "document_category": "aszf", "chunk_index": 12, "metadata": {}},
+            {"chunk_id": "c-078", "content": "Melléklet: Díjszabás 2024...", "similarity_score": 0.45, "document_name": "Dijszabas_2024.pdf", "document_category": "pricing", "chunk_index": 3, "metadata": {}}
+          ],
+          "hallucination_score": 0.92,
+          "processing_time_ms": 2340,
+          "tokens_used": 1850,
+          "cost_usd": 0.0037
+        }
+      }
+    ]
+  },
+  {
+    "conversation_id": "rag-002",
+    "title": "Adatvédelmi szabályok",
+    "collection": "aszf-2024",
+    "created_at": "2026-03-28T10:30:00Z",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hogyan kezeli a szolgáltató a személyes adataimat?"
+      },
+      {
+        "role": "assistant",
+        "content": "A személyes adatok kezelésére vonatkozó szabályokat az Adatvédelmi Tájékoztató és az ÁSZF 15. fejezete tartalmazza:\n\n1. **Adatkezelés jogalapja**: Az adatkezelés jogalapja a GDPR 6. cikk (1) b) pontja szerinti szerződés teljesítése, illetve a (1) f) pontja szerinti jogos érdek [1].\n\n2. **Tárolt adatok köre**: Név, cím, telefonszám, e-mail, születési dátum, szerződéses adatok. Pénzügyi adatok titkosítva tároltak [2].\n\n3. **Megőrzési idő**: A szerződéses adatokat a szerződés megszűnését követő 5 évig, a számlázási adatokat 8 évig őrizzük meg [1].\n\n4. **Érintetti jogok**: Hozzáférés, helyesbítés, törlés, korlátozás, adathordozhatóság kérelmezhető az adatvedelem@company.hu címen [2].",
+        "query_output": {
+          "answer": "A személyes adatok kezelésére vonatkozó szabályokat...",
+          "citations": [
+            {"document_name": "Adatvedelmi_Tajekoztato_2024.pdf", "section": "3. Adatkezelés jogalapja és célja", "page": 5, "chunk_index": 8, "relevance_score": 0.91, "excerpt": "3. Az adatkezelés jogalapja és célja\n\nA Szolgáltató a személyes adatokat a GDPR 6. cikk (1) bekezdés b) pontja alapján a szerződés teljesítéséhez szükséges mértékben, valamint az f) pont szerinti jogos érdek alapján kezeli. Az adatmegőrzési idő: szerződéses adatok esetében a szerződés megszűnését követő 5 év, számlázási adatok esetében 8 év."},
+            {"document_name": "ASZF_2024_v3.pdf", "section": "15. Adatvédelem", "page": 35, "chunk_index": 62, "relevance_score": 0.87, "excerpt": "15. Adatvédelem\n\n15.1. A Szolgáltató az Ügyfél személyes adatait az Adatvédelmi Tájékoztatóban foglaltak szerint kezeli. Tárolt adatok köre: név, lakcím, telefonszám, e-mail cím, születési dátum, szerződéses és számlázási adatok. Pénzügyi adatok AES-256 titkosítással védettek.\n\n15.2. Az Ügyfél jogait (hozzáférés, helyesbítés, törlés, korlátozás, adathordozhatóság) az adatvedelem@company.hu e-mail címen gyakorolhatja."}
+          ],
+          "search_results": [
+            {"chunk_id": "c-008", "content": "3. Az adatkezelés jogalapja...", "similarity_score": 0.91, "document_name": "Adatvedelmi_Tajekoztato_2024.pdf", "document_category": "privacy", "chunk_index": 8, "metadata": {}},
+            {"chunk_id": "c-062", "content": "15. Adatvédelem...", "similarity_score": 0.87, "document_name": "ASZF_2024_v3.pdf", "document_category": "aszf", "chunk_index": 62, "metadata": {}},
+            {"chunk_id": "c-010", "content": "5. Adattovábbítás...", "similarity_score": 0.72, "document_name": "Adatvedelmi_Tajekoztato_2024.pdf", "document_category": "privacy", "chunk_index": 10, "metadata": {}}
+          ],
+          "hallucination_score": 0.95,
+          "processing_time_ms": 1980,
+          "tokens_used": 1620,
+          "cost_usd": 0.0032
+        }
+      },
+      {
+        "role": "user",
+        "content": "Kérhetem az adataim törlését?"
+      },
+      {
+        "role": "assistant",
+        "content": "Igen, az adatok törlését kérheti, de vannak korlátozások:\n\n1. **Törléshez való jog**: A GDPR 17. cikke alapján kérheti személyes adatai törlését az adatvedelem@company.hu címen [1].\n\n2. **Korlátozások**: A törlés nem teljesíthető, ha az adatkezelés jogi kötelezettség teljesítéséhez szükséges (pl. számlázási adatok 8 éves megőrzése) vagy jogi igények előterjesztéséhez [1].\n\n3. **Aktív szerződés esetén**: Ha van érvényes szerződése, a törlés a szerződés felmondásával együtt lehetséges. A szerződéses adatok a megszűnést követő 5 évig megőrzésre kerülnek [2].\n\n4. **Eljárás**: A törlési kérelem beérkezésétől számított 30 napon belül tájékoztatjuk az eredményről [1].",
+        "query_output": {
+          "answer": "Igen, az adatok törlését kérheti, de vannak korlátozások...",
+          "citations": [
+            {"document_name": "Adatvedelmi_Tajekoztato_2024.pdf", "section": "7. Érintetti jogok", "page": 9, "chunk_index": 14, "relevance_score": 0.93, "excerpt": "7. Az érintett jogai\n\n7.3. Törléshez való jog: Az érintett kérheti személyes adatai törlését, ha az adatkezelés célja megszűnt, vagy hozzájárulását visszavonta. A törlés nem teljesíthető, ha az adatkezelés jogi kötelezettség teljesítéséhez vagy jogi igények előterjesztéséhez szükséges. A Szolgáltató a kérelmet 30 napon belül teljesíti és erről tájékoztatja az érintettet."},
+            {"document_name": "ASZF_2024_v3.pdf", "section": "15.3 Adatmegőrzés", "page": 36, "chunk_index": 63, "relevance_score": 0.85, "excerpt": "15.3. Aktív szerződés fennállása alatt a személyes adatok törlése a szerződés felmondásával együtt lehetséges. A szerződéses adatokat a Szolgáltató a szerződés megszűnését követő 5 évig, a számlázási adatokat a jogszabályi kötelezettségeknek megfelelően 8 évig őrzi meg."}
+          ],
+          "search_results": [
+            {"chunk_id": "c-014", "content": "7. Az érintett jogai...", "similarity_score": 0.93, "document_name": "Adatvedelmi_Tajekoztato_2024.pdf", "document_category": "privacy", "chunk_index": 14, "metadata": {}},
+            {"chunk_id": "c-063", "content": "15.3. Aktív szerződés...", "similarity_score": 0.85, "document_name": "ASZF_2024_v3.pdf", "document_category": "aszf", "chunk_index": 63, "metadata": {}}
+          ],
+          "hallucination_score": 0.88,
+          "processing_time_ms": 2100,
+          "tokens_used": 1720,
+          "cost_usd": 0.0034
+        }
+      }
+    ]
+  },
+  {
+    "conversation_id": "rag-003",
+    "title": "Díjszabás és fizetés",
+    "collection": "aszf-2024",
+    "created_at": "2026-03-28T14:15:00Z",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Mi történik, ha késve fizetem a díjat?"
+      },
+      {
+        "role": "assistant",
+        "content": "A késedelmes fizetés következményei az ÁSZF 8. fejezete szerint:\n\n1. **Késedelmi kamat**: A Ptk. szerinti késedelmi kamat (jegybanki alapkamat + 8%) kerül felszámításra a lejárat napjától [1].\n\n2. **Fizetési felszólítás**: 15 nap késedelem után első felszólítás (díjmentes), 30 nap után második felszólítás (1 500 Ft adminisztrációs díj) [1].\n\n3. **Szolgáltatás korlátozása**: 45 nap késedelem után a szolgáltatás felfüggeszthető. Az újraaktiválás díja 5 000 Ft [2].\n\n4. **Szerződés felmondása**: 60 nap folyamatos késedelem után a Szolgáltató jogosult a szerződést azonnali hatállyal felmondani [2].",
+        "query_output": {
+          "answer": "A késedelmes fizetés következményei az ÁSZF 8. fejezete szerint...",
+          "citations": [
+            {"document_name": "ASZF_2024_v3.pdf", "section": "8.4 Fizetési késedelem", "page": 18, "chunk_index": 30, "relevance_score": 0.96, "excerpt": "8.4. Fizetési késedelem\n\nAz Ügyfél késedelmes fizetése esetén a Szolgáltató a Ptk. szerinti késedelmi kamatot (jegybanki alapkamat + 8 százalékpont) számítja fel. Első fizetési felszólítás 15 napos késedelem után (díjmentes), második felszólítás 30 napos késedelem után (1 500 Ft adminisztrációs díjjal)."},
+            {"document_name": "ASZF_2024_v3.pdf", "section": "8.5 Szolgáltatás felfüggesztése", "page": 19, "chunk_index": 31, "relevance_score": 0.90, "excerpt": "8.5. 45 napos folyamatos fizetési késedelem esetén a Szolgáltató jogosult a szolgáltatás nyújtását felfüggeszteni. Az újraaktiválás díja 5 000 Ft. 60 napos folyamatos késedelem esetén a Szolgáltató jogosult a szerződést azonnali hatállyal, írásban felmondani."}
+          ],
+          "search_results": [
+            {"chunk_id": "c-030", "content": "8.4. Fizetési késedelem...", "similarity_score": 0.96, "document_name": "ASZF_2024_v3.pdf", "document_category": "aszf", "chunk_index": 30, "metadata": {}},
+            {"chunk_id": "c-031", "content": "8.5. 45 napos folyamatos...", "similarity_score": 0.90, "document_name": "ASZF_2024_v3.pdf", "document_category": "aszf", "chunk_index": 31, "metadata": {}},
+            {"chunk_id": "c-029", "content": "8.3. Fizetési módok...", "similarity_score": 0.68, "document_name": "ASZF_2024_v3.pdf", "document_category": "aszf", "chunk_index": 29, "metadata": {}}
+          ],
+          "hallucination_score": 0.65,
+          "processing_time_ms": 1850,
+          "tokens_used": 1580,
+          "cost_usd": 0.0031
+        }
+      }
+    ]
+  }
+]

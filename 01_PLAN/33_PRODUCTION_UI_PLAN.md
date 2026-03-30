@@ -1,8 +1,28 @@
 # F1: Production UI — AIFlow Workflow Viewer & Monitoring
 
+> **IMPLEMENTACIOS STATUSZ (2026-03-30, P6 utan)**
+>
+> | Komponens | Statusz | Reszletek |
+> |-----------|---------|-----------|
+> | Next.js 16 + shadcn/ui | KESZ | `aiflow-ui/`, 91 forrasfajl |
+> | Dashboard + /costs + /runs | KESZ | 6 skill kartya, KPI-k, koltseg bontas |
+> | 5 skill viewer | KESZ | invoice, email, rag-chat, diagram, cubix |
+> | Backend proxy | KESZ | FastAPI first (3s timeout), JSON fallback |
+> | FastAPI backend | KESZ | 9 route file |
+> | SSE streaming | KESZ | RAG chat token-by-token |
+> | JWT auth + RBAC | KESZ | Login + proxy.ts + cookie + 3 role |
+> | Verification audit log | KESZ | Edit/confirm/reset naplozas |
+> | Dark mode | KESZ | theme-toggle, localStorage |
+> | CSV + PDF export | KESZ | CSV 4 oldalon + print-button |
+> | CI/CD | KESZ | GitHub Actions (Python + Next.js) |
+> | E2E tesztek | KESZ | Playwright config + 8 smoke test |
+> | i18n (hu/en) | KESZ | 80+ kulcs, HU/EN toggle, localStorage |
+>
+> A teljes UI Next.js 16-ra epul. 11 oldal, 18 API route, 43 komponens, middleware auth.
+
 ## Context
 
-Az AIFlow framework 6 skill-lel rendelkezik, de nincs éles környezetben használható UI a folyamatok követésére, validálására és költségmonitoringra. A meglévő Reflex skeleton (chat container 814 sor, state management 210 sor, KPI card, upload widget) jó alap, de nincs generikus workflow viewer, nincs skill-specifikus eredmény nézet, nincs költség dashboard.
+Az AIFlow framework 6 skill-lel rendelkezik. A production UI Next.js 16 + React 19 + shadcn/ui stackre epul (`aiflow-ui/`). ~~A meglévő Reflex skeleton~~ (torolve) ~~jó alap, de~~ A cel: generikus workflow viewer, skill-specifikus eredmeny nezet, es koltseg dashboard.
 
 **Cél:** Egy generikus, skill-specifikus UI keretrendszer ami:
 1. Minden skill-hez automatikusan generál step-by-step execution nézetet
