@@ -153,28 +153,18 @@ export default function InvoiceProcessorPage() {
 
       const file = toProcess[current];
 
-      // Update item to processing with step info
-      batchItemsRef.current[current] = { ...batchItemsRef.current[current], status: "processing", step: "parse_pdf" };
+      // Update item to processing (no fake step names — honest progress)
+      batchItemsRef.current[current] = { ...batchItemsRef.current[current], status: "processing" };
       setBatchState({ status: "running", total, current, currentFile: file, startedAt, items: updateItems() });
       setDocStatuses((p) => new Map(p).set(file, "processing"));
 
       try {
-        // Simulate step progress visually
-        const stepNames = ["parse_pdf", "extract_fields", "validate_output", "export_csv"];
-        let stepIdx = 0;
-        const stepTimer = setInterval(() => {
-          stepIdx = Math.min(stepIdx + 1, stepNames.length - 1);
-          batchItemsRef.current[current] = { ...batchItemsRef.current[current], step: stepNames[stepIdx] };
-          setBatchState((prev) => prev.status === "running" ? { ...prev, items: updateItems() } : prev);
-        }, 1500);
-
         const res = await fetch("/api/documents/process", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ files: [file] }),
         });
         const result = await res.json();
-        clearInterval(stepTimer);
 
         const conf = result.processed?.[0]?.confidence || 0;
         if (result.processed?.[0]?.success) {

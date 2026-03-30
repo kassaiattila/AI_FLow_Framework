@@ -29,6 +29,7 @@ export default function CubixCourseCapturePage() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<"filesystem" | "demo" | null>(null);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -38,8 +39,9 @@ export default function CubixCourseCapturePage() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((data: { courses: CubixCourseResult[] }) => {
+      .then((data: { courses: CubixCourseResult[]; source?: string }) => {
         setCourses(data.courses);
+        if (data.source) setSource(data.source as "filesystem" | "demo");
         if (data.courses.length > 0 && !selected) {
           setSelected(data.courses[0]);
         }
@@ -65,8 +67,18 @@ export default function CubixCourseCapturePage() {
             {t("cubix.desc")}
           </p>
         </div>
-        <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("common.production")}</Badge>
+        {source === "filesystem" ? (
+          <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("backend.live")}</Badge>
+        ) : source === "demo" ? (
+          <Badge className="bg-yellow-100 text-yellow-800 text-sm px-3 py-1">{t("backend.demo")} — {t("cubix.resultsViewer")}</Badge>
+        ) : (
+          <Badge className="bg-gray-100 text-gray-600 text-sm px-3 py-1">{t("cubix.resultsViewer")}</Badge>
+        )}
       </div>
+
+      {source === "demo" && (
+        <p className="text-xs text-muted-foreground italic">{t("cubix.resultsViewerHint")}</p>
+      )}
 
       {loading && (
         <Card><CardContent className="py-12 text-center text-muted-foreground">{t("common.loading")}</CardContent></Card>

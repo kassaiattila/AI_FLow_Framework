@@ -243,6 +243,16 @@ async def export_all(data: dict) -> dict:
     )
     saved_files.append(str(json_path))
 
+    # 2b. Save review JSON (for subprocess consumers)
+    review_dict = data.get("review", {})
+    if review_dict:
+        review_path = export_dir / "review.json"
+        review_path.write_text(
+            json.dumps(review_dict, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        saved_files.append(str(review_path))
+
     # 3. DrawIO XML export (architecture flowchart)
     try:
         extraction = ProcessExtraction(**extraction_dict)

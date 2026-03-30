@@ -31,6 +31,7 @@ export default function ProcessDocumentationPage() {
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<"backend" | "subprocess" | "demo" | null>(null);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -63,8 +64,10 @@ export default function ProcessDocumentationPage() {
         body: JSON.stringify({ user_input: userInput }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const doc: ProcessDocResult = await res.json();
-      setSelected(doc);
+      const data = await res.json();
+      const { source: src, ...doc } = data as ProcessDocResult & { source?: string };
+      if (src) setSource(src as "backend" | "subprocess" | "demo");
+      setSelected(doc as ProcessDocResult);
       loadData(); // refresh gallery
     } catch (e) {
       setError(e instanceof Error ? e.message : t("processdoc.generateError"));
@@ -91,7 +94,15 @@ export default function ProcessDocumentationPage() {
             {t("processdoc.desc")}
           </p>
         </div>
-        <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("common.production")}</Badge>
+        {source === "demo" ? (
+          <Badge className="bg-yellow-100 text-yellow-800 text-sm px-3 py-1">{t("backend.demo")}</Badge>
+        ) : source === "subprocess" ? (
+          <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1">{t("backend.subprocess")}</Badge>
+        ) : source === "backend" ? (
+          <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("backend.live")}</Badge>
+        ) : (
+          <Badge className="bg-gray-100 text-gray-600 text-sm px-3 py-1">{t("processdoc.title")}</Badge>
+        )}
       </div>
 
       {loading && (
@@ -142,7 +153,7 @@ export default function ProcessDocumentationPage() {
           </TabsContent>
 
           <TabsContent value="trace" className="mt-4">
-            <ProcessStepTrace doc={selected} />
+            <ProcessStepTrace doc={selected} source={source} isProcessing={generating} />
           </TabsContent>
 
           <TabsContent value="gallery" className="mt-4">

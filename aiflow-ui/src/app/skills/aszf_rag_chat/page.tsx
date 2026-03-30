@@ -22,6 +22,7 @@ export default function AszfRagChatPage() {
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<"backend" | "demo" | null>(null);
 
   const loadConversations = useCallback(() => {
     setPageLoading(true);
@@ -101,7 +102,9 @@ export default function AszfRagChatPage() {
 
           try {
             const event = JSON.parse(payload);
-            if (event.type === "token") {
+            if (event.type === "source") {
+              setSource(event.mode === "backend" ? "backend" : "demo");
+            } else if (event.type === "token") {
               streamedContent += event.content;
               setMessages((prev) => {
                 const updated = [...prev];
@@ -164,7 +167,13 @@ export default function AszfRagChatPage() {
             {t("rag.desc")}
           </p>
         </div>
-        <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("rag.evalBadge")}</Badge>
+        {source === "demo" ? (
+          <Badge className="bg-yellow-100 text-yellow-800 text-sm px-3 py-1">{t("backend.demo")}</Badge>
+        ) : source === "backend" ? (
+          <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("backend.live")} — {t("rag.evalBadge")}</Badge>
+        ) : (
+          <Badge className="bg-gray-100 text-gray-600 text-sm px-3 py-1">{t("rag.evalBadge")}</Badge>
+        )}
       </div>
 
       {pageLoading && (
@@ -237,7 +246,7 @@ export default function AszfRagChatPage() {
 
             <TabsContent value="trace" className="mt-3 max-h-[calc(100vh-300px)] overflow-y-auto">
               {lastOutput ? (
-                <StepTrace queryOutput={lastOutput} />
+                <StepTrace queryOutput={lastOutput} source={source} isProcessing={loading} />
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   {t("rag.noOutput")}

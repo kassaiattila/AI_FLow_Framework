@@ -9,9 +9,78 @@ import { EmailPreview } from "@/components/email/email-preview";
 import { IntentBadgeDetail } from "@/components/email/intent-badge";
 import { EntityList } from "@/components/email/entity-list";
 import { RoutingCard } from "@/components/email/routing-card";
+import { EmailUploadZone } from "@/components/email/email-upload-zone";
+import { ProcessingPipeline } from "@/components/processing-pipeline";
 import { ExportButton } from "@/components/export-button";
 import { useI18n } from "@/hooks/use-i18n";
-import type { EmailProcessingResult } from "@/lib/types";
+import type { EmailProcessingResult, StepExecution } from "@/lib/types";
+
+const EMAIL_STEP_NAMES = [
+  "parse_email",
+  "process_attachments",
+  "classify_intent",
+  "extract_entities",
+  "score_priority",
+  "decide_routing",
+];
+
+function buildEmailPipelineSteps(email: EmailProcessingResult | null): StepExecution[] {
+  return EMAIL_STEP_NAMES.map((name) => {
+    let status: StepExecution["status"] = "pending";
+    let outputPreview = "";
+    let confidence = 1;
+
+    if (email) {
+      switch (name) {
+        case "parse_email":
+          status = "completed";
+          outputPreview = email.subject || "";
+          break;
+        case "process_attachments":
+          status = "completed";
+          outputPreview = email.has_attachments ? `${email.attachment_count || 0} attachments` : "no attachments";
+          break;
+        case "classify_intent":
+          status = email.intent ? "completed" : "pending";
+          outputPreview = email.intent
+            ? `${email.intent.intent_display_name} (${email.intent.method})`
+            : "";
+          confidence = email.intent?.confidence || 1;
+          break;
+        case "extract_entities":
+          status = email.entities ? "completed" : "pending";
+          outputPreview = email.entities
+            ? `${email.entities.entities?.length || 0} entities`
+            : "";
+          break;
+        case "score_priority":
+          status = email.priority ? "completed" : "pending";
+          outputPreview = email.priority
+            ? `P${email.priority.priority_level} — ${email.priority.priority_name}`
+            : "";
+          break;
+        case "decide_routing":
+          status = email.routing ? "completed" : "pending";
+          outputPreview = email.routing
+            ? `${email.routing.department_name} → ${email.routing.queue_id}`
+            : "";
+          break;
+      }
+    }
+
+    return {
+      step_name: name,
+      status,
+      duration_ms: 0,
+      input_preview: "",
+      output_preview: outputPreview,
+      cost_usd: 0,
+      tokens_used: 0,
+      confidence,
+      error: "",
+    };
+  });
+}
 
 function KpiCard({ title, value, sub }: { title: string; value: string; sub: string }) {
   return (
@@ -34,6 +103,9 @@ export default function EmailIntentProcessorPage() {
   const [error, setError] = useState<string | null>(null);
   const [intentFilter, setIntentFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [processing, setProcessing] = useState(false);
+  const [source, setSource] = useState<"backend" | "subprocess" | "demo" | null>(null);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -43,8 +115,9 @@ export default function EmailIntentProcessorPage() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((data: { emails: EmailProcessingResult[] }) => {
+      .then((data: { emails: EmailProcessingResult[]; source?: string }) => {
         setEmails(data.emails);
+        if (data.source) setSource(data.source as "backend" | "demo");
         if (data.emails.length > 0 && !selected) {
           setSelected(data.emails[0]);
         }
@@ -56,6 +129,33 @@ export default function EmailIntentProcessorPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleFilesUploaded = useCallback((files: string[]) => {
+    setUploadedFiles((prev) => [...prev, ...files]);
+  }, []);
+
+  const handleProcess = useCallback(async () => {
+    if (uploadedFiles.length === 0) return;
+    setProcessing(true);
+    for (const file of uploadedFiles) {
+      try {
+        const res = await fetch("/api/emails/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.source) setSource(data.source as "backend" | "subprocess");
+        }
+      } catch {
+        // continue with next file
+      }
+    }
+    setUploadedFiles([]);
+    setProcessing(false);
+    loadData(); // refresh list
+  }, [uploadedFiles, loadData]);
 
   // Unique intent/priority values for filters
   const intentOptions = useMemo(() => {
@@ -109,7 +209,13 @@ export default function EmailIntentProcessorPage() {
               e.received_date,
             ])}
           />
-          <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1">{t("common.inDevelopment")}</Badge>
+          {source === "demo" ? (
+            <Badge className="bg-yellow-100 text-yellow-800 text-sm px-3 py-1">{t("backend.demo")}</Badge>
+          ) : source === "backend" || source === "subprocess" ? (
+            <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">{t("backend.live")}</Badge>
+          ) : (
+            <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1">{t("common.inDevelopment")}</Badge>
+          )}
         </div>
       </div>
 
@@ -125,6 +231,22 @@ export default function EmailIntentProcessorPage() {
       )}
 
       {!loading && !error && <>
+      {/* Upload zone + process button */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <EmailUploadZone onFilesUploaded={handleFilesUploaded} />
+        </div>
+        {uploadedFiles.length > 0 && (
+          <button
+            onClick={handleProcess}
+            disabled={processing}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium disabled:opacity-50"
+          >
+            {processing ? t("email.processing") : `${t("email.processBtn")} (${uploadedFiles.length})`}
+          </button>
+        )}
+      </div>
+
       {/* KPIs — meaningful metrics */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <KpiCard
@@ -207,6 +329,7 @@ export default function EmailIntentProcessorPage() {
                 <TabsTrigger value="intent">{t("email.tabIntent")}</TabsTrigger>
                 <TabsTrigger value="entities">{t("email.tabEntities")}</TabsTrigger>
                 <TabsTrigger value="routing">{t("email.tabRouting")}</TabsTrigger>
+                <TabsTrigger value="pipeline">{t("pipeline.title")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="preview" className="mt-4">
@@ -239,6 +362,14 @@ export default function EmailIntentProcessorPage() {
                 ) : (
                   <p className="text-muted-foreground text-sm">{t("email.noRouting")}</p>
                 )}
+              </TabsContent>
+
+              <TabsContent value="pipeline" className="mt-4">
+                <ProcessingPipeline
+                  steps={buildEmailPipelineSteps(selected)}
+                  source={source}
+                  isProcessing={processing}
+                />
               </TabsContent>
             </Tabs>
           ) : (
