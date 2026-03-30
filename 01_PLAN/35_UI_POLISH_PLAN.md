@@ -46,10 +46,11 @@
 - Role tooltip
 - Conversation nevez
 
-### 5. fazis: Tesztek + validalas
-- i18n coverage test: grep minden oldalban van-e `useI18n` import
-- Component render test: minden komponens renderelheto hiba nelkul
-- Manualis checklist (lasd lent)
+### 5. fazis: Tesztek + validalas — KESZ
+- i18n-coverage.test.ts: 6 teszt (useI18n import, hu/en key parity, no /data/ fetch, no localhost, no localStorage useState)
+- 64 Vitest teszt pass (8 fajl)
+- email/shared.tsx priority labels → i18n
+- runs/[id]/page.tsx → useI18n hozzaadva
 
 ## Manualis teszt checklist
 - [ ] Dashboard betolt, KPI-k valos adatokat mutatnak

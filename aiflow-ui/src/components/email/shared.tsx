@@ -1,4 +1,7 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/hooks/use-i18n";
 
 const priorityColors: Record<number, string> = {
   1: "bg-red-100 text-red-800",
@@ -8,18 +11,15 @@ const priorityColors: Record<number, string> = {
   5: "bg-gray-100 text-gray-800",
 };
 
-const priorityLabels: Record<number, string> = {
-  1: "Kritikus",
-  2: "Magas",
-  3: "Közepes",
-  4: "Alacsony",
-  5: "Minimális",
+const priorityKeys: Record<number, string> = {
+  1: "email.p1", 2: "email.p2", 3: "email.p3", 4: "email.p4", 5: "email.p5",
 };
 
 export function PriorityBadge({ level }: { level: number }) {
+  const { t } = useI18n();
   return (
     <Badge className={`${priorityColors[level] || priorityColors[3]} text-[10px]`}>
-      P{level} {priorityLabels[level] || ""}
+      P{level} {t(priorityKeys[level] || "email.p3")}
     </Badge>
   );
 }

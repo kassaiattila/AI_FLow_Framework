@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { WorkflowTimeline } from "@/components/workflow/workflow-timeline";
 import { StepDetailPanel } from "@/components/workflow/step-detail-panel";
 import { CostBreakdown } from "@/components/workflow/cost-breakdown";
+import { useI18n } from "@/hooks/use-i18n";
 import type { WorkflowRun } from "@/lib/types";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -26,6 +27,7 @@ function formatTime(iso: string): string {
 }
 
 export default function RunDetailPage() {
+  const { t } = useI18n();
   const params = useParams<{ id: string }>();
   const [run, setRun] = useState<WorkflowRun | null>(null);
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export default function RunDetailPage() {
   if (!run) {
     return (
       <div className="p-6">
-        <p className="text-muted-foreground">Loading run...</p>
+        <p className="text-muted-foreground">{t("common.loading")}</p>
       </div>
     );
   }
@@ -67,7 +69,7 @@ export default function RunDetailPage() {
           <p className="text-muted-foreground mt-1">{run.skill_name}</p>
         </div>
         <a href="/runs" className="text-sm text-muted-foreground hover:text-foreground">
-          &larr; All runs
+          &larr; {t("runs.allSkills")}
         </a>
       </div>
 

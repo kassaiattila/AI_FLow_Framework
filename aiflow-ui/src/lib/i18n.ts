@@ -163,6 +163,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "email.withAttachments": "Csatolmannyal",
     "email.mlRate": "ML arany",
     "email.highPriority": "Magas prior.",
+    "email.p1": "Kritikus",
+    "email.p2": "Magas",
+    "email.p3": "Kozepes",
+    "email.p4": "Alacsony",
+    "email.p5": "Minimalis",
 
     // RAG Chat
     "rag.title": "ASZF RAG Chat",
@@ -424,6 +429,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "email.withAttachments": "With attachments",
     "email.mlRate": "ML rate",
     "email.highPriority": "High priority",
+    "email.p1": "Critical",
+    "email.p2": "High",
+    "email.p3": "Medium",
+    "email.p4": "Low",
+    "email.p5": "Minimal",
 
     // RAG Chat
     "rag.title": "ASZF RAG Chat",
