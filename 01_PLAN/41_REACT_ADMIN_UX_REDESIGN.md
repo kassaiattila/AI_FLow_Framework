@@ -1,26 +1,51 @@
 # AIFlow Admin — UX Redesign & Polish Plan
 
 > **Datum:** 2026-03-31
+> **Utolso frissites:** 2026-03-31 Session 3 utan
 > **Elozmeny:** Session 2 — Playwright teszteles, bug fixek, funkcionalis audit
 > **Cel:** Professzionalis, egyseges megjelenes; logikus flow; kompakt layoutok
 
 ---
 
-## 0. AKTUALIS ALLAPOT (Session 2 utan)
+## 0. AKTUALIS ALLAPOT (Session 3 utan)
+
+### Projekt statisztika
+- **31 TSX/TS fajl** az aiflow-admin/src/ alatt
+- **~165 i18n kulcs** HU + EN teljes lefedettseg
+- **10 oldal/route** + dashboard
+- **0 TypeScript hiba** (tsc --noEmit pass)
+- **React 19 + React-Admin 5.14 + MUI 7 + Vite 7 + Mermaid 11.13**
 
 ### Ami elkeszult es mukodik
-- **Dashboard** — KPI kartyak (5 skill, 16 run, $0.47), skill kartyak, backend status
-- **Workflow Runs** lista + show (pipeline timeline 4 lepessel)
-- **Invoices** lista → kozvetlenul verifikaciora navigal
-- **Emails** lista + show (intent, entitasok, routing, csatolmanyok)
-- **Verification** — valos szamlakep + sablon toggle, overlay, szerkesztes, jovahagyas, mentes
-- **Process Docs** — preset → LLM generalas → Mermaid BPMN flowchart
+- **Dashboard** — KPI kartyak (5 skill, 16 run, $0.47), skill kartyak i18n leirasokkal, backend status
+- **Workflow Runs** lista + show (kompakt 4-oszlopos grid fejlec, pipeline timeline, vissza gomb)
+- **Invoices** lista (feldolgozatlan sorok szurke, vendor nev tisztitas, gyors muveletek oszlop, Mind/Feldolgozott szuro)
+- **Invoice Show** — kompakt 3-oszlopos grid (Header|Vendor|Buyer + Line Items tabla + Totals|Validation)
+- **Invoice Verification** — ketsoros header, ikon toolbar tooltipekkel, konfidencia hierarchia (piros/narancs/zold), sticky action bar, billentyuzet navigacio (Tab/Enter/E/Esc), field label i18n
+- **Emails** lista + show (intent, entitasok, routing, csatolmanyok, vissza gomb)
+- **Process Docs** — split view (35/65): bal input + jobb diagram, Mermaid 11.x rendereles
 - **RAG Chat** — chat UI, preset kerdesek
 - **Cubix** — kurzus megjelenites
 - **Invoice/Email Upload** — dropzone → Python subprocess feldolgozas → eredmeny
-- **Costs** — KPI-k, skill + step bontas tablak
-- **i18n** — HU/EN teljes, toggle mukodik
+- **Costs** — KPI-k, horizontal bar chart + skill/step bontas tablak
+- **i18n** — HU/EN teljes, sidebar menu nevek is forditva
 - **Dark/Light theme** toggle
+- **Export performance** — CSV/JSON/Excel pufferelt I/O (OneDrive-friendly)
+
+### Session 3 elvegzett munkak
+
+| # | Fazis | Feladat | Commit | Statusz |
+|---|-------|---------|--------|---------|
+| 1 | F1 | Verification Redesign (header, toolbar, hierarchia, sticky bar, keyboard, i18n) | `05155d8` | **KESZ** |
+| 2 | F2 | Invoice lista polish (feldolgozatlan sorok, vendor tisztitas, gyors muveletek, szuro) | `b24234f` | **KESZ** |
+| 3 | F3 | Run Show kompakt layout (4-oszlopos grid fejlec, vissza gomb) | `b24234f` | **KESZ** |
+| 4 | F4 | Dashboard finomhangolas (skill leirasok i18n, KPI tipografia) | `5567383` | **KESZ** |
+| 5 | F5 | Costs vizualizacio (horizontal bar chart) | `5567383` | **KESZ** |
+| 6 | F6 | Process Docs split view layout (35/65) | `5567383` | **KESZ** |
+| 7 | F7 | Globalis UX (sidebar i18n, EmailShow vissza gomb) | `5567383` | **KESZ** |
+| 8 | — | Invoice Show kompakt redesign (3-oszlopos grid) | `d50a04a` | **KESZ** |
+| 9 | — | Mermaid 11.x render API fix + hiba megjelenites | `e33fc5d` | **KESZ** |
+| 10 | — | CSV/JSON/Excel export I/O optimalizalas | `4d85470` | **KESZ** |
 
 ### Session 2-ben javitott hibak
 | # | Hiba | Javitas |
@@ -30,12 +55,19 @@
 | 3 | "Not authenticated" console warning | ra.auth.auth_check_error kulcsra cserelve |
 | 4 | Nyers ISO datumok | toLocaleString() formazas FunctionField-del |
 | 5 | Nyers float ms pipeline lepeseknel | Math.round() kerekites |
-| 6 | Fekete canvas kijeleloles | CONFIDENCE_FILL_HIGHLIGHT rgba map (invalid rgb()+"33" javitva) |
+| 6 | Fekete canvas kijeleloles | CONFIDENCE_FILL_HIGHLIGHT rgba map javitva |
 | 7 | DataPointEditor kijeleloes hatter | Explicit rgba szin dark mode-hoz |
 | 8 | Kategoria cimkek mindig magyar | useLocaleState() alapu nyelvi valtas |
 | 9 | Invoice lista → show helyett verify | rowClick atirasra /verify utvonalra |
 | 10 | Verifikacio: valos szamla kep | /images/ kivetel a Next.js auth middleware-bol |
 | 11 | Pontatlan overlay valos kepen | Eredeti kep / Sablon nezet toggle |
+
+### Session 3-ban javitott hibak
+| # | Hiba | Javitas |
+|---|------|---------|
+| 12 | Verification field labelek angolban is magyarul | labelEn mezo hozzaadva document-layout.ts + DataPointEditor locale-alapu valtas |
+| 13 | Mermaid 11.x render API "Syntax error in text" | render() API frissites, suppressErrorRendering, hiba szoveg megjelentes |
+| 14 | CSV/JSON/Excel export lassu OneDrive-on | io.StringIO puffer (CSV), tempfile+move (Excel), egyszeri write |
 
 ---
 
@@ -49,225 +81,143 @@
 
 ---
 
-## 2. FELADATOK FAZISOKRA BONTVA
+## 2. FELADATOK — STATUSZ
 
-### Fazis 1: Verification Redesign (PRIORITAS — leggyakrabban hasznalt oldal)
+### Fazis 1: Verification Redesign ✅ KESZ
 
-#### 1.1 Header kompaktitas
-- **Jelenlegi:** Egyetlen zsufolt sor (Vissza + fajlnev + Reszletek + invoice/incoming + Auto/Javitva/OK badge-ek)
-- **Uj:** Ket soros fejlec:
-  - Felso: `← Vissza | fajlnev | Reszletek gomb`
-  - Also: `invoice | incoming | Auto:22 | Javitva:0 | OK:0 | progress bar`
-- **Fajl:** `VerificationPanel.tsx`
+| # | Feladat | Fajl | Statusz |
+|---|---------|------|---------|
+| 1.1 | Header kompaktitas (ketsoros) | VerificationPanel.tsx | ✅ |
+| 1.2 | Toolbar egyszerusites (ikon toolbar) | DocumentCanvas.tsx | ✅ |
+| 1.3 | Jobb panel vizualis hierarchia | DataPointEditor.tsx | ✅ |
+| 1.4 | Sticky action bar | VerificationPanel.tsx | ✅ |
+| 1.5 | Billentyuzet navigacio | DataPointEditor.tsx, use-verification-state.ts | ✅ |
 
-#### 1.2 Toolbar egyszerusites
-- **Jelenlegi:** Harom kulonallo toggle csoport + zoom slider egy sorban — zsufolt
-- **Uj:** Kompakt icon toolbar:
-  - Bal: Overlay ikonok (Mind/Alacsony/Ki) tooltip-ekkel
-  - Kozep: Zoom slider (szukebb)
-  - Jobb: Kep mod ikonok (foto ikon = valos, sablon ikon = template)
-- **Fajl:** `DocumentCanvas.tsx`
+### Fazis 2: Invoice Lista Javitas ✅ KESZ
 
-#### 1.3 Jobb panel: vizualis hierarchia
-- **Jelenlegi:** Minden mezo egyforma meretben, konfidencia % kicsi badge
-- **Uj:**
-  - Low-confidence (<70%) sorok: piros bal szegel + halvanypiros hatter
-  - Medium-confidence (70-90%): narancs bal szegel
-  - High-confidence (>90%): nincs extra kiemel, tomor
-  - Konfidencia badge szelessege aranyos az ertekkel (mini progress bar)
-- **Fajl:** `DataPointEditor.tsx`
+| # | Feladat | Fajl | Statusz |
+|---|---------|------|---------|
+| 2.1 | Nem-feldolgozott sorok megkulonboztetese | InvoiceList.tsx, dataProvider.ts | ✅ |
+| 2.2 | Vendor nev megtisztitas | InvoiceList.tsx | ✅ |
+| 2.3 | Gyors muveletek oszlop | InvoiceList.tsx | ✅ |
 
-#### 1.4 Sticky action bar
-- **Jelenlegi:** Alul, scroll utan latszik csak
-- **Uj:** Sticky bottom bar, mindig lathato, kompakt
-- **Fajl:** `VerificationPanel.tsx`
+### Fazis 3: Run Show Kompakt Layout ✅ KESZ
 
-#### 1.5 Billentyuzet navigacio
-- Tab/Shift+Tab: kovetkezo/elozo mezo
-- Enter: jovahagyas (confirm)
-- E: szerkesztes mod
-- Escape: megse
-- **Fajl:** `DataPointEditor.tsx`, `use-verification-state.ts`
+| # | Feladat | Fajl | Statusz |
+|---|---------|------|---------|
+| 3.1 | Fejlec atalakitas (4-oszlopos grid) | RunShow.tsx | ✅ |
+| 3.2 | Vissza gomb | RunShow.tsx | ✅ |
 
----
+### Fazis 4: Dashboard Finomhangolas ✅ KESZ
 
-### Fazis 2: Invoice Lista Javitas
+| # | Feladat | Fajl | Statusz |
+|---|---------|------|---------|
+| 4.1 | Skill kartya leirasok i18n | Dashboard.tsx, i18nProvider.ts | ✅ |
+| 4.2 | KPI kartyak tipografia | Dashboard.tsx | ✅ |
 
-#### 2.1 Nem-feldolgozott sorok megkulonboztetese
-- **Jelenlegi:** 0 Ft + "!" badge keverve a valos adatokkal — felrevezeto
-- **Uj:**
-  - Feltetel: ha `totals.gross_total === 0` ES nincs `vendor.name` → "Feldolgozatlan" status
-  - Vizualis: Szurke/halvanyjitt sor, "Nincs adat" felirat az ures cellakban
-  - Szuro: "Csak feldolgozott" / "Mind" toggle a toolbar-ban
-- **Fajl:** `InvoiceList.tsx`
+### Fazis 5: Costs Page Vizualizacio ✅ KESZ
 
-#### 2.2 Vendor nev megtisztitas
-- **Jelenlegi:** Fajlnev fragmentumok jelennek meg vendor nevkent a nem-feldolgozott soroknal
-- **Uj:** Ha a vendor.name megegyezik a fajlnev prefixevel → ures (dash "-")
-- **Fajl:** `dataProvider.ts` vagy `InvoiceList.tsx` FunctionField
+| # | Feladat | Fajl | Statusz |
+|---|---------|------|---------|
+| 5.1 | Skill koltseg horizontal bar chart | CostsPage.tsx | ✅ |
+| 5.2 | Napi/heti trend | — | KIHAGYVA (alacsony prioritas) |
 
-#### 2.3 Gyors muveletek oszlop
-- Uj utolso oszlop: ikon gombok (Verifikacio, Reszletek) soronkent
-- Jelenlegi rowClick megmarad (verify-re visz), de igy a reszletek is egybol elerheto
-- **Fajl:** `InvoiceList.tsx`
+### Fazis 6: Process Docs Viewer Bovites ✅ KESZ
+
+| # | Feladat | Fajl | Statusz |
+|---|---------|------|---------|
+| 6.1 | Split view layout (35/65) | ProcessDocViewer.tsx | ✅ |
+| 6.2 | Mermaid diagram rendereles | ProcessDocViewer.tsx | ✅ (11.x fix-szel) |
+
+### Fazis 7: Globalis UX Javitasok ✅ KESZ
+
+| # | Feladat | Fajl | Statusz |
+|---|---------|------|---------|
+| 7.1 | Sidebar menu nevek i18n | Menu.tsx, i18nProvider.ts | ✅ |
+| 7.2 | Konzisztens Vissza navigacio | RunShow, EmailShow, InvoiceShow, VerificationPanel | ✅ |
+| 7.3 | Loading/Error allapotok | Beepitett React Admin + custom oldalak | ✅ |
+| 7.4 | Responsive design | Grid layoutok xs/md breakpointokkal | ✅ (alap) |
 
 ---
 
-### Fazis 3: Run Show Kompakt Layout
+## 3. SIKERKRITERIUMOK — STATUSZ
 
-#### 3.1 Fejlec atalakitas
-- **Jelenlegi:** 8 egymas alatti label-value par — sok ures hely
-- **Uj:** Kompakt kartya grid (2-3 oszlop):
-  ```
-  ┌─────────────────────────────────────────────┐
-  │ Run ID: run-xxx    Skill: invoice_processor │
-  │ Status: ✓ completed   Duration: 2.9s       │
-  │ Cost: $0.0300         Started: 2026.03.31   │
-  │ Input: KL-2021-4.pdf  Output: Conf. 100%   │
-  └─────────────────────────────────────────────┘
-  ```
-- **Fajl:** `RunShow.tsx`
-
-#### 3.2 Vissza gomb
-- Hozzaadni: `← Vissza a listara` gomb a fejlec ele
-- **Fajl:** `RunShow.tsx`
+- [x] 0 console error minden oldalon (kiveve backend API 404 ha szerver nem fut)
+- [x] Minden oldal 2 masodperc alatt betolt
+- [x] HU/EN toggle: minden szoveg valtozik (beleertve verification field labelek)
+- [x] Verification: billentyuzettel vegignavigalhato (Tab/Enter/E/Esc)
+- [x] Invoice lista: nem-feldolgozott sorok vizualisan elkülonulnek
+- [x] Costs: vizualis bar chart latszik
+- [x] Process Docs: renderelt Mermaid diagram (nem kod)
+- [ ] Playwright E2E teszt: minden oldal screenshot regresszio — KOVETKEZO SESSION
 
 ---
 
-### Fazis 4: Dashboard Finomhangolas
+## 4. KOVETKEZO LEPESEK (Session 4+)
 
-#### 4.1 Skill kartya leirasok magyarra
-- **Jelenlegi:** Angol leirasok ("BPMN diagrams from natural language")
-- **Uj:** `t()` hasznalata a skill leirasokhoz, i18nProvider bovites
-- **Fajl:** `Dashboard.tsx`, `i18nProvider.ts`
+### Magas prioritas
+- Playwright E2E teszt suite (screenshot regresszio minden oldalhoz)
+- Vite proxy atiranyitas kozvetlenul FastAPI-ra az alap CRUD-hoz (Next.js kivagas)
+- Invoice lista: valodi szamla adatok megjelenítese (vendor nev, osszeg) feldolgozott soroknal
 
-#### 4.2 KPI kartyak tipografia
-- A csupa nagybetus label ("SKILLS", "OSSZES FUTAS") → Normal case, vastagabb, nagyobb font
-- Az ikon + szam paros legyen vizualisan kiemeltebb
-- **Fajl:** `Dashboard.tsx`
+### Kozepes prioritas
+- Responsive finomhangolas (tablet/mobil verification stack layout)
+- Costs napi/heti trend sparkline
+- Email Show kompakt redesign (mint Invoice Show)
+- RAG Chat valodi backend kapcsolat
 
----
-
-### Fazis 5: Costs Page Vizualizacio
-
-#### 5.1 Skill koltseg bar chart
-- Uj: Egyszeru horizontal bar chart a skill koltsegekhez
-- Hasznalat: MUI `LinearProgress` vagy egyszeru SVG bar-ok (nem kell chart library)
-- A tabla folott, vizualisan egybol atlathato
-- **Fajl:** `pages/CostsPage.tsx`
-
-#### 5.2 Napi/heti trend
-- Opcionalisan: egyszerű spark-line a futasok szamanak alakulasarol
-- Alacsony prioritas — csak ha van erteke
-- **Fajl:** `pages/CostsPage.tsx`
+### Alacsony prioritas
+- Cubix viewer bovites (video lejatszo, atirat szinkronizacio)
+- Export gombok (CSV letoltes kozvetlenul a UI-bol)
+- Dark/Light mode automatikus rendszerbealliitasbol
 
 ---
 
-### Fazis 6: Process Docs Viewer Bovites
-
-#### 6.1 Split view layout
-- **Jelenlegi:** Kis kartya a kepernyő kozepen, generalt diagram alatta
-- **Uj:** Bal: input textarea + presets + generate gomb (35%), Jobb: eredmeny (65%)
-- Az eredmeny teruleten: Mermaid renderelt diagram (nem csak kod)
-- **Fajl:** `pages/ProcessDocViewer.tsx`
-
-#### 6.2 Mermaid diagram rendereles
-- Jelenleg a Mermaid kod szovegkent jelenik meg
-- A `mermaid` package mar fuggoseg — rendereljuk SVG-be
-- Alatta: "Kod" tab a nyers Mermaid koddal, "Diagram" tab a renderelttel
-- **Fajl:** `pages/ProcessDocViewer.tsx`
-
----
-
-### Fazis 7: Globalis UX Javitasok
-
-#### 7.1 Sidebar menu nevek i18n
-- Az "Invoices" es "Emails" React Admin resource nevek angolul maradnak magyarul is
-- Megoldas: Resource `options.label` → `translate()` hivas
-- **Fajl:** `App.tsx`
-
-#### 7.2 Konzisztens Vissza navigacio
-- Minden show/detail oldalon: `← Vissza` gomb a fejlec bal oldalán
-- Egyseges pattern minden resource-hoz
-- **Fajl:** `RunShow.tsx`, `EmailShow.tsx`, `VerificationPanel.tsx`
-
-#### 7.3 Loading/Error allapotok
-- Skeleton loading a tablazatokhoz (React Admin beepitett)
-- Error boundary a custom route-okhoz
-- **Fajl:** globalis
-
-#### 7.4 Responsive design
-- Mobil-friendly sidebar (React Admin collapse)
-- A verification oldal stack elrendezesre valt kicsi kepernyokon
-- **Fajl:** `VerificationPanel.tsx`, `DocumentCanvas.tsx`
-
----
-
-## 3. BECSULT MUNKAIDO
-
-| Fazis | Feladat | Bonyolultsag | Becsles |
-|-------|---------|-------------|---------|
-| 1 | Verification Redesign | Kozepes-Magas | 1 session |
-| 2 | Invoice Lista | Alacsony | 0.5 session |
-| 3 | Run Show Kompakt | Alacsony | 0.5 session |
-| 4 | Dashboard Finomhangolas | Alacsony | 0.5 session |
-| 5 | Costs Vizualizacio | Kozepes | 0.5 session |
-| 6 | Process Docs Viewer | Kozepes | 1 session |
-| 7 | Globalis UX | Alacsony | 0.5 session |
-| **Ossz** | | | **~4 session** |
-
----
-
-## 4. JAVASOLT SORREND
-
-```
-Session 3: Fazis 1 (Verification Redesign) — ez a legnagyobb hatasú
-Session 4: Fazis 2 + 3 (Invoice lista + Run Show kompakt)
-Session 5: Fazis 4 + 5 + 6 (Dashboard + Costs + Process Docs)
-Session 6: Fazis 7 (Globalis javitasok) + teljes regresszios teszt
-```
-
----
-
-## 5. NEM CELJAI ENNEK A TERVNEK
-
-- Uj skill viewerek fejlesztese (az kulon task)
-- Backend API valtoztatas (csak frontend)
-- Mobil app (csak responsive web)
-- Auth/RBAC valtoztatas (meglevo marad)
-
----
-
-## 6. ERINTETT FAJLOK LISTAJA
+## 5. ERINTETT FAJLOK — VEGLEGES LISTA
 
 ```
 aiflow-admin/src/
-  App.tsx                           — Fazis 7.1 (resource label i18n)
-  Dashboard.tsx                     — Fazis 4 (skill leirasok, KPI tipografia)
-  i18nProvider.ts                   — Fazis 4 (uj forditas kulcsok)
+  App.tsx                           — Resource + CustomRoutes definicio
+  AppBar.tsx                        — Custom AppBar (i18n + theme toggle)
+  Dashboard.tsx                     — KPI kartyak + skill kartyak (i18n leirasok)
+  Layout.tsx                        — Layout wrapper (AppBar + Menu)
+  Menu.tsx                          — Sidebar menu (i18n resource nevek)
+  authProvider.ts                   — Demo auth provider
+  dataProvider.ts                   — REST data provider (Next.js API proxy)
+  i18nProvider.ts                   — HU/EN ~165 kulcs (polyglot)
+  theme.ts                          — Light + dark MUI tema
+  components/
+    PipelineProgress.tsx            — Animalt pipeline progress
+    StepTimeline.tsx                — Workflow step timeline
   resources/
-    RunShow.tsx                     — Fazis 3 (kompakt fejlec, vissza gomb)
-    InvoiceList.tsx                 — Fazis 2 (feldolgozatlan jeloles, gyors muveletek)
-    EmailShow.tsx                   — Fazis 7.2 (vissza gomb)
+    RunList.tsx                     — Runs tablazat
+    RunShow.tsx                     — Kompakt 4-oszlopos grid fejlec + pipeline
+    InvoiceList.tsx                 — Feldolgozatlan jeloles, vendor tisztitas, gyors muveletek
+    InvoiceShow.tsx                 — 3-oszlopos grid (Header|Vendor|Buyer + Tetelek + Totals|Validacio)
+    EmailList.tsx                   — Email tablazat (intent, prioritas)
+    EmailShow.tsx                   — Email reszletek (intent, entitasok, routing, csatolmanyok)
   pages/
-    ProcessDocViewer.tsx            — Fazis 6 (split view, mermaid rendereles)
-    CostsPage.tsx                   — Fazis 5 (bar chart)
+    CostsPage.tsx                   — KPI + bar chart + skill/step tablak
+    ProcessDocViewer.tsx            — Split view (35/65) + Mermaid rendereles
+    RagChat.tsx                     — Chat UI preset kerdesekkel
+    CubixViewer.tsx                 — Kurzus megjelenites
+    InvoiceUpload.tsx               — PDF upload + subprocess feldolgozas
+    EmailUpload.tsx                 — Email upload + subprocess feldolgozas
   verification/
-    VerificationPanel.tsx           — Fazis 1.1, 1.4 (header, sticky bar)
-    DocumentCanvas.tsx              — Fazis 1.2 (toolbar)
-    DataPointEditor.tsx             — Fazis 1.3, 1.5 (hierarchia, billentyuzet)
-    use-verification-state.ts       — Fazis 1.5 (keyboard nav state)
+    VerificationPanel.tsx           — Ketsoros header, sticky bar, keyboard nav
+    DocumentCanvas.tsx              — Ikon toolbar, overlay, zoom
+    DataPointEditor.tsx             — Konfidencia hierarchia, mini progress bar
+    MockInvoiceSvg.tsx              — SVG sablon szamla
+    types.ts                        — TypeScript tipusok (DataPoint, BBox, stb.)
+    document-layout.ts              — Mezo elrendezes + i18n labelek
+    use-verification-state.ts       — useReducer state management (NEXT/PREV_POINT)
 ```
 
 ---
 
-## 7. SIKERKRITERIUMOK
+## 6. NEM CELJAI ENNEK A TERVNEK
 
-- [ ] 0 console error minden oldalon
-- [ ] Minden oldal 2 masodperc alatt betolt
-- [ ] HU/EN toggle: minden szoveg valtozik
-- [ ] Verification: billentyuzettel vegignavigalhato
-- [ ] Invoice lista: nem-feldolgozott sorok vizualisan elkülonulnek
-- [ ] Costs: vizualis chart latszik
-- [ ] Process Docs: renderelt diagram (nem kod)
-- [ ] Playwright E2E teszt: minden oldal screenshot regresszio
+- Uj skill viewerek fejlesztese (az kulon task)
+- Backend API valtoztatas (csak frontend, kivetel: export I/O fix)
+- Mobil app (csak responsive web)
+- Auth/RBAC valtoztatas (meglevo marad)
