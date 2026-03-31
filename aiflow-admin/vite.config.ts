@@ -9,11 +9,11 @@ export default defineConfig(({ mode }) => ({
     proxy: {
       // All API traffic goes directly to FastAPI — no Next.js needed
       "/api": {
-        target: "http://localhost:8000",
+        target: "http://localhost:8100",
         changeOrigin: true,
       },
       "/health": {
-        target: "http://localhost:8000",
+        target: "http://localhost:8100",
         changeOrigin: true,
       },
     },
