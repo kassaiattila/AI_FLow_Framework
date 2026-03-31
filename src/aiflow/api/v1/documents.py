@@ -336,16 +336,38 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
         "format": "all",
     }
 
-    # Run the pipeline steps sequentially
+    # Run the pipeline steps with per-step timing
+    import time as _time
+    timings: dict[str, float] = {}
     try:
+        t = _time.perf_counter()
         data = await parse_invoice({**input_data})
+        timings["parse"] = _time.perf_counter() - t
+
+        t = _time.perf_counter()
         data = await classify_invoice(data)
+        timings["classify"] = _time.perf_counter() - t
+
+        t = _time.perf_counter()
         data = await extract_invoice_data(data)
+        timings["extract"] = _time.perf_counter() - t
+
+        t = _time.perf_counter()
         data = await validate_invoice(data)
+        timings["validate"] = _time.perf_counter() - t
+
+        t = _time.perf_counter()
         data = await store_invoice(data)
+        timings["store"] = _time.perf_counter() - t
+
+        t = _time.perf_counter()
         data = await export_invoice(data)
+        timings["export"] = _time.perf_counter() - t
+
+        logger.info("process_documents_timings", **{k: f"{v:.1f}s" for k, v in timings.items()},
+                     total=f"{sum(timings.values()):.1f}s")
     except Exception as e:
-        logger.error("process_documents_failed", error=str(e))
+        logger.error("process_documents_failed", error=str(e), timings=timings)
         raise HTTPException(status_code=500, detail=str(e))
 
     # Build response
