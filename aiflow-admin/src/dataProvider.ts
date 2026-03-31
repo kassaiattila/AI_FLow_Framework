@@ -115,6 +115,7 @@ export const dataProvider: DataProvider = {
     const start = (page - 1) * perPage;
     const data = allData.slice(start, start + perPage);
 
+    console.log(`[dataProvider] getList(${resource}): ${data.length} items, total=${allData.length}`);
     return { data, total: allData.length };
   },
 
