@@ -1,18 +1,22 @@
-"""Email processing result endpoints."""
+"""Email processing result endpoints + upload/process."""
 from __future__ import annotations
 
 import os
+import tempfile
+from pathlib import Path
 from typing import Any
 
 import asyncpg
 import structlog
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 
 __all__ = ["router"]
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/emails", tags=["emails"])
+
+ALLOWED_EXTENSIONS = {".eml", ".msg", ".txt"}
 
 
 class EmailResultItem(BaseModel):
@@ -120,3 +124,102 @@ async def list_emails(
         logger.warning("emails_db_failed", error=str(e))
 
     return EmailListResponse(emails=emails, total=total)
+
+
+# ---------------------------------------------------------------------------
+# Upload & Process
+# ---------------------------------------------------------------------------
+
+def _email_upload_dir() -> Path:
+    d = Path(os.getenv("AIFLOW_EMAIL_UPLOAD_DIR", "./data/uploads/emails"))
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+class EmailUploadResponse(BaseModel):
+    uploaded: int = 0
+    files: list[str] = []
+    errors: list[str] = []
+
+
+class EmailProcessRequest(BaseModel):
+    file: str
+
+
+class EmailProcessResponse(BaseModel):
+    file: str
+    source: str = "backend"
+    intent: dict[str, Any] | None = None
+    entities: dict[str, Any] | None = None
+    priority: dict[str, Any] | None = None
+    routing: dict[str, Any] | None = None
+    error: str | None = None
+
+
+@router.post("/upload", response_model=EmailUploadResponse)
+async def upload_emails(files: list[UploadFile] = File(...)) -> EmailUploadResponse:
+    """Upload email files (.eml, .msg, .txt) for processing."""
+    upload_dir = _email_upload_dir()
+    uploaded: list[str] = []
+    errors: list[str] = []
+
+    for f in files:
+        if not f.filename:
+            continue
+        name = Path(f.filename).name  # safe basename
+        ext = Path(name).suffix.lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            errors.append(f"{name}: Invalid extension {ext}")
+            continue
+        content = await f.read()
+        (upload_dir / name).write_bytes(content)
+        uploaded.append(name)
+        logger.info("email_uploaded", filename=name, size=len(content))
+
+    return EmailUploadResponse(uploaded=len(uploaded), files=uploaded, errors=errors)
+
+
+@router.post("/process", response_model=EmailProcessResponse)
+async def process_email(request: EmailProcessRequest) -> EmailProcessResponse:
+    """Process an uploaded email using the email_intent_processor skill in-process."""
+    upload_dir = _email_upload_dir()
+    file_path = upload_dir / request.file
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"File not found: {request.file}")
+
+    try:
+        from skills.email_intent_processor.workflows.pipeline import (
+            parse_email,
+            classify_intent,
+            extract_entities,
+            determine_priority,
+            route_email,
+        )
+    except ImportError as e:
+        logger.error("email_skill_import_failed", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Email processor skill not available: {e}")
+
+    output_dir = Path(tempfile.mkdtemp(prefix="aiflow_email_"))
+    try:
+        data: dict[str, Any] = {
+            "input_file": str(file_path),
+            "output_dir": str(output_dir),
+        }
+        data = await parse_email(data)
+        data = await classify_intent(data)
+        data = await extract_entities(data)
+        data = await determine_priority(data)
+        data = await route_email(data)
+    except Exception as e:
+        logger.error("process_email_failed", error=str(e))
+        return EmailProcessResponse(file=request.file, source="backend", error=str(e))
+
+    return EmailProcessResponse(
+        file=request.file,
+        source="backend",
+        intent=data.get("intent"),
+        entities=data.get("entities"),
+        priority=data.get("priority"),
+        routing=data.get("routing"),
+    )
