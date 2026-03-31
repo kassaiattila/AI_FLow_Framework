@@ -558,13 +558,12 @@ async def export_invoice(data: dict) -> dict:
 
     if export_format in ("json", "all"):
         json_path = output_dir / "invoices.json"
-        json_path.write_text(
-            json.dumps(
-                [inv.model_dump(mode="json") for inv in invoices],
-                ensure_ascii=False, indent=2,
-            ),
-            encoding="utf-8",
+        # Build JSON in memory first, then single atomic write (OneDrive-friendly)
+        json_str = json.dumps(
+            [inv.model_dump(mode="json") for inv in invoices],
+            ensure_ascii=False, indent=2,
         )
+        json_path.write_text(json_str, encoding="utf-8")
         exported.append(str(json_path))
 
     if export_format in ("excel", "all"):
@@ -614,7 +613,13 @@ def _build_invoice_objects(files: list[dict]) -> list[ProcessedInvoice]:
 
 
 def _export_csv(invoices: list[ProcessedInvoice], path: Path) -> None:
-    """Export invoices to CSV (one row per line item, denormalized header)."""
+    """Export invoices to CSV (one row per line item, denormalized header).
+
+    Buffered in memory with io.StringIO then written in a single operation
+    to avoid slow row-by-row I/O on network-synced drives (OneDrive).
+    """
+    import io
+
     fields = [
         "source_file", "direction", "invoice_number", "invoice_date", "due_date",
         "vendor_name", "vendor_tax_number", "buyer_name", "buyer_tax_number",
@@ -623,43 +628,45 @@ def _export_csv(invoices: list[ProcessedInvoice], path: Path) -> None:
         "net_amount", "vat_rate", "vat_amount", "gross_amount",
         "net_total", "vat_total", "gross_total", "is_valid",
     ]
-    with open(path, "w", encoding="utf-8-sig", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fields, delimiter=";")
-        writer.writeheader()
-        for inv in invoices:
-            base = {
-                "source_file": inv.source_file,
-                "direction": inv.direction,
-                "invoice_number": inv.header.invoice_number,
-                "invoice_date": inv.header.invoice_date,
-                "due_date": inv.header.due_date,
-                "vendor_name": inv.vendor.name,
-                "vendor_tax_number": inv.vendor.tax_number,
-                "buyer_name": inv.buyer.name,
-                "buyer_tax_number": inv.buyer.tax_number,
-                "currency": inv.header.currency,
-                "payment_method": inv.header.payment_method,
-                "net_total": inv.totals.net_total,
-                "vat_total": inv.totals.vat_total,
-                "gross_total": inv.totals.gross_total,
-                "is_valid": inv.validation.is_valid,
-            }
-            if inv.line_items:
-                for item in inv.line_items:
-                    writer.writerow({
-                        **base,
-                        "line_number": item.line_number,
-                        "description": item.description,
-                        "quantity": item.quantity,
-                        "unit": item.unit,
-                        "unit_price": item.unit_price,
-                        "net_amount": item.net_amount,
-                        "vat_rate": item.vat_rate,
-                        "vat_amount": item.vat_amount,
-                        "gross_amount": item.gross_amount,
-                    })
-            else:
-                writer.writerow(base)
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=fields, delimiter=";")
+    writer.writeheader()
+    for inv in invoices:
+        base = {
+            "source_file": inv.source_file,
+            "direction": inv.direction,
+            "invoice_number": inv.header.invoice_number,
+            "invoice_date": inv.header.invoice_date,
+            "due_date": inv.header.due_date,
+            "vendor_name": inv.vendor.name,
+            "vendor_tax_number": inv.vendor.tax_number,
+            "buyer_name": inv.buyer.name,
+            "buyer_tax_number": inv.buyer.tax_number,
+            "currency": inv.header.currency,
+            "payment_method": inv.header.payment_method,
+            "net_total": inv.totals.net_total,
+            "vat_total": inv.totals.vat_total,
+            "gross_total": inv.totals.gross_total,
+            "is_valid": inv.validation.is_valid,
+        }
+        if inv.line_items:
+            for item in inv.line_items:
+                writer.writerow({
+                    **base,
+                    "line_number": item.line_number,
+                    "description": item.description,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                    "unit_price": item.unit_price,
+                    "net_amount": item.net_amount,
+                    "vat_rate": item.vat_rate,
+                    "vat_amount": item.vat_amount,
+                    "gross_amount": item.gross_amount,
+                })
+        else:
+            writer.writerow(base)
+    # Single atomic write — avoids row-by-row I/O on network drives
+    path.write_text(buf.getvalue(), encoding="utf-8-sig")
 
 
 def _export_excel(invoices: list[ProcessedInvoice], path: Path) -> None:
@@ -703,4 +710,8 @@ def _export_excel(invoices: list[ProcessedInvoice], path: Path) -> None:
                 item.net_amount, item.vat_rate, item.vat_amount, item.gross_amount,
             ])
 
-    wb.save(str(path))
+    # Write to a temp file first, then move — avoids slow incremental writes on OneDrive
+    import tempfile, shutil
+    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+        wb.save(tmp.name)
+        shutil.move(tmp.name, str(path))
