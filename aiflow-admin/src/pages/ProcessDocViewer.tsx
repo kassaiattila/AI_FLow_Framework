@@ -53,7 +53,12 @@ export const ProcessDocViewer = () => {
 
   // Re-initialize mermaid when theme changes
   useEffect(() => {
-    mermaid.initialize({ startOnLoad: false, theme: themeMode === "dark" ? "dark" : "default" });
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: themeMode === "dark" ? "dark" : "default",
+      securityLevel: "loose",
+      suppressErrorRendering: true,
+    });
   }, [themeMode]);
 
   const handleGenerate = async (overrideInput?: string) => {
@@ -86,26 +91,25 @@ export const ProcessDocViewer = () => {
     let cancelled = false;
     el.innerHTML = "";
 
-    // Create a dedicated container for mermaid (it needs an element in the DOM)
-    const container = document.createElement("div");
-    container.id = `mermaid-${Date.now()}`;
-    el.appendChild(container);
+    // Mermaid 11.x render API: render(id, code) where id is a unique render key
+    const renderId = `mermaid-render-${Date.now()}`;
 
     mermaid
-      .render(container.id, result.mermaid_code)
+      .render(renderId, result.mermaid_code)
       .then(({ svg }) => {
         if (cancelled) return;
         el.innerHTML = svg;
-        // Ensure SVG scales to container
         const svgEl = el.querySelector("svg");
         if (svgEl) {
           svgEl.style.maxWidth = "100%";
           svgEl.style.height = "auto";
         }
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
-        el.innerHTML = `<pre style="text-align:left;overflow:auto;font-size:12px;padding:16px">${result.mermaid_code}</pre>`;
+        // Show the raw code as fallback with the error
+        const errMsg = err instanceof Error ? err.message : String(err);
+        el.innerHTML = `<div style="text-align:left;overflow:auto;padding:16px"><p style="color:#ef4444;margin-bottom:8px;font-size:13px">Mermaid syntax error: ${errMsg.replace(/</g, "&lt;")}</p><pre style="font-size:12px;white-space:pre-wrap">${result.mermaid_code.replace(/</g, "&lt;")}</pre></div>`;
       });
 
     return () => { cancelled = true; };
