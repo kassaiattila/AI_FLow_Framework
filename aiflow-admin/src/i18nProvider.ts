@@ -161,6 +161,7 @@ const hungarianMessages = {
       confirmAll: "Mind jovahagyva", saved: "Mentve", verified: "ellenorizve",
       overlayAll: "Mind", overlayLow: "Alacsony", overlayOff: "Ki",
       realImage: "Eredeti kep", mockImage: "Sablon nezet",
+      kbNav: "navigacio", kbConfirm: "jovahagyas", kbEdit: "szerkesztes", kbCancel: "megse",
     },
     costs: {
       title: "Koltseg analitika", totalCost: "Osszes koltseg", totalTokens: "Osszes token",
@@ -240,6 +241,7 @@ const englishCustom = {
       confirmAll: "Confirm All", saved: "Saved", verified: "verified",
       overlayAll: "All", overlayLow: "Low conf.", overlayOff: "Off",
       realImage: "Original image", mockImage: "Template view",
+      kbNav: "navigate", kbConfirm: "confirm", kbEdit: "edit", kbCancel: "cancel",
     },
     costs: {
       title: "Cost Analytics", totalCost: "Total Cost", totalTokens: "Total Tokens",

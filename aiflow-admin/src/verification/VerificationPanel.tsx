@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTranslate, Title } from "react-admin";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Box, Typography, Chip, Stack, LinearProgress, Button, Badge, Paper,
+  Box, Typography, Chip, Stack, LinearProgress, Button, Paper,
   Divider, Alert, CircularProgress,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -15,7 +15,6 @@ import { DocumentCanvas } from "./DocumentCanvas";
 import { DataPointEditor } from "./DataPointEditor";
 import { getAllFields, fieldToBBox, resolvePath } from "./document-layout";
 import type { DataPoint, InvoiceVerificationData, DataPointCategory } from "./types";
-import { getConfidenceLevel, CONFIDENCE_MUI_COLOR, STATUS_MUI_COLOR } from "./types";
 
 function generateVerificationData(invoice: Record<string, unknown>, index: number): InvoiceVerificationData {
   const lineItems = (invoice.line_items as unknown[]) || [];
@@ -30,6 +29,7 @@ function generateVerificationData(invoice: Record<string, unknown>, index: numbe
       category: f.category as DataPointCategory,
       field_name: f.fieldPath,
       label: f.label,
+      labelEn: f.labelEn,
       extracted_value: value,
       current_value: value,
       confidence,
@@ -113,44 +113,52 @@ export const VerificationPanel = () => {
   const progress = vs.stats.total > 0 ? ((vs.stats.confirmed + vs.stats.corrected) / vs.stats.total) * 100 : 0;
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1400, mx: "auto" }}>
+    <Box sx={{ p: 2, maxWidth: 1400, mx: "auto", display: "flex", flexDirection: "column", height: "calc(100vh - 64px)" }}>
       <Title title={`${translate("aiflow.verification.title")} — ${id}`} />
 
-      {/* Header */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/invoices")} size="small">
-            {translate("ra.action.back")}
-          </Button>
-          <Typography variant="h6">{id}</Typography>
-          <Button
-            startIcon={<InfoOutlinedIcon />}
-            onClick={() => navigate(`/invoices/${encodeURIComponent(id!)}/show`)}
-            size="small"
-            variant="outlined"
-            color="inherit"
-          >
-            {translate("ra.message.details")}
-          </Button>
-          {vs.documentMeta && (
-            <>
-              <Chip label={vs.documentMeta.document_type} size="small" />
-              <Chip label={vs.documentMeta.direction} size="small" variant="outlined" />
-            </>
-          )}
-        </Stack>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Badge badgeContent={vs.stats.auto} color="default"><Chip label="Auto" size="small" variant="outlined" /></Badge>
-          <Badge badgeContent={vs.stats.corrected} color="info"><Chip label={translate("aiflow.verification.corrected")} size="small" variant="outlined" /></Badge>
-          <Badge badgeContent={vs.stats.confirmed} color="success"><Chip label="OK" size="small" variant="outlined" /></Badge>
-        </Stack>
+      {/* Header — Row 1: navigation */}
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/invoices")} size="small">
+          {translate("ra.action.back")}
+        </Button>
+        <Typography variant="h6" sx={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {id}
+        </Typography>
+        <Button
+          startIcon={<InfoOutlinedIcon />}
+          onClick={() => navigate(`/invoices/${encodeURIComponent(id!)}/show`)}
+          size="small"
+          variant="outlined"
+          color="inherit"
+        >
+          {translate("ra.message.details")}
+        </Button>
       </Stack>
 
-      {/* Progress bar */}
-      <LinearProgress variant="determinate" value={progress} sx={{ mb: 2, height: 6, borderRadius: 3 }} />
+      {/* Header — Row 2: meta chips + stats + progress */}
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+        {vs.documentMeta && (
+          <>
+            <Chip label={vs.documentMeta.document_type} size="small" />
+            <Chip label={vs.documentMeta.direction} size="small" variant="outlined" />
+            <Divider orientation="vertical" flexItem />
+          </>
+        )}
+        <Chip label={`Auto: ${vs.stats.auto}`} size="small" variant="outlined" />
+        <Chip label={`${translate("aiflow.verification.corrected")}: ${vs.stats.corrected}`} size="small" variant="outlined" color="info" />
+        <Chip label={`OK: ${vs.stats.confirmed}`} size="small" variant="outlined" color="success" />
+        <LinearProgress
+          variant="determinate"
+          value={progress}
+          sx={{ flex: 1, height: 6, borderRadius: 3, ml: 1 }}
+        />
+        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+          {Math.round(progress)}%
+        </Typography>
+      </Stack>
 
-      {/* Side-by-side layout */}
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "55% 45%" }, gap: 2, mb: 2 }}>
+      {/* Side-by-side layout — fills remaining space */}
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "55% 45%" }, gap: 2, flex: 1, minHeight: 0, overflow: "hidden" }}>
         {/* Left: Document Canvas */}
         <DocumentCanvas
           invoice={invoice}
@@ -175,12 +183,22 @@ export const VerificationPanel = () => {
           onCommitEdit={vs.commitEdit}
           onCancelEdit={vs.cancelEdit}
           onConfirmPoint={vs.confirmPoint}
+          onNextPoint={vs.nextPoint}
+          onPrevPoint={vs.prevPoint}
         />
       </Box>
 
-      {/* Action bar */}
-      <Paper variant="outlined" sx={{ p: 1.5 }}>
-        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+      {/* Sticky action bar — always visible */}
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 1, mt: 1,
+          position: "sticky", bottom: 0, zIndex: 10,
+          bgcolor: "background.paper",
+          borderTop: 2, borderColor: "divider",
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
           <Stack direction="row" spacing={1}>
             <Button variant="outlined" startIcon={<RestoreIcon />} onClick={vs.reset} size="small">
               Reset
@@ -195,7 +213,7 @@ export const VerificationPanel = () => {
           <Stack direction="row" spacing={1} alignItems="center">
             {saveStatus === "saved" && <Chip label={translate("aiflow.verification.saved")} color="success" size="small" />}
             {saveStatus === "error" && <Chip label="Error" color="error" size="small" />}
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
               {vs.stats.confirmed + vs.stats.corrected}/{vs.stats.total} {translate("aiflow.verification.verified")}
             </Typography>
           </Stack>

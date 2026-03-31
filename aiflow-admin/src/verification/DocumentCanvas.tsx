@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import {
-  Box, Paper, Typography, ToggleButtonGroup, ToggleButton, Stack, Slider,
+  Box, Paper, ToggleButtonGroup, ToggleButton, Stack, Slider, Tooltip, Typography,
 } from "@mui/material";
+import LayersIcon from "@mui/icons-material/Layers";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import PhotoIcon from "@mui/icons-material/Photo";
+import GridOnIcon from "@mui/icons-material/GridOn";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import { useTranslate } from "react-admin";
 import type { DataPoint } from "./types";
 import { getConfidenceLevel } from "./types";
@@ -74,20 +80,30 @@ export const DocumentCanvas = ({
 
   return (
     <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-      {/* Controls */}
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ p: 1, borderBottom: 1, borderColor: "divider" }}>
+      {/* Compact icon toolbar */}
+      <Stack direction="row" alignItems="center" sx={{ px: 1, py: 0.5, borderBottom: 1, borderColor: "divider", gap: 0.5 }}>
+        {/* Left: Overlay mode icons */}
         <ToggleButtonGroup
           size="small"
           value={overlayMode}
           exclusive
           onChange={(_, v) => v && setOverlayMode(v)}
+          sx={{ "& .MuiToggleButton-root": { px: 1, py: 0.5 } }}
         >
-          <ToggleButton value="all">{translate("aiflow.verification.overlayAll")}</ToggleButton>
-          <ToggleButton value="low">{translate("aiflow.verification.overlayLow")}</ToggleButton>
-          <ToggleButton value="off">{translate("aiflow.verification.overlayOff")}</ToggleButton>
+          <ToggleButton value="all">
+            <Tooltip title={translate("aiflow.verification.overlayAll")}><LayersIcon fontSize="small" /></Tooltip>
+          </ToggleButton>
+          <ToggleButton value="low">
+            <Tooltip title={translate("aiflow.verification.overlayLow")}><WarningAmberIcon fontSize="small" /></Tooltip>
+          </ToggleButton>
+          <ToggleButton value="off">
+            <Tooltip title={translate("aiflow.verification.overlayOff")}><VisibilityOffIcon fontSize="small" /></Tooltip>
+          </ToggleButton>
         </ToggleButtonGroup>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, maxWidth: 200 }}>
-          <Typography variant="caption">Zoom</Typography>
+
+        {/* Center: Compact zoom */}
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flex: 1, maxWidth: 160, mx: 1 }}>
+          <ZoomInIcon fontSize="small" color="action" />
           <Slider
             size="small"
             value={zoom}
@@ -98,17 +114,25 @@ export const DocumentCanvas = ({
             valueLabelDisplay="auto"
             valueLabelFormat={(v) => `${v}%`}
           />
+          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 32 }}>{zoom}%</Typography>
         </Stack>
+
+        {/* Right: Image mode icons */}
         <ToggleButtonGroup
           size="small"
           value={viewMode}
           exclusive
           onChange={(_, v) => v && setViewMode(v)}
+          sx={{ "& .MuiToggleButton-root": { px: 1, py: 0.5 } }}
         >
           {hasRealImage && (
-            <ToggleButton value="real">{translate("aiflow.verification.realImage")}</ToggleButton>
+            <ToggleButton value="real">
+              <Tooltip title={translate("aiflow.verification.realImage")}><PhotoIcon fontSize="small" /></Tooltip>
+            </ToggleButton>
           )}
-          <ToggleButton value="mock">{translate("aiflow.verification.mockImage")}</ToggleButton>
+          <ToggleButton value="mock">
+            <Tooltip title={translate("aiflow.verification.mockImage")}><GridOnIcon fontSize="small" /></Tooltip>
+          </ToggleButton>
         </ToggleButtonGroup>
       </Stack>
 

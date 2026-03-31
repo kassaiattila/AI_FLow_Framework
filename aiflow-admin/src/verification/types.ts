@@ -23,6 +23,7 @@ export interface DataPoint {
   category: DataPointCategory;
   field_name: string;
   label: string;
+  labelEn: string;
   extracted_value: string;
   current_value: string;
   confidence: number;

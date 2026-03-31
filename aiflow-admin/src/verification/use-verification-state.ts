@@ -39,6 +39,8 @@ type Action =
   | { type: "LOAD_DATA"; payload: InvoiceVerificationData }
   | { type: "HOVER_POINT"; payload: string | null }
   | { type: "SELECT_POINT"; payload: string }
+  | { type: "NEXT_POINT" }
+  | { type: "PREV_POINT" }
   | { type: "START_EDIT"; payload: string }
   | { type: "EDIT_CHANGE"; payload: string }
   | { type: "COMMIT_EDIT" }
@@ -66,6 +68,18 @@ function reducer(state: VerificationState, action: Action): VerificationState {
       return { ...state, hoveredPointId: action.payload };
     case "SELECT_POINT":
       return { ...state, selectedPointId: action.payload };
+    case "NEXT_POINT": {
+      if (state.dataPoints.length === 0) return state;
+      const curIdx = state.dataPoints.findIndex((p) => p.id === state.selectedPointId);
+      const nextIdx = curIdx < 0 ? 0 : (curIdx + 1) % state.dataPoints.length;
+      return { ...state, selectedPointId: state.dataPoints[nextIdx].id };
+    }
+    case "PREV_POINT": {
+      if (state.dataPoints.length === 0) return state;
+      const curIdx2 = state.dataPoints.findIndex((p) => p.id === state.selectedPointId);
+      const prevIdx = curIdx2 <= 0 ? state.dataPoints.length - 1 : curIdx2 - 1;
+      return { ...state, selectedPointId: state.dataPoints[prevIdx].id };
+    }
     case "START_EDIT": {
       const pt = state.dataPoints.find((p) => p.id === action.payload);
       return { ...state, editingPointId: action.payload, editBuffer: pt?.current_value ?? "", selectedPointId: action.payload };
@@ -129,6 +143,8 @@ export function useVerificationState() {
   const confirmPoint = useCallback((id: string) => dispatch({ type: "CONFIRM_POINT", payload: id }), []);
   const confirmAll = useCallback(() => dispatch({ type: "CONFIRM_ALL" }), []);
   const reset = useCallback(() => dispatch({ type: "RESET" }), []);
+  const nextPoint = useCallback(() => dispatch({ type: "NEXT_POINT" }), []);
+  const prevPoint = useCallback(() => dispatch({ type: "PREV_POINT" }), []);
 
   const stats = useMemo(() => {
     const total = state.dataPoints.length;
@@ -138,5 +154,5 @@ export function useVerificationState() {
     return { total, auto, corrected, confirmed };
   }, [state.dataPoints]);
 
-  return { ...state, stats, loadData, hoverPoint, selectPoint, startEdit, editChange, commitEdit, cancelEdit, confirmPoint, confirmAll, reset };
+  return { ...state, stats, loadData, hoverPoint, selectPoint, nextPoint, prevPoint, startEdit, editChange, commitEdit, cancelEdit, confirmPoint, confirmAll, reset };
 }
