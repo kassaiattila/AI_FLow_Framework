@@ -7,10 +7,12 @@ export function getResourceSource(resource: string): string | null {
 }
 
 // Maps react-admin resource names to API endpoints and response shapes
+// CRUD routes go directly to FastAPI (/api/v1/*) — no Next.js middleman
+// Subprocess routes (upload, process, generate) still go through Next.js (/api/*)
 const RESOURCE_MAP: Record<string, { endpoint: string; listKey: string; idField: string }> = {
-  runs: { endpoint: "/api/runs", listKey: "runs", idField: "run_id" },
-  invoices: { endpoint: "/api/documents", listKey: "documents", idField: "source_file" },
-  emails: { endpoint: "/api/emails", listKey: "emails", idField: "email_id" },
+  runs: { endpoint: "/api/v1/runs", listKey: "runs", idField: "run_id" },
+  invoices: { endpoint: "/api/v1/documents", listKey: "documents", idField: "source_file" },
+  emails: { endpoint: "/api/v1/emails", listKey: "emails", idField: "email_id" },
   "process-docs": { endpoint: "/api/process-docs", listKey: "documents", idField: "doc_id" },
   cubix: { endpoint: "/api/cubix", listKey: "courses", idField: "course_id" },
 };
@@ -111,7 +113,7 @@ export const dataProvider: DataProvider = {
 
     // For resources with dedicated endpoints
     if (resource === "emails") {
-      const json = await fetchJson(`/api/emails/${params.id}`);
+      const json = await fetchJson(`/api/v1/emails/${params.id}`);
       if (json.source) sourceCache.set(resource, json.source);
       return { data: { ...json, id: json[config.idField] || json.id } };
     }

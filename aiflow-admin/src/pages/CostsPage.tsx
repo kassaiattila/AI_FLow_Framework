@@ -48,7 +48,7 @@ export const CostsPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/runs")
+    fetch("/api/v1/runs")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();

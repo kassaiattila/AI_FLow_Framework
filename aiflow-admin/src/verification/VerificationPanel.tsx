@@ -70,7 +70,7 @@ export const VerificationPanel = () => {
   // Load invoice
   useEffect(() => {
     if (!id) { setLoading(false); return; }
-    fetch("/api/documents")
+    fetch("/api/v1/documents")
       .then((r) => r.json())
       .then((data) => {
         const docs = (data.documents || []) as Record<string, unknown>[];

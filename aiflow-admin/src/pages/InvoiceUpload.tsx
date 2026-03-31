@@ -53,7 +53,7 @@ export const InvoiceUpload = () => {
 
   // Check API health on mount
   useEffect(() => {
-    fetch("/api/health")
+    fetch("/health")
       .then((r) => r.json())
       .then(() => setApiOnline(true))
       .catch(() => setApiOnline(false));

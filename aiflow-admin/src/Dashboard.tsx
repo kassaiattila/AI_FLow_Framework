@@ -48,7 +48,7 @@ export const Dashboard = () => {
   const [backendStatus, setBackendStatus] = useState<"checking" | "connected" | "offline">("checking");
 
   useEffect(() => {
-    fetch("/api/runs")
+    fetch("/api/v1/runs")
       .then((r) => r.json())
       .then((data) => {
         const list = data.runs || [];
@@ -61,7 +61,7 @@ export const Dashboard = () => {
       })
       .catch(() => {});
 
-    fetch("/api/health")
+    fetch("/health")
       .then((r) => r.json())
       .then((data) => setBackendStatus(data.status === "connected" ? "connected" : "offline"))
       .catch(() => setBackendStatus("offline"));
