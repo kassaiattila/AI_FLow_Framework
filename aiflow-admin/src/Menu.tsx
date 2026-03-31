@@ -1,4 +1,7 @@
 import { Menu, useTranslate } from "react-admin";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import EmailIcon from "@mui/icons-material/Email";
 import DescriptionIcon from "@mui/icons-material/Description";
 import ChatIcon from "@mui/icons-material/Chat";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
@@ -12,7 +15,9 @@ export const AppMenu = () => {
   return (
     <Menu>
       <Menu.DashboardItem />
-      <Menu.ResourceItems />
+      <Menu.Item to="/runs" primaryText={translate("aiflow.resources.runs")} leftIcon={<PlayArrowIcon />} />
+      <Menu.Item to="/invoices" primaryText={translate("aiflow.resources.invoices")} leftIcon={<ReceiptIcon />} />
+      <Menu.Item to="/emails" primaryText={translate("aiflow.resources.emails")} leftIcon={<EmailIcon />} />
       <Menu.Item
         to="/costs"
         primaryText={translate("aiflow.costs.title")}

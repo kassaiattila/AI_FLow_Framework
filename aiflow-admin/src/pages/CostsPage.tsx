@@ -150,7 +150,31 @@ export const CostsPage = () => {
         </Card>
       </Stack>
 
-      {/* Per-skill breakdown */}
+      {/* Skill cost bar chart */}
+      {skillCosts.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>{translate("aiflow.costs.bySkill")}</Typography>
+          <Stack spacing={1}>
+            {skillCosts.map((s) => {
+              const maxCost = skillCosts[0]?.totalCost || 1;
+              const pct = (s.totalCost / maxCost) * 100;
+              return (
+                <Stack key={s.skill} direction="row" alignItems="center" spacing={1.5}>
+                  <Typography variant="body2" sx={{ minWidth: 160, fontSize: "0.8rem" }}>{s.skill}</Typography>
+                  <Box sx={{ flex: 1, height: 20, bgcolor: "action.hover", borderRadius: 1, overflow: "hidden" }}>
+                    <Box sx={{ width: `${pct}%`, height: "100%", bgcolor: "primary.main", borderRadius: 1, transition: "width 0.5s" }} />
+                  </Box>
+                  <Typography variant="body2" sx={{ minWidth: 65, textAlign: "right", fontSize: "0.8rem", fontWeight: 600 }}>
+                    {fmt(s.totalCost)}
+                  </Typography>
+                </Stack>
+              );
+            })}
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Per-skill breakdown table */}
       <Typography variant="h6" gutterBottom>{translate("aiflow.costs.bySkill")}</Typography>
       <TableContainer component={Paper} sx={{ mb: 3 }}>
         <Table size="small">

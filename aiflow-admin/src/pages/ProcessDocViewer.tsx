@@ -114,171 +114,155 @@ export const ProcessDocViewer = () => {
   const review = result?.review;
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
+    <Box sx={{ p: 2, maxWidth: 1600, mx: "auto" }}>
       <Title title={translate("aiflow.processDocs.title")} />
 
-      {/* Input form */}
-      <Card sx={{ mb: 2 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            {translate("aiflow.processDocs.inputLabel")}
-          </Typography>
-          <TextField
-            multiline
-            minRows={4}
-            maxRows={12}
-            fullWidth
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={translate("aiflow.processDocs.placeholder")}
-            disabled={loading}
-          />
-          <Button
-            variant="contained"
-            onClick={() => handleGenerate()}
-            disabled={loading || !input.trim()}
-            sx={{ mt: 2 }}
-          >
-            {loading && <CircularProgress size={20} sx={{ mr: 1 }} />}
-            {translate("aiflow.processDocs.generate")}
-          </Button>
+      {/* Split view: input left (35%) + result right (65%) when result exists */}
+      <Box sx={{ display: "grid", gridTemplateColumns: result ? { xs: "1fr", md: "35% 65%" } : "1fr", gap: 2 }}>
 
-          {/* Preset buttons (Pattern #4: Prompt Presets) */}
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
-              {translate("aiflow.processDocs.presets")}
-            </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {PRESETS.map((p) => (
-                <Chip
-                  key={p.key}
-                  label={translate(`aiflow.processDocs.preset_${p.key}`)}
-                  variant="outlined"
-                  size="small"
-                  onClick={() => { setInput(p.text); }}
-                  sx={{ cursor: "pointer" }}
-                />
-              ))}
-            </Stack>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Pipeline progress (visible during generation) */}
-      {loading && (
-        <Card sx={{ mb: 2 }}>
-          <CardContent>
-            <PipelineProgress
-              steps={PIPELINE_STEPS}
-              running={loading}
-              completed={!!result}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {error && (
-        <Alert
-          severity="error"
-          sx={{ mb: 2 }}
-          action={
-            <Button color="inherit" size="small" onClick={() => handleGenerate()}>
-              {translate("aiflow.pipeline.retry")}
-            </Button>
-          }
-        >
-          {error}
-        </Alert>
-      )}
-
-      {result && (
-        <>
-          <Chip
-            label={translate(`aiflow.status.${result.source === "subprocess" ? "subprocess" : result.source}`)}
-            color={result.source === "demo" ? "warning" : "success"}
-            size="small"
-            sx={{ mb: 2 }}
-          />
-
-          {/* Mermaid diagram */}
-          <Card sx={{ mb: 2 }}>
+        {/* Left: Input panel */}
+        <Box>
+          <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                {translate("aiflow.processDocs.diagram")}
+                {translate("aiflow.processDocs.inputLabel")}
               </Typography>
-              <Paper
-                ref={diagramRef}
-                sx={{ p: 2, overflow: "auto", bgcolor: "background.default", textAlign: "center", minHeight: 200 }}
+              <TextField
+                multiline
+                minRows={result ? 8 : 4}
+                maxRows={16}
+                fullWidth
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={translate("aiflow.processDocs.placeholder")}
+                disabled={loading}
               />
-              {/* Refine Output buttons (Pattern #1) */}
-              <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => handleGenerate(input + "\n\nKerlek, reszletesebb lepesekre bontva, tobb dontes ponttal.")}
-                  disabled={loading}
-                >
-                  {translate("aiflow.processDocs.moreDetail")}
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => handleGenerate(input + "\n\nKerlek, egyszerubb, kevesebb lepessel.")}
-                  disabled={loading}
-                >
-                  {translate("aiflow.processDocs.simpler")}
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => handleGenerate()}
-                  disabled={loading}
-                >
-                  {translate("aiflow.processDocs.regenerate")}
-                </Button>
-              </Stack>
+              <Button
+                variant="contained"
+                onClick={() => handleGenerate()}
+                disabled={loading || !input.trim()}
+                sx={{ mt: 2 }}
+                fullWidth
+              >
+                {loading && <CircularProgress size={20} sx={{ mr: 1 }} />}
+                {translate("aiflow.processDocs.generate")}
+              </Button>
+
+              {/* Preset buttons */}
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
+                  {translate("aiflow.processDocs.presets")}
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {PRESETS.map((p) => (
+                    <Chip
+                      key={p.key}
+                      label={translate(`aiflow.processDocs.preset_${p.key}`)}
+                      variant="outlined"
+                      size="small"
+                      onClick={() => { setInput(p.text); }}
+                      sx={{ cursor: "pointer" }}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+
+              {/* Refine buttons — shown below input when result exists */}
+              {result && (
+                <Stack direction="row" spacing={1} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
+                  <Button variant="outlined" size="small" onClick={() => handleGenerate(input + "\n\nKerlek, reszletesebb lepesekre bontva, tobb dontes ponttal.")} disabled={loading}>
+                    {translate("aiflow.processDocs.moreDetail")}
+                  </Button>
+                  <Button variant="outlined" size="small" onClick={() => handleGenerate(input + "\n\nKerlek, egyszerubb, kevesebb lepessel.")} disabled={loading}>
+                    {translate("aiflow.processDocs.simpler")}
+                  </Button>
+                  <Button variant="outlined" size="small" onClick={() => handleGenerate()} disabled={loading}>
+                    {translate("aiflow.processDocs.regenerate")}
+                  </Button>
+                </Stack>
+              )}
             </CardContent>
           </Card>
 
-          {/* Review */}
-          {review && (
-            <Card>
+          {/* Pipeline progress */}
+          {loading && (
+            <Card sx={{ mt: 2 }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  {translate("aiflow.processDocs.review")}
-                </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
-                  <Chip label={`Score: ${review.score}/10`} color={review.is_acceptable ? "success" : "warning"} />
-                  <Chip label={`Completeness: ${review.completeness_score}`} variant="outlined" size="small" />
-                  <Chip label={`Logic: ${review.logic_score}`} variant="outlined" size="small" />
-                  <Chip label={`Actors: ${review.actors_score}`} variant="outlined" size="small" />
-                  <Chip label={`Decisions: ${review.decisions_score}`} variant="outlined" size="small" />
-                </Stack>
-                {review.issues.length > 0 && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="subtitle2" color="error">
-                      {translate("aiflow.processDocs.issues")}
-                    </Typography>
-                    {review.issues.map((issue, i) => (
-                      <Typography key={i} variant="body2">- {issue}</Typography>
-                    ))}
-                  </Box>
-                )}
-                {review.suggestions.length > 0 && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="subtitle2" color="info.main">
-                      {translate("aiflow.processDocs.suggestions")}
-                    </Typography>
-                    {review.suggestions.map((s, i) => (
-                      <Typography key={i} variant="body2">- {s}</Typography>
-                    ))}
-                  </Box>
-                )}
+                <PipelineProgress steps={PIPELINE_STEPS} running={loading} completed={!!result} />
               </CardContent>
             </Card>
           )}
-        </>
-      )}
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }} action={
+              <Button color="inherit" size="small" onClick={() => handleGenerate()}>
+                {translate("aiflow.pipeline.retry")}
+              </Button>
+            }>
+              {error}
+            </Alert>
+          )}
+        </Box>
+
+        {/* Right: Result panel */}
+        {result && (
+          <Box>
+            <Chip
+              label={translate(`aiflow.status.${result.source === "subprocess" ? "subprocess" : result.source}`)}
+              color={result.source === "demo" ? "warning" : "success"}
+              size="small"
+              sx={{ mb: 1 }}
+            />
+
+            {/* Mermaid diagram */}
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  {translate("aiflow.processDocs.diagram")}
+                </Typography>
+                <Paper
+                  ref={diagramRef}
+                  sx={{ p: 2, overflow: "auto", bgcolor: "background.default", textAlign: "center", minHeight: 300 }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Review */}
+            {review && (
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    {translate("aiflow.processDocs.review")}
+                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
+                    <Chip label={`Score: ${review.score}/10`} color={review.is_acceptable ? "success" : "warning"} />
+                    <Chip label={`Completeness: ${review.completeness_score}`} variant="outlined" size="small" />
+                    <Chip label={`Logic: ${review.logic_score}`} variant="outlined" size="small" />
+                    <Chip label={`Actors: ${review.actors_score}`} variant="outlined" size="small" />
+                    <Chip label={`Decisions: ${review.decisions_score}`} variant="outlined" size="small" />
+                  </Stack>
+                  {review.issues.length > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="subtitle2" color="error">{translate("aiflow.processDocs.issues")}</Typography>
+                      {review.issues.map((issue, i) => (
+                        <Typography key={i} variant="body2">- {issue}</Typography>
+                      ))}
+                    </Box>
+                  )}
+                  {review.suggestions.length > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="subtitle2" color="info.main">{translate("aiflow.processDocs.suggestions")}</Typography>
+                      {review.suggestions.map((s, i) => (
+                        <Typography key={i} variant="body2">- {s}</Typography>
+                      ))}
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 };

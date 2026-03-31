@@ -2,19 +2,22 @@ import {
   Show,
   SimpleShowLayout,
   TextField,
-  NumberField,
-  ArrayField,
-  Datagrid,
   FunctionField,
   useTranslate,
 } from "react-admin";
-import { Typography, Divider, Chip, Stack, Card, CardContent, Box } from "@mui/material";
+import { Typography, Divider, Chip, Stack, Card, CardContent, Box, Button } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useNavigate } from "react-router-dom";
 
 export const EmailShow = () => {
   const translate = useTranslate();
+  const navigate = useNavigate();
   return (
     <Show title={translate("aiflow.emails.detail")}>
       <SimpleShowLayout>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/emails")} size="small" sx={{ mb: 1, alignSelf: "flex-start" }}>
+          {translate("ra.action.back")}
+        </Button>
         {/* Email header */}
         <TextField source="sender" label={translate("aiflow.emails.sender")} />
         <TextField source="subject" label={translate("aiflow.emails.subject")} />

@@ -18,11 +18,11 @@ interface SkillInfo {
 }
 
 const SKILLS: SkillInfo[] = [
-  { name: "process_documentation", display_name: "Process Documentation", status: "production", description: "BPMN diagrams from natural language", viewerPath: "/process-docs" },
-  { name: "aszf_rag_chat", display_name: "ASZF RAG Chat", status: "production", description: "Legal document RAG chat (86% eval pass)", viewerPath: "/rag-chat" },
-  { name: "email_intent_processor", display_name: "Email Intent Processor", status: "in-development", description: "Email classification & routing (hybrid ML+LLM)", viewerPath: "/email-upload" },
-  { name: "invoice_processor", display_name: "Invoice Processor", status: "in-development", description: "PDF invoice extraction (parse step only)", viewerPath: "/invoice-upload" },
-  { name: "cubix_course_capture", display_name: "Cubix Course Capture", status: "results-viewer", description: "Video transcript pipeline (CLI only)", viewerPath: "/cubix" },
+  { name: "process_documentation", display_name: "Process Documentation", status: "production", description: "skillDesc.process_documentation", viewerPath: "/process-docs" },
+  { name: "aszf_rag_chat", display_name: "ASZF RAG Chat", status: "production", description: "skillDesc.aszf_rag_chat", viewerPath: "/rag-chat" },
+  { name: "email_intent_processor", display_name: "Email Intent Processor", status: "in-development", description: "skillDesc.email_intent_processor", viewerPath: "/email-upload" },
+  { name: "invoice_processor", display_name: "Invoice Processor", status: "in-development", description: "skillDesc.invoice_processor", viewerPath: "/invoice-upload" },
+  { name: "cubix_course_capture", display_name: "Cubix Course Capture", status: "results-viewer", description: "skillDesc.cubix_course_capture", viewerPath: "/cubix" },
 ];
 
 const STATUS_COLOR: Record<string, "success" | "info" | "default" | "warning"> = {
@@ -113,10 +113,10 @@ export const Dashboard = () => {
                   {kpi.icon}
                 </Avatar>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.65rem" }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>
                     {kpi.label}
                   </Typography>
-                  <Typography variant="h4" sx={{ lineHeight: 1.1 }}>{kpi.value}</Typography>
+                  <Typography variant="h4" sx={{ lineHeight: 1.1, fontWeight: 700 }}>{kpi.value}</Typography>
                   <Typography variant="caption" color="text.secondary">{kpi.sub}</Typography>
                 </Box>
               </CardContent>
@@ -148,7 +148,7 @@ export const Dashboard = () => {
                   />
                 </Stack>
                 <Typography variant="body2" color="text.secondary" mb={1.5}>
-                  {skill.description}
+                  {translate(`aiflow.${skill.description}`)}
                 </Typography>
                 {skill.viewerPath && (
                   <Stack direction="row" alignItems="center" spacing={0.5}>

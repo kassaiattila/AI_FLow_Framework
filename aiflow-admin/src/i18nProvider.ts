@@ -104,6 +104,14 @@ const hungarianMessages = {
       cubix_course_capture: "Cubix Course Capture",
     },
     status: { production: "Production", inDevelopment: "Fejlesztes alatt", resultsViewer: "Eredmeny nezo", stub: "Stub", demo: "Demo", live: "Live", subprocess: "Lokalis feldolgozas" },
+    skillDesc: {
+      process_documentation: "BPMN diagramok termeszetes nyelvi leirasbol",
+      aszf_rag_chat: "Jogi dokumentum RAG chat (86% eval pass)",
+      email_intent_processor: "Email osztalyozas es utvalasztas (hibrid ML+LLM)",
+      invoice_processor: "PDF szamla feldolgozas (parse lepes)",
+      cubix_course_capture: "Video atirat pipeline (CLI)",
+    },
+    resources: { runs: "Workflow Runs", invoices: "Szamlak", emails: "Emailek" },
     runs: { title: "Workflow Runs", skill: "Skill", status: "Statusz", duration: "Idotartam", cost: "Koltseg", started: "Inditva", steps: "Lepesek" },
     invoices: {
       title: "Szamlak", detail: "Szamla reszletek", file: "Fajl", vendor: "Szallito", invoiceNumber: "Szamlaszam",
@@ -185,6 +193,14 @@ const englishCustom = {
       cubix_course_capture: "Cubix Course Capture",
     },
     status: { production: "Production", inDevelopment: "In Development", resultsViewer: "Results Viewer", stub: "Stub", demo: "Demo", live: "Live", subprocess: "Local processing" },
+    skillDesc: {
+      process_documentation: "BPMN diagrams from natural language",
+      aszf_rag_chat: "Legal document RAG chat (86% eval pass)",
+      email_intent_processor: "Email classification & routing (hybrid ML+LLM)",
+      invoice_processor: "PDF invoice extraction (parse step only)",
+      cubix_course_capture: "Video transcript pipeline (CLI only)",
+    },
+    resources: { runs: "Workflow Runs", invoices: "Invoices", emails: "Emails" },
     runs: { title: "Workflow Runs", skill: "Skill", status: "Status", duration: "Duration", cost: "Cost", started: "Started", steps: "Steps" },
     invoices: {
       title: "Invoices", detail: "Invoice Details", file: "File", vendor: "Vendor", invoiceNumber: "Invoice #",
