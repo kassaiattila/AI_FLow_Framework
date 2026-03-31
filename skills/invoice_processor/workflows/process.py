@@ -5,6 +5,7 @@ Pipeline: parse_invoice -> classify_invoice -> extract_invoice_data
 """
 from __future__ import annotations
 
+import asyncio
 import csv
 import hashlib
 import json
@@ -247,10 +248,11 @@ async def extract_invoice_data(data: dict) -> dict:
         tables_md = f.get("raw_markdown", "")
         start = time.monotonic()
 
-        # Call 1: Header extraction
-        header_data = await _extract_header(text)
-        # Call 2: Line items extraction
-        lines_data = await _extract_lines(text, tables_md)
+        # Run both LLM calls in parallel — no data dependency between them
+        header_data, lines_data = await asyncio.gather(
+            _extract_header(text),
+            _extract_lines(text, tables_md),
+        )
 
         f["vendor"] = header_data.get("vendor", {})
         f["buyer"] = header_data.get("buyer", {})
