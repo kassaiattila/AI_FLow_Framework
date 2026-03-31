@@ -34,19 +34,30 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 export const dataProvider: DataProvider = {
   async getList(resource, params) {
     const config = RESOURCE_MAP[resource];
-    if (!config) throw new Error(`Unknown resource: ${resource}`);
+    if (!config) return { data: [], total: 0 };
 
     const { page = 1, perPage = 25 } = params.pagination || {};
-    const url = new URL(config.endpoint, window.location.origin);
+    let url: URL;
+    try {
+      url = new URL(config.endpoint, window.location.origin);
+    } catch {
+      return { data: [], total: 0 };
+    }
 
     // Pass skill filter for runs
     if (resource === "runs" && params.filter?.skill) {
       url.searchParams.set("skill", params.filter.skill);
     }
 
-    const json = await fetchJson(url.toString());
-    if (json.source) sourceCache.set(resource, json.source);
-    let allData = (json[config.listKey] || []).map((item: Record<string, unknown>) => ({
+    let json: Record<string, unknown>;
+    try {
+      json = await fetchJson(url.toString());
+    } catch {
+      console.warn(`[dataProvider] getList(${resource}) failed, returning empty`);
+      return { data: [], total: 0 };
+    }
+    if (json.source) sourceCache.set(resource, json.source as string);
+    let allData = (json[config.listKey] as unknown[] || []).map((item: Record<string, unknown>) => ({
       ...item,
       id: item[config.idField] || item.id,
     }));
