@@ -77,25 +77,30 @@ export const PipelineProgress = ({ steps, running, completed }: Props) => {
     }
   }, [completed, steps.length]);
 
+  const overEstimate = elapsed > totalEstimated;
+  // If past estimate, slow down progress to 95% max (honest: still working)
   const progressPct = completed
     ? 100
-    : Math.min(99, (elapsed / totalEstimated) * 100);
+    : overEstimate
+      ? 90 + Math.min(9, ((elapsed - totalEstimated) / totalEstimated) * 10)
+      : (elapsed / totalEstimated) * 90;
 
   const elapsedSec = (elapsed / 1000).toFixed(1);
+  const estimatedSec = (totalEstimated / 1000).toFixed(0);
 
   return (
     <Box sx={{ py: 1 }}>
       {/* Overall progress bar */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
         <LinearProgress
-          variant="determinate"
-          value={progressPct}
+          variant={overEstimate && !completed ? "indeterminate" : "determinate"}
+          value={overEstimate && !completed ? undefined : progressPct}
           sx={{ flex: 1, height: 6, borderRadius: 3 }}
         />
-        <Typography variant="caption" sx={{ minWidth: 60, textAlign: "right" }}>
+        <Typography variant="caption" sx={{ minWidth: 80, textAlign: "right" }}>
           {completed
-            ? translate("aiflow.pipeline.done")
-            : `${elapsedSec}s / ~${(totalEstimated / 1000).toFixed(0)}s`}
+            ? `${elapsedSec}s ✓`
+            : `${elapsedSec}s / ~${estimatedSec}s`}
         </Typography>
       </Stack>
 

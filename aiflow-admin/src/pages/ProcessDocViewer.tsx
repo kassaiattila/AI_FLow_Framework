@@ -29,10 +29,12 @@ interface GenerateResult {
 }
 
 const PIPELINE_STEPS: PipelineStep[] = [
-  { name: "Folyamat elemzes", estimated_ms: 2500, description: "NL → strukturalt elemzes" },
-  { name: "BPMN generalas", estimated_ms: 2000, description: "Swimlane diagram" },
-  { name: "Mermaid kod", estimated_ms: 900, description: "Flowchart generalas" },
-  { name: "Rendereles", estimated_ms: 1600, description: "SVG + DrawIO" },
+  { name: "Classify", estimated_ms: 2000, description: "Input kategorizalas" },
+  { name: "Elaborate", estimated_ms: 3000, description: "Reszletes lepesek kibontas" },
+  { name: "Extract", estimated_ms: 4000, description: "BPMN strukturalt kinyeres" },
+  { name: "Review", estimated_ms: 3000, description: "Minoseg ellenorzes" },
+  { name: "Generate", estimated_ms: 4000, description: "Mermaid diagram generalas" },
+  { name: "Export", estimated_ms: 2000, description: "SVG + DrawIO + Markdown" },
 ];
 
 const PRESETS = [

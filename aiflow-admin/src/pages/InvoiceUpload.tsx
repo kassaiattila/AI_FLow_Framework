@@ -14,10 +14,12 @@ import { useNavigate } from "react-router-dom";
 import { PipelineProgress, type PipelineStep } from "../components/PipelineProgress";
 
 const INVOICE_PIPELINE: PipelineStep[] = [
-  { name: "PDF parse", estimated_ms: 1500, description: "Docling/PyMuPDF" },
-  { name: "Field extraction", estimated_ms: 3500, description: "LLM adatkinyeres" },
-  { name: "Validation", estimated_ms: 150, description: "Schema + osszeg check" },
-  { name: "Export", estimated_ms: 500, description: "CSV/JSON generalas" },
+  { name: "PDF parse", estimated_ms: 3000, description: "Docling/PyMuPDF" },
+  { name: "Classify", estimated_ms: 1000, description: "Irany felismeres" },
+  { name: "Field extraction", estimated_ms: 18000, description: "LLM header + tetelek (parallel)" },
+  { name: "Validation", estimated_ms: 500, description: "Schema + osszeg check" },
+  { name: "Store", estimated_ms: 2000, description: "PostgreSQL mentes" },
+  { name: "Export", estimated_ms: 1500, description: "CSV/JSON/Excel generalas" },
 ];
 
 interface UploadResult {
