@@ -103,16 +103,16 @@ async def parse_invoice(data: dict) -> dict:
     }
 
 
-async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:
-    """Parse a single PDF with DoclingParser, fallback to PyMuPDF."""
+def _parse_single_pdf_sync(pdf_path: Path) -> dict[str, Any]:
+    """Parse a single PDF with DoclingParser, fallback to PyMuPDF (sync)."""
     docling_error = None
 
     try:
         from aiflow.ingestion.parsers.docling_parser import DoclingParser
 
         parser = DoclingParser()
-        result = parser.parse(str(pdf_path))
         logger.info("docling_parse_start", file=pdf_path.name, size_kb=round(pdf_path.stat().st_size / 1024))
+        result = parser.parse(str(pdf_path))
         return {
             "path": str(pdf_path),
             "filename": pdf_path.name,
@@ -126,25 +126,30 @@ async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:
         docling_error = str(exc)
         logger.info("parse_invoice.docling_fallback", file=pdf_path.name, error=docling_error)
 
-    # Fallback: PyMuPDF
+    # Fallback: pypdfium2 (text extraction)
     try:
-        import fitz
+        import pypdfium2 as pdfium
 
-        doc = fitz.open(str(pdf_path))
-        text = "\n".join(page.get_text() for page in doc)
+        doc = pdfium.PdfDocument(str(pdf_path))
+        text = "\n".join(doc[i].get_textpage().get_text_range() for i in range(len(doc)))
         doc.close()
-        logger.info("parse_invoice.pymupdf_ok", file=pdf_path.name, chars=len(text))
+        logger.info("parse_invoice.pypdfium2_ok", file=pdf_path.name, chars=len(text))
         return {
             "path": str(pdf_path),
             "filename": pdf_path.name,
             "raw_text": text,
             "raw_markdown": "",
             "tables": [],
-            "parser_used": "pymupdf",
+            "parser_used": "pypdfium2",
             "file_size_kb": pdf_path.stat().st_size / 1024,
         }
-    except Exception as fitz_err:
-        raise RuntimeError(f"All parsers failed for {pdf_path.name}: docling={docling_error}, pymupdf={fitz_err}")
+    except Exception as pdfium_err:
+        raise RuntimeError(f"All parsers failed for {pdf_path.name}: docling={docling_error}, pypdfium2={pdfium_err}")
+
+
+async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:
+    """Parse a single PDF — runs blocking Docling/fitz in a thread."""
+    return await asyncio.to_thread(_parse_single_pdf_sync, pdf_path)
 
 
 # ---------------------------------------------------------------------------

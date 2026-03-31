@@ -14,18 +14,19 @@ import { useNavigate } from "react-router-dom";
 import { PipelineProgress, type PipelineStep } from "../components/PipelineProgress";
 
 const INVOICE_PIPELINE: PipelineStep[] = [
-  { name: "PDF parse", estimated_ms: 12000, description: "Docling inicializacio + parse" },
-  { name: "Classify", estimated_ms: 500, description: "Irany felismeres" },
-  { name: "Field extraction", estimated_ms: 9000, description: "LLM header + tetelek (parallel)" },
-  { name: "Validation + Store", estimated_ms: 500, description: "Ellenorzes + DB mentes" },
-  { name: "Export", estimated_ms: 500, description: "CSV/JSON/Excel" },
+  { name: "PDF parse", description: "Docling inicializacio + parse" },
+  { name: "Classify", description: "Irany felismeres" },
+  { name: "Field extraction", description: "LLM header + tetelek" },
+  { name: "Validation", description: "Ellenorzes" },
+  { name: "Store", description: "DB mentes" },
+  { name: "Export", description: "CSV/JSON/Excel" },
 ];
 
 interface UploadResult {
-  uploaded: number;
-  files: string[];
+  uploaded: string[];   // filenames returned by API
+  count: number;
+  files: string[];      // computed alias for uploaded
   errors: string[];
-  skipped: number;
 }
 
 interface ProcessedFile {
@@ -49,6 +50,8 @@ export const InvoiceUpload = () => {
   const [fileStatuses, setFileStatuses] = useState<Map<string, FileStatus>>(new Map());
   const [processResults, setProcessResults] = useState<Map<string, ProcessedFile>>(new Map());
   const [currentFileIndex, setCurrentFileIndex] = useState(-1);
+  const [stepProgress, setStepProgress] = useState<Map<string, number>>(new Map());
+  const [stepTimings, setStepTimings] = useState<Map<string, number[]>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
 
@@ -87,6 +90,8 @@ export const InvoiceUpload = () => {
     setUploadResult(null);
     setFileStatuses(new Map());
     setProcessResults(new Map());
+    setStepProgress(new Map());
+    setStepTimings(new Map());
     setCurrentFileIndex(-1);
     setError(null);
     sessionStorage.removeItem("aiflow_invoiceUpload");
@@ -109,7 +114,14 @@ export const InvoiceUpload = () => {
     try {
       const res = await fetch("/api/v1/documents/upload", { method: "POST", body: formData });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || `HTTP ${res.status}`);
-      const result: UploadResult = await res.json();
+      const raw = await res.json();
+      // API returns {uploaded: string[], count: number} — normalize to UploadResult
+      const result: UploadResult = {
+        uploaded: raw.uploaded || [],
+        count: raw.count || 0,
+        files: Array.isArray(raw.uploaded) ? raw.uploaded : (raw.files || []),
+        errors: raw.errors || [],
+      };
       setUploadResult(result);
       const statuses = new Map<string, FileStatus>();
       result.files.forEach((f) => statuses.set(f, "pending"));
@@ -122,7 +134,7 @@ export const InvoiceUpload = () => {
     }
   };
 
-  // Per-file sequential processing
+  // Per-file sequential processing via SSE stream (real progress)
   const handleProcess = async () => {
     if (!uploadResult?.files.length) return;
     setProcessing(true);
@@ -133,17 +145,67 @@ export const InvoiceUpload = () => {
       const file = uploadResult.files[i];
       setCurrentFileIndex(i);
       setFileStatuses((prev) => new Map(prev).set(file, "processing"));
+      setStepProgress((prev) => new Map(prev).set(file, 0));
+      setStepTimings((prev) => new Map(prev).set(file, []));
 
       try {
-        const res = await fetch("/api/v1/documents/process", {
+        const res = await fetch("/api/v1/documents/process-stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ files: [file] }),
         });
-        const data = await res.json();
-        const result: ProcessedFile = data.processed?.[0] || { file, success: false, confidence: 0, run_id: "", pages: 0, error: "No result" };
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let fileResult: ProcessedFile | null = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const event = JSON.parse(line.slice(6));
+
+              if (event.event === "step_done") {
+                setStepProgress((prev) => new Map(prev).set(file, event.step + 1));
+                setStepTimings((prev) => {
+                  const timings = [...(prev.get(file) || [])];
+                  timings[event.step] = event.elapsed_ms;
+                  return new Map(prev).set(file, timings);
+                });
+              } else if (event.event === "complete") {
+                const r = event.results?.[0];
+                fileResult = {
+                  file,
+                  success: r ? r.is_valid !== false && !r.error : false,
+                  confidence: r?.confidence || 0,
+                  run_id: "",
+                  pages: 0,
+                  error: r?.error || undefined,
+                };
+              } else if (event.event === "error") {
+                fileResult = {
+                  file, success: false, confidence: 0, run_id: "", pages: 0,
+                  error: event.error || "Processing failed",
+                };
+              }
+            } catch { /* skip malformed SSE lines */ }
+          }
+        }
+
+        const result = fileResult || { file, success: false, confidence: 0, run_id: "", pages: 0, error: "No result" };
         results.set(file, result);
         setProcessResults(new Map(results));
+        setStepProgress((prev) => new Map(prev).set(file, INVOICE_PIPELINE.length));
         setFileStatuses((prev) => new Map(prev).set(file, result.success ? "done" : "error"));
       } catch (e) {
         const errResult: ProcessedFile = { file, success: false, confidence: 0, run_id: "", pages: 0, error: e instanceof Error ? e.message : "Failed" };
@@ -284,8 +346,10 @@ export const InvoiceUpload = () => {
                       <Box sx={{ mt: 1 }}>
                         <PipelineProgress
                           steps={INVOICE_PIPELINE}
+                          completedSteps={stepProgress.get(file) || 0}
                           running={isActive}
                           completed={status === "done"}
+                          stepTimings={stepTimings.get(file) || []}
                         />
                       </Box>
                     )}

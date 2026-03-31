@@ -13,7 +13,7 @@ const F = ({ label, children }: { label: string; children: React.ReactNode }) =>
     <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2, fontSize: "0.7rem" }}>
       {label}
     </Typography>
-    <Typography variant="body2" sx={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+    <Typography variant="body2" component="div" sx={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
       {children || "–"}
     </Typography>
   </Box>

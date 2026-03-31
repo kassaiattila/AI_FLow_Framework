@@ -11,6 +11,16 @@ export default defineConfig(({ mode }) => ({
       "/api": {
         target: "http://localhost:8100",
         changeOrigin: true,
+        // Disable buffering for SSE (process-stream) endpoints
+        configure: (proxy) => {
+          proxy.on("proxyRes", (proxyRes) => {
+            if (proxyRes.headers["content-type"]?.includes("text/event-stream")) {
+              // Prevent proxy from buffering SSE chunks
+              proxyRes.headers["cache-control"] = "no-cache";
+              proxyRes.headers["x-accel-buffering"] = "no";
+            }
+          });
+        },
       },
       "/health": {
         target: "http://localhost:8100",

@@ -5,10 +5,12 @@ and runs skill processing in-process (no subprocess fork).
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import tempfile
 import shutil
+import time as _time
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +18,7 @@ import asyncpg
 import structlog
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
+from starlette.responses import StreamingResponse
 
 __all__ = ["router"]
 
@@ -258,6 +261,165 @@ async def list_documents(
 
 
 # ---------------------------------------------------------------------------
+# POST /api/v1/documents/process-stream — SSE real-time progress
+# ---------------------------------------------------------------------------
+# NOTE: Must be BEFORE /{source_file:path} catch-all route!
+
+@router.post("/process-stream")
+async def process_documents_stream(request: ProcessRequest) -> StreamingResponse:
+    """Process uploaded PDFs with real-time SSE step progress.
+
+    Streams events: step_start, step_done, error, complete.
+    """
+    upload_dir = _upload_dir()
+    output_dir = Path(request.output_dir) if request.output_dir else Path(
+        tempfile.mkdtemp(prefix="aiflow_invoice_"),
+    )
+
+    file_list = request.files
+    if not file_list:
+        file_list = [f.name for f in upload_dir.glob("*.pdf")]
+
+    if not file_list:
+        async def empty_stream():
+            yield f"data: {json.dumps({'event': 'complete', 'results': []})}\n\n"
+        return StreamingResponse(empty_stream(), media_type="text/event-stream")
+
+    try:
+        from skills.invoice_processor.workflows.process import (
+            parse_invoice,
+            classify_invoice,
+            extract_invoice_data,
+            validate_invoice,
+            store_invoice,
+            export_invoice,
+        )
+    except ImportError as e:
+        logger.error("skill_import_failed", error=str(e))
+        async def error_stream():
+            yield f"data: {json.dumps({'event': 'error', 'step': 0, 'name': 'import', 'error': str(e)})}\n\n"
+        return StreamingResponse(error_stream(), media_type="text/event-stream")
+
+    pipeline = [
+        ("parse", parse_invoice),
+        ("classify", classify_invoice),
+        ("extract", extract_invoice_data),
+        ("validate", validate_invoice),
+        ("store", store_invoice),
+        ("export", export_invoice),
+    ]
+
+    async def event_stream():
+        # Pass specific file path if a single file was requested,
+        # otherwise the parse step would process ALL files in the directory.
+        if len(file_list) == 1:
+            source = str(upload_dir / file_list[0])
+        else:
+            source = str(upload_dir)
+
+        data: dict[str, Any] = {
+            "source_path": source,
+            "output_dir": str(output_dir),
+            "format": "all",
+        }
+
+        for i, (name, step_fn) in enumerate(pipeline):
+            yield f"data: {json.dumps({'event': 'step_start', 'step': i, 'name': name})}\n\n"
+            # Ensure the step_start event flushes before blocking step runs
+            await asyncio.sleep(0)
+            t = _time.perf_counter()
+            try:
+                if i == 0:
+                    data = await step_fn({**data})
+                else:
+                    data = await step_fn(data)
+                elapsed_ms = int((_time.perf_counter() - t) * 1000)
+                yield f"data: {json.dumps({'event': 'step_done', 'step': i, 'name': name, 'elapsed_ms': elapsed_ms})}\n\n"
+            except Exception as e:
+                elapsed_ms = int((_time.perf_counter() - t) * 1000)
+                logger.error("process_stream_step_failed", step=name, error=str(e))
+                yield f"data: {json.dumps({'event': 'error', 'step': i, 'name': name, 'error': str(e), 'elapsed_ms': elapsed_ms})}\n\n"
+                return
+
+        # Build final result
+        results = []
+        for f in data.get("files", []):
+            results.append({
+                "source_file": f.get("filename", ""),
+                "vendor": f.get("vendor", {}).get("name", ""),
+                "gross_total": f.get("totals", {}).get("gross_total", 0),
+                "is_valid": f.get("validation", {}).get("is_valid", False),
+                "confidence": f.get("validation", {}).get("confidence_score", 0),
+                "error": f.get("error"),
+            })
+
+        yield f"data: {json.dumps({'event': 'complete', 'results': results})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/documents/images/{source_file}/page_{page}.png — render PDF page
+# ---------------------------------------------------------------------------
+# NOTE: Must be BEFORE /{source_file:path} catch-all!
+
+@router.get("/images/{source_file}/page_{page}.png")
+async def render_pdf_page(source_file: str, page: int = 1) -> StreamingResponse:
+    """Render a PDF page as PNG using PyMuPDF (fitz).
+
+    Returns a cached PNG image of the requested page.
+    """
+    upload_dir = _upload_dir()
+    pdf_path = upload_dir / source_file
+
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail=f"PDF not found: {source_file}")
+
+    try:
+        import pypdfium2 as pdfium
+        import io
+
+        def _render() -> bytes:
+            doc = pdfium.PdfDocument(str(pdf_path))
+            if page < 1 or page > len(doc):
+                doc.close()
+                raise ValueError(f"Page {page} out of range (1-{len(doc)})")
+            bitmap = doc[page - 1].render(scale=2)  # ~200 DPI
+            img = bitmap.to_pil()
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            doc.close()
+            return buf.getvalue()
+
+        png_data = await asyncio.to_thread(_render)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("render_pdf_page_failed", file=source_file, page=page, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to render page: {e}")
+
+    return StreamingResponse(
+        iter([png_data]),
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/documents/upload — multipart file upload
+# ---------------------------------------------------------------------------
+# NOTE: upload and process must also be BEFORE /{source_file:path}!
+
+
+# ---------------------------------------------------------------------------
 # GET /api/v1/documents/{source_file} — single invoice detail
 # ---------------------------------------------------------------------------
 
@@ -328,8 +490,11 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
         logger.error("skill_import_failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Invoice processor skill not available: {e}")
 
-    # Build input data
-    source_path = str(upload_dir)
+    # Build input data — pass specific file if single, otherwise directory
+    if len(file_list) == 1:
+        source_path = str(upload_dir / file_list[0])
+    else:
+        source_path = str(upload_dir)
     input_data = {
         "source_path": source_path,
         "output_dir": str(output_dir),

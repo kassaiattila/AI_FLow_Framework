@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useTranslate } from "react-admin";
 import {
   Box, Typography, LinearProgress, Stack, Chip,
 } from "@mui/material";
@@ -14,103 +13,74 @@ const pulse = keyframes`
 
 export interface PipelineStep {
   name: string;
-  estimated_ms: number;
   description: string;
 }
 
 interface Props {
   steps: PipelineStep[];
+  /** Number of steps actually completed (from backend SSE) */
+  completedSteps: number;
   running: boolean;
   completed?: boolean;
+  /** Real elapsed ms per completed step (from backend SSE) */
+  stepTimings?: number[];
 }
 
-export const PipelineProgress = ({ steps, running, completed }: Props) => {
-  const translate = useTranslate();
-  const [currentStep, setCurrentStep] = useState(-1);
+export const PipelineProgress = ({ steps, completedSteps, running, completed, stepTimings = [] }: Props) => {
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
-  const totalEstimated = steps.reduce((s, st) => s + st.estimated_ms, 0);
-
-  // Simulate step progression
+  // Elapsed time counter — only real wall-clock time
   useEffect(() => {
     if (!running) {
-      if (completed) {
-        setCurrentStep(steps.length);
-        setElapsed(totalEstimated);
-      }
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
 
     startRef.current = Date.now();
-    setCurrentStep(0);
     setElapsed(0);
 
     timerRef.current = setInterval(() => {
-      const now = Date.now();
-      const el = now - startRef.current;
-      setElapsed(el);
-
-      // Determine which step we're on based on elapsed time
-      let accum = 0;
-      for (let i = 0; i < steps.length; i++) {
-        accum += steps[i].estimated_ms;
-        if (el < accum) {
-          setCurrentStep(i);
-          return;
-        }
-      }
-      // Past all estimated times — stay on last step (still waiting for API)
-      setCurrentStep(steps.length - 1);
+      setElapsed(Date.now() - startRef.current);
     }, 100);
 
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [running, completed, steps, totalEstimated]);
+  }, [running]);
 
-  // If completed externally, jump to done
+  // Stop timer when completed
   useEffect(() => {
-    if (completed) {
-      setCurrentStep(steps.length);
-      if (timerRef.current) clearInterval(timerRef.current);
+    if (completed && timerRef.current) {
+      clearInterval(timerRef.current);
     }
-  }, [completed, steps.length]);
+  }, [completed]);
 
-  // Smooth asymptotic progress: reaches ~90% at estimated time,
-  // then slowly approaches 99% (never jumps or switches to indeterminate)
-  const ratio = elapsed / Math.max(totalEstimated, 1);
-  const progressPct = completed
-    ? 100
-    : ratio <= 1
-      ? ratio * 90                           // 0-90% during estimated time
-      : 90 + 9 * (1 - 1 / (1 + (ratio - 1) * 2));  // 90-99% asymptotic after
-
+  const totalSteps = steps.length;
+  const done = completed ? totalSteps : completedSteps;
+  const progressPct = totalSteps > 0 ? (done / totalSteps) * 100 : 0;
   const elapsedSec = (elapsed / 1000).toFixed(1);
-  const estimatedSec = (totalEstimated / 1000).toFixed(0);
 
   return (
     <Box sx={{ py: 1 }}>
-      {/* Overall progress bar */}
+      {/* Overall progress bar — real progress based on completed steps */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
         <LinearProgress
-          variant="determinate"
+          variant={running && completedSteps === 0 ? "indeterminate" : "determinate"}
           value={progressPct}
           sx={{ flex: 1, height: 6, borderRadius: 3 }}
         />
-        <Typography variant="caption" sx={{ minWidth: 80, textAlign: "right" }}>
-          {completed
-            ? `${elapsedSec}s ✓`
-            : `${elapsedSec}s / ~${estimatedSec}s`}
+        <Typography variant="caption" sx={{ minWidth: 60, textAlign: "right" }}>
+          {completed ? `${elapsedSec}s` : `${elapsedSec}s`}
         </Typography>
       </Stack>
 
-      {/* Step indicators */}
+      {/* Step indicators — driven by real backend events */}
       <Stack spacing={0.75}>
         {steps.map((step, i) => {
-          const isDone = completed || i < currentStep;
-          const isActive = !completed && i === currentStep;
-          const isPending = !completed && i > currentStep;
+          const isDone = completed || i < completedSteps;
+          const isActive = !completed && i === completedSteps && running;
+          const isPending = !completed && i > completedSteps;
+          const timing = stepTimings[i];
 
           return (
             <Stack key={step.name} direction="row" alignItems="center" spacing={1}>
@@ -139,12 +109,16 @@ export const PipelineProgress = ({ steps, running, completed }: Props) => {
               <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
                 {step.description}
               </Typography>
-              <Chip
-                label={`~${step.estimated_ms < 1000 ? `${step.estimated_ms}ms` : `${(step.estimated_ms / 1000).toFixed(1)}s`}`}
-                size="small"
-                variant="outlined"
-                sx={{ fontSize: "0.65rem", height: 18, opacity: isPending ? 0.4 : 1 }}
-              />
+              {/* Show real elapsed time per step when available */}
+              {isDone && timing !== undefined && (
+                <Chip
+                  label={timing < 1000 ? `${timing}ms` : `${(timing / 1000).toFixed(1)}s`}
+                  size="small"
+                  color="success"
+                  variant="outlined"
+                  sx={{ fontSize: "0.65rem", height: 18 }}
+                />
+              )}
             </Stack>
           );
         })}

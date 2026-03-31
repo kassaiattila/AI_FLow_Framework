@@ -57,16 +57,16 @@ export const DocumentCanvas = ({
   const sourceFile = (invoice.source_file as string) || "";
   const baseName = sourceFile.replace(/\.[^.]+$/, "");
 
-  // Try to load the real rendered PNG image
+  // Try to load the real rendered PNG image from FastAPI
   useEffect(() => {
     if (!sourceFile) { setImageMode("mock"); return; }
 
-    const imgPath = `/images/documents/${encodeURIComponent(baseName)}/page_1.png`;
+    const imgPath = `/api/v1/documents/images/${encodeURIComponent(sourceFile)}/page_1.png`;
     const img = new Image();
     img.onload = () => { setImageUrl(imgPath); setImageMode("real"); setViewMode("real"); };
     img.onerror = () => { setImageMode("mock"); setViewMode("mock"); };
     img.src = imgPath;
-  }, [sourceFile, baseName]);
+  }, [sourceFile]);
 
   const filteredPoints = dataPoints.filter((dp) => {
     if (!dp.bounding_box) return false;
@@ -152,8 +152,8 @@ export const DocumentCanvas = ({
             )}
           </Box>
 
-          {/* Bbox overlays — only shown in mock/template view (coordinates match the template) */}
-          {viewMode === "mock" && (
+          {/* Bbox overlays — shown in both views (toggle controls visibility) */}
+          {overlayMode !== "off" && (
           <svg
             viewBox={`0 0 ${PAGE.w} ${PAGE.h}`}
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
