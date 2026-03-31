@@ -77,13 +77,14 @@ export const PipelineProgress = ({ steps, running, completed }: Props) => {
     }
   }, [completed, steps.length]);
 
-  const overEstimate = elapsed > totalEstimated;
-  // If past estimate, slow down progress to 95% max (honest: still working)
+  // Smooth asymptotic progress: reaches ~90% at estimated time,
+  // then slowly approaches 99% (never jumps or switches to indeterminate)
+  const ratio = elapsed / Math.max(totalEstimated, 1);
   const progressPct = completed
     ? 100
-    : overEstimate
-      ? 90 + Math.min(9, ((elapsed - totalEstimated) / totalEstimated) * 10)
-      : (elapsed / totalEstimated) * 90;
+    : ratio <= 1
+      ? ratio * 90                           // 0-90% during estimated time
+      : 90 + 9 * (1 - 1 / (1 + (ratio - 1) * 2));  // 90-99% asymptotic after
 
   const elapsedSec = (elapsed / 1000).toFixed(1);
   const estimatedSec = (totalEstimated / 1000).toFixed(0);
@@ -93,8 +94,8 @@ export const PipelineProgress = ({ steps, running, completed }: Props) => {
       {/* Overall progress bar */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
         <LinearProgress
-          variant={overEstimate && !completed ? "indeterminate" : "determinate"}
-          value={overEstimate && !completed ? undefined : progressPct}
+          variant="determinate"
+          value={progressPct}
           sx={{ flex: 1, height: 6, borderRadius: 3 }}
         />
         <Typography variant="caption" sx={{ minWidth: 80, textAlign: "right" }}>

@@ -281,9 +281,13 @@ export const InvoiceUpload = () => {
                     </Stack>
 
                     {/* Per-file pipeline progress */}
-                    {isActive && (
+                    {(isActive || status === "done") && (
                       <Box sx={{ mt: 1 }}>
-                        <PipelineProgress steps={INVOICE_PIPELINE} running={true} />
+                        <PipelineProgress
+                          steps={INVOICE_PIPELINE}
+                          running={isActive}
+                          completed={status === "done"}
+                        />
                       </Box>
                     )}
                   </Paper>
