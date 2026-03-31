@@ -1,5 +1,15 @@
-import { Show, SimpleShowLayout, TextField, NumberField, ArrayField, Datagrid, FunctionField, useTranslate } from "react-admin";
-import { Chip, Typography, Box } from "@mui/material";
+import {
+  Show, SimpleShowLayout, TextField, NumberField,
+  FunctionField, useTranslate, useRecordContext,
+} from "react-admin";
+import { Chip, Typography, Box, Divider, Stack } from "@mui/material";
+import { StepTimeline, type TimelineStep } from "../components/StepTimeline";
+
+const StepsTimeline = () => {
+  const record = useRecordContext();
+  if (!record?.steps) return null;
+  return <StepTimeline steps={record.steps as TimelineStep[]} />;
+};
 
 export const RunShow = () => {
   const translate = useTranslate();
@@ -14,30 +24,32 @@ export const RunShow = () => {
             <Chip label={record.status} color={record.status === "completed" ? "success" : "error"} size="small" />
           )}
         />
-        <TextField source="started_at" label={translate("aiflow.runs.started")} />
-        <NumberField source="total_duration_ms" label={translate("aiflow.runs.duration")} />
+        <FunctionField
+          label={translate("aiflow.runs.started")}
+          render={(record: { started_at: string }) =>
+            record.started_at ? new Date(record.started_at).toLocaleString() : "-"
+          }
+        />
+        <FunctionField
+          label={translate("aiflow.runs.duration")}
+          render={(record: { total_duration_ms: number }) =>
+            record.total_duration_ms < 1000
+              ? `${record.total_duration_ms}ms`
+              : `${(record.total_duration_ms / 1000).toFixed(1)}s`
+          }
+        />
         <NumberField source="total_cost_usd" label={translate("aiflow.runs.cost")} options={{ style: "currency", currency: "USD", minimumFractionDigits: 4 }} />
         <TextField source="input_summary" label="Input" />
         <TextField source="output_summary" label="Output" />
 
-        <Box mt={2}>
-          <Typography variant="subtitle2" gutterBottom>{translate("aiflow.runs.steps")}</Typography>
+        <Divider sx={{ my: 2 }} />
+
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            {translate("aiflow.pipeline.title")}
+          </Typography>
+          <StepsTimeline />
         </Box>
-        <ArrayField source="steps">
-          <Datagrid bulkActionButtons={false}>
-            <TextField source="step_name" label="Step" />
-            <FunctionField
-              label={translate("aiflow.runs.status")}
-              render={(record: { status: string }) => (
-                <Chip label={record.status} color={record.status === "completed" ? "success" : "error"} size="small" variant="outlined" />
-              )}
-            />
-            <NumberField source="duration_ms" label="ms" />
-            <NumberField source="tokens_used" label="Tokens" />
-            <NumberField source="cost_usd" label="Cost" options={{ style: "currency", currency: "USD", minimumFractionDigits: 4 }} />
-            <TextField source="output_preview" label="Output" />
-          </Datagrid>
-        </ArrayField>
       </SimpleShowLayout>
     </Show>
   );

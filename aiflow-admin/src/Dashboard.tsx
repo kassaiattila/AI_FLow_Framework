@@ -1,20 +1,28 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, Typography, Grid, Box, Chip } from "@mui/material";
+import { Card, CardContent, Typography, Grid, Box, Chip, Stack, Avatar } from "@mui/material";
 import { useTranslate, Title } from "react-admin";
+import { useNavigate } from "react-router-dom";
+import CircleIcon from "@mui/icons-material/Circle";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 interface SkillInfo {
   name: string;
   display_name: string;
   status: string;
   description: string;
+  viewerPath?: string;
 }
 
 const SKILLS: SkillInfo[] = [
-  { name: "process_documentation", display_name: "Process Documentation", status: "production", description: "BPMN diagrams from natural language" },
-  { name: "aszf_rag_chat", display_name: "ASZF RAG Chat", status: "production", description: "Legal document RAG chat (86% eval pass)" },
-  { name: "email_intent_processor", display_name: "Email Intent Processor", status: "in-development", description: "Email classification & routing (hybrid ML+LLM)" },
-  { name: "invoice_processor", display_name: "Invoice Processor", status: "in-development", description: "PDF invoice extraction (parse step only)" },
-  { name: "cubix_course_capture", display_name: "Cubix Course Capture", status: "results-viewer", description: "Video transcript pipeline (CLI only)" },
+  { name: "process_documentation", display_name: "Process Documentation", status: "production", description: "BPMN diagrams from natural language", viewerPath: "/process-docs" },
+  { name: "aszf_rag_chat", display_name: "ASZF RAG Chat", status: "production", description: "Legal document RAG chat (86% eval pass)", viewerPath: "/rag-chat" },
+  { name: "email_intent_processor", display_name: "Email Intent Processor", status: "in-development", description: "Email classification & routing (hybrid ML+LLM)", viewerPath: "/email-upload" },
+  { name: "invoice_processor", display_name: "Invoice Processor", status: "in-development", description: "PDF invoice extraction (parse step only)", viewerPath: "/invoice-upload" },
+  { name: "cubix_course_capture", display_name: "Cubix Course Capture", status: "results-viewer", description: "Video transcript pipeline (CLI only)", viewerPath: "/cubix" },
 ];
 
 const STATUS_COLOR: Record<string, "success" | "info" | "default" | "warning"> = {
@@ -24,15 +32,20 @@ const STATUS_COLOR: Record<string, "success" | "info" | "default" | "warning"> =
   stub: "warning",
 };
 
+const KPI_ACCENT = ["primary.main", "info.main", "success.main", "warning.main"];
+
 interface RunSummary {
   total: number;
   completed: number;
   totalCost: number;
+  source: string | null;
 }
 
 export const Dashboard = () => {
   const translate = useTranslate();
-  const [runs, setRuns] = useState<RunSummary>({ total: 0, completed: 0, totalCost: 0 });
+  const navigate = useNavigate();
+  const [runs, setRuns] = useState<RunSummary>({ total: 0, completed: 0, totalCost: 0, source: null });
+  const [backendStatus, setBackendStatus] = useState<"checking" | "connected" | "offline">("checking");
 
   useEffect(() => {
     fetch("/api/runs")
@@ -43,54 +56,108 @@ export const Dashboard = () => {
           total: list.length,
           completed: list.filter((r: { status: string }) => r.status === "completed").length,
           totalCost: list.reduce((s: number, r: { total_cost_usd: number }) => s + r.total_cost_usd, 0),
+          source: data.source || null,
         });
       })
       .catch(() => {});
+
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((data) => setBackendStatus(data.status === "connected" ? "connected" : "offline"))
+      .catch(() => setBackendStatus("offline"));
   }, []);
 
-  return (
-    <Box p={2}>
-      <Title title={translate("aiflow.dashboard.title")} />
-      <Typography variant="h5" gutterBottom>{translate("aiflow.dashboard.title")}</Typography>
-      <Typography variant="body2" color="text.secondary" mb={3}>{translate("aiflow.dashboard.subtitle")}</Typography>
+  const kpis = [
+    { label: "Skills", value: SKILLS.length, sub: `${SKILLS.filter((s) => s.status === "production").length} production`, icon: <SmartToyIcon /> },
+    { label: translate("aiflow.dashboard.allRuns"), value: runs.total, sub: `${runs.completed} completed`, icon: <PlayArrowIcon /> },
+    { label: translate("aiflow.dashboard.todayCost"), value: `$${runs.totalCost.toFixed(3)}`, sub: "total", icon: <AttachMoneyIcon /> },
+    { label: "Completed", value: runs.completed, sub: runs.total > 0 ? `${((runs.completed / runs.total) * 100).toFixed(0)}%` : "-", icon: <CheckCircleIcon /> },
+  ];
 
-      {/* KPIs */}
+  return (
+    <Box sx={{ p: 3, maxWidth: 1400, mx: "auto" }}>
+      <Title title={translate("aiflow.dashboard.title")} />
+
+      {/* Header */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
+        <Typography variant="h5">{translate("aiflow.dashboard.title")}</Typography>
+        <Stack direction="row" spacing={1} alignItems="center">
+          {runs.source && (
+            <Chip
+              label={translate(`aiflow.status.${runs.source}`)}
+              color={runs.source === "demo" ? "warning" : "success"}
+              size="small"
+              variant="outlined"
+            />
+          )}
+          <Chip
+            icon={<CircleIcon sx={{ fontSize: 8 }} />}
+            label={translate(`aiflow.dashboard.${backendStatus}`)}
+            color={backendStatus === "connected" ? "success" : backendStatus === "offline" ? "error" : "default"}
+            variant="outlined"
+            size="small"
+          />
+        </Stack>
+      </Stack>
+      <Typography variant="body2" color="text.secondary" mb={3}>
+        {translate("aiflow.dashboard.subtitle")}
+      </Typography>
+
+      {/* KPI Cards */}
       <Grid container spacing={2} mb={4}>
-        <Grid size={{ xs: 6, md: 3 }}>
-          <Card><CardContent>
-            <Typography variant="caption" color="text.secondary">Skills</Typography>
-            <Typography variant="h4">{SKILLS.length}</Typography>
-            <Typography variant="caption" color="text.secondary">{SKILLS.filter((s) => s.status === "production").length} production</Typography>
-          </CardContent></Card>
-        </Grid>
-        <Grid size={{ xs: 6, md: 3 }}>
-          <Card><CardContent>
-            <Typography variant="caption" color="text.secondary">{translate("aiflow.dashboard.allRuns")}</Typography>
-            <Typography variant="h4">{runs.total}</Typography>
-            <Typography variant="caption" color="text.secondary">{runs.completed} completed</Typography>
-          </CardContent></Card>
-        </Grid>
-        <Grid size={{ xs: 6, md: 3 }}>
-          <Card><CardContent>
-            <Typography variant="caption" color="text.secondary">{translate("aiflow.dashboard.todayCost")}</Typography>
-            <Typography variant="h4">${runs.totalCost.toFixed(3)}</Typography>
-            <Typography variant="caption" color="text.secondary">total</Typography>
-          </CardContent></Card>
-        </Grid>
+        {kpis.map((kpi, i) => (
+          <Grid size={{ xs: 6, md: 3 }} key={kpi.label}>
+            <Card sx={{ borderLeft: 4, borderLeftColor: KPI_ACCENT[i] }}>
+              <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Avatar sx={{ bgcolor: `${KPI_ACCENT[i]}22`, color: KPI_ACCENT[i], width: 48, height: 48 }}>
+                  {kpi.icon}
+                </Avatar>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.65rem" }}>
+                    {kpi.label}
+                  </Typography>
+                  <Typography variant="h4" sx={{ lineHeight: 1.1 }}>{kpi.value}</Typography>
+                  <Typography variant="caption" color="text.secondary">{kpi.sub}</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
       {/* Skill Cards */}
       <Typography variant="h6" gutterBottom>{translate("aiflow.dashboard.skills")}</Typography>
       <Grid container spacing={2}>
         {SKILLS.map((skill) => (
-          <Grid size={{ xs: 12, md: 4 }} key={skill.name}>
-            <Card sx={{ cursor: "pointer", "&:hover": { boxShadow: 4 } }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={skill.name}>
+            <Card
+              sx={{
+                cursor: skill.viewerPath ? "pointer" : "default",
+                transition: "transform 0.2s, box-shadow 0.2s",
+                "&:hover": skill.viewerPath ? { transform: "translateY(-2px)", boxShadow: 6 } : {},
+              }}
+              onClick={() => skill.viewerPath && navigate(skill.viewerPath)}
+            >
               <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                  <Typography variant="subtitle2">{skill.display_name}</Typography>
-                  <Chip label={translate(`aiflow.status.${skill.status === "in-development" ? "inDevelopment" : skill.status === "results-viewer" ? "resultsViewer" : skill.status}`)} color={STATUS_COLOR[skill.status] || "default"} size="small" />
-                </Box>
-                <Typography variant="body2" color="text.secondary">{skill.description}</Typography>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
+                  <Typography variant="subtitle1">{skill.display_name}</Typography>
+                  <Chip
+                    label={translate(`aiflow.status.${skill.status === "in-development" ? "inDevelopment" : skill.status === "results-viewer" ? "resultsViewer" : skill.status}`)}
+                    color={STATUS_COLOR[skill.status] || "default"}
+                    size="small"
+                  />
+                </Stack>
+                <Typography variant="body2" color="text.secondary" mb={1.5}>
+                  {skill.description}
+                </Typography>
+                {skill.viewerPath && (
+                  <Stack direction="row" alignItems="center" spacing={0.5}>
+                    <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600 }}>
+                      {translate("aiflow.dashboard.openViewer")}
+                    </Typography>
+                    <ArrowForwardIcon sx={{ fontSize: 14, color: "primary.main" }} />
+                  </Stack>
+                )}
               </CardContent>
             </Card>
           </Grid>

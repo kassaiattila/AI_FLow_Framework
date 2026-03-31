@@ -10,8 +10,9 @@ export const authProvider: AuthProvider = {
     if (!res.ok) {
       throw new Error("Invalid credentials");
     }
+    // API returns { token, user_id, role } — flat, not wrapped in "user"
     const data = await res.json();
-    localStorage.setItem("user", JSON.stringify(data.user));
+    localStorage.setItem("user", JSON.stringify({ user_id: data.user_id, role: data.role }));
   },
 
   async logout() {
@@ -20,8 +21,20 @@ export const authProvider: AuthProvider = {
   },
 
   async checkAuth() {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try {
+        JSON.parse(stored);
+        return;
+      } catch {
+        // corrupted — fall through to server check
+      }
+    }
     const res = await fetch("/api/auth/me");
-    if (!res.ok) throw new Error("Not authenticated");
+    if (!res.ok) throw new Error("ra.auth.auth_check_error");
+    // Cache the user info from the server response
+    const data = await res.json();
+    localStorage.setItem("user", JSON.stringify({ user_id: data.user_id, role: data.role }));
   },
 
   async checkError(error) {
@@ -34,13 +47,21 @@ export const authProvider: AuthProvider = {
   async getIdentity() {
     const stored = localStorage.getItem("user");
     if (stored) {
-      const user = JSON.parse(stored);
-      return { id: user.user_id, fullName: user.user_id, avatar: undefined };
+      try {
+        const user = JSON.parse(stored);
+        if (user?.user_id) {
+          return { id: user.user_id, fullName: user.user_id, avatar: undefined };
+        }
+      } catch {
+        // corrupted localStorage — fall through
+      }
     }
+    // Fallback: fetch from server — API returns { user_id, role }
     const res = await fetch("/api/auth/me");
     if (res.ok) {
       const data = await res.json();
-      return { id: data.user.user_id, fullName: data.user.user_id };
+      localStorage.setItem("user", JSON.stringify({ user_id: data.user_id, role: data.role }));
+      return { id: data.user_id, fullName: data.user_id };
     }
     return { id: "guest", fullName: "Guest" };
   },
@@ -48,8 +69,12 @@ export const authProvider: AuthProvider = {
   async getPermissions() {
     const stored = localStorage.getItem("user");
     if (stored) {
-      const user = JSON.parse(stored);
-      return user.role || "viewer";
+      try {
+        const user = JSON.parse(stored);
+        return user?.role || "viewer";
+      } catch {
+        return "viewer";
+      }
     }
     return "viewer";
   },

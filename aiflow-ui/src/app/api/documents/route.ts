@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { readJsonFile, updateJsonFile } from "@/lib/data-store";
+import { fetchBackend } from "@/lib/backend";
 
-// GET /api/documents — list all documents
+// GET /api/documents — try FastAPI backend, fallback to local JSON
 export async function GET() {
+  const backend = await fetchBackend<{ documents: unknown[]; total: number }>(
+    "/api/v1/documents"
+  );
+  if (backend) {
+    return NextResponse.json({ ...backend.data, source: "backend" });
+  }
+
   const invoices = await readJsonFile<unknown[]>("invoices.json");
-  return NextResponse.json({ documents: invoices, total: invoices.length });
+  return NextResponse.json({ documents: invoices, total: invoices.length, source: "demo" });
 }
 
 // POST /api/documents — add new document(s) from upload

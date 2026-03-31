@@ -2,7 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ["/login", "/api/auth/login", "/api/auth/logout"];
+const PUBLIC_ROUTES = [
+  "/login",
+  "/api/auth/login",
+  "/api/auth/logout",
+  "/api/documents/upload",
+  "/api/documents/process",
+  "/api/emails/upload",
+  "/api/emails/process",
+];
 
 // Routes that require admin role
 const ADMIN_ROUTES = ["/api/documents/reset"];
@@ -80,6 +88,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|images/).*)",
   ],
 };

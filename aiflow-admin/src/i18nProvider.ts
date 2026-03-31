@@ -25,6 +25,7 @@ const hungarianMessages = {
       bulk_actions: "%{smart_count} kivalasztva",
       remove_all_filters: "Szurok torlese",
       select_all: "Osszes kivalasztasa",
+      add_filter: "Szuro hozzaadasa",
     },
     boolean: { true: "Igen", false: "Nem", null: "" },
     page: {
@@ -42,6 +43,7 @@ const hungarianMessages = {
     input: {
       file: { upload_several: "Huzd ide a fajlokat", upload_single: "Huzd ide a fajlt" },
       references: { all_missing: "Nem talalhato", many_missing: "Nehany hivatkozas hianyzik", single_missing: "Hivatkozas hianyzik" },
+      password: { toggle_visible: "Jelszo mutatasa", toggle_hidden: "Jelszo elrejtese" },
     },
     message: {
       about: "About",
@@ -87,12 +89,13 @@ const hungarianMessages = {
       canceled: "Megse",
     },
     sort: { sort_by: "Rendezes: %{field}", ASC: "Novekvo", DESC: "Csokkeno" },
-    auth: { auth_check_error: "Kerlek jelentkezz be", user_menu: "Profil", username: "Felhasznalonev", password: "Jelszo", sign_in: "Bejelentkezes", sign_in_error: "Hiba! Ellenorizd az adatokat.", logout: "Kijelentkezes" },
+    auth: { auth_check_error: "Kerlek jelentkezz be", user_menu: "Profil", username: "Felhasznalonev", password: "Jelszo", sign_in: "Bejelentkezes", sign_in_error: "Hiba! Ellenorizd az adatokat.", logout: "Kijelentkezes", not_authenticated: "Nem vagy bejelentkezve" },
     validation: { required: "Kotelezo", minLength: "Min. %{min} karakter", maxLength: "Max. %{max} karakter", minValue: "Min. %{min}", maxValue: "Max. %{max}", number: "Szamnak kell lennie", email: "Ervenyes email cim szukseges", oneOf: "A kovetkezok egyike: %{options}", regex: "Nem megfelelo formatum" },
+    configurable: { customize: "Testreszabas" },
   },
   // AIFlow custom translations
   aiflow: {
-    dashboard: { title: "AIFlow Dashboard", subtitle: "AI Workflow Automation Framework", skills: "Skills", allRuns: "Osszes futas", todayRuns: "Mai futasok", todayCost: "Mai koltseg", tests: "teszt" },
+    dashboard: { title: "AIFlow Dashboard", subtitle: "AI Workflow Automation Framework", skills: "Skills", allRuns: "Osszes futas", todayRuns: "Mai futasok", todayCost: "Mai koltseg", tests: "teszt", checking: "Ellenorzes...", connected: "Backend kapcsolodva", offline: "Backend offline", openViewer: "Megnyitas" },
     skills: {
       process_documentation: "Process Documentation",
       aszf_rag_chat: "ASZF RAG Chat",
@@ -102,14 +105,76 @@ const hungarianMessages = {
     },
     status: { production: "Production", inDevelopment: "Fejlesztes alatt", resultsViewer: "Eredmeny nezo", stub: "Stub", demo: "Demo", live: "Live", subprocess: "Lokalis feldolgozas" },
     runs: { title: "Workflow Runs", skill: "Skill", status: "Statusz", duration: "Idotartam", cost: "Koltseg", started: "Inditva", steps: "Lepesek" },
-    costs: { title: "Koltseg analitika" },
+    invoices: {
+      title: "Szamlak", detail: "Szamla reszletek", file: "Fajl", vendor: "Szallito", invoiceNumber: "Szamlaszam",
+      date: "Szamla kelte", currency: "Penznem", grossTotal: "Brutto osszeg", valid: "Ervenyes",
+      headerSection: "Szamla fejlec", type: "Tipus", fulfillmentDate: "Teljesites", dueDate: "Fizetesi hatarido",
+      paymentMethod: "Fizetesi mod", vendorSection: "Szallito", buyerSection: "Vevo",
+      name: "Nev", address: "Cim", taxNumber: "Adoszam",
+      lineItems: "Tetelek", description: "Leiras", quantity: "Mennyiseg", unit: "Egyseg",
+      unitPrice: "Egysegar", netAmount: "Netto", vatRate: "AFA %", grossAmount: "Brutto",
+      totalsSection: "Osszesites", netTotal: "Netto osszesen", vatTotal: "AFA osszesen",
+      validationSection: "Validacio", confidence: "Konfidencia", errors: "Hibak", parser: "Parser",
+    },
+    emails: {
+      title: "Emailek", detail: "Email reszletek", sender: "Felado", subject: "Targy",
+      intent: "Szandek", confidence: "Konfidencia", priority: "Prioritas", received: "Beerkezett",
+      attachments: "Csatolmanyok", body: "Torzs",
+      intentSection: "Szandek felismeres", entitiesSection: "Kinyert entitasok",
+      routingSection: "Prioritas es utvalasztas", routing: "Utvalasztas",
+      queue: "Sor", department: "Osztaly", rule: "Szabaly",
+      attachmentsSection: "Csatolmanyok", processing: "Feldolgozas",
+      processingTime: "Feldolgozasi ido", pipelineVersion: "Pipeline verzio",
+    },
+    menu: { skillViewers: "Skill Viewerek" },
+    processDocs: {
+      title: "Process Documentation", inputLabel: "Folyamat leiras",
+      placeholder: "Ird le a folyamatot termeszetes nyelven...",
+      generate: "Diagram generalas", diagram: "BPMN Diagram",
+      review: "Minoseg ertekeles", issues: "Problemas", suggestions: "Javaslatok",
+      presets: "Pelda folyamatok:", preset_invoice: "Szamla feldolgozas",
+      preset_support: "Ugyfelszolgalat", preset_onboarding: "Onboarding",
+      moreDetail: "Reszletesebb", simpler: "Egyszerubb", regenerate: "Ujrageneralas",
+    },
+    ragChat: {
+      title: "ASZF RAG Chat", placeholder: "Kerdezes...", empty: "Tedd fel az elso kerdest!",
+    },
+    cubix: {
+      title: "Cubix Kurzusok", empty: "Nincs kurzus adat.",
+      duration: "Idotartam", sections: "Szekciok", transcripts: "Atiratok",
+    },
+    invoiceUpload: {
+      title: "Szamla feltoltes", menuLabel: "Szamla feltoltes",
+      dropzone: "Kattints vagy huzd ide a PDF fajlokat",
+      uploaded: "Feltoltve", process: "Feldolgozas", results: "Eredmenyek",
+      files: "fajl", processingFile: "Feldolgozas", newBatch: "Uj batch / Reset",
+      apiOffline: "A Next.js API szerver nem elerheto! Inditsd el: cd aiflow-ui && npm run dev",
+    },
+    emailUpload: {
+      title: "Email feltoltes", menuLabel: "Email feltoltes",
+      dropzone: "Kattints vagy huzd ide az email fajlokat",
+      uploaded: "Feltoltve", process: "Feldolgozas", results: "Eredmenyek",
+    },
+    pipeline: { title: "Pipeline lepesek", steps: "lepes", done: "Kesz", retry: "Ujra" },
+    verification: {
+      title: "Szamla verifikacio", verify: "Verifikacio", corrected: "Javitva",
+      confirmAll: "Mind jovahagyva", saved: "Mentve", verified: "ellenorizve",
+      overlayAll: "Mind", overlayLow: "Alacsony", overlayOff: "Ki",
+      realImage: "Eredeti kep", mockImage: "Sablon nezet",
+    },
+    costs: {
+      title: "Koltseg analitika", totalCost: "Osszes koltseg", totalTokens: "Osszes token",
+      totalRuns: "Osszes futas", bySkill: "Skill szerinti bontas", byStep: "Lepes szerinti bontas",
+      runs: "Futasok", totalCostCol: "Koltseg", avgCost: "Atlag koltseg",
+      avgDuration: "Atlag ido", calls: "Hivasok",
+    },
   },
 };
 
 const englishCustom = {
   ...englishMessages,
   aiflow: {
-    dashboard: { title: "AIFlow Dashboard", subtitle: "AI Workflow Automation Framework", skills: "Skills", allRuns: "All Runs", todayRuns: "Today", todayCost: "Today Cost", tests: "tests" },
+    dashboard: { title: "AIFlow Dashboard", subtitle: "AI Workflow Automation Framework", skills: "Skills", allRuns: "All Runs", todayRuns: "Today", todayCost: "Today Cost", tests: "tests", checking: "Checking...", connected: "Backend connected", offline: "Backend offline", openViewer: "Open viewer" },
     skills: {
       process_documentation: "Process Documentation",
       aszf_rag_chat: "ASZF RAG Chat",
@@ -119,7 +184,69 @@ const englishCustom = {
     },
     status: { production: "Production", inDevelopment: "In Development", resultsViewer: "Results Viewer", stub: "Stub", demo: "Demo", live: "Live", subprocess: "Local processing" },
     runs: { title: "Workflow Runs", skill: "Skill", status: "Status", duration: "Duration", cost: "Cost", started: "Started", steps: "Steps" },
-    costs: { title: "Cost Analytics" },
+    invoices: {
+      title: "Invoices", detail: "Invoice Details", file: "File", vendor: "Vendor", invoiceNumber: "Invoice #",
+      date: "Invoice Date", currency: "Currency", grossTotal: "Gross Total", valid: "Valid",
+      headerSection: "Invoice Header", type: "Type", fulfillmentDate: "Fulfillment", dueDate: "Due Date",
+      paymentMethod: "Payment Method", vendorSection: "Vendor", buyerSection: "Buyer",
+      name: "Name", address: "Address", taxNumber: "Tax Number",
+      lineItems: "Line Items", description: "Description", quantity: "Qty", unit: "Unit",
+      unitPrice: "Unit Price", netAmount: "Net", vatRate: "VAT %", grossAmount: "Gross",
+      totalsSection: "Totals", netTotal: "Net Total", vatTotal: "VAT Total",
+      validationSection: "Validation", confidence: "Confidence", errors: "Errors", parser: "Parser",
+    },
+    emails: {
+      title: "Emails", detail: "Email Details", sender: "Sender", subject: "Subject",
+      intent: "Intent", confidence: "Confidence", priority: "Priority", received: "Received",
+      attachments: "Attachments", body: "Body",
+      intentSection: "Intent Recognition", entitiesSection: "Extracted Entities",
+      routingSection: "Priority & Routing", routing: "Routing",
+      queue: "Queue", department: "Department", rule: "Rule",
+      attachmentsSection: "Attachments", processing: "Processing",
+      processingTime: "Processing Time", pipelineVersion: "Pipeline Version",
+    },
+    menu: { skillViewers: "Skill Viewers" },
+    processDocs: {
+      title: "Process Documentation", inputLabel: "Process Description",
+      placeholder: "Describe the process in natural language...",
+      generate: "Generate Diagram", diagram: "BPMN Diagram",
+      review: "Quality Review", issues: "Issues", suggestions: "Suggestions",
+      presets: "Example processes:", preset_invoice: "Invoice processing",
+      preset_support: "Customer support", preset_onboarding: "Onboarding",
+      moreDetail: "More detail", simpler: "Simpler", regenerate: "Regenerate",
+    },
+    ragChat: {
+      title: "ASZF RAG Chat", placeholder: "Ask a question...", empty: "Ask your first question!",
+    },
+    cubix: {
+      title: "Cubix Courses", empty: "No course data available.",
+      duration: "Duration", sections: "Sections", transcripts: "Transcripts",
+    },
+    invoiceUpload: {
+      title: "Invoice Upload", menuLabel: "Invoice Upload",
+      dropzone: "Click or drag PDF files here",
+      uploaded: "Uploaded", process: "Process", results: "Results",
+      files: "files", processingFile: "Processing", newBatch: "New batch / Reset",
+      apiOffline: "Next.js API server offline! Start it: cd aiflow-ui && npm run dev",
+    },
+    emailUpload: {
+      title: "Email Upload", menuLabel: "Email Upload",
+      dropzone: "Click or drag email files here",
+      uploaded: "Uploaded", process: "Process", results: "Results",
+    },
+    pipeline: { title: "Pipeline Steps", steps: "steps", done: "Done", retry: "Retry" },
+    verification: {
+      title: "Invoice Verification", verify: "Verify", corrected: "Corrected",
+      confirmAll: "Confirm All", saved: "Saved", verified: "verified",
+      overlayAll: "All", overlayLow: "Low conf.", overlayOff: "Off",
+      realImage: "Original image", mockImage: "Template view",
+    },
+    costs: {
+      title: "Cost Analytics", totalCost: "Total Cost", totalTokens: "Total Tokens",
+      totalRuns: "Total Runs", bySkill: "By Skill", byStep: "By Step",
+      runs: "Runs", totalCostCol: "Cost", avgCost: "Avg Cost",
+      avgDuration: "Avg Duration", calls: "Calls",
+    },
   },
 };
 
