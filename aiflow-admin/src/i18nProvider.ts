@@ -115,6 +115,7 @@ const hungarianMessages = {
       unitPrice: "Egysegar", netAmount: "Netto", vatRate: "AFA %", grossAmount: "Brutto",
       totalsSection: "Osszesites", netTotal: "Netto osszesen", vatTotal: "AFA osszesen",
       validationSection: "Validacio", confidence: "Konfidencia", errors: "Hibak", parser: "Parser",
+      filterAll: "Mind", filterProcessed: "Csak feldolgozott", unprocessed: "Feldolgozatlan",
     },
     emails: {
       title: "Emailek", detail: "Email reszletek", sender: "Felado", subject: "Targy",
@@ -195,6 +196,7 @@ const englishCustom = {
       unitPrice: "Unit Price", netAmount: "Net", vatRate: "VAT %", grossAmount: "Gross",
       totalsSection: "Totals", netTotal: "Net Total", vatTotal: "VAT Total",
       validationSection: "Validation", confidence: "Confidence", errors: "Errors", parser: "Parser",
+      filterAll: "All", filterProcessed: "Processed only", unprocessed: "Unprocessed",
     },
     emails: {
       title: "Emails", detail: "Email Details", sender: "Sender", subject: "Subject",

@@ -53,6 +53,17 @@ export const dataProvider: DataProvider = {
     const filter = params.filter || {};
     for (const [key, value] of Object.entries(filter)) {
       if (!value || (typeof value === "string" && !value.trim())) continue;
+      // Special filter: only processed invoices (has real vendor name and non-zero total)
+      if (key === "_processed" && value === true && resource === "invoices") {
+        allData = allData.filter((item: Record<string, unknown>) => {
+          const vendor = item.vendor as Record<string, unknown> | undefined;
+          const totals = item.totals as Record<string, unknown> | undefined;
+          const grossTotal = (totals?.gross_total as number) || 0;
+          const vendorName = (vendor?.name as string) || "";
+          return grossTotal > 0 || (vendorName && vendorName.length > 3);
+        });
+        continue;
+      }
       if (key === "q" && typeof value === "string") {
         // Global search on key fields (not JSON.stringify — too slow/broad)
         const q = value.toLowerCase();
