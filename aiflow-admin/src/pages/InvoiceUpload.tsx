@@ -106,7 +106,7 @@ export const InvoiceUpload = () => {
     for (const file of Array.from(files)) formData.append("files", file);
 
     try {
-      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
+      const res = await fetch("/api/v1/documents/upload", { method: "POST", body: formData });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || `HTTP ${res.status}`);
       const result: UploadResult = await res.json();
       setUploadResult(result);
@@ -134,7 +134,7 @@ export const InvoiceUpload = () => {
       setFileStatuses((prev) => new Map(prev).set(file, "processing"));
 
       try {
-        const res = await fetch("/api/documents/process", {
+        const res = await fetch("/api/v1/documents/process", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ files: [file] }),

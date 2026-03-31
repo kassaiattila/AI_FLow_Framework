@@ -2,7 +2,7 @@ import { AuthProvider } from "react-admin";
 
 export const authProvider: AuthProvider = {
   async login({ username, password }) {
-    const res = await fetch("/api/auth/login", {
+    const res = await fetch("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -16,7 +16,7 @@ export const authProvider: AuthProvider = {
   },
 
   async logout() {
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    await fetch("/api/v1/auth/logout", { method: "POST" }).catch(() => {});
     localStorage.removeItem("user");
   },
 
@@ -30,7 +30,7 @@ export const authProvider: AuthProvider = {
         // corrupted — fall through to server check
       }
     }
-    const res = await fetch("/api/auth/me");
+    const res = await fetch("/api/v1/auth/me");
     if (!res.ok) throw new Error("ra.auth.auth_check_error");
     // Cache the user info from the server response
     const data = await res.json();
@@ -57,7 +57,7 @@ export const authProvider: AuthProvider = {
       }
     }
     // Fallback: fetch from server — API returns { user_id, role }
-    const res = await fetch("/api/auth/me");
+    const res = await fetch("/api/v1/auth/me");
     if (res.ok) {
       const data = await res.json();
       localStorage.setItem("user", JSON.stringify({ user_id: data.user_id, role: data.role }));

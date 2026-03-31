@@ -39,6 +39,8 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.skills_api import router as skills_router
     from aiflow.api.v1.emails import router as emails_router
     from aiflow.api.v1.auth import router as auth_router
+    from aiflow.api.v1.documents import router as documents_router
+    from aiflow.api.v1.process_docs import router as process_docs_router
     app.include_router(health_router)
     app.include_router(workflows_router)
     app.include_router(chat_router)
@@ -48,6 +50,8 @@ def create_app() -> FastAPI:
     app.include_router(skills_router)
     app.include_router(emails_router)
     app.include_router(auth_router)
+    app.include_router(documents_router)
+    app.include_router(process_docs_router)
     # Global exception handler for debugging
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):

@@ -54,7 +54,7 @@ export const EmailUpload = () => {
     }
 
     try {
-      const res = await fetch("/api/emails/upload", { method: "POST", body: formData });
+      const res = await fetch("/api/v1/emails/upload", { method: "POST", body: formData });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error || `HTTP ${res.status}`);
@@ -78,7 +78,7 @@ export const EmailUpload = () => {
     const results: ProcessResult[] = [];
     for (const file of uploadResult.files) {
       try {
-        const res = await fetch("/api/emails/process", {
+        const res = await fetch("/api/v1/emails/process", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ file }),

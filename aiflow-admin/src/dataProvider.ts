@@ -13,8 +13,8 @@ const RESOURCE_MAP: Record<string, { endpoint: string; listKey: string; idField:
   runs: { endpoint: "/api/v1/runs", listKey: "runs", idField: "run_id" },
   invoices: { endpoint: "/api/v1/documents", listKey: "documents", idField: "source_file" },
   emails: { endpoint: "/api/v1/emails", listKey: "emails", idField: "email_id" },
-  "process-docs": { endpoint: "/api/process-docs", listKey: "documents", idField: "doc_id" },
-  cubix: { endpoint: "/api/cubix", listKey: "courses", idField: "course_id" },
+  "process-docs": { endpoint: "/api/v1/process-docs", listKey: "documents", idField: "doc_id" },
+  cubix: { endpoint: "/api/v1/cubix", listKey: "courses", idField: "course_id" },
 };
 
 async function fetchJson(url: string, options?: RequestInit) {

@@ -66,7 +66,7 @@ export const RagChat = () => {
     abortRef.current = controller;
 
     try {
-      const res = await fetch("/api/rag/stream", {
+      const res = await fetch("/api/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),

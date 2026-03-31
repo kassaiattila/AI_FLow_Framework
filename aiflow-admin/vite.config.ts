@@ -7,25 +7,14 @@ export default defineConfig(({ mode }) => ({
     host: true,
     port: 5173,
     proxy: {
-      // FastAPI direct — CRUD routes (no Next.js middleman)
-      "/api/v1": {
+      // All API traffic goes directly to FastAPI — no Next.js needed
+      "/api": {
         target: "http://localhost:8000",
         changeOrigin: true,
       },
       "/health": {
         target: "http://localhost:8000",
         changeOrigin: true,
-      },
-      // Next.js — subprocess routes (upload, process, generate) + fallback
-      "/api": {
-        target: "http://localhost:3000",
-        changeOrigin: false,
-        cookieDomainRewrite: "",
-        cookiePathRewrite: "/",
-      },
-      "/images": {
-        target: "http://localhost:3000",
-        changeOrigin: false,
       },
     },
   },
