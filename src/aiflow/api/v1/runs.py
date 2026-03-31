@@ -1,7 +1,9 @@
 """Workflow run listing and detail endpoints."""
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 from typing import Any
 
 import asyncpg
@@ -151,6 +153,33 @@ async def list_runs(
             await conn.close()
     except Exception as e:
         logger.warning("runs_db_failed", error=str(e))
+
+    # Fallback to JSON file if DB is empty
+    if not runs:
+        for base in [Path("aiflow-ui/data"), Path("aiflow-ui/public/data")]:
+            f = base / "runs.json"
+            if f.exists():
+                try:
+                    raw = json.loads(f.read_text(encoding="utf-8"))
+                    items = raw if isinstance(raw, list) else raw.get("runs", [])
+                    for item in items:
+                        steps_raw = item.get("steps", [])
+                        runs.append(RunItem(
+                            run_id=item.get("run_id", ""),
+                            workflow_name=item.get("workflow_name", ""),
+                            skill_name=item.get("skill_name"),
+                            status=item.get("status", ""),
+                            started_at=item.get("started_at"),
+                            completed_at=item.get("completed_at"),
+                            total_duration_ms=item.get("total_duration_ms"),
+                            total_cost_usd=item.get("total_cost_usd", 0),
+                            steps=[StepRunItem(**s) for s in steps_raw],
+                        ))
+                    if runs:
+                        return RunListResponse(runs=runs, total=len(runs))
+                except Exception:
+                    pass
+                break
 
     return RunListResponse(runs=runs, total=total)
 

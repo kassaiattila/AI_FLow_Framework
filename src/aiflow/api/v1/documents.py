@@ -99,6 +99,22 @@ def _upload_dir() -> Path:
     return d
 
 
+def _json_fallback(resource: str) -> list[dict[str, Any]]:
+    """Load data from Next.js JSON files as fallback when DB is empty."""
+    for base in [Path("aiflow-ui/data"), Path("aiflow-ui/public/data")]:
+        f = base / f"{resource}.json"
+        if f.exists():
+            try:
+                data = json.loads(f.read_text(encoding="utf-8"))
+                if isinstance(data, list):
+                    return data
+                if isinstance(data, dict) and "documents" in data:
+                    return data["documents"]
+            except Exception:
+                pass
+    return []
+
+
 # ---------------------------------------------------------------------------
 # GET /api/v1/documents — list invoices from DB
 # ---------------------------------------------------------------------------
@@ -216,6 +232,27 @@ async def list_documents(
             await conn.close()
     except Exception as e:
         logger.warning("documents_db_failed", error=str(e))
+
+    # Fallback to JSON files if DB is empty or unavailable
+    if not documents:
+        fallback = _json_fallback("invoices")
+        for item in fallback:
+            sf = item.get("source_file", "")
+            documents.append(DocumentItem(
+                id=sf,
+                source_file=sf,
+                direction=item.get("direction", ""),
+                vendor=item.get("vendor", {}),
+                buyer=item.get("buyer", {}),
+                header=item.get("header", {}),
+                totals=item.get("totals", {}),
+                validation=item.get("validation", {}),
+                line_items=item.get("line_items", []),
+                parser_used=item.get("parser_used", ""),
+                extraction_confidence=item.get("extraction_confidence", 0),
+            ))
+        if documents:
+            return DocumentListResponse(documents=documents, total=len(documents), source="demo")
 
     return DocumentListResponse(documents=documents, total=total, source="backend")
 

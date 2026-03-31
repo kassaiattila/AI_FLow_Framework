@@ -123,6 +123,36 @@ async def list_emails(
     except Exception as e:
         logger.warning("emails_db_failed", error=str(e))
 
+    # Fallback to JSON file if DB is empty
+    if not emails:
+        import json as _json
+        for base in [Path("aiflow-ui/data"), Path("aiflow-ui/public/data")]:
+            f = base / "emails.json"
+            if f.exists():
+                try:
+                    raw = _json.loads(f.read_text(encoding="utf-8"))
+                    items = raw if isinstance(raw, list) else raw.get("emails", [])
+                    for item in items:
+                        emails.append(EmailResultItem(
+                            email_id=item.get("email_id", ""),
+                            subject=item.get("subject", ""),
+                            sender=item.get("sender", ""),
+                            received_date=item.get("received_date"),
+                            intent_id=item.get("intent", {}).get("intent_id") if isinstance(item.get("intent"), dict) else None,
+                            intent_display_name=item.get("intent", {}).get("intent_display_name") if isinstance(item.get("intent"), dict) else None,
+                            intent_confidence=item.get("intent", {}).get("confidence", 0) if isinstance(item.get("intent"), dict) else 0,
+                            intent_method=item.get("intent", {}).get("method") if isinstance(item.get("intent"), dict) else None,
+                            priority_level=item.get("priority", {}).get("priority_level") if isinstance(item.get("priority"), dict) else None,
+                            department_name=item.get("routing", {}).get("department_name") if isinstance(item.get("routing"), dict) else None,
+                            queue_name=item.get("routing", {}).get("queue_name") if isinstance(item.get("routing"), dict) else None,
+                            attachment_count=len(item.get("attachment_summaries", [])),
+                        ))
+                    if emails:
+                        return EmailListResponse(emails=emails, total=len(emails))
+                except Exception:
+                    pass
+                break
+
     return EmailListResponse(emails=emails, total=total)
 
 

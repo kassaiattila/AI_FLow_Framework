@@ -62,8 +62,10 @@ export const Dashboard = () => {
       .catch(() => {});
 
     fetch("/health")
-      .then((r) => r.json())
-      .then((data) => setBackendStatus(data.status === "connected" ? "connected" : "offline"))
+      .then((r) => {
+        if (r.ok) setBackendStatus("connected");
+        else setBackendStatus("offline");
+      })
       .catch(() => setBackendStatus("offline"));
   }, []);
 
