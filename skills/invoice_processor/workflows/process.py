@@ -542,7 +542,15 @@ async def store_invoice(data: dict) -> dict:
 
 @step(name="export_invoice", description="Export processed invoices to CSV/Excel/JSON")
 async def export_invoice(data: dict) -> dict:
-    """Export processed invoice data to files."""
+    """Export processed invoice data to files.
+
+    All files are written to a local temp directory first, then copied
+    to the final output_dir in one batch. This avoids slow per-file I/O
+    on network-synced drives (OneDrive, SharePoint, Google Drive).
+    """
+    import shutil
+    import tempfile
+
     files = data.get("files", [])
     output_dir = Path(data.get("output_dir", data.get("output", "./test_output/invoices")))
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -551,34 +559,41 @@ async def export_invoice(data: dict) -> dict:
     invoices = _build_invoice_objects(files)
     exported: list[str] = []
 
-    if export_format in ("csv", "all"):
-        csv_path = output_dir / "invoices.csv"
-        _export_csv(invoices, csv_path)
-        exported.append(str(csv_path))
+    # Write everything to a fast local temp dir first
+    tmp_dir = Path(tempfile.mkdtemp(prefix="aiflow_export_"))
 
-    if export_format in ("json", "all"):
-        json_path = output_dir / "invoices.json"
-        # Build JSON in memory first, then single atomic write (OneDrive-friendly)
-        json_str = json.dumps(
-            [inv.model_dump(mode="json") for inv in invoices],
-            ensure_ascii=False, indent=2,
-        )
-        json_path.write_text(json_str, encoding="utf-8")
-        exported.append(str(json_path))
+    try:
+        if export_format in ("csv", "all"):
+            _export_csv(invoices, tmp_dir / "invoices.csv")
+            exported.append("invoices.csv")
 
-    if export_format in ("excel", "all"):
-        try:
-            excel_path = output_dir / "invoices.xlsx"
-            _export_excel(invoices, excel_path)
-            exported.append(str(excel_path))
-        except ImportError:
-            logger.warning("export_invoice.openpyxl_missing")
+        if export_format in ("json", "all"):
+            json_str = json.dumps(
+                [inv.model_dump(mode="json") for inv in invoices],
+                ensure_ascii=False, indent=2,
+            )
+            (tmp_dir / "invoices.json").write_text(json_str, encoding="utf-8")
+            exported.append("invoices.json")
+
+        if export_format in ("excel", "all"):
+            try:
+                _export_excel(invoices, tmp_dir / "invoices.xlsx")
+                exported.append("invoices.xlsx")
+            except ImportError:
+                logger.warning("export_invoice.openpyxl_missing")
+
+        # Single batch copy from local temp → final output (one network round-trip per file)
+        for fname in exported:
+            shutil.copy2(str(tmp_dir / fname), str(output_dir / fname))
+
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
     logger.info("export_invoice.done", files=len(exported), invoices=len(invoices))
 
     return {
         **data,
-        "exported_files": exported,
+        "exported_files": [str(output_dir / f) for f in exported],
         "export_summary": {
             "total_invoices": len(invoices),
             "total_line_items": sum(len(inv.line_items) for inv in invoices),
@@ -710,8 +725,4 @@ def _export_excel(invoices: list[ProcessedInvoice], path: Path) -> None:
                 item.net_amount, item.vat_rate, item.vat_amount, item.gross_amount,
             ])
 
-    # Write to a temp file first, then move — avoids slow incremental writes on OneDrive
-    import tempfile, shutil
-    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
-        wb.save(tmp.name)
-        shutil.move(tmp.name, str(path))
+    wb.save(str(path))
