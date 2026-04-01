@@ -114,37 +114,50 @@ pytest tests/unit/ -q --tb=no
 git add {backend files} && git commit -m "feat({service}): F{X} backend — {description}"
 ```
 
-## STEP 7: /ui-journey — USER JOURNEY (GATE-ELT!)
+## STEP 7: /ui-journey — USER JOURNEY (GATE-ELT! ONALLO FAJL KOTELEZO!)
 **MIELOTT BARMILYEN UI KODOT IRNAL:**
 ```bash
-# GATE CHECK: journey dokumentacio letezik-e?
-grep -r "Journey:" 01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md | grep -i "{fazis_neve}"
+# GATE CHECK: Journey fajl FIZIKAILAG letezik-e? (ls, NEM grep!)
+ls 01_PLAN/F{X}_*JOURNEY*.md 2>/dev/null
+# Ha NINCS FAJL → **STOP** — LETREHOZNI KOTELEZO, NEM KIHAGYNI!
 ```
-Ha NEM letezik → Futtasd `/ui-journey "{fazis neve}"` MOST.
-A journey dokumentacio KELL tartalmazzon:
-- Ki a felhasznalo (role)
-- Mi a celja (goal)
-- Milyen lepesekbol all (steps)
-- Milyen API endpointok kellenek (endpoints)
-- Milyen oldalak/komponensek kellenek (pages)
+Ha NEM letezik → HOZD LETRE az `01_PLAN/F{X}_{SERVICE}_JOURNEY.md` fajlt MOST.
+**Onallo fajl kell, NEM a 42_SERVICE_GENERALIZATION_PLAN.md-be irni!**
 
-**NEM LEPHETSZ STEP 8-ra journey dokumentacio NELKUL!**
+A journey fajl KOTELEZO tartalma:
+- **Actor**: Ki a felhasznalo (role, expertise)
+- **Goal**: Mi a celja (1 mondatban)
+- **Preconditions**: Mi kell hogy elozetesen teljesuljon
+- **Steps**: Szamozo lépések (1. Oldal megnyitas → 2. Adat betoltes → ... → N. Vegeredmeny)
+- **API Endpoints**: Minden szukseges endpoint TELJES LISTAJA (method, path, response)
+- **UI Pages**: Oldalak/komponensek listaja ami a journey-hoz kell
+- **Success Criteria**: Mikor "KESZ" a journey (merheto kriteriumok)
+- **Error Scenarios**: Mi tortenik ha valami nem sikerul
 
-## STEP 8: /ui-design — FIGMA DESIGN (GATE-ELT!)
+**NEM LEPHETSZ STEP 8-ra journey fajl NELKUL! Ha a `ls` ures → STOP!**
+
+## STEP 8: /ui-design — FIGMA DESIGN (GATE-ELT! FIGMA FRAME KOTELEZO!)
 **MIELOTT BARMILYEN UI KODOT IRNAL:**
 ```bash
-# GATE CHECK: PAGE_SPECS.md-ben letezik-e az uj oldal specifikacioja?
-grep -i "{page_name}" aiflow-admin/figma-sync/PAGE_SPECS.md
+# GATE CHECK 1: PAGE_SPECS.md-ben letezik-e az uj oldal specifikacioja?
+grep -c "## Page.*{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md
+# Ha 0 → **STOP** — Figma design KELL ELOSZOR!
+
+# GATE CHECK 2: A PAGE_SPECS.md entry tartalmaz-e Figma node ID-t?
+grep -A5 "## Page.*{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md | grep -i "node\|frame\|figma"
+# Ha NINCS Figma referencia → a specs MANUALIS (nem Figma-bol), NEM ELFOGADHATO!
 ```
-Ha NEM letezik → Futtasd `/ui-design "{page name}"` MOST.
+Ha NEM letezik → Futtasd `/ui-design "{page name}"` MOST — valos Figma MCP design-nal.
+**Manuálisan írt PAGE_SPECS.md entry Figma design NÉLKÜL NEM ELFOGADHATÓ!**
+
 A design KELL tartalmazzon:
-- Layout leiras (PAGE_SPECS.md)
-- Data source (API endpoint)
-- Sections + interactions
-- Loading / Error / Empty states
+- Figma frame (Untitled UI komponensek)
+- PAGE_SPECS.md entry Figma node ID-val
+- Layout leiras (sections, interactions)
+- Loading / Error / Empty states design
 - i18n keys
 
-**NEM LEPHETSZ STEP 9-re Figma design NELKUL!**
+**NEM LEPHETSZ STEP 9-re Figma design NELKUL! Manualis specs NEM SZAMIT!**
 
 ## STEP 9: /ui-page — UI IMPLEMENTACIO (CSAK ha Gate 8 PASS!)
 ```bash

@@ -8,25 +8,28 @@ Arguments: $ARGUMENTS
 > **OUTPUT ARTEFAKTUM:** PAGE_SPECS.md frissites + Figma frame. Enelkul /ui-page FAIL.
 
 ## HARD GATE ELLENORZES (AUTOMATIKUS — ha FAIL → STOP):
+> **GATE VIOLATION TORTENELEM:** F1+F2 fazisban a Figma design KIHAGYASRA kerult,
+> PAGE_SPECS.md manuálisan lett írva. Emiatt FIZIKAI FAJL CHECK szukseges.
+
 ```bash
-# GATE CHECK 1: Journey dokumentacio LETEZIK?
-grep -ri "Journey:" 01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md | grep -i "{page_name}"
-# VAGY: ls 01_PLAN/*journey*
-# Ha NINCS → **STOP** — futtasd `/ui-journey` ELOSZOR!
+# GATE CHECK 1: Journey fajl FIZIKAILAG LETEZIK? (ONALLO FAJL, NEM grep a tervben!)
+ls 01_PLAN/F*_*JOURNEY*.md 2>/dev/null || echo "GATE 1 FAIL: Journey fajl HIANYZIK!"
+# Ha NINCS FAJL → **STOP** — futtasd `/ui-journey` ELOSZOR!
 
 # GATE CHECK 2: API endpoint valos adatot ad?
-curl -s http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', 'NO BACKEND DATA'"
+curl -sf http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', 'NO BACKEND DATA'" || echo "GATE 2-3 FAIL!"
 # Ha FAIL → **STOP** — implementald az API-t ELOSZOR!
 
 # GATE CHECK 3: Figma MCP elerheto?
-# join_channel → "e71e0crh" — ha FAIL → **STOP**
+# join_channel → aktualis channel (user adja meg) — ha FAIL → **STOP**
 ```
 **Ha BARMELYIK gate FAIL → NEM DESIGNOLUNK! Eloszor az elofeltetel.**
+**NEM kerhetsz engedelyt a gate kihagyasara — NINCS kiveteles.**
 
 ## Pre-requisites (HARD — nem advisory!):
-1. **User Journey LETEZIK** — `/ui-journey` LEFUTOTT es ARTEFAKTUM van (01_PLAN/)
+1. **User Journey FAJL LETEZIK** — `ls 01_PLAN/F*_*JOURNEY*.md` FAJLT MUTAT (nem ures)
 2. **API endpoint LETEZIK** — `curl` VALOS adatot ad, `source: "backend"`
-3. **Figma MCP csatlakozva** — `join_channel` channel ID: `e71e0crh`
+3. **Figma MCP csatlakozva** — `join_channel` channel ID (user adja meg session elejen)
 
 ## Design Workflow:
 

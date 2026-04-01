@@ -3,21 +3,27 @@ Generate a new page for the AIFlow admin dashboard.
 > **GATE 5 a 7 HARD GATE pipeline-bol. CSAK Gate 1-4 UTAN futtatható!**
 
 ## HARD GATE ELLENORZES (AUTOMATIKUS — ha FAIL → STOP, NEM GENERÁLUNK!):
-```bash
-# GATE CHECK 1: Journey LETEZIK?
-grep -ri "Journey:" 01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md | grep -i "{page}"
-# Ha NINCS → **STOP** — futtasd `/ui-journey` ELOSZOR!
+> **GATE VIOLATION TORTENELEM:** F1+F2 fazisban ezek a check-ek KIHAGYASRA kerultek.
+> Emiatt FIZIKAI FAJL ELLENORZES (`ls`) szukseges, grep ONMAGABAN NEM ELEG.
 
-# GATE CHECK 2: Figma design LETEZIK a PAGE_SPECS.md-ben?
-grep -ic "{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md
-# Ha 0 → **STOP** — futtasd `/ui-design` ELOSZOR!
+```bash
+# GATE CHECK 1: Journey fajl FIZIKAILAG LETEZIK? (ONALLO FAJL, NEM grep!)
+ls 01_PLAN/F*_*JOURNEY*.md 2>/dev/null || echo "GATE 1 FAIL: Journey fajl HIANYZIK!"
+# Ha NINCS FAJL → **STOP** — futtasd `/ui-journey` ELOSZOR!
+# NEM eleg grep-pelni a generalizacios tervet — ONALLO journey fajl KELL!
+
+# GATE CHECK 2: PAGE_SPECS.md LETEZIK az oldalhoz + FIGMA REFERENCIA van benne?
+grep -c "## Page.*{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md || echo "GATE 4 FAIL: PAGE_SPECS entry HIANYZIK!"
+# Ha 0 → **STOP** — futtasd `/ui-design` (valos Figma MCP design!) ELOSZOR!
+# Manuálisan írt PAGE_SPECS entry Figma design NÉLKÜL NEM ELFOGADHATÓ!
 
 # GATE CHECK 3: API endpoint valos adatot ad?
-curl -s http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; print(json.load(sys.stdin).get('source','?'))"
+curl -sf http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', 'NO BACKEND'" || echo "GATE 2-3 FAIL: API nem ad valos adatot!"
 # Ha NEM "backend" → **STOP** — implementald az API-t ELOSZOR!
 ```
 **Mind a 3 GATE PASS kell mielott BARMILYEN UI kodot generalnal!**
-Ha barmelyik FAIL → jelezd a felhasznalonak melyik elofeltetel hianyzik.
+**Ha barmelyik FAIL → STOP → megoldas → ujra ellenorzes → AZTAN generálas.**
+**NEM kerhetsz engedelyt a gate kihagyasara — NINCS kiveteles.**
 
 ## Context
 The UI project is at `aiflow-admin/` using Vite + React Admin + React 19 + MUI + TypeScript.

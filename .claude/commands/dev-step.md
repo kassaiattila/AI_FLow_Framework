@@ -18,18 +18,23 @@ Arguments: $ARGUMENTS
 3. **Check existing code** - never reinvent what already works
 4. **If DB change needed**: create Alembic migration FIRST
 5. **If new service**: check `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 3-4
-6. **If UI change — HARD GATE ELLENORZES (KIHAGYNI TILOS!):**
+6. **If UI change — HARD GATE ELLENORZES (KIHAGYNI TILOS! FIZIKAI FAJL CHECK!):**
    ```bash
-   # GATE A: Journey dokumentacio LETEZIK?
-   grep -ri "Journey:" 01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md | head -3
-   # Ha NINCS a releváns journey → STOP → futtasd /ui-journey ELOSZOR!
+   # GATE A: Journey fajl FIZIKAILAG LETEZIK? (ls, NEM grep!)
+   ls 01_PLAN/F*_*JOURNEY*.md 2>/dev/null || echo "GATE FAIL: Nincs journey fajl!"
+   # Ha NINCS FAJL → **STOP** → hozd letre /ui-journey -vel ELOSZOR!
+   # NEM ELEG grep-pelni a 42_SERVICE_GENERALIZATION_PLAN.md-t — ONALLO FAJL KELL!
 
-   # GATE B: Figma design LETEZIK a PAGE_SPECS.md-ben?
-   grep -i "{page_name}" aiflow-admin/figma-sync/PAGE_SPECS.md
-   # Ha NINCS → STOP → futtasd /ui-design ELOSZOR!
+   # GATE B: PAGE_SPECS.md-ben VAN-E az oldal szekcioja FIGMA REFERENCIA-VAL?
+   grep -c "## Page.*{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md || echo "GATE FAIL: Nincs PAGE_SPECS entry!"
+   # Ha NINCS → **STOP** → futtasd /ui-design ELOSZOR (valos Figma MCP design!)
+   # Manuálisan írt PAGE_SPECS entry Figma nélkül NEM ELFOGADHATÓ!
    ```
-   **TILOS UI kodot irni journey es Figma design NELKUL!**
-   **Ha barmelyik gate FAIL → futtasd a megfelelo /ui-* parancsot ELOSZOR!**
+   **TILOS UI kodot irni journey fajl es Figma design NELKUL!**
+   **Ha barmelyik gate FAIL → STOP → megoldas → AZTAN tovabb!**
+   **NEM kerhetsz engedelyt a gate kihagyasara — NINCS kiveteles.**
+   > **GATE VIOLATION TORTENELEM:** F1 + F2 fazisban ezen gate-ek KIHAGYASRA kerultek.
+   > Emiatt lett bevezetve a fizikai fajl ellenorzes (`ls`) a grep helyett.
 
 ## POST-IMPLEMENTATION VALIDATION:
 

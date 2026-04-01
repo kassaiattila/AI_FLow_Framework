@@ -280,16 +280,18 @@ result = await runner.run_steps([step1, step2], {"input": "..."})
 > **MINDEN UI munka KIZAROLAG ezen a 7 lepesu pipeline-on mehet keresztul.**
 > **Egy lepes CSAK AKKOR indithato ha az elozo lepes ARTEFAKTUMA letezik es ellenorizheto.**
 > Ez NEM ajanlás — ez BLOKKOLÓ kovetelmeny. Ha egy gate nem teljesul, STOP.
+> **GATE VIOLATION TORTENELEM:** F1 es F2 fazisban Gate 1 (Journey) es Gate 4 (Figma) KIHAGYASRA KERULT.
+> Emiatt ez a szigoritott pipeline letezik. **F3-tol SOHA NE fordulhasson elo ujra.**
 
 ```
-GATE 1: /ui-journey → OUTPUT: 01_PLAN/ journey dokumentacio fajl
-   ↓ GATE CHECK: journey fajl LETEZIK-e?
+GATE 1: /ui-journey → OUTPUT: 01_PLAN/F{X}_{SERVICE}_JOURNEY.md (ONALLO FAJL!)
+   ↓ GATE CHECK: ls 01_PLAN/F{X}_*JOURNEY* — FAJL FIZIKAILAG LETEZIK-e?
 GATE 2: API audit → OUTPUT: minden endpoint curl-lel tesztelve, source: "backend"
    ↓ GATE CHECK: curl tesztek PASS, nincs ❌ endpoint?
 GATE 3: /ui-api-endpoint → OUTPUT: hianyzó endpointok implementálva
    ↓ GATE CHECK: MINDEN journey endpoint 200 OK + valos adat?
 GATE 4: /ui-design (Figma MCP) → OUTPUT: PAGE_SPECS.md frissitve + Figma frame letezik
-   ↓ GATE CHECK: PAGE_SPECS.md-ben az uj oldal szekcioja LETEZIK-e?
+   ↓ GATE CHECK: grep "{PageName}" PAGE_SPECS.md + Figma frame ID letezik benne
 GATE 5: /ui-page vagy /ui-component → OUTPUT: .tsx fajl + tsc --noEmit PASS
    ↓ GATE CHECK: TypeScript HIBA NELKUL?
 GATE 6: Playwright E2E → OUTPUT: screenshot + 0 console error + i18n HU/EN toggle
@@ -298,22 +300,46 @@ GATE 7: Figma sync → OUTPUT: PAGE_SPECS.md vegso frissites, Figma ↔ Code kon
    ↓ GATE CHECK: PAGE_SPECS.md es a .tsx fajl KONZISZTENS?
 ```
 
-**HARD GATE ELLENORZES — amit a Claude Code MINDEN lepes ELOTT vegrehajt:**
-- Gate 1 → 2: `ls 01_PLAN/*journey*` VAGY `grep -r "Journey:" 01_PLAN/` — ha NINCS → STOP
-- Gate 2 → 3: Minden endpoint `curl` PASS — ha BARMELYIK FAIL → STOP
-- Gate 3 → 4: `curl` MIND 200 OK + `source: "backend"` — ha NEM → STOP
-- Gate 4 → 5: `grep "{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md` — ha NINCS → STOP
-- Gate 5 → 6: `cd aiflow-admin && npx tsc --noEmit` — ha HIBA → STOP
-- Gate 6 → 7: Playwright screenshot + `browser_console_messages` 0 error — ha FAIL → STOP
+### GATE ARTEFACT REGISTRY (fazis → kotelezoen letezo fajlok)
+> **Egy fazis UI resze CSAK AKKOR indithato ha az osszes korabbi gate artefaktuma LETEZIK.**
+> **Claude Code KOTELES `ls` paranccsal ellenorizni a fajl FIZIKAI letezeeset — grep NEM ELEG!**
+
+| Fazis | Gate 1: Journey fajl | Gate 4: PAGE_SPECS.md entry | Gate 6: E2E screenshot |
+|-------|---------------------|---------------------------|----------------------|
+| F1 | `01_PLAN/F1_DOCUMENT_EXTRACTOR_JOURNEY.md` | Page: Documents, DocumentUpload, Verification | `e2e-f1-*.png` |
+| F2 | `01_PLAN/F2_EMAIL_CONNECTOR_JOURNEY.md` | Page: Emails, EmailDetail, EmailConnectors | `e2e-f2-*.png` |
+| F3 | `01_PLAN/F3_RAG_ENGINE_JOURNEY.md` | Page: RAGChat (redesign), RAGCollections, RAGIngest | `e2e-f3-*.png` |
+| F4 | `01_PLAN/F4_RPA_MEDIA_DIAGRAM_JOURNEY.md` | Page: ProcessDocs (redesign), CubixViewer (redesign) | `e2e-f4-*.png` |
+| F5 | `01_PLAN/F5_MONITORING_GOVERNANCE_JOURNEY.md` | Page: AdminDashboard, AuditLog, Scheduling | `e2e-f5-*.png` |
+
+### MANDATORY GATE CHECK PROTOCOL
+> **Claude Code MINDEN UI-t erinto /dev-step, /ui-page, /ui-component, /ui-design ELOTT KOTELES lefuttatni:**
+```bash
+# 1. Journey fajl FIZIKAILAG letezik? (ls, NEM grep!)
+ls 01_PLAN/F{X}_*JOURNEY*.md 2>/dev/null || echo "GATE 1 FAIL — /ui-journey KELL ELOSZOR!"
+# Ha FAIL → TILOS TOVABBLEPNI. Futtasd /ui-journey ELOSZOR.
+
+# 2. PAGE_SPECS.md-ben van-e az oldal szekcioja? (Figma design KELL!)
+grep -c "## Page.*{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md || echo "GATE 4 FAIL — /ui-design KELL ELOSZOR!"
+# Ha FAIL → TILOS TOVABBLEPNI. Futtasd /ui-design ELOSZOR.
+
+# 3. API valos adatot ad?
+curl -sf http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend'" || echo "GATE 2-3 FAIL"
+```
+**Ha BARMELYIK check FAIL → NEM IRUNK UI KODOT. Eloszor az elofeltetelt teljesitjuk.**
+**A felhasznalot ERTESITJUK melyik gate FAIL es mi a megoldas.**
+**NEM kerunk engedelyt a gate kihagyasara — NINCS kiveteles.**
 
 **TILOS:**
 - UI kodot irni Figma design NELKUL (Gate 4 kihagyasa)
 - UI kodot irni journey dokumentacio NELKUL (Gate 1 kihagyasa)
 - Playwright tesztet kihagyni (Gate 6 kihagyasa)
 - Barmelyik gate-et "kesobb megcsinalom" alapon athagyni
+- Journey-t CSAK grep-pel "ellenorizni" — FAJLNAK FIZIKAILAG KELL LEZNIE
+- PAGE_SPECS.md-t manuálisan írni Figma design NÉLKÜL
 
 > Reszletek: `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 11 (UI/UX Fejlesztesi Pipeline)
-> Design System: Untitled UI (React 19 + Tailwind v4), Figma channel: `e71e0crh`
+> Design System: Untitled UI (React 19 + Tailwind v4), Figma channel: `hq5dlkhu`
 
 ### i18n Rules (NEVER skip!)
 - **EVERY user-visible string MUST use `useTranslate()` from react-admin** — no exceptions
