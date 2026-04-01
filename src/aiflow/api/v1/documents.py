@@ -420,20 +420,6 @@ async def render_pdf_page(source_file: str, page: int = 1) -> StreamingResponse:
 
 
 # ---------------------------------------------------------------------------
-# GET /api/v1/documents/{source_file} — single invoice detail
-# ---------------------------------------------------------------------------
-
-@router.get("/{source_file:path}", response_model=DocumentItem)
-async def get_document(source_file: str) -> DocumentItem:
-    """Get a single invoice document by source_file."""
-    result = await list_documents(limit=500, offset=0)
-    for doc in result.documents:
-        if doc.source_file == source_file:
-            return doc
-    raise HTTPException(status_code=404, detail=f"Document not found: {source_file}")
-
-
-# ---------------------------------------------------------------------------
 # POST /api/v1/documents/upload — multipart file upload
 # ---------------------------------------------------------------------------
 
@@ -553,3 +539,151 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
         results=results,
         source="backend",
     )
+
+
+# ---------------------------------------------------------------------------
+# Document Extractor Service endpoints (F1)
+# ---------------------------------------------------------------------------
+
+def _get_doc_extractor():
+    """Lazy-init Document Extractor service."""
+    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+    from aiflow.services.document_extractor import DocumentExtractorService
+
+    db_url = os.getenv(
+        "AIFLOW_DATABASE__URL",
+        "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
+    )
+    engine = create_async_engine(db_url)
+    sf = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    return DocumentExtractorService(sf)
+
+
+class VerifyRequest(BaseModel):
+    """Document verification request."""
+    verified_fields: dict[str, Any] = {}
+    verified_by: str = "user"
+
+
+class VerifyResponse(BaseModel):
+    """Document verification response."""
+    verified: bool
+    invoice_id: str
+    source: str = "backend"
+
+
+@router.post("/{invoice_id}/verify", response_model=VerifyResponse)
+async def verify_document(invoice_id: str, request: VerifyRequest) -> VerifyResponse:
+    """Verify an extracted document — confirm or correct extracted fields."""
+    svc = _get_doc_extractor()
+    await svc.start()
+    try:
+        ok = await svc.verify(
+            invoice_id=invoice_id,
+            verified_fields=request.verified_fields,
+            verified_by=request.verified_by,
+        )
+        return VerifyResponse(verified=ok, invoice_id=invoice_id)
+    except Exception as e:
+        logger.error("verify_failed", error=str(e), invoice_id=invoice_id)
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await svc.stop()
+
+
+@router.get("/by-id/{invoice_id}")
+async def get_document_by_id(invoice_id: str) -> dict[str, Any]:
+    """Get a single invoice by database ID."""
+    svc = _get_doc_extractor()
+    await svc.start()
+    try:
+        result = await svc.get_invoice(invoice_id)
+        if not result:
+            raise HTTPException(status_code=404, detail=f"Invoice not found: {invoice_id}")
+        return result
+    finally:
+        await svc.stop()
+
+
+# ---------------------------------------------------------------------------
+# Document Type Config endpoints (F1)
+# ---------------------------------------------------------------------------
+
+@router.get("/extractor/configs")
+async def list_extractor_configs() -> dict[str, Any]:
+    """List all document extraction configurations."""
+    svc = _get_doc_extractor()
+    await svc.start()
+    try:
+        configs = await svc.list_configs()
+        return {
+            "configs": [
+                {
+                    "name": c.name,
+                    "display_name": c.display_name,
+                    "document_type": c.document_type,
+                    "field_count": len(c.fields),
+                    "enabled": c.enabled,
+                }
+                for c in configs
+            ],
+            "total": len(configs),
+            "source": "backend",
+        }
+    finally:
+        await svc.stop()
+
+
+class CreateConfigRequest(BaseModel):
+    """Create document type config request."""
+    name: str
+    display_name: str = ""
+    document_type: str = ""
+    description: str = ""
+    parser: str = "docling"
+    extraction_model: str = "openai/gpt-4o"
+    fields: list[dict[str, Any]] = []
+    validation_rules: list[str] = []
+    output_formats: list[str] = ["json"]
+
+
+@router.post("/extractor/configs")
+async def create_extractor_config(request: CreateConfigRequest) -> dict[str, Any]:
+    """Create a new document extraction configuration."""
+    from aiflow.services.document_extractor import DocumentTypeConfig, FieldDefinition
+
+    svc = _get_doc_extractor()
+    await svc.start()
+    try:
+        config = DocumentTypeConfig(
+            name=request.name,
+            display_name=request.display_name or request.name,
+            document_type=request.document_type,
+            description=request.description,
+            parser=request.parser,
+            extraction_model=request.extraction_model,
+            fields=[FieldDefinition(**f) for f in request.fields],
+            validation_rules=request.validation_rules,
+            output_formats=request.output_formats,
+        )
+        await svc.create_config(config)
+        return {"created": True, "name": config.name, "source": "backend"}
+    except Exception as e:
+        logger.error("create_config_failed", error=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        await svc.stop()
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/documents/{source_file} — single invoice detail (CATCH-ALL, MUST BE LAST!)
+# ---------------------------------------------------------------------------
+
+@router.get("/{source_file:path}", response_model=DocumentItem)
+async def get_document(source_file: str) -> DocumentItem:
+    """Get a single invoice document by source_file."""
+    result = await list_documents(limit=500, offset=0)
+    for doc in result.documents:
+        if doc.source_file == source_file:
+            return doc
+    raise HTTPException(status_code=404, detail=f"Document not found: {source_file}")
