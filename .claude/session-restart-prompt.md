@@ -6,58 +6,66 @@ Masold be ezt a promptot uj Claude Code session indulaskor:
 
 ## Kontextus
 
-AIFlow Enterprise AI Automation Framework — service generalizacios fazisban vagyunk.
+AIFlow Enterprise AI Automation Framework — service generalizacios fazisban vagyunk (vertikalis szeletek).
 
 ### Kiindulas
 - **Git tag:** `v0.9.0-stable` (rollback pont)
 - **Aktualis branch:** `main`
-- **Utolso commit:** `e33686e` (Alembic strategy)
+- **Utolso session:** Teljes konzisztencia audit + fazis atstruktralas (4 commit: 92720a9..d76b3c5)
 
 ### FO TERV: `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`
-Olvasd el a teljes tervet! Tartalmazza:
-- 7 domain szolgaltatas (Email Connector, Document Extractor, RAG Engine, Classifier, RPA Browser, Media Processor, Diagram Generator)
-- 9 infra epitokocka (Cache, Events, Config Versioning, Health Monitoring, Rate Limiter, Circuit Breaker, Human Review, Audit Trail, Schema Registry)
-- 6 fazis vertikalis szelet: F0 (infra) → F1 (Doc Extractor) → F2 (Email+Classifier) → F3 (RAG) → F4 (RPA+Media+Diagram) → F5 (Monitoring+Governance)
-- Minden fazis: backend → API → Figma design → UI → Playwright E2E → KESZ, utana kovetkezo
-- Alembic migracios strategia: 13 letezo migracio (001-013), 11 tervezett (014-024)
-- DB: 36 tabla + 13 view PostgreSQL-ben (localhost:5433) — ld. `03_DATABASE_SCHEMA.md`
+Olvasd el a terv **Section 5** (Implementacios Fazisok) es **Section 8** (Sikerkritieriumok) szekciot!
 
-### Projekt struktura
-- **Backend:** `src/aiflow/` (FastAPI, Python 3.12+, port 8100)
-- **Admin UI:** `aiflow-admin/` (Vite + React Admin + MUI, port 5174)
-- **Legacy UI:** `aiflow-ui/` (Next.js — DEPRECATED, ne hasznald!)
-- **Skills:** `skills/` (6 skill, ebbol 4 production, 1 dev, 1 stub)
-- **Services:** `src/aiflow/services/` (TERVEZETT, meg nem letezik — F0-ban keszul)
-- **Tervek:** `01_PLAN/` (49 dokumentum)
+**6 fazis, vertikalis szeletek** — egy szolgaltatas TELJESEN KESZ mielott a kovetkezore lepunk:
+```
+F0: Infra (cache, config, rate limit, schema registry, auth)        → v0.9.1-infra
+F1: Document Extractor (backend → API → Figma → UI → E2E)           → v0.10.0-document-extractor
+F2: Email Connector + Classifier (backend → API → Figma → UI → E2E) → v0.10.1-email-connector
+F3: RAG Engine (backend → API → Figma → UI → E2E)                   → v0.11.0-rag-engine
+F4: RPA + Media + Diagram + Human Review (4 mini-szelet)             → v0.12.0-complete-services
+F5: Monitoring + Governance + Admin + Production Ready               → v1.0.0-rc1
+```
+
+Minden fazis pipeline-ja:
+```
+Backend → Alembic → API → curl teszt → /ui-journey → /ui-design (Figma MCP)
+  → /ui-page (React) → Playwright E2E → /service-test → git tag → KESZ
+```
+
+### Projekt szamok
+- **DB:** 36 tabla, 13 view, 13 letezo migracio (001-013), 11 tervezett (014-024)
+- **Skills:** 6 db (4 working, 1 dev, 1 stub)
+- **Commands:** 18 slash command (ld. CLAUDE.md)
+- **Services:** `src/aiflow/services/` — TERVEZETT, F0-ban keszul
 
 ### Szerverek inditasa
 ```bash
-# 1. Docker (DB + Redis)
-docker compose up -d db
-
-# 2. FastAPI backend
-.venv/Scripts/python -m uvicorn aiflow.api.app:create_app --factory --port 8100
-
-# 3. Admin UI (Vite)
-cd aiflow-admin && npx vite --port 5174
+docker compose up -d db                                                    # PostgreSQL + Redis
+.venv/Scripts/python -m uvicorn aiflow.api.app:create_app --factory --port 8100  # FastAPI
+cd aiflow-admin && npx vite --port 5174                                    # Admin UI
 ```
 
-### KRITIKUS SZABALYOK
-1. **VALOS TESZTELES KOTELEZO** — SOHA ne mock/fake adatokkal! Playwright MCP E2E teszt minden UI valtozasnal.
-2. **Alembic ELOSZOR** — Tabla ELOSZOR (migracio), service kod MASODSZOR. SOHA ne hozz letre tablat raw SQL-lel!
-3. **Ha egy teszt sikertelen: STOP** — elobb javitsd, teszteld ujra, AZTAN lepj tovabb.
-4. **Fejlesztes utan:** `/dev-step` parancs — backend curl teszt + TypeScript check + Playwright E2E
-5. **`source` mezo KOTELEZO** minden API valaszban: `"backend"` vagy `"demo"`
-6. **Git tag** minden fazis vegen (v0.9.1-infra, v0.10.0-services, stb.)
+### FO PARANCSOK
+| Parancs | Mikor |
+|---------|-------|
+| `/start-phase F0` | **Fazis inditas** — teljes vertikalis szelet orchestracio |
+| `/phase-status F0` | Aktualis fazis allapot |
+| `/dev-step` | Fejlesztes + valos teszt + commit |
+| `/service-test` | Szolgaltatas E2E teszt (backend + API + UI) |
+| `/ui-journey` | User journey + API audit (UI elott!) |
+| `/ui-design` | Figma MCP design (API utan!) |
+| `/regression` | Regresszios tesztek (commit elott!) |
 
-### Hasznos parancsok
-- `/dev-step` — fejlesztes + valos teszt + commit (FO PARANCS)
-- `/phase-status F0` — aktualis fazis allapot
-- `/regression` — regresszios tesztek
-- `curl -s http://localhost:8100/health` — backend check
-- `curl -s http://localhost:8100/api/v1/documents | head -100` — adat check
+### KRITIKUS SZABALYOK
+1. **Vertikalis szelet:** Egy szolgaltatas TELJESEN KESZ (backend + API + UI + E2E) mielott a kovetkezore lepunk
+2. **VALOS TESZTELES:** SOHA ne mock/fake! Playwright E2E + curl + valos DB
+3. **API-First + Figma-First:** Backend → API → curl teszt → Figma design → UI → Playwright E2E
+4. **Alembic ELOSZOR:** Tabla migracio ELOSZOR, service kod MASODSZOR
+5. **Ha teszt sikertelen: STOP** — javitas → ujra teszt → AZTAN tovabb
 
 ### Hol tartunk?
-Kerdezd meg: "Melyik fazissal/feladattal folytassuk?" es olvasd el a `42_SERVICE_GENERALIZATION_PLAN.md` Section 5 (Bovitett Implementacios Fazisok) aktualis feladatait!
+1. Olvasd el: `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 5
+2. Futtasd: `/phase-status F0` — mi van kesz, mi hianyzik
+3. Inditsd: `/start-phase F0` — ha elozo fazis KESZ es tovabb lephetunk
 
 ---
