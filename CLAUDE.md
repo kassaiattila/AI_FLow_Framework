@@ -186,11 +186,13 @@ make lock                                   # Regenerate uv.lock from pyproject.
 - `/new-module` - Generate framework module + tests + registry updates
 - `/new-prompt` - Generate prompt YAML + Promptfoo test cases
 
-### UI
-- `/ui-component` - Generate shadcn/ui + TypeScript component for the dashboard
-- `/ui-page` - Generate Next.js App Router page for the dashboard
+### UI (7 lepesu pipeline: Journey → API → Figma → UI → Teszt)
+- `/ui-journey` - **ELSO LEPES**: User journey definicio + API audit + implementation terv
+- `/ui-design` - **Figma MCP**: UI/UX design Figma-ban a journey alapjan (PAGE_SPECS.md frissites)
+- `/ui-page` - Generate React Admin + MUI page for the dashboard (Figma design alapjan!)
+- `/ui-component` - Generate MUI + TypeScript component for the dashboard
 - `/ui-viewer` - Generate skill-specific result viewer component
-- `/ui-api-endpoint` - Generate FastAPI endpoint for the UI
+- `/ui-api-endpoint` - Generate FastAPI endpoint for the UI (API-first!)
 
 ### Tervek + Audit
 - `/phase-status` - Check implementation progress for a phase (F0-F4)
@@ -267,10 +269,11 @@ result = await runner.run_steps([step1, step2], {"input": "..."})
 > Never build 5 viewers in parallel — build 1, test it manually, fix it, THEN move to the next.
 > A feature is NOT "KESZ" until Playwright E2E teszten atment.
 
-### API-First Rule (FONTOS!)
-> **UI fejlesztes MINDIG az API utan kovetkezik, SOHA nem elotte.**
-> Sorrend: User Journey → API tervezes → Backend impl + curl teszt → UI/UX → UI fejlesztes → Playwright E2E
-> Reszletek: `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 11 (UI Fejlesztesi Strategia)
+### API-First + Figma-First Rule (FONTOS!)
+> **UI fejlesztes 7 lepesu pipeline-t kovet, 3 MCP eszkozzel (Figma, Playwright, Claude Code).**
+> Sorrend: `/ui-journey` → API audit → `/ui-api-endpoint` → `/ui-design` (Figma MCP) → `/ui-page` → Playwright E2E → Figma sync
+> Reszletek: `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 11 (UI/UX Fejlesztesi Pipeline)
+> Design System: Untitled UI (React 19 + Tailwind v4), Figma channel: `e71e0crh`
 
 ### i18n Rules (NEVER skip!)
 - **EVERY user-visible string MUST use `useTranslate()` from react-admin** — no exceptions

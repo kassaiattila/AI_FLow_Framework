@@ -1306,29 +1306,58 @@ Szukseges API-k:
 - `GET /api/v1/admin/audit-log` — audit log lista + szures
 - `GET/POST/PUT/DELETE /api/v1/admin/schedules` — scheduling CRUD
 
-### 11.3 UI Fejlesztesi Sorrend (API-First szabaly!)
+### 11.3 UI/UX Fejlesztesi Pipeline (7 lepes, 3 MCP eszkozzel)
+
+> **Eszkozok:** Figma MCP (design), Playwright MCP (teszteles), Claude Code (fejlesztes)
+> **Design System:** Untitled UI (React 19 + Tailwind v4 + React Aria), Figma Kit
+> **Figma channel:** `e71e0crh` | **Figma sync:** `aiflow-admin/figma-sync/`
 
 ```
-┌───────────────────────────────────────────────────────┐
-│ 1. USER JOURNEY DEFINICIO (mit csinal a felhasznalo?) │
-│    ↓                                                   │
-│ 2. API ENDPOINT TERVEZES (milyen backend kell hozza?)  │
-│    ↓                                                   │
-│ 3. BACKEND IMPLEMENTACIO + VALOS TESZT (curl, pytest)  │
-│    ↓                                                   │
-│ 4. UI/UX TERVEZES (Figma/wireframe az adott journey-re)│
-│    ↓                                                   │
-│ 5. UI FEJLESZTES (React Admin + MUI)                   │
-│    ↓                                                   │
-│ 6. PLAYWRIGHT E2E TESZT (valos backend-del!)           │
-│    ↓                                                   │
-│ 7. "KESZ" (fazis lezaras)                              │
-└───────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│ 1. USER JOURNEY DEFINICIO (/ui-journey)                             │
+│    Ki? Mit? Hogyan? Milyen lepesekbol all?                          │
+│    ↓                                                                 │
+│ 2. API AUDIT + TERVEZES                                             │
+│    Letezik az API? → ✅ tovabb | ❌ eloszor /ui-api-endpoint         │
+│    Zombie tabla? → 🧟 eloszor Alembic migracio + CRUD endpoint      │
+│    ↓                                                                 │
+│ 3. BACKEND IMPLEMENTACIO + VALOS TESZT                              │
+│    curl hivás → valos adat? → source: "backend"?                     │
+│    ↓                                                                 │
+│ 4. FIGMA UI/UX DESIGN (/ui-design)                         ← MCP   │
+│    Figma MCP-vel: create_frame → set_auto_layout → komponensek      │
+│    PAGE_SPECS.md frissites + screenshot exportalas                    │
+│    Design elvek: Governor Pattern, Progressive Disclosure, i18n      │
+│    ↓                                                                 │
+│ 5. UI FEJLESZTES (/ui-page, /ui-component)                         │
+│    Figma design alapjan: React Admin + MUI (jelenleg)                │
+│    Kesobb: Untitled UI + Tailwind v4 (ld. REDESIGN_PLAN.md)         │
+│    ↓                                                                 │
+│ 6. PLAYWRIGHT E2E TESZT                                     ← MCP   │
+│    MCP Playwright: navigate → snapshot → click → screenshot          │
+│    Valos backend-del! Console hiba ellenorzes! i18n toggle!          │
+│    ↓                                                                 │
+│ 7. FIGMA ↔ CODE SZINKRON + "KESZ"                                   │
+│    Design token drift ellenorzes (figma-to-code.ts)                  │
+│    Ha elteres: Figma VAGY kod frissitese                             │
+│    Git tag ha fazis lezaras                                          │
+└─────────────────────────────────────────────────────────────────────┘
 ```
+
+**Claude Code Slash Commands a pipeline lepeseihez:**
+
+| Lepes | Command | MCP | Output |
+|-------|---------|-----|--------|
+| 1. Journey | `/ui-journey` | — | Journey doc + API audit tabla |
+| 2-3. API | `/ui-api-endpoint` | — | FastAPI endpoint + curl teszt |
+| 4. Design | `/ui-design` | Figma MCP | Figma frame + PAGE_SPECS.md |
+| 5. Fejlesztes | `/ui-page` / `/ui-component` / `/ui-viewer` | — | React komponens + i18n |
+| 6. Teszt | `/dev-step` | Playwright MCP | E2E teszt + screenshot |
+| 7. Szinkron | manualis | Figma MCP | Design token diff |
 
 > **FONTOS:** A UI fejlesztes NEM kulon fazis — hanem MINDEN service fazis RESZE.
 > F1-ben az Email + Document UI, F2-ben a RAG + Monitoring UI, stb.
-> De a UI MINDIG az API UTAN keszul, SOHA nem elotte!
+> De a pipeline MINDIG sorrendben halad: Journey → API → Design → UI → Teszt!
 
 ### 11.4 Azonnali UI Blocker-ek (Service Generalizacio ELOTT javitando)
 

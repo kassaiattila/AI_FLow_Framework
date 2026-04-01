@@ -1,10 +1,14 @@
 Generate a new MUI + TypeScript component for the AIFlow admin dashboard.
 
+> **ELOFELTETEL:** Ha uj komponens, ellenorizd a Figma design-t: `aiflow-admin/figma-sync/PAGE_SPECS.md`
+> Ha nincs design, futtasd eloszor `/ui-design`-t (Figma MCP). Ld. pipeline: `/ui-journey` → `/ui-design` → `/ui-component`
+
 ## Context
 The UI project is at `aiflow-admin/` using Vite + React Admin + React 19 + MUI + TypeScript.
 Existing components are in `aiflow-admin/src/components/`.
 MUI components (Button, Card, Chip, Table, Stack, Typography, etc.) are available.
 Verification components in `aiflow-admin/src/verification/`.
+Design specs in `aiflow-admin/figma-sync/PAGE_SPECS.md`.
 
 ## Ask me for:
 1. Component name (e.g., "pipeline-progress", "cost-bar", "health-badge")

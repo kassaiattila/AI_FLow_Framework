@@ -1,10 +1,14 @@
 Generate a skill-specific result viewer for the AIFlow admin dashboard.
 
+> **ELOFELTETEL:** User journey (`/ui-journey`) + API endpoint (`/ui-api-endpoint`) + Figma design (`/ui-design`)
+> Ez a pipeline 5. lepese. Ha nincs Figma spec, ld. `aiflow-admin/figma-sync/PAGE_SPECS.md` 🔧 Skill Viewers szekcioja.
+
 ## Context
 Viewers display the output of a specific AIFlow skill/service in a user-friendly way.
 They live in `aiflow-admin/src/pages/` or `aiflow-admin/src/resources/`.
 The invoice verification viewer (DocumentCanvas + VerificationPanel) is the reference implementation.
 Data flows through `src/dataProvider.ts` → FastAPI `/api/v1/*` endpoints.
+Design specs in `aiflow-admin/figma-sync/PAGE_SPECS.md` (🔧 Skill Viewers szekció).
 
 ## Pattern:
 - KPI summary cards at top (real data from dataProvider)

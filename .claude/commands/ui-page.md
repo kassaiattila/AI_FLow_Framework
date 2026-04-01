@@ -1,10 +1,15 @@
 Generate a new page for the AIFlow admin dashboard.
 
+> **ELOFELTETEL:** Futtasd eloszor `/ui-journey`-t (user journey + API audit),
+> majd `/ui-design`-t (Figma MCP design). Ez a command a 7 lepesu pipeline 5. lepese!
+> Ha nincs Figma design, eloszor keszitsd el — ld. `aiflow-admin/figma-sync/PAGE_SPECS.md`
+
 ## Context
 The UI project is at `aiflow-admin/` using Vite + React Admin + React 19 + MUI + TypeScript.
 Pages are in `aiflow-admin/src/pages/`. Resources in `src/resources/`.
 Data flows through `src/dataProvider.ts` → FastAPI `/api/v1/*` endpoints.
 Proxy config in `vite.config.ts` (NOT proxy.ts or middleware.ts).
+Design specs in `aiflow-admin/figma-sync/PAGE_SPECS.md`.
 
 ## Ask me for:
 1. Page route (e.g., `/costs`, `/invoices`)
