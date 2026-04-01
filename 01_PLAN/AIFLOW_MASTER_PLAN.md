@@ -648,4 +648,7 @@ aiflow/
 - Technical: 14-16 (Frontend, ML Models, RAG/VectorStore)
 - Dev Rules: 17-19 (Git Rules, Testing/Playwright, RPA Automation)
 - Deployment: 28 (Modular Deployment, Skill Instance architecture, multi-customer)
+- Optimization: 29 (Framework + Skill rationalization), 30 (RAG Production Plan)
+- UI/Design: 31-41 (Invoice Processor, Admin Dashboard, Figma Redesign)
+- **Service Generalization: 42 (Altalanos szolgaltatasok atalakitasi terv — Email, Document, RAG, RPA, Media, Diagram)**
 - Artifacts: CLAUDE.md, SKILL_DEVELOPMENT.md, AIFLOW_MASTER_PLAN.md, 00_EXECUTIVE_SUMMARY.md
