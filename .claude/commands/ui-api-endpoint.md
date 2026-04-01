@@ -1,15 +1,18 @@
-Generate a FastAPI endpoint that the AIFlow UI will consume.
+Generate a FastAPI endpoint that the AIFlow admin UI will consume.
 
 ## Context
 The backend API is at `src/aiflow/api/v1/` using FastAPI.
-The UI (Next.js) calls these endpoints via `aiflow-ui/src/lib/api.ts`.
-Existing endpoints: health.py, chat_completions.py, feedback.py, workflows.py.
+The admin UI (`aiflow-admin/`) calls these via Vite proxy: `/api` → `localhost:8100`.
+Data provider: `aiflow-admin/src/dataProvider.ts` maps resources to API endpoints.
+Existing routers: health, auth, workflows, chat_completions, feedback, runs, costs,
+skills_api, documents, emails, process_docs, cubix (12 router files).
 
 ## Ask me for:
-1. Endpoint path (e.g., `/api/v1/runs`, `/api/v1/costs/summary`)
-2. HTTP method (GET/POST)
+1. Endpoint path (e.g., `/api/v1/services/rag/collections`, `/api/v1/runs/{id}/cancel`)
+2. HTTP method (GET/POST/PUT/DELETE)
 3. Request/response models (Pydantic)
-4. Data source (database query, in-memory, file-based)
+4. Data source (database query, service call, file-based)
+5. Whether it's a new service endpoint (check 42_SERVICE_GENERALIZATION_PLAN.md)
 
 ## Rules:
 - Use FastAPI router pattern (match existing endpoints in api/v1/)
@@ -17,12 +20,21 @@ Existing endpoints: health.py, chat_completions.py, feedback.py, workflows.py.
 - Async handlers (async def)
 - structlog for logging
 - Register router in app.py
-- Add corresponding TypeScript types in `aiflow-ui/src/lib/types.ts`
-- Add fetch function in `aiflow-ui/src/lib/api.ts`
+- **Response MUST include `source: "backend"|"demo"` field**
+- **Route ordering: specific routes BEFORE catch-all `/{path:path}` routes!**
+- **Blocking I/O (Docling, fitz) MUST use `asyncio.to_thread()`**
+- **SSE endpoints: use StreamingResponse with Cache-Control: no-cache headers**
+- Update `aiflow-admin/src/dataProvider.ts` RESOURCE_MAP if new resource
 
 ## Generate:
 1. FastAPI endpoint file (`src/aiflow/api/v1/{name}.py`)
-2. TypeScript types update
-3. API client function update
+2. dataProvider RESOURCE_MAP entry if needed
+3. **curl test command** to verify the endpoint returns real data
+
+## Verification:
+- [ ] `curl` test returns real data (NOT stub/placeholder)
+- [ ] Response has `source` field
+- [ ] Route registered in app.py
+- [ ] No route ordering conflict with catch-all routes
 
 ARGUMENTS: $ARGUMENTS

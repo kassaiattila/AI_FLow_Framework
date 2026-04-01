@@ -96,7 +96,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 
 ### Key plan documents:
 - **`01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`** - AKTUALIS: Service generalizalas terv (F0-F4), infra epitokockak, domain szolgaltatasok
-- `01_PLAN/IMPLEMENTATION_PLAN.md` - Fazis A1-A5 (KESZ) + F1-F4 (aktualis) + B (jovobeli)
+- `01_PLAN/IMPLEMENTATION_PLAN.md` - Legacy fazisok (A1-A5 KESZ). Aktualis: ld. 42_SERVICE_GENERALIZATION_PLAN F0-F4
 - `01_PLAN/29_OPTIMIZATION_PLAN.md` - O1-O3 (KESZ) + framework audit eredmeny
 - `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist (Cubix tananyag alapjan!)
 - `01_PLAN/28_MODULAR_DEPLOYMENT.md` - Multi-customer instance architecture
@@ -104,7 +104,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 
 ### Database:
 - PostgreSQL pgvector @ localhost:5433 (Docker: `docker compose up -d db`)
-- Alembic: `alembic upgrade head` (26 migracio, 36 tabla + 13 view)
+- Alembic: `alembic upgrade head` (migraciok az alembic/versions/-ben)
 - **SOHA ne hozz letre tablat Alembic nelkul!**
 
 ## Tech Stack
@@ -112,8 +112,9 @@ This enables: new intents/entities without code changes, per-customer customizat
 - LiteLLM (multi-LLM), instructor (structured output), Langfuse (LLM observability)
 - PyJWT[crypto] (RS256 JWT auth), bcrypt (hashing), APScheduler 4.x (async cron)
 - Promptfoo (prompt testing), structlog (JSON logging), Alembic (DB migrations), ruff (lint+format)
-- Next.js 16 + React 19 + TypeScript + shadcn/ui (production frontend - aiflow-ui/), typer (CLI)
-- Playwright (GUI testing + RPA skills), ffmpeg (media processing in RPA skills)
+- React Admin + Vite + React 19 + MUI (production admin dashboard - **aiflow-admin/**)
+- Legacy: Next.js 16 + shadcn/ui (aiflow-ui/ — deprecated, kept for compatibility)
+- typer (CLI), Playwright (GUI testing + RPA skills), ffmpeg (media processing in RPA skills)
 
 ## Development Environment
 - **Python package manager: `uv`** (NOT pip, NOT poetry) - fast, lockfile-based, PEP 621
@@ -195,7 +196,7 @@ src/aiflow/
     engine/        # Step, SkillRunner, WorkflowRunner, DAG, checkpoint
     models/        # ModelClient, LiteLLM backend, protocols
     prompts/       # PromptManager (YAML + Jinja2 + cache)
-    services/      # ← UJ: Altalanos szolgaltatasok (email_connector, document_extractor, rag_engine, classifier, rpa_browser, media_processor, diagram_generator, cache, events, monitoring, resilience, human_review, audit, schema_registry)
+    services/      # TERVEZETT (42_SERVICE_GENERALIZATION_PLAN): email_connector, document_extractor, rag_engine, classifier, rpa_browser, media_processor, diagram_generator, cache, events, monitoring, resilience, human_review, audit, schema_registry
     skill_system/  # Skill manifest, loader, registry, instance (canonical)
     tools/         # Shell, Playwright, RobotFramework, HumanLoop, Kafka (canonical)
     vectorstore/   # VectorStore ABC, pgvector, HybridSearchEngine, embedder
@@ -215,13 +216,14 @@ skills/            # Self-contained skill packages (each with own tools, tests, 
   email_intent_processor/ # IN DEVELOPMENT - email + attachment processing
   invoice_processor/      # IN DEVELOPMENT - PDF invoice extraction + Next.js UI
   qbpp_test_automation/   # STUB - insurance calculator test automation
-aiflow-ui/         # Next.js 16 + React 19 + shadcn/ui production dashboard (92 fajl)
-  src/app/           # 11 oldal (/, /login, /costs, /runs, /runs/[id], 6 skill viewer)
-  src/components/    # 48 komponens (ui/, invoice/, email/, rag-chat/, process-docs/, cubix/, workflow/, verification/ + sidebar, sidebar-user, theme-toggle, export-button, print-button)
-  src/lib/           # 9 fajl (types, data-store, backend, csv-export, i18n, api, utils, verification-types, document-layout)
-  src/hooks/         # 4 hook (use-auth, use-i18n, use-verification-state, use-workflow-simulation)
-  src/app/api/       # 18 API route (auth, documents, emails, rag, process-docs, cubix, runs)
-  src/proxy.ts       # Auth proxy + RBAC (cookie JWT, login redirect, role check)
+aiflow-admin/      # React Admin + Vite + React 19 + MUI (AKTIV production dashboard)
+  src/pages/         # Oldalak (Dashboard, InvoiceUpload, stb.)
+  src/resources/     # React Admin resource definiciok (InvoiceList, InvoiceShow, stb.)
+  src/components/    # Komponensek (PipelineProgress, stb.)
+  src/verification/  # Szamla verifikacio (DocumentCanvas, VerificationPanel, MockInvoiceSvg)
+  src/dataProvider.ts # FastAPI → React Admin adatkapcsolat
+  vite.config.ts     # Vite config + API proxy (localhost:8100)
+aiflow-ui/         # LEGACY Next.js 16 + shadcn/ui (deprecated, kept for reference)
 deployments/       # Per-customer deployment configs (AZHU, NPRA, BESTIX)
 tests/             # unit/, integration/, e2e/, conftest.py
 ```
@@ -248,47 +250,44 @@ result = await runner.run_steps([step1, step2], {"input": "..."})
 - **Pydantic everywhere** - config, API models, step I/O, agent messages, DB schemas
 - All errors inherit from `AIFlowError` with `is_transient` flag for retry decisions
 
-## MANDATORY Next.js UI Development Rules (STRICT!)
+## MANDATORY Admin UI Development Rules (aiflow-admin/ — Vite + React Admin)
 
 ### The Depth Rule
 > **Finish ONE feature properly before starting the next.**
 > Never build 5 viewers in parallel — build 1, test it manually, fix it, THEN move to the next.
-> A feature is NOT "KESZ" until it works end-to-end with HU/EN toggle.
+> A feature is NOT "KESZ" until Playwright E2E teszten atment.
 
 ### i18n Rules (NEVER skip!)
-- **EVERY user-visible string MUST use `t()` from `useI18n()`** — no exceptions
-- Wire i18n AS YOU BUILD — not after. Every new component must import `useI18n` from the start
-- Check: page titles, button labels, table headers, KPI labels, error messages, empty states, placeholders
+- **EVERY user-visible string MUST use `useTranslate()` from react-admin** — no exceptions
+- Wire i18n AS YOU BUILD — not after
+- Check: page titles, button labels, table headers, KPI labels, error messages, empty states
 - Test: click HU/EN toggle → EVERY string on screen must change
-- i18n keys go in `src/lib/i18n.ts` — add both `hu` and `en` entries SIMULTANEOUSLY
 
-### Next.js 16 Rules (avoid common pitfalls!)
-- **proxy.ts NOT middleware.ts** — Next.js 16 renamed the convention
-- **No `<script>` tags in React components** — use component `useEffect` for client-side init
-- **No `localStorage` in `useState()` initializer** — causes hydration mismatch. Use `useEffect` to read after mount
-- **No `sessionStorage` in `useState()` initializer** — same reason. Defer to `useEffect`
-- **No hardcoded `localhost` URLs** — use env vars or relative paths via `/api/` proxy routes
-- **Data fetches: always use `/api/` routes** — never fetch from `/data/` or `/public/data/` directly in pages
-- **All client components need `"use client"` directive** — especially if using hooks
+### Vite + React Admin Rules (avoid common pitfalls!)
+- **vite.config.ts** tartalmazza az API proxy-t (`/api` → `localhost:8100`) — NEM proxy.ts/middleware.ts
+- **No hardcoded `localhost` URLs** — use relative paths via `/api/` proxy routes
+- **Data fetches: dataProvider.ts** → FastAPI `/api/v1/*` endpointok
+- **No `localStorage` in `useState()` initializer** — causes hydration mismatch. Use `useEffect`
+- **React Admin resource-ok** a `src/resources/` mappaban
 
 ### UI Component Checklist (verify BEFORE marking done)
 Every new page/component MUST have:
-1. [ ] `useI18n()` hook imported and all strings use `t()`
+1. [ ] `useTranslate()` hook imported and all strings use `translate()`
 2. [ ] Loading state (show spinner/skeleton while data loads)
 3. [ ] Error state (show error message + retry button)
 4. [ ] Empty state (meaningful message when no data)
-5. [ ] Data fetched from `/api/` routes (not `/data/` static files)
+5. [ ] Data fetched via dataProvider or `/api/` routes
 6. [ ] No hardcoded Hungarian/English strings
 7. [ ] Works in both light and dark mode
-8. [ ] Vitest unit test for pure logic (utilities, type guards)
-9. [ ] Manual test: page loads, HU/EN toggle works, all actions work
+8. [ ] **Playwright E2E teszt:** navigate → snapshot → click → screenshot → console check
 
 ### UI Testing Protocol
 ```bash
 # After EVERY UI change:
-npx vitest run                    # Unit tests pass
-npx next build                    # TypeScript + build clean
-npm run dev                       # Manual check: page loads, toggle HU/EN, click all buttons
+cd aiflow-admin && npx tsc --noEmit     # TypeScript hiba nelkul
+# Playwright MCP teszteles (valos bongeszioben, valos backend-del):
+# browser_navigate → browser_snapshot → browser_click → browser_take_screenshot
+# browser_console_messages → nincs JS hiba?
 ```
 
 ## MANDATORY: No Silent Mock Data (STRICT!)

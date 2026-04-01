@@ -1,37 +1,37 @@
-Generate a new Next.js App Router page for the AIFlow dashboard.
+Generate a new page for the AIFlow admin dashboard.
 
 ## Context
-The UI project is at `aiflow-ui/` using Next.js 16 App Router + TypeScript.
-Pages are in `aiflow-ui/src/app/`. Sidebar is a client component (`src/components/sidebar.tsx`).
+The UI project is at `aiflow-admin/` using Vite + React Admin + React 19 + MUI + TypeScript.
+Pages are in `aiflow-admin/src/pages/`. Resources in `src/resources/`.
+Data flows through `src/dataProvider.ts` → FastAPI `/api/v1/*` endpoints.
+Proxy config in `vite.config.ts` (NOT proxy.ts or middleware.ts).
 
 ## Ask me for:
-1. Page route (e.g., `/costs`, `/skills/[skill]`)
+1. Page route (e.g., `/costs`, `/invoices`)
 2. Page title and description
-3. Data source (which `/api/` endpoint)
+3. Data source (which `/api/v1/` endpoint via dataProvider)
 4. Key sections (KPI cards, tables, charts, detail views)
 
-## MANDATORY Rules (session lessons — NEVER skip!):
-- **i18n FIRST**: `useI18n()` + `t()` for ALL text. Add keys to `i18n.ts` (hu+en) BEFORE using
-- **Data from `/api/` ONLY**: NEVER `fetch("/data/...")` — always via Next.js API routes
+## MANDATORY Rules:
+- **i18n**: `useTranslate()` from react-admin for ALL text
+- **Data via dataProvider**: NEVER direct `fetch("/data/...")` — use react-admin hooks or dataProvider
 - **3 states required**: Loading (spinner), Error (message + retry), Empty (helpful text)
-- **`"use client"` + hooks** for interactive pages
+- **No hardcoded `localhost` URLs** — use relative `/api/` paths via Vite proxy
 - **No localStorage/sessionStorage in useState** — defer to useEffect
-- **proxy.ts NOT middleware.ts** — Next.js 16
-- Responsive, dark mode compatible
+- Responsive, dark mode compatible (MUI theme)
 
 ## Anti-patterns (FORBIDDEN):
-- ❌ `fetch("/data/runs.json")` → ✅ `fetch("/api/runs")`
-- ❌ Hardcoded `"Betoltes..."` → ✅ `t("common.loading")`
-- ❌ `useState(loadFromSession())` → ✅ `useState(null)` + `useEffect`
-- ❌ Hardcoded date `"2026-03-29"` → ✅ `new Date().toISOString().slice(0,10)`
-- ❌ Feature marked "KESZ" without manual HU/EN test → ✅ Test first!
+- `fetch("/data/runs.json")` → use `useGetList("runs")` or dataProvider
+- Hardcoded `"Betoltes..."` → `translate("common.loading")`
+- `useState(loadFromSession())` → `useState(null)` + `useEffect`
+- Feature marked "KESZ" without Playwright E2E test → Test first!
 
 ## Checklist (verify BEFORE marking done):
-- [ ] All strings use `t()` — click HU/EN toggle to verify
-- [ ] Data from `/api/` (with backend fallback in route handler)
+- [ ] All strings use `translate()` — click HU/EN toggle to verify
+- [ ] Data from dataProvider / `/api/v1/` endpoints
 - [ ] Loading / Error / Empty states
 - [ ] Dark mode
-- [ ] `npx vitest run` + `npx next build` pass
-- [ ] Manual test in browser
+- [ ] `cd aiflow-admin && npx tsc --noEmit` pass
+- [ ] Playwright E2E: navigate → snapshot → click → screenshot → console check
 
 ARGUMENTS: $ARGUMENTS
