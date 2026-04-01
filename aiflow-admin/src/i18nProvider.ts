@@ -159,6 +159,9 @@ const hungarianMessages = {
       presets: "Pelda folyamatok:", preset_invoice: "Szamla feldolgozas",
       preset_support: "Ugyfelszolgalat", preset_onboarding: "Onboarding",
       moreDetail: "Reszletesebb", simpler: "Egyszerubb", regenerate: "Ujrageneralas",
+      savedDiagrams: "Mentett diagramok", savedDescription: "Leiras", savedScore: "Pontszam",
+      savedCreated: "Letrehozva", savedActions: "Muveletek",
+      deleteTitle: "Diagram torlese?", deleteConfirm: "Biztosan torli ezt a diagramot?", deleted: "Diagram torolve",
     },
     ragChat: {
       title: "RAG Chat", placeholder: "Kerdezes...", empty: "Tedd fel az elso kerdest!",
@@ -279,6 +282,9 @@ const englishCustom = {
       presets: "Example processes:", preset_invoice: "Invoice processing",
       preset_support: "Customer support", preset_onboarding: "Onboarding",
       moreDetail: "More detail", simpler: "Simpler", regenerate: "Regenerate",
+      savedDiagrams: "Saved Diagrams", savedDescription: "Description", savedScore: "Score",
+      savedCreated: "Created", savedActions: "Actions",
+      deleteTitle: "Delete Diagram?", deleteConfirm: "Are you sure you want to delete this diagram?", deleted: "Diagram deleted",
     },
     ragChat: {
       title: "RAG Chat", placeholder: "Ask a question...", empty: "Ask your first question!",

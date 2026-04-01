@@ -15,7 +15,7 @@
 | Documents | `11623:13187` | `11623:12038` | AIFlow Documents — Desktop 1440px |
 | Emails | `11623:13188` | — | (existing frame) |
 | Costs | `11623:13189` | — | (existing frame) |
-| Process Docs | `11625:10531` | — | (existing frame) |
+| Process Docs | `11625:10531` | `11625:10535` | AIFlow Process Docs — Desktop 1440px |
 | RAG Chat | `11625:10532` | — | (existing frame) |
 | Document Upload | `11625:10533` | `11625:10941` | AIFlow Document Upload — Desktop 1440px |
 | Verification | `11625:10534` | — | (existing frame) |

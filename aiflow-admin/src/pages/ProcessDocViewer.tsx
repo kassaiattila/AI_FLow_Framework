@@ -1,9 +1,14 @@
-import { useState, useRef, useEffect } from "react";
-import { useTranslate, Title } from "react-admin";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useTranslate, Title, useNotify } from "react-admin";
 import {
   Card, CardContent, TextField, Button, Typography, CircularProgress,
   Alert, Chip, Box, Paper, Stack, useTheme,
+  Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
+  IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
 } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import DownloadIcon from "@mui/icons-material/Download";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import mermaid from "mermaid";
 import { PipelineProgress, type PipelineStep } from "../components/PipelineProgress";
 
@@ -43,15 +48,40 @@ const PRESETS = [
   { key: "onboarding", text: "Uj ugyfél onboarding folyamat: regisztracio, dokumentumok bekeres (szemelyi, lakcimkartya), azonossag ellenorzes, szerzodes generalas, digitalis alairas, aktivacio." },
 ];
 
+interface SavedDiagram {
+  id: string;
+  user_input: string;
+  mermaid_code: string;
+  review?: ReviewResult | null;
+  export_formats: string[];
+  created_at: string;
+  source: string;
+}
+
 export const ProcessDocViewer = () => {
   const translate = useTranslate();
+  const notify = useNotify();
   const muiTheme = useTheme();
   const themeMode = muiTheme.palette.mode;
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [savedDiagrams, setSavedDiagrams] = useState<SavedDiagram[]>([]);
+  const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
+
+  const fetchSavedDiagrams = useCallback(async () => {
+    try {
+      const res = await fetch("/api/v1/diagrams");
+      if (res.ok) {
+        const data = await res.json();
+        setSavedDiagrams(data.diagrams || []);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchSavedDiagrams(); }, [fetchSavedDiagrams]);
 
   // Re-initialize mermaid when theme changes
   useEffect(() => {
@@ -70,21 +100,64 @@ export const ProcessDocViewer = () => {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch("/api/v1/process-docs/generate", {
+      // Use the new persisting endpoint (F4a)
+      const res = await fetch("/api/v1/diagrams/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_input: overrideInput || input }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || `HTTP ${res.status}`);
+        throw new Error(body?.detail || body?.error || `HTTP ${res.status}`);
       }
-      setResult(await res.json());
+      const data = await res.json();
+      setResult({ ...data, source: data.source || "backend" });
+      fetchSavedDiagrams(); // Refresh the saved list
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteDiagram = async () => {
+    if (!deleteDialogId) return;
+    try {
+      await fetch(`/api/v1/diagrams/${deleteDialogId}`, { method: "DELETE" });
+      notify(translate("aiflow.processDocs.deleted"), { type: "success" });
+      setDeleteDialogId(null);
+      fetchSavedDiagrams();
+    } catch {
+      notify("Delete failed", { type: "error" });
+    }
+  };
+
+  const handleExport = async (diagramId: string, fmt: string) => {
+    try {
+      const res = await fetch(`/api/v1/diagrams/${diagramId}/export/${fmt}`);
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `diagram-${diagramId.slice(0, 8)}.${fmt === "mermaid" ? "mmd" : fmt}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      notify("Export failed", { type: "error" });
+    }
+  };
+
+  const handleViewSaved = (diagram: SavedDiagram) => {
+    setResult({
+      doc_id: diagram.id,
+      user_input: diagram.user_input,
+      mermaid_code: diagram.mermaid_code,
+      review: diagram.review || undefined,
+      created_at: diagram.created_at,
+      source: (diagram.source as GenerateResult["source"]) || "backend",
+    });
+    setInput(diagram.user_input);
   };
 
   useEffect(() => {
@@ -269,6 +342,66 @@ export const ProcessDocViewer = () => {
           </Box>
         )}
       </Box>
+
+      {/* Saved Diagrams Section */}
+      {savedDiagrams.length > 0 && (
+        <Card sx={{ mt: 3 }}>
+          <CardContent sx={{ pb: 0 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="h6">{translate("aiflow.processDocs.savedDiagrams")}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {savedDiagrams.length} {savedDiagrams.length === 1 ? "diagram" : "diagrams"}
+              </Typography>
+            </Stack>
+          </CardContent>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>{translate("aiflow.processDocs.savedDescription")}</TableCell>
+                  <TableCell>{translate("aiflow.processDocs.savedScore")}</TableCell>
+                  <TableCell>{translate("aiflow.processDocs.savedCreated")}</TableCell>
+                  <TableCell>{translate("aiflow.processDocs.savedActions")}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {savedDiagrams.map((d) => (
+                  <TableRow key={d.id} hover>
+                    <TableCell sx={{ maxWidth: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {d.user_input.slice(0, 80)}{d.user_input.length > 80 ? "..." : ""}
+                    </TableCell>
+                    <TableCell>
+                      {d.review?.score != null && (
+                        <Chip label={`${d.review.score}/10`} size="small" color={d.review.score >= 7 ? "success" : "warning"} />
+                      )}
+                    </TableCell>
+                    <TableCell>{new Date(d.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={0.5}>
+                        <IconButton size="small" title="View" onClick={() => handleViewSaved(d)}><VisibilityIcon fontSize="small" /></IconButton>
+                        <IconButton size="small" title="Export SVG" onClick={() => handleExport(d.id, "svg")}><DownloadIcon fontSize="small" /></IconButton>
+                        <IconButton size="small" title="Delete" color="error" onClick={() => setDeleteDialogId(d.id)}><DeleteIcon fontSize="small" /></IconButton>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      )}
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={!!deleteDialogId} onClose={() => setDeleteDialogId(null)}>
+        <DialogTitle>{translate("aiflow.processDocs.deleteTitle")}</DialogTitle>
+        <DialogContent>
+          <Typography>{translate("aiflow.processDocs.deleteConfirm")}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogId(null)}>{translate("ra.action.cancel")}</Button>
+          <Button variant="contained" color="error" onClick={handleDeleteDiagram}>{translate("ra.action.delete")}</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
