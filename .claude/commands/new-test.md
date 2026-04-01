@@ -46,3 +46,13 @@ NEVER generate tests that:
 - Use `@pytest.mark.skip` without a reason
 - Have no assertions
 - Test implementation details instead of behavior
+- **Mock-olnak ami VALOS fuggooseggel tesztelheto** (PostgreSQL, Redis, Docling — Docker-ben futnak!)
+
+## VALOS teszteles kovetelmeny (SOHA ne mock/fake!):
+- **Integration tesztek:** Valos PostgreSQL + Redis (Docker), testcontainers ha kell
+- **API tesztek:** Valos FastAPI szerver, valos HTTP keresek — NEM csak 200 OK, TARTALOM ellenorzes!
+- **LLM tesztek:** Promptfoo valos LLM hivassal (gpt-4o-mini), NEM hardcoded response
+- **UI tesztek:** Playwright MCP E2E — navigate → snapshot → click → screenshot → console check
+- **DB tesztek:** Valos migracio (`alembic upgrade head` + `downgrade -1`), valos CRUD
+- **Service tesztek (F0+):** Valos Redis cache, valos rate limit, valos config versioning
+- **Elfogadhatatlan:** in-memory SQLite mock produkcio PostgreSQL helyett, hardcoded JSON response LLM helyett

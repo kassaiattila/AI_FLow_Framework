@@ -29,6 +29,15 @@ Then generate:
 
 5. **After generating**, run `/regression` to verify nothing broke
 
+6. **If new service module**: check `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 3-4 — illik-e a tervezett service architekturaba?
+
+7. **VALOS teszteles** (SOHA ne mock/fake!):
+   - Ha DB-t hasznal: valos PostgreSQL (Docker), `alembic upgrade head` + `downgrade -1` + `upgrade head`
+   - Ha Redis-t hasznal: valos Redis (Docker), cache hit/miss + rate limit teszt
+   - Ha API endpoint: `curl` hivással valos adat ellenorzes (NEM csak 200 OK!)
+   - Ha UI komponens: Playwright E2E (navigate → snapshot → click → screenshot)
+   - **A modul CSAK AKKOR "KESZ" ha valos teszteken atment**
+
 Rules from CLAUDE.md:
 - All public API must be typed (no `Any` without justification)
 - Pydantic BaseModel for data classes

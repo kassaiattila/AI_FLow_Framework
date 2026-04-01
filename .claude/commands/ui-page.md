@@ -34,4 +34,15 @@ Proxy config in `vite.config.ts` (NOT proxy.ts or middleware.ts).
 - [ ] `cd aiflow-admin && npx tsc --noEmit` pass
 - [ ] Playwright E2E: navigate → snapshot → click → screenshot → console check
 
+## VALOS teszteles (SOHA ne mock/fake!):
+- **TypeScript check:** `cd aiflow-admin && npx tsc --noEmit` — HIBA NELKUL
+- **Playwright E2E (KOTELEZO!):**
+  1. `browser_navigate` → oldal betolt valos backend-del?
+  2. `browser_snapshot` → vart tartalom megjelenik (NEM "Loading..." oreokke)?
+  3. `browser_click` → gombok, linkek, szurok, rendezesek mukodnek?
+  4. `browser_take_screenshot` → vizualis ellenorzes
+  5. `browser_console_messages` → nincs JS hiba?
+- **Adat ellenorzes:** Az oldalon valos backend adat jelenik meg (`source: "backend"`), NEM demo/mock
+- **Az oldal CSAK AKKOR "KESZ" ha Playwright E2E teszten atment valos backend-del**
+
 ARGUMENTS: $ARGUMENTS

@@ -5,6 +5,11 @@
 **Kiindulo verzio:** `v0.9.0-stable` (rollback pont)
 **Status:** TERVEZES
 
+> **Elozmeny:** Az eredeti framework implementacio (Phase 1-7, Het 1-22, ld. `04_IMPLEMENTATION_PHASES.md`) **KESZ**.
+> A `src/aiflow/` framework mag teljes egeszeben implementalva lett (v0.1.0 → v0.9.0-stable).
+> Ez a terv (Fazis 0-4) egy **UJ, onallo fejezet**: a skill-specifikus kodot altalanos, konfiguralhato szolgaltatasokka alakitjuk.
+> A ket fazis-rendszer fuggetlen: Phase 1-7 = framework mag, Fazis 0-4 = service generalizacio.
+
 ---
 
 ## 1. Jelenlegi Helyzet Osszefoglalasa
@@ -756,10 +761,12 @@ schemas/
 
 ## 4.10 Alembic Migracios Strategia (DB Schema Management)
 
-**Statusz:** 13 migracio letezik (`alembic/versions/001-013`), 28 tabla + 6 view a DB-ben.
+**Statusz:** 13 Alembic migracio letezik fizikailag (`alembic/versions/001-013`).
+A `03_DATABASE_SCHEMA.md` 36 tablat + 13 view-t dokumental (ez az AUTHORITATIVE referencia).
+Az alabbi lista a 13 migracio altal letrehozott fo tablakat mutatja (egyszerusitett nezet).
 **Szabaly:** SOHA ne hozz letre tablat Alembic nelkul! (`CLAUDE.md` MANDATORY rule)
 
-### Jelenlegi DB allapot (28 tabla + 6 view)
+### Jelenlegi DB allapot (13 migracio, ld. 03_DATABASE_SCHEMA.md a teljes listaert)
 
 ```
 LETEZO TABLAK (13 migracio altal letrehozva):
@@ -1056,12 +1063,18 @@ src/aiflow/services/               # ← UJ
 
 ## 8. Sikerkritieriumok
 
+> **ARANY SZABALY:** Egy fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul,
+> es MINDEN teszt VALOS adatokkal, valos backend-del, valos bongeszioben tortenik.
+> Mock/fake teszteles NEM SZAMIT — a fazist NEM lehet lezarni mock tesztekkel!
+
 ### Fazis 0 utan (Infra):
 - [ ] Redis cache mukodik (embedding + LLM response)
 - [ ] Config versioning: uj verzio deploy + rollback
 - [ ] Rate limiter: per-service konfiguralhato limit
 - [ ] Retry/Circuit breaker: LLM hivasokon aktiv
 - [ ] 7 modul `__all__` export javitva
+- [ ] Alembic migraciok (014-016) HIBA NELKUL: `upgrade head` + `downgrade -1` + `upgrade head`
+- [ ] **VALOS TESZT:** `curl` hivással cache hit/miss ellenorizve, rate limit 429-et ad, config CRUD mukodik
 
 ### Fazis 1 utan (Domain A):
 - [ ] Schema Registry: intent + entity + doc-type schemak kozpontilag kezelve
@@ -1071,6 +1084,9 @@ src/aiflow/services/               # ← UJ
 - [ ] Auth: refresh token + API key management
 - [ ] Admin UI-ban konfiguralhato mindegyik
 - [ ] Regi skill-ek tovabbra is mukodnek (backward compat)
+- [ ] Alembic migraciok (017-019) HIBA NELKUL futnak
+- [ ] **VALOS TESZT:** Valos email fetch (IMAP), valos PDF extraction (Docling), Playwright E2E az Admin UI-n
+- [ ] **VALOS TESZT:** `python -m skills.invoice_processor` valos PDF-fel — eredmeny JSON helyes
 
 ### Fazis 2 utan (RAG + Monitoring):
 - [ ] RAG Chat: uj kollekcio letrehozasa + dokumentum feltoltes + kerdezes
@@ -1080,6 +1096,9 @@ src/aiflow/services/               # ← UJ
 - [ ] Notification: email/Slack/webhook csatornak konfiguralhatoak
 - [ ] Cost budget: service szintu koltseg limit + alert
 - [ ] Runs API: cancel, result, DLQ endpointok
+- [ ] Alembic migraciok (020-022) HIBA NELKUL futnak
+- [ ] **VALOS TESZT:** RAG ingest valos PDF + query valasz relevanciaja, Playwright chat E2E
+- [ ] **VALOS TESZT:** Health endpoint valos service statuszt mutat, event publish + subscribe mukodik
 
 ### Fazis 3 utan (RPA + Media + Approval):
 - [ ] RPA: YAML konfiguracioval bongeszo automatizalas
@@ -1088,6 +1107,9 @@ src/aiflow/services/               # ← UJ
 - [ ] Human Review: approval flow mukodik (pending → approved → workflow resume)
 - [ ] Cubix skill: RPA + Media + RAG Engine compose-kent fut
 - [ ] Skills API: detail, manifest, ingest endpointok
+- [ ] Alembic migraciok (023-024) HIBA NELKUL futnak
+- [ ] **VALOS TESZT:** Playwright-tal valos weboldal scrape, valos video transcript (ffmpeg+Whisper)
+- [ ] **VALOS TESZT:** Human review approval flow Playwright E2E, diagram SVG valos render (Kroki)
 
 ### Fazis 4 utan (Governance):
 - [ ] Audit Trail: immutable log, GDPR data erasure
@@ -1095,8 +1117,11 @@ src/aiflow/services/               # ← UJ
 - [ ] Prompts API: list, sync, promote, version history
 - [ ] Scheduling: cron + webhook trigger konfiguralhas
 - [ ] tools/ + skill_system/ tesztek ≥ 80% coverage
-- [ ] Multi-tenant RLS aktiv a fo táblakon
+- [ ] Multi-tenant RLS aktiv a fo tablakon
 - [ ] Backup/DR strategia dokumentalva + tesztelve
+- [ ] **VALOS TESZT:** Audit rekord letezik DB-ben valos muvelet utan, RLS blokkol mas team adatait
+- [ ] **VALOS TESZT:** Teljes E2E regresszio (L4 Complete): unit + integration + skill + Playwright UI
+- [ ] **VALOS TESZT:** `pytest tests/ --cov=aiflow` ≥ 80% OVERALL coverage
 
 ---
 
@@ -1134,16 +1159,186 @@ src/aiflow/services/               # ← UJ
 | PII detection | 20_SECURITY_HARDENING | Emlitve, nem implementalt | F4 |
 | Prompt sync (Langfuse) | 06_CLAUDE_CODE_INTEGRATION | Tervezett, nincs API | F4 |
 
-### DB tablak API nelkul (Zombie tablak)
+### DB tablak API nelkul (Zombie tablak) — Teljes Audit (2026-04-01)
 
-| Tabla | Definialo dokumentum | API | Tervezett fazis |
-|-------|---------------------|-----|-----------------|
-| human_review_requests | 01_ARCHITECTURE | Nincs | F3 |
-| schedule_triggers | 01_ARCHITECTURE | Nincs | F4 |
-| model_registry | 15_ML_MODEL_INTEGRATION | Nincs | F4 |
-| test_datasets | 18_TESTING_AUTOMATION | Nincs | F4 |
-| test_results | 18_TESTING_AUTOMATION | Nincs | F4 |
-| rag_query_log | 30_RAG_PRODUCTION_PLAN | Reszleges | F2 |
+> **19 tabla NINCS API-ja, 4 tabla RESZLEGES API-val rendelkezik.**
+> Minden zombie tablat a megfelelo fazisban kell "eletre kelteni" (CRUD endpoint + valos teszt).
+
+| Tabla | Migracio | API Statusz | Tervezett fazis | Megjegyzes |
+|-------|----------|------------|-----------------|------------|
+| skills | 002 | ZOMBIE | F1 | Hardcoded registry helyett DB-bol |
+| workflow_definitions | 002 | ZOMBIE | F2 | Placeholder adat helyett DB CRUD |
+| skill_prompt_versions | 002 | ZOMBIE | F4 | Langfuse sync API |
+| model_registry | 003 | ZOMBIE | F4 | Model CRUD + version management |
+| embedding_models | 003 | ZOMBIE | F2 | RAG Engine hasznalja |
+| collections | 004 | ZOMBIE | F2 | RAG multi-collection CRUD |
+| documents | 004 | ZOMBIE | F1 | Document Extractor hasznalja |
+| chunks | 004 | ZOMBIE | F2 | RAG Engine belso tabla |
+| document_sync_schedules | 004 | ZOMBIE | F4 | Scheduling API |
+| teams | 005 | ZOMBIE | F4 | Admin CRUD |
+| users | 005 | RESZLEGES | F1 | Auth: hardcoded → DB-backed |
+| audit_log | 005 | ZOMBIE | F4 | Audit Trail service |
+| cost_records | 006 | RESZLEGES | F2 | Csak read, CRUD kell |
+| schedules | 007 | ZOMBIE | F4 | Scheduling API |
+| human_reviews | 008 | ZOMBIE | F3 | Human Review service |
+| ab_experiments | 009 | ZOMBIE | F4 | Evaluation API |
+| ab_assignments | 009 | ZOMBIE | F4 | Evaluation API |
+| ab_outcomes | 009 | ZOMBIE | F4 | Evaluation API |
+| test_datasets | 010 | ZOMBIE | F4 | Evaluation API |
+| test_cases | 010 | ZOMBIE | F4 | Evaluation API |
+| test_results | 010 | ZOMBIE | F4 | Evaluation API |
+| skill_instances | 012 | ZOMBIE | F1 | Instance CRUD (service config) |
+| rag_collections | 013 | ZOMBIE | F2 | RAG multi-collection |
+| rag_query_log | 013 | RESZLEGES | F2 | Feedback endpoint van, analitika kell |
+| rag_chunks | 013 | RESZLEGES | F2 | Health check van, CRUD kell |
+| workflow_runs | 001 | RESZLEGES | F2 | Csak LIST+READ, cancel/DLQ kell |
+| step_runs | 001 | RESZLEGES | F2 | Implicit FK read, kello endpoint |
+
+**Zombie eloszlas fazisokent:**
+- **F1:** 4 tabla (skills, documents, users, skill_instances)
+- **F2:** 9 tabla (workflow_definitions, embedding_models, collections, chunks, cost_records, rag_collections, rag_query_log, rag_chunks, workflow_runs+step_runs)
+- **F3:** 1 tabla (human_reviews)
+- **F4:** 13 tabla (prompt_versions, model_registry, doc_sync, teams, audit_log, schedules, 6x eval/test tablak)
+
+---
+
+## 11. UI Fejlesztesi Strategia (User Journey Alapu, API-First)
+
+> **ALAPELV:** A UI fejlesztes MINDIG az API utan kovetkezik, SOHA nem elotte.
+> Eloszor: User Journey definicio → Szukseges API endpointok → Backend implementacio → UI/UX tervezes → UI fejlesztes → Playwright E2E teszt
+> A service generalizacio (F0-F4) a **fo cel** — a UI fejlesztes ezekre epul.
+
+### 11.1 Jelenlegi UI Allapot (2026-04-01)
+
+| Oldal | User Journey | API | UI Statusz | Blocker |
+|-------|-------------|-----|-----------|---------|
+| InvoiceUpload | Upload → Process → Results | ✅ Teljes | **MUKODO** | Verify endpoint hianyzik |
+| InvoiceList | List → Filter → Detail | ✅ Teljes | **MUKODO** | — |
+| InvoiceShow | Detail → Image → Fields | ✅ Teljes | **MUKODO** | Image preview nem hasznalt |
+| InvoiceVerify | Show → Edit → Save | ❌ HIANYZIK | **STUB** | POST verify endpoint + UI |
+| EmailUpload | Upload → Process → Results | ✅ Teljes | **MUKODO** | Szekvencialis (nem batch) |
+| EmailList | List → Filter → Detail | ✅ Teljes | **MUKODO** | — |
+| EmailShow | Detail → Intent → Entities | ❌ GET /{id} | **WORKAROUND** | List fallback (N+1 issue) |
+| ProcessDocs | Describe → Generate → Review | ✅ Teljes | **MUKODO** | Nem perzisztens |
+| RagChat | Question → Stream → Feedback | ✅ Teljes | **MUKODO** | Feedback nem bekotve |
+| CubixViewer | View courses | ✅ Teljes | **DEMO** | View-only, nincs interakcio |
+| RunList/Show | List → Detail → Steps | ✅ Teljes | **MUKODO** | Cancel/DLQ hianyzik |
+| CostsPage | View costs by skill/step | ✅ Teljes | **MUKODO** | Client-side aggregacio |
+
+### 11.2 User Journey-k es Szukseges API-k Fazisokent
+
+#### F1: Service Config + Email + Document Journey
+
+**Journey A: Service Konfiguracio**
+```
+Admin → Service lista → Uj service config → Mentés → Verzio kezeles
+```
+Szukseges API-k:
+- `GET /api/v1/services` — service lista
+- `POST /api/v1/services/{type}/config` — uj config
+- `GET /api/v1/services/{id}/versions` — verzio tortentet
+- `PUT /api/v1/services/{id}/config` — config frissites
+- `POST /api/v1/services/{id}/rollback/{version}` — rollback
+
+**Journey B: Email Feldolgozas (teljes)**
+```
+Email Connector config → Fetch test → List → Detail → Intent → Entities → Routing
+```
+Szukseges HIANYZIO API-k:
+- `GET /api/v1/emails/{email_id}` — **KRITIKUS** (jelenleg list fallback!)
+- `POST /api/v1/services/email-connector/test` — kapcsolat teszt
+- `GET /api/v1/services/email-connector/stats` — statisztikak
+
+**Journey C: Szamla Verifikacio (teljes)**
+```
+Upload → Process → List → Detail → Verify → Save corrected → Export
+```
+Szukseges HIANYZIO API-k:
+- `POST /api/v1/documents/{source_file}/verify` — **KRITIKUS** (verification save)
+- `GET /api/v1/documents/{source_file}/images/{page}` — oldal kepek (letezik, UI nem hasznalja)
+
+#### F2: RAG + Monitoring Journey
+
+**Journey D: RAG Kollekcio Kezeles**
+```
+Kollekcio letrehozas → Dokumentum feltoltes → Ingest → Query → Feedback → Analitika
+```
+Szukseges API-k:
+- `GET /api/v1/services/rag/collections` — kollekcio lista
+- `POST /api/v1/services/rag/collections` — uj kollekcio
+- `POST /api/v1/services/rag/collections/{id}/ingest` — dokumentum ingest
+- `GET /api/v1/services/rag/collections/{id}/stats` — kollekcio statisztika
+- Feedback endpointok: `POST /api/v1/feedback` (letezik, UI nem bekotve!)
+
+**Journey E: Monitoring Dashboard**
+```
+Service health → Alerts → Metrics → Cost drilldown → Budget config
+```
+Szukseges API-k:
+- `GET /api/v1/services/health` — osszes service allapot
+- `GET /api/v1/services/{id}/metrics` — service metrikak
+- `GET /api/v1/costs/summary` — server-side aggregacio (jelenleg client-side)
+- `GET /api/v1/runs/{id}/cancel` — run cancel
+- `GET /api/v1/runs/{id}/dlq` — dead letter queue
+
+#### F3: RPA + Media + Approval Journey
+
+**Journey F: Human Review Approval**
+```
+Pending reviews → Detail → Approve/Reject → Resume workflow → History
+```
+Szukseges API-k:
+- `GET /api/v1/reviews/pending` — varakozo review-k
+- `POST /api/v1/reviews/{id}/approve` — jovahagyas
+- `POST /api/v1/reviews/{id}/reject` — elutasitas
+- `GET /api/v1/reviews/history` — torteneti lista
+
+#### F4: Admin + Governance Journey
+
+**Journey G: Admin Felulet**
+```
+Users → Teams → Roles → API keys → Audit log → Schedules
+```
+Szukseges API-k:
+- `GET/POST/PUT/DELETE /api/v1/admin/users` — user CRUD
+- `GET/POST/PUT/DELETE /api/v1/admin/teams` — team CRUD
+- `GET/POST/DELETE /api/v1/admin/api-keys` — API key management
+- `GET /api/v1/admin/audit-log` — audit log lista + szures
+- `GET/POST/PUT/DELETE /api/v1/admin/schedules` — scheduling CRUD
+
+### 11.3 UI Fejlesztesi Sorrend (API-First szabaly!)
+
+```
+┌───────────────────────────────────────────────────────┐
+│ 1. USER JOURNEY DEFINICIO (mit csinal a felhasznalo?) │
+│    ↓                                                   │
+│ 2. API ENDPOINT TERVEZES (milyen backend kell hozza?)  │
+│    ↓                                                   │
+│ 3. BACKEND IMPLEMENTACIO + VALOS TESZT (curl, pytest)  │
+│    ↓                                                   │
+│ 4. UI/UX TERVEZES (Figma/wireframe az adott journey-re)│
+│    ↓                                                   │
+│ 5. UI FEJLESZTES (React Admin + MUI)                   │
+│    ↓                                                   │
+│ 6. PLAYWRIGHT E2E TESZT (valos backend-del!)           │
+│    ↓                                                   │
+│ 7. "KESZ" (fazis lezaras)                              │
+└───────────────────────────────────────────────────────┘
+```
+
+> **FONTOS:** A UI fejlesztes NEM kulon fazis — hanem MINDEN service fazis RESZE.
+> F1-ben az Email + Document UI, F2-ben a RAG + Monitoring UI, stb.
+> De a UI MINDIG az API UTAN keszul, SOHA nem elotte!
+
+### 11.4 Azonnali UI Blocker-ek (Service Generalizacio ELOTT javitando)
+
+| Blocker | Hatas | Javitas | Becsult ido |
+|---------|-------|---------|-------------|
+| `GET /api/v1/emails/{email_id}` hianyzik | EmailShow N+1 query | Endpoint implementalas | 2 ora |
+| `POST /api/v1/documents/{file}/verify` hianyzik | Verification nem mukodik | Endpoint + UI | 4 ora |
+| Feedback gombok nem bekotve (RagChat) | Felhasznaloi visszajelzes elvesz | Wire up POST /feedback | 1 ora |
+
+Ezek a F1 fazis elso feladatai — a service generalizacio elott kell megoldani, mert a meglevo UI-t torik.
 
 ---
 

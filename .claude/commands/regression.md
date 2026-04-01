@@ -32,3 +32,10 @@ If `tests/regression_matrix.yaml` doesn't exist yet (early development):
 - Run `pytest tests/ -v --cov=aiflow` (everything that exists)
 
 IMPORTANT: This command MUST be run before every commit. It is NOT optional.
+
+## VALOS teszteles kovetelmeny:
+- Integration tesztek valos PostgreSQL + Redis (Docker) ellen futnak, NEM in-memory mock
+- Ha service generalizacios fazisban vagyunk (F0-F4): service-specifikus tesztek is futnak
+- `curl` hivással valos API endpointok ellenorzese — NEM csak pytest, hanem valos HTTP keresek
+- Coverage NEM csokkenhet — ha csokken, az regresszio es BLOCK!
+- Mock/fake eredmennyel NEM lehet atmenni — valos backend, valos DB, valos adat

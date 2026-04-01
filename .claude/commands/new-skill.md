@@ -72,3 +72,11 @@ skills/{name}/
 - Run `pytest` after generating - must pass
 - If RAG skill: follow `01_PLAN/30_RAG_PRODUCTION_PLAN.md` checklist
 - If DB needed: create Alembic migration, not raw SQL
+- **If service generalization**: check `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` — skill a megfelelo service-bol epitkezik?
+
+## VALOS teszteles (SOHA ne mock/fake!):
+- **CLI teszt:** `python -m skills.{name} --input test_data --output ./out` — valos output ellenorzes
+- **Promptfoo:** Minimum 10 valos LLM teszt eset (4 pozitiv, 2 negativ, 2 edge, 1 adversarial, 1 nyelvi)
+- **Integration:** Valos fuggoosegek (PostgreSQL, Redis, Docling) — NEM in-memory mock
+- **Ha UI van:** Playwright E2E teszt (navigate → upload → process → result → screenshot)
+- **Egy skill CSAK AKKOR "KESZ" ha end-to-end valos adat feldolgozason atment**

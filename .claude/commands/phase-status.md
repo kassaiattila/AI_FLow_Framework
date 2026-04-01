@@ -47,6 +47,16 @@ Arguments: $ARGUMENTS
 - Next task to implement: {description}
 
 ## FONTOS:
-- Egy fazis CSAK AKKOR "KESZ" ha MINDEN sikerkritierium teljesul (ld. Section 8)
-- Git tag CSAK sikeres fazis utan kerul kiadásra
+- Egy fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul (ld. 42_SERVICE_GENERALIZATION_PLAN.md Section 8)
+- Git tag CSAK sikeres fazis utan kerul kiadasra
 - Valos teszteles KOTELEZO — mock/fake eredmeny NEM szamit!
+- **Phase 1-7** (framework) es **Fazis 0-4** (service gen) KET FUGGETLEN fazis-rendszer — ne keverd!
+
+## Valos teszteles ellenorzes fazisokent:
+| Fazis | VALOS teszt kovetelmeny |
+|-------|------------------------|
+| **F0** | Redis cache `curl` teszt (hit/miss), rate limit 429, config CRUD, Alembic 014-016 |
+| **F1** | IMAP email fetch, PDF Docling extraction, Playwright Admin UI E2E, backward compat |
+| **F2** | RAG ingest+query valos PDF, Playwright chat UI, health endpoint, event publish |
+| **F3** | Playwright web scrape, ffmpeg+Whisper transcript, Human review E2E, SVG render |
+| **F4** | Audit log DB check, RLS test, L4 Complete regresszio, ≥80% coverage |

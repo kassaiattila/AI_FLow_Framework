@@ -2,7 +2,7 @@
 
 ## PostgreSQL Database: `aiflow`
 
-**Teljes schema:** 36 tabla, 13 view, 60+ index, 20 migracio
+**Teljes schema:** 36 tabla, 13 view, 60+ index, 13 letezo migracio (001-013) + 11 tervezett (014-024)
 **Utolso frissites:** 2026-03-28 (v1 + v2 + v3 test tracking egyesittes)
 
 ---
@@ -1230,9 +1230,10 @@ alembic/versions/
 | 35 | conversation_messages | ~500-5,000/nap | Chat uzenetek + citations | 2+ |
 
 **Osszes tabla:** 36
-**Osszes view:** 12
+**Osszes view:** 13
 **Osszes index:** 60+
-**Osszes migracio:** 20
+**Osszes letezo migracio:** 13 (001-013, fizikailag letezik az `alembic/versions/`-ben)
+**Tervezett migraciok:** +11 (014-024, ld. `42_SERVICE_GENERALIZATION_PLAN.md` Section 4.10)
 
 ---
 

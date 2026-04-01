@@ -26,3 +26,9 @@ Follow ALL rules from CLAUDE.md:
 - Prompt from YAML via PromptManager (never hardcode)
 
 If LLM-based, also generate a prompt YAML file in the skill's prompts/ directory.
+
+## VALOS teszteles (SOHA ne mock/fake!):
+- Tesztek VALOS backend-del futnak (PostgreSQL, Redis Docker-ben)
+- Ha LLM step: Promptfoo eval valos LLM hivassal (NEM hardcoded response)
+- Ha DB step: valos DB write/read ellenorzes
+- A step CSAK AKKOR "KESZ" ha valos adat feldolgozasra kepes + teszt atment

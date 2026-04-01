@@ -51,18 +51,22 @@ After ALL edits are done, run these automated checks:
 ### 3.1 Key Numbers Check
 Grep ALL .md files for these numbers and verify consistency:
 ```bash
-# DB tables count
-grep -rn "35 tabla\|35 table\|33 tabla\|33 table" 01_PLAN/*.md CLAUDE.md
-# Views count
-grep -rn "13 view\|12 view" 01_PLAN/*.md CLAUDE.md
-# Migration count
-grep -rn "19 migra\|18 migra" 01_PLAN/*.md CLAUDE.md
-# Week count
+# DB tables count (canonical: 36 tabla)
+grep -rn "3[0-9] tabla\|3[0-9] table" 01_PLAN/*.md CLAUDE.md
+# Views count (canonical: 13 view)
+grep -rn "1[0-9] view" 01_PLAN/*.md CLAUDE.md
+# Migration count (canonical: 13 letezo migracio fajl, 001-013)
+grep -rn "[0-9]* migra" 01_PLAN/*.md CLAUDE.md
+# Week count (canonical: 22 het — framework Phase 1-7, KESZ)
 grep -rn "22 het\|21 het\|22 week" 01_PLAN/*.md CLAUDE.md
-# Skill count
-grep -rn "6 skill\|4 skill\|6 db skill" 01_PLAN/*.md CLAUDE.md
-# Phase week ranges
+# Skill count (canonical: 6 skill)
+grep -rn "6 skill\|5 skill\|6 db skill" 01_PLAN/*.md CLAUDE.md
+# Phase week ranges (legacy framework Phase 1-7)
 grep -rn "Het 10-1[0-9]\|Het 14-1[0-9]\|Het 17-1[0-9]\|Het 20-2[0-9]" 01_PLAN/*.md
+# Fazis system (service gen F0-F4) — ne keveredjen Phase 1-7-tel
+grep -rn "Fazis [0-4]" 01_PLAN/*.md CLAUDE.md
+# Directory check — llm/ ne legyen (models/ a helyes), agents/ ne legyen (torolve)
+grep -rn "llm/" 01_PLAN/*.md CLAUDE.md | grep -v "NOT\|models/\|LiteLLM\|litellm"
 ```
 
 Any inconsistency -> fix immediately before proceeding.

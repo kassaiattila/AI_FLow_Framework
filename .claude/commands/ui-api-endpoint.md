@@ -37,4 +37,14 @@ skills_api, documents, emails, process_docs, cubix (12 router files).
 - [ ] Route registered in app.py
 - [ ] No route ordering conflict with catch-all routes
 
+## VALOS teszteles (SOHA ne mock/fake!):
+- **curl hivás KOTELEZO** — NEM csak `200 OK`, hanem a valasz TARTALMAT ellenorizd!
+  ```bash
+  curl -s http://localhost:8100/api/v1/{endpoint} | python -m json.tool
+  ```
+- **source mezo:** A valasz `"source": "backend"` kell legyen — ha `"demo"` jon, az NEM elfogadhato
+- **Ha DB-t hasznal:** valos PostgreSQL query, valos adat a valaszban
+- **Ha mas service-t hiv:** valos service hivas (NEM hardcoded response)
+- **Az endpoint CSAK AKKOR "KESZ" ha valos adatot ad vissza curl tesztnel**
+
 ARGUMENTS: $ARGUMENTS

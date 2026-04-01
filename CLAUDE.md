@@ -18,6 +18,10 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 ## Current Phase: Service Generalization (v0.9.0-stable → v1.0.0)
 **Terv:** `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`
 
+> **Elozmeny:** Az eredeti framework implementacio (Phase 1-7, Het 1-22) KESZ — `src/aiflow/` teljes.
+> Ez a fazis (Fazis 0-4) EGY UJ, onallo fejezet: skill-specifikus kodot altalanos szolgaltatasokka alakitunk.
+> A ket fazis-rendszer fuggetlen: Phase 1-7 = framework mag, Fazis 0-4 = service generalizacio.
+
 Skill-specifikus kodot altalanos, konfiguralhato szolgaltatasokka alakitjuk:
 - **Email Connector** (O365/Gmail/IMAP) ← email_intent_processor
 - **Document Extractor** (barmilyen doc tipus) ← invoice_processor
@@ -85,14 +89,18 @@ This enables: new intents/entities without code changes, per-customer customizat
 
 ### STRICT: Real Testing Only (SOHA NE MOCK/FAKE!)
 > **Csak valos, sikeres teszteles utan szabad tovabblepni. SOHA NE mockolt/fake adatokkal!**
+> Ez a szabaly MINDEN fejlesztesi fazisra vonatkozik (F0-F4), MINDEN modulra, MINDEN PR-re.
 
 - **API tesztek:** Valos FastAPI szerver fut, valos HTTP keresek (curl vagy Playwright)
 - **Service tesztek:** Valos fuggoosegek (PostgreSQL, Redis Docker-ben), NEM in-memory mock
 - **UI tesztek:** MCP Playwright-tal valos bongeszben, valos backendhez csatlakozva
 - **LLM tesztek:** Valos LLM hivasok (Promptfoo), NEM hardcoded response mock
 - **Upload/Process tesztek:** Valos PDF fajlok, valos Docling parse, valos eredmeny ellenorzes
+- **DB migracio tesztek:** `alembic upgrade head` + `alembic downgrade -1` + `alembic upgrade head` — mindharom HIBA NELKUL
+- **Service tesztek (F0+):** Valos Redis cache hit/miss, valos rate limit ellenorzes, valos config versioning CRUD
 - **Egy feature CSAK AKKOR "KESZ" ha Playwright-tal end-to-end vegig teszteltuk**
 - **Ha egy teszt sikertelen, NEM lepunk tovabb** — elobb javitjuk, ujra teszteljuk
+- **Fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul** (ld. 42_SERVICE_GENERALIZATION_PLAN.md Section 8)
 
 ### Key plan documents:
 - **`01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`** - AKTUALIS: Service generalizalas terv (F0-F4), infra epitokockak, domain szolgaltatasok
@@ -197,14 +205,16 @@ src/aiflow/
     models/        # ModelClient, LiteLLM backend, protocols
     prompts/       # PromptManager (YAML + Jinja2 + cache)
     services/      # TERVEZETT (42_SERVICE_GENERALIZATION_PLAN): email_connector, document_extractor, rag_engine, classifier, rpa_browser, media_processor, diagram_generator, cache, events, monitoring, resilience, human_review, audit, schema_registry
+    execution/     # JobQueue (arq+Redis), Worker, Scheduler, RateLimiter, DLQ, Messaging
+    evaluation/    # EvalSuite framework, scorers (BLEU, ROUGE), Promptfoo integration
     skill_system/  # Skill manifest, loader, registry, instance (canonical)
     tools/         # Shell, Playwright, RobotFramework, HumanLoop, Kafka (canonical)
     vectorstore/   # VectorStore ABC, pgvector, HybridSearchEngine, embedder
     documents/     # DocumentRegistry, versioning, freshness
     ingestion/     # Parsers (PDF/DOCX), chunkers (semantic)
-    state/         # SQLAlchemy ORM, repository, Alembic migrations
+    state/         # SQLAlchemy ORM, repository, 13 Alembic migraciok (001-013)
     security/      # JWT+API key auth, RBAC, audit
-    api/v1/        # FastAPI endpoints (12 route files: health, workflows, chat, feedback, runs, costs, skills, emails, auth, documents, process_docs, cubix)
+    api/v1/        # FastAPI endpoints (12 route files: health, workflows, chat_completions, feedback, runs, costs, skills_api, emails, auth, documents, process_docs, cubix)
     observability/ # Tracing, cost_tracker (partial)
     cli/           # typer CLI
     skills/        # Backward compat re-exports -> skill_system/
@@ -256,6 +266,11 @@ result = await runner.run_steps([step1, step2], {"input": "..."})
 > **Finish ONE feature properly before starting the next.**
 > Never build 5 viewers in parallel — build 1, test it manually, fix it, THEN move to the next.
 > A feature is NOT "KESZ" until Playwright E2E teszten atment.
+
+### API-First Rule (FONTOS!)
+> **UI fejlesztes MINDIG az API utan kovetkezik, SOHA nem elotte.**
+> Sorrend: User Journey → API tervezes → Backend impl + curl teszt → UI/UX → UI fejlesztes → Playwright E2E
+> Reszletek: `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 11 (UI Fejlesztesi Strategia)
 
 ### i18n Rules (NEVER skip!)
 - **EVERY user-visible string MUST use `useTranslate()` from react-admin** — no exceptions
@@ -419,11 +434,22 @@ regression_diff.json. Stored in tests/artifacts/{date}/{run_id}/
 - **Development step tracking: every change recorded in development_steps DB table**
 - Full strategy: `01_PLAN/24_TESTING_REGRESSION_STRATEGY.md`
 
+### VALOS Teszteles Fazisokent (Service Generalization F0-F4)
+> **Minden fazisban VALOS, nem mockolt teszteles kell. Az alabbi tablazat mutatja, MIT kell tesztelni.**
+
+| Fazis | Mit tesztelunk VALOSAN | Eszkoz | Elfogadasi kriterium |
+|-------|------------------------|--------|---------------------|
+| **F0** (Infra) | Redis cache (hit/miss), Config CRUD, Rate limit, Circuit breaker | `curl` + pytest integration | Cache response <10ms, rate limit block 429 |
+| **F1** (Domain A) | Email fetch (IMAP), Doc extraction (PDF), Intent classify | `curl` + Playwright E2E | Valos email/PDF feldolgozas, JSON eredmeny |
+| **F2** (RAG+Monitor) | RAG ingest+query, Health endpoint, Event publish | `curl` + Playwright chat UI | RAG valasz relevanciaja, health metrics |
+| **F3** (RPA+Media) | Playwright browser auto, Video STT, Diagram SVG | Playwright E2E + subprocess | Valos oldal scrape, valos video transcript |
+| **F4** (Governance) | Audit log, Scheduling CRUD, Admin endpoints, RLS | `curl` + DB query | Audit rekord letezik, RLS blokkol |
+
 ## Plan Reference (All docs in 01_PLAN/)
 Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
 
 **Core:**
-- 01_ARCHITECTURE, 02_DIRECTORY_STRUCTURE, 03_DATABASE_SCHEMA (35 tabla, 13 view, konszolidalt)
+- 01_ARCHITECTURE, 02_DIRECTORY_STRUCTURE, 03_DATABASE_SCHEMA (36 tabla, 13 view, 13 letezo migracio)
 - 04_IMPLEMENTATION_PHASES (22 het, konszolidalt), 05_TECH_STACK (PyJWT, bcrypt, APScheduler 4.x)
 
 **Operations:**

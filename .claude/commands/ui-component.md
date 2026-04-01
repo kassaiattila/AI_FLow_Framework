@@ -32,4 +32,16 @@ Verification components in `aiflow-admin/src/verification/`.
 2. New i18n translation keys if needed
 3. Playwright E2E test verification steps
 
+## VALOS teszteles (SOHA ne mock/fake!):
+- **TypeScript check:** `cd aiflow-admin && npx tsc --noEmit` — HIBA NELKUL
+- **Playwright E2E (KOTELEZO minden UI komponensnel!):**
+  1. `browser_navigate` → oldal betolt?
+  2. `browser_snapshot` → komponens megjelenik a vart helyen?
+  3. `browser_click` → interakciok mukodnek?
+  4. `browser_take_screenshot` → vizualis ellenorzes
+  5. `browser_console_messages` → nincs JS hiba?
+- **i18n teszt:** HU/EN toggle → MINDEN string valtozik?
+- **Dark mode:** Tema valtasnal nem torik el a layout?
+- **A komponens CSAK AKKOR "KESZ" ha Playwright E2E teszten atment valos backend-del**
+
 ARGUMENTS: $ARGUMENTS

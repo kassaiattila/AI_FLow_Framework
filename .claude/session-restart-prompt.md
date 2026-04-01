@@ -18,8 +18,8 @@ Olvasd el a teljes tervet! Tartalmazza:
 - 7 domain szolgaltatas (Email Connector, Document Extractor, RAG Engine, Classifier, RPA Browser, Media Processor, Diagram Generator)
 - 9 infra epitokocka (Cache, Events, Config Versioning, Health Monitoring, Rate Limiter, Circuit Breaker, Human Review, Audit Trail, Schema Registry)
 - 5 fazis: F0 (infra) → F1 (Email+Doc+Classifier) → F2 (RAG+Monitoring) → F3 (RPA+Media) → F4 (Governance)
-- Alembic migracios strategia: 13 letezo migracio, 11 uj tervezett (014-024)
-- DB: 28 tabla + 6 view PostgreSQL-ben (localhost:5433)
+- Alembic migracios strategia: 13 letezo migracio (001-013), 11 tervezett (014-024)
+- DB: 36 tabla + 13 view PostgreSQL-ben (localhost:5433) — ld. `03_DATABASE_SCHEMA.md`
 
 ### Projekt struktura
 - **Backend:** `src/aiflow/` (FastAPI, Python 3.12+, port 8100)

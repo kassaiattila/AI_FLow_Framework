@@ -70,4 +70,16 @@ Data flows through `src/dataProvider.ts` → FastAPI `/api/v1/*` endpoints.
 - [ ] **Playwright E2E test: navigate → snapshot → click → screenshot → console check**
 - [ ] Manual browser test: backend ON (Live) + OFF (Demo) both work
 
+## VALOS teszteles (SOHA ne mock/fake!):
+- **Playwright E2E (KOTELEZO!):** Valos backend-del csatlakozva, valos adat a viewerben
+  1. `browser_navigate` → viewer betolt?
+  2. `browser_snapshot` → valos adat megjelenik (NEM placeholder)?
+  3. `browser_click` → interakciok (tab valtas, detail nezet, szurok) mukodnek?
+  4. `browser_take_screenshot` → vizualis ellenorzes
+  5. `browser_console_messages` → nincs JS hiba?
+- **Backend ON teszt:** `source: "backend"` — valos adat, Live badge megjelenik
+- **Backend OFF teszt:** `source: "demo"` — Demo badge megjelenik, mock JELOLVE van
+- **Teljes flow:** Input (upload/form) → Process (valos feldolgozas) → Output (valos eredmeny)
+- **A viewer CSAK AKKOR "KESZ" ha MINDKET szcenario (Live + Demo) Playwright teszten atment**
+
 ARGUMENTS: $ARGUMENTS

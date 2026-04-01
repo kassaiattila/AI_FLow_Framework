@@ -1,6 +1,11 @@
 # AIFlow Plan Documentation Context
 
-You are working in the `01_PLAN/` directory which contains the complete AIFlow project plan (35 documents).
+You are working in the `01_PLAN/` directory which contains the complete AIFlow project plan.
+
+## Phase Relationship (FONTOS!)
+> **Phase 1-7 (Het 1-22):** Eredeti framework implementacio — KESZ (v0.1.0 → v0.9.0-stable)
+> **Fazis 0-4 (Service Generalization):** UJ fejezet — skill → altalanos szolgaltatas (v0.9.1 → v1.0.0-rc1)
+> A ket fazis-rendszer FUGGETLEN. Phase 1-7 a framework magot epitette, Fazis 0-4 a service reteget.
 
 ## Structure
 - **00-05**: Core architecture, DB schema (36 tables, 13 views), implementation phases (22 weeks), tech stack
@@ -10,8 +15,9 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - **17-19**: Dev rules (git, testing, RPA)
 - **20-27**: Security, deployment, API spec, config, testing/regression, test structure, Claude Code setup, dev environment
 - **28**: Modular Deployment (Skill Instance architecture, multi-customer deployment)
+- **42**: Service Generalization Plan (7 domain service + 9 infra epitokocka + Fazis 0-4)
 - **AIFLOW_MASTER_PLAN.md**: Integrated overview of everything
-- **IMPLEMENTATION_PLAN.md**: Step-by-step execution guide with pilot project references
+- **IMPLEMENTATION_PLAN.md**: Step-by-step execution guide (Phase 1-7 KESZ, Fazis 0-4 → ld. 42_)
 - **SKILL_DEVELOPMENT.md**: How to create new skills
 
 ## When editing plan documents
@@ -19,17 +25,18 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - Use consistent terminology: Step, Workflow, Skill, Agent, Prompt, ExecutionContext
 - Cross-references use relative links: `[text](filename.md)` (all files are in same directory)
 - DB table names must match 03_DATABASE_SCHEMA.md exactly
-- Phase numbers and week ranges must match 04_IMPLEMENTATION_PHASES.md
-- API endpoints must match 22_API_SPECIFICATION.md
+- Phase numbers and week ranges must match 04_IMPLEMENTATION_PHASES.md (legacy) and 42_SERVICE_GENERALIZATION_PLAN.md (aktualis)
+- API endpoints must match 22_API_SPECIFICATION.md (+ 42_ tervezett service endpointok)
 - 6 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, invoice_processor, qbpp_test_automation (cfpb_complaint_router merged into email_intent_processor)
 
 ## Key numbers to keep consistent
-- 36 DB tables, 13 views, 26 migrations, 60+ indexes
-- 22 weeks, 7 phases (Phase 4=Het 10-13, Phase 5=14-16, Phase 6=17-19, Phase 7=20-22)
-- 6 skills, 35 plan documents
+- 36 DB tables, 13 views, 13 letezo Alembic migracio (001-013), 11 tervezett migracio (014-024), 60+ indexes
+- Framework: 22 weeks, 7 phases (Phase 1-7 KESZ)
+- Service Generalization: Fazis 0-4 (F0=infra, F1=Email+Doc+Classifier, F2=RAG+Monitor, F3=RPA+Media, F4=Governance)
+- 6 skills, src/aiflow/ 18 alkonyvtar (core, engine, models, prompts, services[tervezett], execution, evaluation, skill_system, tools, vectorstore, documents, ingestion, state, security, api, observability, cli, skills, contrib)
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/
-- Step + SkillRunner architecture (agents/ module removed)
+- Step + SkillRunner architecture (agents/ module removed, llm/ → models/ atnevezve)
 - 100+ test cases per skill minimum
 - Tech: PyJWT (NOT python-jose), bcrypt (NOT passlib), APScheduler 4.x (NOT 3.x)
 - API key prefix: "aiflow_sk_" (NOT "af_sk_" or "aif_sk_")
@@ -37,3 +44,7 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - Redis eviction: volatile-lru (NOT allkeys-lru)
 - Skill = template (code), Instance = running config (YAML). Multiple instances per customer.
 - deployments/{customer}/deployment.yaml defines which skills+instances per customer
+
+## MANDATORY: Valos teszteles MINDEN fazisban
+> **SOHA ne mockolt/fake adatokkal!** Minden uj szolgaltatas valos backend-del, valos DB-vel, valos fajlokkal tesztelendo.
+> Fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul (42_SERVICE_GENERALIZATION_PLAN.md Section 8).

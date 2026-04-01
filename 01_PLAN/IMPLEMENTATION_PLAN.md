@@ -1,10 +1,10 @@
 # AIFlow Implementation Plan - Claude Code Execution Guide
 
 **Cel:** Ez a fajl a Claude Code szamara keszult, hogy a teljes AIFlow keretrendszert
-es az 5 skill-t felepigtse, lepesrol lepesre. A `01_PLAN/` mappa 23 dokumentuma alapjan.
+es a 6 skill-t felepigtse, lepesrol lepesre. A `01_PLAN/` mappa dokumentumai alapjan.
 
-**Utolso frissites:** 2026-03-29 (atfogo audit alapjan)
-**Statusz:** Framework KESZ, 2/5 skill PRODUCTION, 2/5 IN DEVELOPMENT, 1/5 STUB
+**Utolso frissites:** 2026-04-01 (konzisztencia audit alapjan)
+**Statusz:** Framework KESZ (Phase 1-7), 4/6 skill WORKING, 1/6 IN DEV, 1/6 STUB. Aktualis: Service Generalization (Fazis 0-4) → ld. `42_SERVICE_GENERALIZATION_PLAN.md`
 
 ---
 
