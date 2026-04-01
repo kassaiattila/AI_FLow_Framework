@@ -20,6 +20,7 @@ import { RagChat } from "./pages/RagChat";
 import { CubixViewer } from "./pages/CubixViewer";
 import { InvoiceUpload } from "./pages/InvoiceUpload";
 import { EmailUpload } from "./pages/EmailUpload";
+import { EmailConnectors } from "./pages/EmailConnectors";
 import { CostsPage } from "./pages/CostsPage";
 import { VerificationPanel } from "./verification/VerificationPanel";
 
@@ -61,6 +62,7 @@ export const App = () => (
       <Route path="/cubix" element={<CubixViewer />} />
       <Route path="/invoice-upload" element={<InvoiceUpload />} />
       <Route path="/email-upload" element={<EmailUpload />} />
+      <Route path="/email-connectors" element={<EmailConnectors />} />
       <Route path="/costs" element={<CostsPage />} />
       <Route path="/invoices/:id/verify" element={<VerificationPanel />} />
     </CustomRoutes>

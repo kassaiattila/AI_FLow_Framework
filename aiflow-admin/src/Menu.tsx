@@ -7,6 +7,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AttachEmailIcon from "@mui/icons-material/AttachEmail";
+import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import { Divider, Typography, Box } from "@mui/material";
 
@@ -55,6 +56,11 @@ export const AppMenu = () => {
         to="/email-upload"
         primaryText={translate("aiflow.emailUpload.menuLabel")}
         leftIcon={<AttachEmailIcon />}
+      />
+      <Menu.Item
+        to="/email-connectors"
+        primaryText={translate("aiflow.connectors.menuLabel")}
+        leftIcon={<SettingsInputComponentIcon />}
       />
     </Menu>
   );
