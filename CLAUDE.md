@@ -9,10 +9,28 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - **SkillRunner** = sequential step executor with service injection (models, prompts, ctx)
 - **WorkflowRunner** = DAG executor with branching/checkpoints (for complex workflows)
 - **Skill** = self-contained package (workflows + tools + prompts + tests + UI + skill.yaml). Types: ai, rpa, hybrid
+- **Service** = altalanos, ujrahasznalato epitokocka (src/aiflow/services/) — skill-ek ezekbol epulnek
 - **ModelClient** = unified LLM facade (generate, embed) via LiteLLM backend
 - **PromptManager** = YAML prompt loading with Jinja2 templates and cache
 - **Skill Instance** = configured deployment of a Skill template per customer
 - **VectorStore** = pgvector hybrid search (vector HNSW + BM25 tsvector + RRF)
+
+## Current Phase: Service Generalization (v0.9.0-stable → v1.0.0)
+**Terv:** `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`
+
+Skill-specifikus kodot altalanos, konfiguralhato szolgaltatasokka alakitjuk:
+- **Email Connector** (O365/Gmail/IMAP) ← email_intent_processor
+- **Document Extractor** (barmilyen doc tipus) ← invoice_processor
+- **RAG Engine** (cserelheto tudasbazis + chat UI) ← aszf_rag_chat
+- **Intent Classifier** (hibrid ML+LLM) ← email_intent_processor
+- **RPA Browser** (YAML-alapu automatizalas) ← cubix_course_capture
+- **Media Processor** (video→szoveg) ← cubix_course_capture
+- **Diagram Generator** (DrawIO/SVG) ← process_documentation
+
+Infrastruktura epitokockak: Cache Layer, Event Bus, Config Versioning, Health Monitoring,
+Rate Limiter, Circuit Breaker, Human Review, Audit Trail, Schema Registry.
+
+**Fazisok:** F0 (infra) → F1 (Email+Doc+Classifier) → F2 (RAG+Monitoring) → F3 (RPA+Media) → F4 (Governance)
 
 ## Skills (6 db)
 
@@ -54,21 +72,35 @@ This enables: new intents/entities without code changes, per-customer customizat
 
 ### Before implementing ANY feature:
 1. **Read the relevant plan** in `01_PLAN/` - EVERY feature has a plan document
-2. **Check reference materials** - `skills/*/reference/` tartalmaz szakmai utmutatot (pl. Cubix RAG tananyag)
-3. **Use Alembic** for ALL database changes - NEVER create tables with raw SQL
-4. **Follow the Cubix RAG checklist** at `01_PLAN/30_RAG_PRODUCTION_PLAN.md` for RAG features
-5. **Run `alembic upgrade head`** after any migration file change
+2. **Read `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`** - check if it affects a service
+3. **Check reference materials** - `skills/*/reference/` tartalmaz szakmai utmutatot
+4. **Use Alembic** for ALL database changes - NEVER create tables with raw SQL
+5. **Follow the Cubix RAG checklist** at `01_PLAN/30_RAG_PRODUCTION_PLAN.md` for RAG features
+6. **Run `alembic upgrade head`** after any migration file change
 
 ### Before committing:
 1. Run `pytest tests/unit/ -q` - all tests must pass
 2. Check `git status` - no untracked files that should be tracked
 3. Commit message: conventional commits (`feat`, `fix`, `docs`, `refactor`)
 
+### STRICT: Real Testing Only (SOHA NE MOCK/FAKE!)
+> **Csak valos, sikeres teszteles utan szabad tovabblepni. SOHA NE mockolt/fake adatokkal!**
+
+- **API tesztek:** Valos FastAPI szerver fut, valos HTTP keresek (curl vagy Playwright)
+- **Service tesztek:** Valos fuggoosegek (PostgreSQL, Redis Docker-ben), NEM in-memory mock
+- **UI tesztek:** MCP Playwright-tal valos bongeszben, valos backendhez csatlakozva
+- **LLM tesztek:** Valos LLM hivasok (Promptfoo), NEM hardcoded response mock
+- **Upload/Process tesztek:** Valos PDF fajlok, valos Docling parse, valos eredmeny ellenorzes
+- **Egy feature CSAK AKKOR "KESZ" ha Playwright-tal end-to-end vegig teszteltuk**
+- **Ha egy teszt sikertelen, NEM lepunk tovabb** — elobb javitjuk, ujra teszteljuk
+
 ### Key plan documents:
+- **`01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`** - AKTUALIS: Service generalizalas terv (F0-F4), infra epitokockak, domain szolgaltatasok
 - `01_PLAN/IMPLEMENTATION_PLAN.md` - Fazis A1-A5 (KESZ) + F1-F4 (aktualis) + B (jovobeli)
 - `01_PLAN/29_OPTIMIZATION_PLAN.md` - O1-O3 (KESZ) + framework audit eredmeny
 - `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist (Cubix tananyag alapjan!)
 - `01_PLAN/28_MODULAR_DEPLOYMENT.md` - Multi-customer instance architecture
+- `01_PLAN/22_API_SPECIFICATION.md` - API specifikacio (50+ endpoint, 58% implementalt)
 
 ### Database:
 - PostgreSQL pgvector @ localhost:5433 (Docker: `docker compose up -d db`)
@@ -133,20 +165,28 @@ make lock                                   # Regenerate uv.lock from pyproject.
 ```
 
 ## Claude Code Slash Commands (use these during development!)
+
+### Fejlesztes + Teszteles
+- `/dev-step` - **FO PARANCS**: fejlesztes + valos teszt + commit. Playwright E2E teszteles KOTELEZO!
+- `/regression` - **MANDATORY before commit**: regresszios tesztek az erintett fajlokra
+- `/new-test` - Generate tests for existing code (with @test_registry header)
+
+### Generatorok
 - `/new-step` - Generate new Step with @step decorator, I/O models, tests, prompt YAML
 - `/new-skill` - Generate complete Skill scaffold (15-20 files)
 - `/new-module` - Generate framework module + tests + registry updates
-- `/new-test` - Generate tests for existing code (with @test_registry header)
 - `/new-prompt` - Generate prompt YAML + Promptfoo test cases
-- `/regression` - **MANDATORY before commit**: run regression tests for changed files
-- `/dev-step` - Complete development step: regression + record + commit suggestion
-- `/phase-status` - Check implementation progress for a phase (1-7)
-- `/validate-plan` - Validate plan document consistency
-- `/update-plan` - **MANDATORY for plan changes**: propagate + 2-pass validation
+
+### UI
 - `/ui-component` - Generate shadcn/ui + TypeScript component for the dashboard
 - `/ui-page` - Generate Next.js App Router page for the dashboard
 - `/ui-viewer` - Generate skill-specific result viewer component
 - `/ui-api-endpoint` - Generate FastAPI endpoint for the UI
+
+### Tervek + Audit
+- `/phase-status` - Check implementation progress for a phase (F0-F4)
+- `/validate-plan` - Validate plan document consistency
+- `/update-plan` - **MANDATORY for plan changes**: propagate + 2-pass validation
 
 ## Directory Structure
 ```
@@ -155,6 +195,7 @@ src/aiflow/
     engine/        # Step, SkillRunner, WorkflowRunner, DAG, checkpoint
     models/        # ModelClient, LiteLLM backend, protocols
     prompts/       # PromptManager (YAML + Jinja2 + cache)
+    services/      # ← UJ: Altalanos szolgaltatasok (email_connector, document_extractor, rag_engine, classifier, rpa_browser, media_processor, diagram_generator, cache, events, monitoring, resilience, human_review, audit, schema_registry)
     skill_system/  # Skill manifest, loader, registry, instance (canonical)
     tools/         # Shell, Playwright, RobotFramework, HumanLoop, Kafka (canonical)
     vectorstore/   # VectorStore ABC, pgvector, HybridSearchEngine, embedder
@@ -162,7 +203,7 @@ src/aiflow/
     ingestion/     # Parsers (PDF/DOCX), chunkers (semantic)
     state/         # SQLAlchemy ORM, repository, Alembic migrations
     security/      # JWT+API key auth, RBAC, audit
-    api/v1/        # FastAPI endpoints (10 route files: health, workflows, chat, feedback, runs, costs, skills, emails, auth)
+    api/v1/        # FastAPI endpoints (12 route files: health, workflows, chat, feedback, runs, costs, skills, emails, auth, documents, process_docs, cubix)
     observability/ # Tracing, cost_tracker (partial)
     cli/           # typer CLI
     skills/        # Backward compat re-exports -> skill_system/
@@ -410,6 +451,9 @@ Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
 **Environment:**
 - **27_DEVELOPMENT_ENVIRONMENT** - uv, .venv, Docker Compose, Makefile, onboarding
 - **28_MODULAR_DEPLOYMENT** - Skill Instance architecture, multi-customer, deployment profiles
+
+**Service Generalization:**
+- **42_SERVICE_GENERALIZATION_PLAN** - Teljes atalakitasi terv: 7 domain service + 9 infra epitokocka + 5 fazis
 
 **Dev Artifacts:**
 - IMPLEMENTATION_PLAN.md, SKILL_DEVELOPMENT.md, AIFLOW_MASTER_PLAN.md
