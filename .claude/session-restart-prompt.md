@@ -17,7 +17,8 @@ AIFlow Enterprise AI Automation Framework — service generalizacios fazisban va
 Olvasd el a teljes tervet! Tartalmazza:
 - 7 domain szolgaltatas (Email Connector, Document Extractor, RAG Engine, Classifier, RPA Browser, Media Processor, Diagram Generator)
 - 9 infra epitokocka (Cache, Events, Config Versioning, Health Monitoring, Rate Limiter, Circuit Breaker, Human Review, Audit Trail, Schema Registry)
-- 5 fazis: F0 (infra) → F1 (Email+Doc+Classifier) → F2 (RAG+Monitoring) → F3 (RPA+Media) → F4 (Governance)
+- 6 fazis vertikalis szelet: F0 (infra) → F1 (Doc Extractor) → F2 (Email+Classifier) → F3 (RAG) → F4 (RPA+Media+Diagram) → F5 (Monitoring+Governance)
+- Minden fazis: backend → API → Figma design → UI → Playwright E2E → KESZ, utana kovetkezo
 - Alembic migracios strategia: 13 letezo migracio (001-013), 11 tervezett (014-024)
 - DB: 36 tabla + 13 view PostgreSQL-ben (localhost:5433) — ld. `03_DATABASE_SCHEMA.md`
 

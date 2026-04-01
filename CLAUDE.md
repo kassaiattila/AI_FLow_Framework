@@ -34,7 +34,8 @@ Skill-specifikus kodot altalanos, konfiguralhato szolgaltatasokka alakitjuk:
 Infrastruktura epitokockak: Cache Layer, Event Bus, Config Versioning, Health Monitoring,
 Rate Limiter, Circuit Breaker, Human Review, Audit Trail, Schema Registry.
 
-**Fazisok:** F0 (infra) → F1 (Email+Doc+Classifier) → F2 (RAG+Monitoring) → F3 (RPA+Media) → F4 (Governance)
+**Fazisok (vertikalis szelet — egy szolgaltatas TELJESEN KESZ mielott a kovetkezore lepunk):**
+F0 (infra) → F1 (Document Extractor) → F2 (Email+Classifier) → F3 (RAG Engine) → F4 (RPA+Media+Diagram) → F5 (Monitoring+Governance)
 
 ## Skills (6 db)
 
@@ -443,10 +444,11 @@ regression_diff.json. Stored in tests/artifacts/{date}/{run_id}/
 | Fazis | Mit tesztelunk VALOSAN | Eszkoz | Elfogadasi kriterium |
 |-------|------------------------|--------|---------------------|
 | **F0** (Infra) | Redis cache (hit/miss), Config CRUD, Rate limit, Circuit breaker | `curl` + pytest integration | Cache response <10ms, rate limit block 429 |
-| **F1** (Domain A) | Email fetch (IMAP), Doc extraction (PDF), Intent classify | `curl` + Playwright E2E | Valos email/PDF feldolgozas, JSON eredmeny |
-| **F2** (RAG+Monitor) | RAG ingest+query, Health endpoint, Event publish | `curl` + Playwright chat UI | RAG valasz relevanciaja, health metrics |
-| **F3** (RPA+Media) | Playwright browser auto, Video STT, Diagram SVG | Playwright E2E + subprocess | Valos oldal scrape, valos video transcript |
-| **F4** (Governance) | Audit log, Scheduling CRUD, Admin endpoints, RLS | `curl` + DB query | Audit rekord letezik, RLS blokkol |
+| **F1** (Doc Extractor) | PDF extract + verify + save — TELJES vertikalis szelet | `curl` + Playwright E2E | Upload → extract → verify → save → reload |
+| **F2** (Email+Classifier) | Email fetch + classify + route — TELJES vertikalis szelet | `curl` + Playwright E2E | Config → fetch → classify → show → route |
+| **F3** (RAG Engine) | Collection + ingest + query + feedback — TELJES szelet | `curl` + Playwright chat UI | Create → ingest → query → feedback → stats |
+| **F4** (RPA+Media+Diagram) | 3 mini-szelet: Diagram → Media → RPA → Human Review | Playwright E2E + subprocess | Valos render, valos STT, valos scrape |
+| **F5** (Monitoring+Gov) | Health, audit, admin, scheduling, RLS | `curl` + L4 regresszio | 90%+ API, ≥80% coverage, L4 atment |
 
 ## Plan Reference (All docs in 01_PLAN/)
 Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview

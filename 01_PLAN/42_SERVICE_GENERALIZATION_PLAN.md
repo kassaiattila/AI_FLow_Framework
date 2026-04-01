@@ -880,10 +880,20 @@ alembic history
 
 ---
 
-## 5. Bovitett Implementacios Fazisok
+## 5. Implementacios Fazisok (Vertikalis Szelet Megkozelites)
 
-### Fazis 0: Infrastruktura Alapozas (1 het) ← UJ!
-**Cel:** Epitokockak nelkul a domain service-ek nem uzemeltethetoak.
+> **ALAPELV: Egy szolgaltatas TELJESEN KESZ (backend + API + Figma design + UI + E2E teszt)
+> mielott a kovetkezore lepnenk. NEM fejlesztunk tobb szolgaltatast parhuzamosan.**
+>
+> Minden fazis EGY TELJES VERTIKALIS SZELET:
+> ```
+> Backend Service → Alembic migracio → API endpoint → curl teszt
+>   → /ui-journey → /ui-design (Figma MCP) → /ui-page (React)
+>   → Playwright E2E teszt → Figma sync → KESZ → kovetkezo fazis
+> ```
+
+### Fazis 0: Infrastruktura Alapozas (1 het)
+**Cel:** Kozos epitokockak, amelyek MINDEN domain service-nek kelleni fognak.
 
 | # | Feladat | Fajlok | Becsult ido |
 |---|---------|--------|-------------|
@@ -894,69 +904,155 @@ alembic history
 | 0.5 | **Retry/Circuit Breaker** kozponti konfiguracio | `services/resilience/` | 4 ora |
 | 0.6 | Service API router alap | `api/v1/services.py` | 3 ora |
 | 0.7 | `__all__` export hozzaadasa 7 modulhoz | core, engine, models, stb. | 2 ora |
+| 0.8 | **Schema Registry** kozponti kiemelese | `services/schema_registry/` | 6 ora |
+| 0.9 | Auth: `/refresh` + `/api-keys` | `api/v1/auth.py` | 6 ora |
 
-**Vegeredmeny:** Stabil infra alap — cache, config versioning, rate limit, retry.
+**Vegeredmeny:** Stabil infra alap — cache, config versioning, rate limit, retry, schema registry, auth.
 **Tag:** `v0.9.1-infra`
+**Teszteles:** curl tesztek (cache hit/miss, rate limit 429, config CRUD, auth refresh). NEM kell UI.
 
-### Fazis 1: Domain Szolgaltatasok A (2-3 het)
-**Cel:** Email Connector + Document Extractor + Schema Registry
+---
 
-| # | Feladat | Fajlok | Becsult ido |
-|---|---------|--------|-------------|
-| 1.1 | **Schema Registry** kozponti kiemelese | `services/schema_registry/` | 6 ora |
-| 1.2 | **Email Connector** (O365 + IMAP + Gmail) | `services/email_connector/` | 10 ora |
-| 1.3 | **Document Extractor** (altalanos mezo definicio) | `services/document_extractor/` | 12 ora |
-| 1.4 | **Intent Classifier** (hibrid ML+LLM) | `services/classifier/` | 8 ora |
-| 1.5 | Email Connector + Classifier end-to-end | integracio | 4 ora |
-| 1.6 | Admin UI: Service config oldalak | `aiflow-admin/` | 8 ora |
-| 1.7 | Auth: `/refresh` + `/api-keys` | `api/v1/auth.py` | 6 ora |
+### Fazis 1: Document Extractor szolgaltatas (2-3 het) — ELSO VERTIKALIS SZELET
+**Cel:** Szamla/dokumentum feldolgozas mint altalanos szolgaltatas — backend-tol UI-ig teljes.
+**Forras skill:** `invoice_processor` (70% kesz, valos Docling integracio mar mukodik)
 
-**Vegeredmeny:** Email + Document extraction mukodik altalanosan.
-**Tag:** `v0.10.0-services`
+| # | Lepes | Feladat | Fajlok | Becsult ido |
+|---|-------|---------|--------|-------------|
+| 1.1 | Backend | **Document Extractor** service generalizalas | `services/document_extractor/` | 12 ora |
+| 1.2 | DB | Alembic 018-019 (document_type_configs, invoices, line_items) | `alembic/versions/` | 4 ora |
+| 1.3 | API | Extract, verify, config CRUD endpointok | `api/v1/documents.py` bovites | 8 ora |
+| 1.4 | API fix | `POST /documents/{file}/verify` — **blocker!** | `api/v1/documents.py` | 3 ora |
+| 1.5 | curl | Valos PDF upload → extract → verify — `source: "backend"` | — | 2 ora |
+| 1.6 | Journey | `/ui-journey "document verification"` | dokumentacio | 1 ora |
+| 1.7 | Figma | `/ui-design "verification page"` — Figma MCP | PAGE_SPECS.md | 4 ora |
+| 1.8 | UI | VerificationPanel megvalositas + Document config | `aiflow-admin/` | 8 ora |
+| 1.9 | E2E | Playwright: upload → process → verify → save → reload → check | — | 3 ora |
+| 1.10 | Integracio | Regi `invoice_processor` skill → Document Extractor service hasznal | `skills/invoice_processor/` | 3 ora |
 
-### Fazis 2: RAG Engine + Monitoring (3-4 het)
-**Cel:** RAG mint onallo szolgaltatas + uzemi megfigyeles
+**Vegeredmeny:** Dokumentum feldolgozas TELJESEN mukodik: upload → extract → verify → save.
+**Tag:** `v0.10.0-document-extractor`
+**Elfogadasi kriterium:** Playwright E2E teszten valos PDF feldolgozas + verifikacio atment.
 
-| # | Feladat | Fajlok | Becsult ido |
-|---|---------|--------|-------------|
-| 2.1 | **RAG Engine** multi-collection | `services/rag_engine/` | 12 ora |
-| 2.2 | RAG Chat UI (kollekcio valaszto + chat) | `aiflow-admin/` | 10 ora |
-| 2.3 | **Health Monitoring** per service | `services/monitoring/` | 8 ora |
-| 2.4 | **Event Bus + Notifications** | `services/events/`, `services/notifications/` | 10 ora |
-| 2.5 | **Cost Budget** service szintu | `services/rate_limiter/budget.py` | 6 ora |
-| 2.6 | Runs: cancel, result, DLQ endpointok | `api/v1/runs.py` | 6 ora |
+---
 
-**Vegeredmeny:** RAG chat barmilyen dokuemntum kollekcional. Szolgaltatas monitoring + alerted.
-**Tag:** `v0.11.0-rag`
+### Fazis 2: Email Connector + Intent Classifier szolgaltatas (2-3 het) — MASODIK SZELET
+**Cel:** Email feldolgozas mint altalanos szolgaltatas — fetch-tol routing-ig, UI-val.
+**Forras skill:** `email_intent_processor` (90% kesz, hibrid ML+LLM mar mukodik)
 
-### Fazis 3: RPA + Media + Approval (4-5 het)
-**Cel:** Browser automatizalas, media feldolgozas, emberi jovahagyas
+| # | Lepes | Feladat | Fajlok | Becsult ido |
+|---|-------|---------|--------|-------------|
+| 2.1 | Backend | **Email Connector** (O365 + IMAP + Gmail) | `services/email_connector/` | 10 ora |
+| 2.2 | Backend | **Intent Classifier** (hibrid ML+LLM) | `services/classifier/` | 8 ora |
+| 2.3 | DB | Alembic 017 (email_connector_configs, email_fetch_history) | `alembic/versions/` | 3 ora |
+| 2.4 | API | Email fetch, classify, connector config CRUD | `api/v1/emails.py` bovites | 6 ora |
+| 2.5 | API fix | `GET /emails/{email_id}` — **blocker!** | `api/v1/emails.py` | 2 ora |
+| 2.6 | curl | Valos IMAP email fetch → classify → route — `source: "backend"` | — | 2 ora |
+| 2.7 | Journey | `/ui-journey "email processing"` | dokumentacio | 1 ora |
+| 2.8 | Figma | `/ui-design "email detail + connector config"` — Figma MCP | PAGE_SPECS.md | 4 ora |
+| 2.9 | UI | EmailShow fix + Connector config + Classifier tune | `aiflow-admin/` | 8 ora |
+| 2.10 | E2E | Playwright: config → fetch → list → detail → intent → routing | — | 3 ora |
+| 2.11 | Integracio | Regi `email_intent_processor` skill → Email + Classifier service | `skills/email_intent_processor/` | 3 ora |
 
-| # | Feladat | Fajlok | Becsult ido |
-|---|---------|--------|-------------|
-| 3.1 | **RPA Browser Service** (YAML steps) | `services/rpa_browser/` | 10 ora |
-| 3.2 | **Media Processor** (multi-provider STT) | `services/media_processor/` | 8 ora |
-| 3.3 | **Diagram Generator** kiemelese | `services/diagram_generator/` | 6 ora |
-| 3.4 | **Human Review Service** | `services/human_review/` | 8 ora |
-| 3.5 | Cubix skill → RPA + Media + RAG compose | skill refactor | 6 ora |
-| 3.6 | Skills API: detail, manifest, ingest | `api/v1/skills_api.py` | 6 ora |
+**Vegeredmeny:** Email feldolgozas TELJESEN mukodik: connector config → fetch → classify → route → show.
+**Tag:** `v0.10.1-email-connector`
+**Elfogadasi kriterium:** Playwright E2E teszten valos email feldolgozas + intent elemzes atment.
 
-**Vegeredmeny:** Teljes service portfolio. Barmilyen skill composable.
-**Tag:** `v0.12.0-complete`
+---
 
-### Fazis 4: Governance & Production Readiness (5-6 het)
-**Cel:** Audit trail, compliance, teljes API lefedettse
+### Fazis 3: RAG Engine szolgaltatas (2-3 het) — HARMADIK SZELET
+**Cel:** RAG mint altalanos, multi-collection szolgaltatas — ingest-tol chat-ig, UI-val.
+**Forras skill:** `aszf_rag_chat` (85% kesz, 86% eval pass rate)
 
-| # | Feladat | Prioritas |
-|---|---------|-----------|
-| 4.1 | **Audit Trail** service | Magas |
-| 4.2 | Prompts API: list, sync, promote | Kozepes |
-| 4.3 | Scheduling API (cron + webhook trigger) | Kozepes |
-| 4.4 | Admin endpointok (users, teams, system-config) | Kozepes |
-| 4.5 | Evaluation API (test run, results, golden datasets) | Alacsony |
-| 4.6 | Multi-tenant RLS (PostgreSQL row-level security) | Alacsony |
-| 4.7 | Backup/DR strategia dokumentalasa + implementalas | Kozepes |
-| 4.8 | tools/ + skill_system/ tesztek (≥80% coverage) | Kozepes |
+| # | Lepes | Feladat | Fajlok | Becsult ido |
+|---|-------|---------|--------|-------------|
+| 3.1 | Backend | **RAG Engine** multi-collection + ingest + query | `services/rag_engine/` | 12 ora |
+| 3.2 | DB | Alembic 020 (notification system — event-ek + alertek RAG-hoz) | `alembic/versions/` | 4 ora |
+| 3.3 | API | Collection CRUD, ingest, query, stats | `api/v1/` uj router | 8 ora |
+| 3.4 | API | Feedback endpoint bekotes (mar letezik, UI nem hasznalja!) | `api/v1/feedback.py` | 2 ora |
+| 3.5 | curl | Valos kollekcio → ingest PDF → query → valasz + citaciok | — | 2 ora |
+| 3.6 | Journey | `/ui-journey "RAG collection management + chat"` | dokumentacio | 1 ora |
+| 3.7 | Figma | `/ui-design "collection manager + chat UI"` — Figma MCP | PAGE_SPECS.md | 4 ora |
+| 3.8 | UI | Kollekcio valaszto, feedback gombok bekotese, chat javitas | `aiflow-admin/` | 8 ora |
+| 3.9 | E2E | Playwright: create collection → ingest → query → feedback → stats | — | 3 ora |
+| 3.10 | Integracio | Regi `aszf_rag_chat` skill → RAG Engine service hasznal | `skills/aszf_rag_chat/` | 3 ora |
+
+**Vegeredmeny:** RAG TELJESEN mukodik: kollekcio → ingest → query → chat → feedback → stats.
+**Tag:** `v0.11.0-rag-engine`
+**Elfogadasi kriterium:** Playwright E2E teszten valos PDF ingest + chat + feedback atment.
+
+---
+
+### Fazis 4: RPA + Media + Diagram szolgaltatasok (3-4 het) — NEGYEDIK SZELET (3 mini-szelet)
+**Cel:** 3 kisebb szolgaltatas kiemelese, egyenkent teljes vertikalis szeletben.
+**Forras skill:** `cubix_course_capture` (75% kesz) + `process_documentation` (production)
+
+> **Sorrend:** F4a (Diagram — legkisebb, leggyorsabb) → F4b (Media) → F4c (RPA) → F4d (Human Review) → Cubix compose
+
+**F4a: Diagram Generator** (1 het)
+
+| # | Lepes | Feladat | Becsult ido |
+|---|-------|---------|-------------|
+| 4a.1 | Backend | Diagram Generator service (Mermaid + DrawIO + Kroki) | 6 ora |
+| 4a.2 | API | Generate, export (SVG/PNG/BPMN), history | 4 ora |
+| 4a.3 | Figma + UI | ProcessDocs persistence (save/list/delete) | 6 ora |
+| 4a.4 | E2E | Playwright: describe → generate → save → reload → view | 2 ora |
+
+**F4b: Media Processor** (1 het)
+
+| # | Lepes | Feladat | Becsult ido |
+|---|-------|---------|-------------|
+| 4b.1 | Backend | Media Processor (multi-provider STT: Whisper, Azure Speech) | 8 ora |
+| 4b.2 | DB + API | Alembic 024 (media_configs, media_results) + CRUD | 6 ora |
+| 4b.3 | Figma + UI | Media upload + transcript viewer | 6 ora |
+| 4b.4 | E2E | Playwright: upload video → STT → transcript → structured output | 2 ora |
+
+**F4c: RPA Browser** (1 het)
+
+| # | Lepes | Feladat | Becsult ido |
+|---|-------|---------|-------------|
+| 4c.1 | Backend | RPA Browser Service (YAML-based step executor) | 10 ora |
+| 4c.2 | DB + API | Alembic 023 (rpa_configs, rpa_execution_log) + CRUD | 6 ora |
+| 4c.3 | Figma + UI | RPA config editor + execution log viewer | 6 ora |
+| 4c.4 | E2E | Playwright: config → execute → log → results | 2 ora |
+
+**F4d: Human Review + Cubix compose** (1 het)
+
+| # | Lepes | Feladat | Becsult ido |
+|---|-------|---------|-------------|
+| 4d.1 | Backend | Human Review Service (approval flow) | 8 ora |
+| 4d.2 | API | Pending, approve, reject, history | 4 ora |
+| 4d.3 | Figma + UI | Review queue + approve/reject UI | 6 ora |
+| 4d.4 | Cubix | `cubix_course_capture` → RPA + Media + RAG compose | 6 ora |
+| 4d.5 | E2E | Playwright: full Cubix flow + human review flow | 3 ora |
+
+**Vegeredmeny:** Mind a 7 domain service TELJESEN mukodik. Skills API: detail, manifest, ingest.
+**Tag:** `v0.12.0-complete-services`
+**Elfogadasi kriterium:** Minden service Playwright E2E teszten atment. Cubix skill composable.
+
+---
+
+### Fazis 5: Monitoring + Governance + Production Readiness (2-3 het) — OTODIK SZELET
+**Cel:** Cross-cutting szolgaltatasok + admin + compliance — teljes production readiness.
+
+| # | Lepes | Feladat | Fajlok | Becsult ido |
+|---|-------|---------|--------|-------------|
+| 5.1 | Backend | **Health Monitoring** per service | `services/monitoring/` | 8 ora |
+| 5.2 | Backend | **Event Bus + Notifications** | `services/events/` | 10 ora |
+| 5.3 | Backend | **Cost Budget** enforcement | `services/rate_limiter/budget.py` | 6 ora |
+| 5.4 | Backend | **Audit Trail** service (immutable log) | `services/audit/` | 8 ora |
+| 5.5 | API | Runs cancel/DLQ, Admin CRUD (users, teams, API keys) | `api/v1/` | 10 ora |
+| 5.6 | API | Prompts API, Scheduling API, Evaluation API | `api/v1/` | 12 ora |
+| 5.7 | DB | Alembic 020-022 (notifications, metrics, events) | `alembic/versions/` | 4 ora |
+| 5.8 | Figma + UI | Monitoring dashboard + Admin pages | `aiflow-admin/` | 10 ora |
+| 5.9 | Security | Multi-tenant RLS (PostgreSQL row-level security) | DB + middleware | 8 ora |
+| 5.10 | Teszt | tools/ + skill_system/ tesztek ≥80% coverage | `tests/` | 6 ora |
+| 5.11 | E2E | **L4 Complete regresszio**: unit + integration + skill + Playwright UI | — | 4 ora |
+| 5.12 | Docs | Backup/DR strategia dokumentalas + implementalas | `01_PLAN/` | 4 ora |
+
+**Vegeredmeny:** Production-ready framework, 90%+ API lefedettse, monitoring, audit, admin.
+**Tag:** `v1.0.0-rc1`
+**Elfogadasi kriterium:** L4 Complete regresszio atment. Minden zombie tabla API-t kapott.
 
 **Vegeredmeny:** Production-ready framework, 90%+ API lefedettse.
 **Tag:** `v1.0.0-rc1`
@@ -990,18 +1086,20 @@ async def extract_invoice_data(data):
     return await _extractor.extract(data)
 ```
 
-### 6.3 Git Verziozas
+### 6.3 Git Verziozas (Vertikalis Szelet — szolgaltatasonkent)
 
 ```
-v0.9.0-stable     ← Jelenlegi stabil (rollback pont)
-v0.9.1-infra      ← Fazis 0 utan (cache, config versioning, rate limit, retry)
-v0.10.0-services  ← Fazis 1 utan (Email + Document + Classifier + Schema Registry)
-v0.11.0-rag       ← Fazis 2 utan (RAG Engine + Monitoring + Events)
-v0.12.0-complete  ← Fazis 3 utan (RPA + Media + Human Review + Diagram)
-v1.0.0-rc1        ← Fazis 4 utan (Audit Trail + Governance + Production Ready)
+v0.9.0-stable              ← Jelenlegi stabil (rollback pont)
+v0.9.1-infra               ← F0: Infra (cache, config versioning, rate limit, retry, schema registry)
+v0.10.0-document-extractor ← F1: Document Extractor TELJESEN KESZ (backend + API + UI + E2E)
+v0.10.1-email-connector    ← F2: Email + Classifier TELJESEN KESZ (backend + API + UI + E2E)
+v0.11.0-rag-engine         ← F3: RAG Engine TELJESEN KESZ (backend + API + UI + E2E)
+v0.12.0-complete-services  ← F4: RPA + Media + Diagram + Human Review TELJESEN KESZ
+v1.0.0-rc1                 ← F5: Monitoring + Governance + Admin + Production Ready
 ```
 
 Minden fazis vegen `git tag` — barmikor visszaallithato.
+Minden tag **TELJESEN MUKODO szolgaltatast** jelol (backend + UI + E2E teszt).
 
 ---
 

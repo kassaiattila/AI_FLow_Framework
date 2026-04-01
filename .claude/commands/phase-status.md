@@ -3,13 +3,17 @@ Show the current implementation status of an AIFlow phase.
 Arguments: $ARGUMENTS
 (Phase: F0, F1, F2, F3, F4, or "all" for overview. Legacy: 1-7 for old phases)
 
-## Service Generalization Phases (aktualis — 42_SERVICE_GENERALIZATION_PLAN.md):
+## Service Generalization Phases — Vertikalis Szelet (42_SERVICE_GENERALIZATION_PLAN.md):
 
-- **F0** = Infrastruktura Alapozas (cache, config versioning, rate limiter, retry, __all__ exports)
-- **F1** = Domain Szolgaltatasok A (Schema Registry, Email Connector, Document Extractor, Classifier, Auth)
-- **F2** = RAG Engine + Monitoring (RAG multi-collection, Health Monitoring, Event Bus, Cost Budget, Runs API)
-- **F3** = RPA + Media + Approval (RPA Browser, Media Processor, Diagram Generator, Human Review, Skills API)
-- **F4** = Governance & Production Ready (Audit Trail, Prompts API, Scheduling, Admin, Tests, Multi-tenant RLS)
+> **Minden fazis EGY TELJES szolgaltatas: backend + API + Figma design + UI + Playwright E2E teszt.**
+> Nem lepunk a kovetkezore amig az aktualis szelet TELJESEN KESZ!
+
+- **F0** = Infrastruktura (cache, config versioning, rate limiter, retry, schema registry, auth)
+- **F1** = **Document Extractor** — teljes szelet (backend → API → Figma → UI → E2E)
+- **F2** = **Email Connector + Classifier** — teljes szelet (backend → API → Figma → UI → E2E)
+- **F3** = **RAG Engine** — teljes szelet (backend → API → Figma → UI → E2E)
+- **F4** = **RPA + Media + Diagram + Human Review** — 4 mini-szelet (F4a-F4d)
+- **F5** = **Monitoring + Governance** — cross-cutting + admin + production readiness
 
 ## Steps:
 
@@ -52,11 +56,12 @@ Arguments: $ARGUMENTS
 - Valos teszteles KOTELEZO — mock/fake eredmeny NEM szamit!
 - **Phase 1-7** (framework) es **Fazis 0-4** (service gen) KET FUGGETLEN fazis-rendszer — ne keverd!
 
-## Valos teszteles ellenorzes fazisokent:
+## Valos teszteles ellenorzes fazisokent (vertikalis szelet!):
 | Fazis | VALOS teszt kovetelmeny |
 |-------|------------------------|
-| **F0** | Redis cache `curl` teszt (hit/miss), rate limit 429, config CRUD, Alembic 014-016 |
-| **F1** | IMAP email fetch, PDF Docling extraction, Playwright Admin UI E2E, backward compat |
-| **F2** | RAG ingest+query valos PDF, Playwright chat UI, health endpoint, event publish |
-| **F3** | Playwright web scrape, ffmpeg+Whisper transcript, Human review E2E, SVG render |
-| **F4** | Audit log DB check, RLS test, L4 Complete regresszio, ≥80% coverage |
+| **F0** | Redis cache `curl` (hit/miss), rate limit 429, config CRUD, Alembic 014-016 |
+| **F1** | PDF upload → Docling extract → verify → save: **Playwright E2E teljes flow** |
+| **F2** | Email config → IMAP fetch → classify → route → show: **Playwright E2E teljes flow** |
+| **F3** | Collection → ingest PDF → query → chat → feedback: **Playwright E2E teljes flow** |
+| **F4** | Diagram SVG render, video STT, web scrape, human review: **4 mini E2E** |
+| **F5** | Audit log, RLS, L4 Complete regresszio, ≥80% coverage, 90%+ API |

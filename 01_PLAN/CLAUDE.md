@@ -32,7 +32,7 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 ## Key numbers to keep consistent
 - 36 DB tables, 13 views, 13 letezo Alembic migracio (001-013), 11 tervezett migracio (014-024), 60+ indexes
 - Framework: 22 weeks, 7 phases (Phase 1-7 KESZ)
-- Service Generalization: Fazis 0-4 (F0=infra, F1=Email+Doc+Classifier, F2=RAG+Monitor, F3=RPA+Media, F4=Governance)
+- Service Generalization: Fazis 0-5 vertikalis szelet (F0=infra, F1=Document Extractor, F2=Email+Classifier, F3=RAG Engine, F4=RPA+Media+Diagram, F5=Monitoring+Governance)
 - 6 skills, src/aiflow/ 18 alkonyvtar (core, engine, models, prompts, services[tervezett], execution, evaluation, skill_system, tools, vectorstore, documents, ingestion, state, security, api, observability, cli, skills, contrib)
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/
