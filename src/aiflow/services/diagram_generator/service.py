@@ -70,7 +70,7 @@ class DiagramGeneratorService:
 
         # Run the process_documentation skill pipeline
         try:
-            from skills.process_documentation.workflows.pipeline import (
+            from skills.process_documentation.workflow import (
                 classify_intent,
                 elaborate,
                 extract,

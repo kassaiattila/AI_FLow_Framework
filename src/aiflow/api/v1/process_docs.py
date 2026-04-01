@@ -46,7 +46,7 @@ async def generate_process_doc(request: GenerateRequest) -> GenerateResponse:
     output_dir = Path(tempfile.mkdtemp(prefix="aiflow_procdoc_"))
 
     try:
-        from skills.process_documentation.workflows.pipeline import (
+        from skills.process_documentation.workflow import (
             classify_intent,
             elaborate,
             extract,
