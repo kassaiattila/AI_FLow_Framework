@@ -445,62 +445,395 @@ Response: { formats: { drawio: "...", mermaid: "...", svg: "base64..." } }
 
 ---
 
-## 4. Implementacios Fazisok
+## 4. Infrastruktura Epitokockak (Architektura Audit Alapjan)
 
-### Fazis 1: Alapozas (1-2 het)
-**Cel:** Service infrastruktura + legertekesebb szolgaltatasok
+Az architektura audit a korabbi tervdokumentumok (01-30) es a valos implementacio osszevetese alapjan
+**15 hianyzo infrastruktura komponenst** azonositott. Ezek a domain szolgaltatasok (3.1-3.7) ELENGEDHETETLEN
+alapjai — nelkuluk a szolgaltatasok nem uzemeltethetoak megbizhatoan.
+
+### 4.1 Cache Layer (Kritikus — LLM + Embedding + Vector)
+
+**Statusz:** 30_RAG_PRODUCTION_PLAN.md emliti, de nincs implementalas.
+**Hatas:** 20-40% LLM koltseg csokkenes + 10x gyorsabb RAG valasz ismetelt kerdesekre.
+
+```
+src/aiflow/services/cache/
+  __init__.py
+  embedding_cache.py        # Redis: text_hash → embedding vector
+  llm_response_cache.py     # Redis: prompt_hash+input_hash → response
+  vector_query_cache.py     # Redis: query_embedding_hash → top-K results
+  invalidation.py           # Collection-alapu invalidacio (ingest utan)
+```
+
+**Konfiguracio:**
+```yaml
+cache:
+  backend: "redis"           # redis | memory (teszthez)
+  embedding:
+    ttl_hours: 168           # 1 het
+    max_entries: 100000
+  llm_response:
+    ttl_hours: 24            # ismetlodo kerdesekre
+    scope: "per_collection"  # kollekcio valtozaskor invalidalodik
+  vector_query:
+    ttl_hours: 1             # rovid, mert ingest valtoztatja
+```
+
+**API:**
+```
+GET  /api/v1/admin/cache/stats       → { embedding_hits, llm_hits, vector_hits, memory_mb }
+POST /api/v1/admin/cache/invalidate  → { scope: "collection:hr_policies" }
+```
+
+### 4.2 Event Bus + Notification Service
+
+**Statusz:** 09_MIDDLEWARE_INTEGRATION.md definialt MessageBroker ABC-t, de nincs bekotes.
+**Hatas:** Service-ek kozotti kommunikacio, alertek, webhook triggerek.
+
+```
+src/aiflow/services/events/
+  __init__.py
+  bus.py                     # EventBus (publish/subscribe)
+  types.py                   # Tipizalt esemenyek (Pydantic)
+  consumers.py               # Event handler registry
+
+src/aiflow/services/notifications/
+  __init__.py
+  service.py                 # NotificationService
+  channels/
+    email_channel.py         # SMTP
+    slack_channel.py         # Slack webhook
+    webhook_channel.py       # Altalanos HTTP webhook
+    teams_channel.py         # MS Teams webhook
+```
+
+**Esemeny tipusok:**
+```python
+class EventTypes:
+    WORKFLOW_STARTED = "workflow.started"
+    STEP_COMPLETED = "step.completed"
+    STEP_FAILED = "step.failed"
+    QUALITY_GATE_FAILED = "quality.gate_failed"
+    BUDGET_ALERT = "budget.threshold_reached"     # 50%, 80%, 100%
+    HUMAN_REVIEW_NEEDED = "human.review_required"
+    COLLECTION_INGESTED = "rag.collection_ingested"
+    SERVICE_HEALTH_DEGRADED = "service.health_degraded"
+```
+
+**API:**
+```
+POST /api/v1/services/notifications/channels       → CRUD notification csatorna
+POST /api/v1/services/notifications/rules           → Event → Channel mapping
+POST /api/v1/services/events/publish                → Manualis esemeny kuldes
+GET  /api/v1/services/events/log?last=100           → Esemeny naplo
+```
+
+### 4.3 Config Versioning & Rollback
+
+**Statusz:** 28_MODULAR_DEPLOYMENT.md definialt instance YAML-t, de nincs verziozas.
+**Hatas:** Barmilyen service config visszaallithato, audit trail.
+
+```
+src/aiflow/services/config/
+  __init__.py
+  versioning.py              # Config version CRUD
+  diff.py                    # Config diff keszites
+  validation.py              # Pre-deploy schema validacio
+```
+
+**DB tabla:** `service_config_versions`
+```sql
+CREATE TABLE service_config_versions (
+    id UUID PRIMARY KEY,
+    service_instance_id UUID REFERENCES skill_instances(id),
+    version INTEGER NOT NULL,
+    config_jsonb JSONB NOT NULL,
+    deployed_at TIMESTAMPTZ,
+    deployed_by VARCHAR(100),
+    is_active BOOLEAN DEFAULT false,
+    change_description TEXT,
+    UNIQUE(service_instance_id, version)
+);
+```
+
+**API:**
+```
+GET  /api/v1/services/{id}/config/versions          → Verziok listaja
+GET  /api/v1/services/{id}/config/diff/{v1}/{v2}    → Ket verzio kozotti kulonbseg
+POST /api/v1/services/{id}/config/rollback/{version} → Visszaallas korabbi verziora
+POST /api/v1/services/{id}/config/deploy             → Uj config deploy (uj verzio)
+```
+
+### 4.4 Health Monitoring per Service
+
+**Statusz:** `/health` endpoint letezik globalis szinten, de service-enkent nincs.
+**Hatas:** Degradalt szolgaltatas automatikus detektalasa + alertek.
+
+```
+src/aiflow/services/monitoring/
+  __init__.py
+  health_checker.py          # Periodikus health check (dependency-nkent)
+  metrics_collector.py       # P50/P95/P99 latency, success rate
+  dashboard_data.py          # Admin UI szamara aggregalt metrikak
+```
+
+**Fuggoseg checkek per service:**
+```yaml
+health_checks:
+  email_connector:
+    - type: "smtp_connect"
+      target: "{{ config.smtp_host }}:{{ config.smtp_port }}"
+      timeout_ms: 5000
+    - type: "oauth_token_valid"
+      target: "{{ config.oauth_token }}"
+  rag_engine:
+    - type: "pgvector_ping"
+    - type: "embedding_model_available"
+      model: "openai/text-embedding-3-small"
+    - type: "collection_non_empty"
+      collection: "{{ config.collection }}"
+  document_extractor:
+    - type: "docling_import"
+    - type: "llm_model_available"
+      model: "openai/gpt-4o"
+```
+
+**API:**
+```
+GET /api/v1/services/{id}/health       → { status, checks: [{name, status, latency_ms}] }
+GET /api/v1/services/{id}/metrics      → { p50_ms, p95_ms, success_rate, runs_24h }
+GET /api/v1/admin/services/dashboard   → Osszes service osszesitett allapota
+```
+
+### 4.5 Rate Limiting & Cost Budget
+
+**Statusz:** 09_MIDDLEWARE_INTEGRATION.md emliti a back-pressure-t, de nincs szolgaltatas szintu rate limit.
+**Hatas:** LLM koltseg kontroll, fair use per tenant.
+
+```
+src/aiflow/services/rate_limiter/
+  __init__.py
+  limiter.py                 # Redis sliding window rate limiter
+  budget.py                  # Koltseg budget allokacio + enforcement
+  cost_optimizer.py          # Minta-alapu koltseg optimalizalasi javaslatok
+```
+
+**Tobbszintu budget:**
+```yaml
+budgets:
+  team_level:
+    monthly_usd: 500
+    alert_at: [50, 80, 100]   # % kuldjon alertet
+    enforcement: "soft"        # soft=alert | hard=reject
+  service_instance_level:
+    daily_usd: 20
+    enforcement: "hard"        # tullepes eseten elutasit
+  per_run_level:
+    max_usd: 5                 # egy futtatas max koltsege
+```
+
+**API:**
+```
+GET  /api/v1/admin/budgets                → Osszes budget allapot
+POST /api/v1/admin/budgets/{team_id}      → Budget allokacio modositas
+GET  /api/v1/services/{id}/cost/forecast  → Becsult havi koltseg (trend alapjan)
+POST /api/v1/services/cost-optimizer/analyze → Koltseg optimalizalasi javaslatok
+```
+
+### 4.6 Retry & Circuit Breaker
+
+**Statusz:** 01_ARCHITECTURE.md definialt RetryPolicy ABC + CircuitBreakerOpenError, de nincs kozponti kezeles.
+
+```
+src/aiflow/services/resilience/
+  __init__.py
+  retry.py                   # Konfiguralhato retry (exponential backoff + jitter)
+  circuit_breaker.py         # Per-fuggoseg circuit breaker (closed→open→half-open)
+  fallback.py                # Fallback strategiak (cache, default, degraded)
+```
+
+**Konfiguracio:**
+```yaml
+resilience:
+  llm_calls:
+    retry:
+      max_attempts: 3
+      backoff: "exponential"   # linear | exponential | decorrelated_jitter
+      base_delay_ms: 1000
+    circuit_breaker:
+      failure_threshold: 5     # 5 egymas utani hiba → open
+      recovery_timeout_s: 60   # 60 mp utan half-open probalkoazs
+      fallback: "cache"        # cache | error | degraded_response
+  database:
+    retry:
+      max_attempts: 2
+      backoff: "linear"
+      base_delay_ms: 500
+```
+
+### 4.7 Human-in-the-Loop Approval Service
+
+**Statusz:** 01_ARCHITECTURE.md definialt HumanReviewRequiredError, DB tabla letezik, de API nincs.
+**Hatas:** Magas confidence igenyeknel (szamla jovahagyas, szerzodes review) ember bevonasa.
+
+```
+src/aiflow/services/human_review/
+  __init__.py
+  service.py                 # Review request lifecycle
+  state_machine.py           # pending → approved|rejected → resumed|cancelled
+  escalation.py              # Timeout → masik approver
+```
+
+**API:**
+```
+POST /api/v1/services/human-review/requests             → Review keres letrehozasa
+GET  /api/v1/services/human-review/requests?status=pending → Fugo review-k
+POST /api/v1/services/human-review/requests/{id}/approve → Jovahagyas
+POST /api/v1/services/human-review/requests/{id}/reject  → Elutasitas
+```
+
+**Workflow integracio:**
+```python
+# Barmely service step-ben:
+if confidence < config.review_threshold:
+    raise HumanReviewRequiredError(
+        context=extracted_data,
+        fields=low_confidence_fields,
+        timeout_hours=24,
+        escalate_to="team_lead"
+    )
+```
+
+### 4.8 Audit Trail Service
+
+**Statusz:** 20_SECURITY_HARDENING.md + 10_BUSINESS_AUDIT_DOCS.md emliti, de nincs implementacio.
+**Hatas:** GDPR compliance, valtozas kovetese, visszakereshetoseg.
+
+```
+src/aiflow/services/audit/
+  __init__.py
+  logger.py                  # Immutable audit log
+  query.py                   # Audit log lekerdezes + export
+  retention.py               # Megorzesi politika (archivalas > 1 ev)
+```
+
+**API:**
+```
+GET  /api/v1/admin/audit-logs?action=config_change&team_id=X&from=2026-01-01
+POST /api/v1/admin/audit-logs/export   → CSV/JSON export
+POST /api/v1/admin/data-erasure        → GDPR: adott user osszes adatanak torlese
+```
+
+### 4.9 Schema Registry (Kozponti)
+
+**Statusz:** `email_intent_processor` hasznal SchemaRegistry-t, de skill-specifikus.
+**Hatas:** Intent/entity/doc-type schemak kozponti kezelese, verziozas, A/B teszt.
+
+```
+src/aiflow/services/schema_registry/
+  __init__.py
+  registry.py                # Kozponti schema tarolo
+  versioning.py              # Schema verziozas + backward compat check
+  validator.py               # Input validacio schema alapjan
+```
+
+**Altalanositott schema tipusok:**
+```
+schemas/
+  classifiers/               # Intent definiciok (barmilyen classifier-hez)
+    email_intents_v1.json
+    support_ticket_intents_v1.json
+  extractors/                # Mezo definiciok (barmilyen extractor-hoz)
+    invoice_fields_v1.json
+    contract_fields_v1.json
+    receipt_fields_v1.json
+  validators/                # Validacioas szabalyok
+    invoice_validation_v1.json
+    contract_validation_v1.json
+```
+
+---
+
+## 5. Bovitett Implementacios Fazisok
+
+### Fazis 0: Infrastruktura Alapozas (1 het) ← UJ!
+**Cel:** Epitokockak nelkul a domain service-ek nem uzemeltethetoak.
 
 | # | Feladat | Fajlok | Becsult ido |
 |---|---------|--------|-------------|
-| 1.1 | `src/aiflow/services/` konyvtar letrehozasa | Uj | 1 ora |
-| 1.2 | Service base class + registry | `services/base.py`, `services/registry.py` | 4 ora |
-| 1.3 | Service config YAML loader | `services/config.py` | 2 ora |
-| 1.4 | API router: `/api/v1/services/` | `api/v1/services.py` | 4 ora |
-| 1.5 | **Email Connector** kiemelese + altalanositasa | `services/email_connector/` | 8 ora |
-| 1.6 | **Document Extractor** kiemelese + altalanositasa | `services/document_extractor/` | 12 ora |
-| 1.7 | Admin UI: Service konfiguracios oldalak | `aiflow-admin/src/pages/Services*.tsx` | 8 ora |
+| 0.1 | `src/aiflow/services/` konyvtar + base class | `services/base.py`, `registry.py` | 4 ora |
+| 0.2 | **Cache Layer** (Redis embedding + LLM cache) | `services/cache/` | 8 ora |
+| 0.3 | **Config Versioning** (DB tabla + CRUD) | `services/config/versioning.py` | 6 ora |
+| 0.4 | **Rate Limiter** (Redis sliding window) | `services/rate_limiter/` | 4 ora |
+| 0.5 | **Retry/Circuit Breaker** kozponti konfiguracio | `services/resilience/` | 4 ora |
+| 0.6 | Service API router alap | `api/v1/services.py` | 3 ora |
+| 0.7 | `__all__` export hozzaadasa 7 modulhoz | core, engine, models, stb. | 2 ora |
 
-**Vegeredmeny:** Ket mukodo altalanos szolgaltatas, Admin UI-bol konfiguralhatao.
+**Vegeredmeny:** Stabil infra alap — cache, config versioning, rate limit, retry.
+**Tag:** `v0.9.1-infra`
 
-### Fazis 2: RAG + Classifier (2-3 het)
-**Cel:** RAG Engine es Intent Classifier mint onallo szolgaltatas
-
-| # | Feladat | Fajlok | Becsult ido |
-|---|---------|--------|-------------|
-| 2.1 | **RAG Engine** kiemelese aszf_rag_chat-bol | `services/rag_engine/` | 12 ora |
-| 2.2 | Multi-collection tamogatas | vectorstore modul bovites | 6 ora |
-| 2.3 | RAG Chat UI altalanositasa | `aiflow-admin/src/pages/RagChat.tsx` | 8 ora |
-| 2.4 | **Intent Classifier** kiemelese | `services/classifier/` | 8 ora |
-| 2.5 | Hybrid ML + LLM classifier config | sklearn + LiteLLM | 6 ora |
-| 2.6 | Email Connector + Classifier integracio | pipeline osszekapcsolas | 4 ora |
-
-**Vegeredmeny:** RAG chat barmilyen dokumentum kollekciovaol. Email intent barmilyen postafaikkal.
-
-### Fazis 3: RPA + Media (3-4 het)
-**Cel:** Browser automatizalas es media feldolgozas kulonvalasztasa
+### Fazis 1: Domain Szolgaltatasok A (2-3 het)
+**Cel:** Email Connector + Document Extractor + Schema Registry
 
 | # | Feladat | Fajlok | Becsult ido |
 |---|---------|--------|-------------|
-| 3.1 | **RPA Browser Service** kiemelese | `services/rpa_browser/` | 10 ora |
-| 3.2 | YAML-alapu step konfiguracio | action registry | 6 ora |
-| 3.3 | **Media Processor** kiemelese | `services/media_processor/` | 8 ora |
-| 3.4 | Whisper provider valaszto (OpenAI / Azure / local) | provider factory | 4 ora |
-| 3.5 | Cubix skill atriaas → RPA + Media + RAG compose | skill refactor | 6 ora |
+| 1.1 | **Schema Registry** kozponti kiemelese | `services/schema_registry/` | 6 ora |
+| 1.2 | **Email Connector** (O365 + IMAP + Gmail) | `services/email_connector/` | 10 ora |
+| 1.3 | **Document Extractor** (altalanos mezo definicio) | `services/document_extractor/` | 12 ora |
+| 1.4 | **Intent Classifier** (hibrid ML+LLM) | `services/classifier/` | 8 ora |
+| 1.5 | Email Connector + Classifier end-to-end | integracio | 4 ora |
+| 1.6 | Admin UI: Service config oldalak | `aiflow-admin/` | 8 ora |
+| 1.7 | Auth: `/refresh` + `/api-keys` | `api/v1/auth.py` | 6 ora |
 
-**Vegeredmeny:** RPA es media feldolgozas kulonvalasztva, ujrahasznosithatoan.
+**Vegeredmeny:** Email + Document extraction mukodik altalanosan.
+**Tag:** `v0.10.0-services`
 
-### Fazis 4: Backend Stabilitas (4-5 het)
-**Cel:** Hianyzo endpointok, tesztek, __all__ exports
+### Fazis 2: RAG Engine + Monitoring (3-4 het)
+**Cel:** RAG mint onallo szolgaltatas + uzemi megfigyeles
+
+| # | Feladat | Fajlok | Becsult ido |
+|---|---------|--------|-------------|
+| 2.1 | **RAG Engine** multi-collection | `services/rag_engine/` | 12 ora |
+| 2.2 | RAG Chat UI (kollekcio valaszto + chat) | `aiflow-admin/` | 10 ora |
+| 2.3 | **Health Monitoring** per service | `services/monitoring/` | 8 ora |
+| 2.4 | **Event Bus + Notifications** | `services/events/`, `services/notifications/` | 10 ora |
+| 2.5 | **Cost Budget** service szintu | `services/rate_limiter/budget.py` | 6 ora |
+| 2.6 | Runs: cancel, result, DLQ endpointok | `api/v1/runs.py` | 6 ora |
+
+**Vegeredmeny:** RAG chat barmilyen dokuemntum kollekcional. Szolgaltatas monitoring + alerted.
+**Tag:** `v0.11.0-rag`
+
+### Fazis 3: RPA + Media + Approval (4-5 het)
+**Cel:** Browser automatizalas, media feldolgozas, emberi jovahagyas
+
+| # | Feladat | Fajlok | Becsult ido |
+|---|---------|--------|-------------|
+| 3.1 | **RPA Browser Service** (YAML steps) | `services/rpa_browser/` | 10 ora |
+| 3.2 | **Media Processor** (multi-provider STT) | `services/media_processor/` | 8 ora |
+| 3.3 | **Diagram Generator** kiemelese | `services/diagram_generator/` | 6 ora |
+| 3.4 | **Human Review Service** | `services/human_review/` | 8 ora |
+| 3.5 | Cubix skill → RPA + Media + RAG compose | skill refactor | 6 ora |
+| 3.6 | Skills API: detail, manifest, ingest | `api/v1/skills_api.py` | 6 ora |
+
+**Vegeredmeny:** Teljes service portfolio. Barmilyen skill composable.
+**Tag:** `v0.12.0-complete`
+
+### Fazis 4: Governance & Production Readiness (5-6 het)
+**Cel:** Audit trail, compliance, teljes API lefedettse
 
 | # | Feladat | Prioritas |
 |---|---------|-----------|
-| 4.1 | Auth: `/refresh` + `/api-keys` implementalas | Magas |
-| 4.2 | Runs: cancel, result, DLQ endpointok | Magas |
-| 4.3 | Skills API: detail, manifest loading | Magas |
-| 4.4 | `__all__` export hozzaadasa 7 modulhoz | Kozepes |
-| 4.5 | tools/ + skill_system/ tesztek irasa | Kozepes |
-| 4.6 | Prompts API: list, sync, promote | Alacsony |
-| 4.7 | Scheduling API alapok | Alacsony |
+| 4.1 | **Audit Trail** service | Magas |
+| 4.2 | Prompts API: list, sync, promote | Kozepes |
+| 4.3 | Scheduling API (cron + webhook trigger) | Kozepes |
+| 4.4 | Admin endpointok (users, teams, system-config) | Kozepes |
+| 4.5 | Evaluation API (test run, results, golden datasets) | Alacsony |
+| 4.6 | Multi-tenant RLS (PostgreSQL row-level security) | Alacsony |
+| 4.7 | Backup/DR strategia dokumentalasa + implementalas | Kozepes |
+| 4.8 | tools/ + skill_system/ tesztek (≥80% coverage) | Kozepes |
+
+**Vegeredmeny:** Production-ready framework, 90%+ API lefedettse.
+**Tag:** `v1.0.0-rc1`
 
 ---
 
@@ -531,14 +864,15 @@ async def extract_invoice_data(data):
     return await _extractor.extract(data)
 ```
 
-### 5.3 Git Verziozas
+### 6.3 Git Verziozas
 
 ```
 v0.9.0-stable     ← Jelenlegi stabil (rollback pont)
-v0.10.0-services  ← Fazis 1 utan (Email Connector + Document Extractor)
-v0.11.0-rag       ← Fazis 2 utan (RAG Engine + Classifier)
-v0.12.0-rpa       ← Fazis 3 utan (RPA + Media)
-v1.0.0-rc1        ← Fazis 4 utan (teljes backend stabilitas)
+v0.9.1-infra      ← Fazis 0 utan (cache, config versioning, rate limit, retry)
+v0.10.0-services  ← Fazis 1 utan (Email + Document + Classifier + Schema Registry)
+v0.11.0-rag       ← Fazis 2 utan (RAG Engine + Monitoring + Events)
+v0.12.0-complete  ← Fazis 3 utan (RPA + Media + Human Review + Diagram)
+v1.0.0-rc1        ← Fazis 4 utan (Audit Trail + Governance + Production Ready)
 ```
 
 Minden fazis vegen `git tag` — barmikor visszaallithato.
@@ -601,49 +935,106 @@ src/aiflow/services/               # ← UJ
 
 ---
 
-## 7. Sikerkritieriumok
+## 8. Sikerkritieriumok
 
-### Fazis 1 utan:
+### Fazis 0 utan (Infra):
+- [ ] Redis cache mukodik (embedding + LLM response)
+- [ ] Config versioning: uj verzio deploy + rollback
+- [ ] Rate limiter: per-service konfiguralhato limit
+- [ ] Retry/Circuit breaker: LLM hivasokon aktiv
+- [ ] 7 modul `__all__` export javitva
+
+### Fazis 1 utan (Domain A):
+- [ ] Schema Registry: intent + entity + doc-type schemak kozpontilag kezelve
 - [ ] Email Connector: O365 + IMAP mukodik parameterezhetoen
 - [ ] Document Extractor: szamla + 1 masik doc tipus (pl. szerzodes)
-- [ ] Admin UI-ban konfiguralhato mindketto
+- [ ] Intent Classifier: email + 1 masik kontextus (pl. support ticket)
+- [ ] Auth: refresh token + API key management
+- [ ] Admin UI-ban konfiguralhato mindegyik
 - [ ] Regi skill-ek tovabbra is mukodnek (backward compat)
 
-### Fazis 2 utan:
+### Fazis 2 utan (RAG + Monitoring):
 - [ ] RAG Chat: uj kollekcio letrehozasa + dokumentum feltoltes + kerdezes
 - [ ] Chat UI: kollekcio valaszto, streaming valasz, citaciok
-- [ ] Intent Classifier: email + 1 masik kontextus (pl. support ticket)
-- [ ] Email Connector + Classifier end-to-end mukodik
+- [ ] Health monitoring: minden service egeszseget mutatja az Admin UI
+- [ ] Event bus: step_completed, budget_alert esemenyek mukodnek
+- [ ] Notification: email/Slack/webhook csatornak konfiguralhatoak
+- [ ] Cost budget: service szintu koltseg limit + alert
+- [ ] Runs API: cancel, result, DLQ endpointok
 
-### Fazis 3 utan:
+### Fazis 3 utan (RPA + Media + Approval):
 - [ ] RPA: YAML konfiguracioval bongeszo automatizalas
-- [ ] Media: video → szoveg barmilyen formatumbol
-- [ ] Cubix skill: RPA + Media + RAG Engine compose
+- [ ] Media: video → szoveg barmilyen formatumbol, tobbfele STT provider
+- [ ] Diagram Generator: onallo service, nem csak process_doc skill-bol
+- [ ] Human Review: approval flow mukodik (pending → approved → workflow resume)
+- [ ] Cubix skill: RPA + Media + RAG Engine compose-kent fut
+- [ ] Skills API: detail, manifest, ingest endpointok
 
-### Fazis 4 utan:
+### Fazis 4 utan (Governance):
+- [ ] Audit Trail: immutable log, GDPR data erasure
 - [ ] 90%+ endpoint lefedettse (45+ / 50)
-- [ ] __all__ export minden modulban
+- [ ] Prompts API: list, sync, promote, version history
+- [ ] Scheduling: cron + webhook trigger konfiguralhas
 - [ ] tools/ + skill_system/ tesztek ≥ 80% coverage
-- [ ] Auth refresh + API key mukodik
+- [ ] Multi-tenant RLS aktiv a fo táblakon
+- [ ] Backup/DR strategia dokumentalva + tesztelve
 
 ---
 
-## 8. Kockazatok es Mitigacio
+## 9. Kockazatok es Mitigacio
 
 | Kockazar | Valoszinuseg | Hatas | Mitigacio |
 |----------|-------------|-------|-----------|
 | Backward compat tores | Kozepes | Magas | Skill-ek belul hivjak a service-t, kulso API valtozatlan |
-| LLM koltseg novekedes | Alacsony | Kozepes | Koltseg tracking (mar van), budget limitek |
-| Docling lassusag | Magas | Kozepes | pypdfium2 fallback, cache layer |
-| pgvector skalazas | Alacsony | Magas | HNSW index, collection partitioning |
-| OAuth2 token lejarat | Kozepes | Kozepes | Auto-refresh, retry logic |
+| LLM koltseg novekedes | Alacsony | Kozepes | Cache layer (4.1) + budget enforcement (4.5) |
+| Docling lassusag | Magas | Kozepes | pypdfium2 fallback + asyncio.to_thread + embedding cache |
+| pgvector skalazas | Alacsony | Magas | HNSW index + collection partitioning + query cache |
+| OAuth2 token lejarat | Kozepes | Kozepes | Auto-refresh + retry logic (4.6) |
+| Redis kiesés | Alacsony | Kozepes | Memory fallback cache + circuit breaker |
+| Config valtozas incidensek | Kozepes | Magas | Config versioning + rollback (4.3) + audit trail (4.8) |
+| LLM provider kiesés | Alacsony | Magas | Circuit breaker (4.6) + LLM response cache (4.1) + fallback model |
+| GDPR compliance hiány | Kozepes | Magas | Audit trail (4.8) + data erasure endpoint |
+| Emberi review bottle-neck | Kozepes | Kozepes | SLA timeout + escalation (4.7) + notification (4.2) |
+
+---
+
+## 10. Architektura Audit Osszefoglalas
+
+### Dokumentalt de NEM implementalt komponensek
+
+| Komponens | Dokumentum | Statusz | Fazis |
+|-----------|-----------|---------|-------|
+| Embedding cache | 30_RAG_PRODUCTION_PLAN | Hianyzo | F0 |
+| MessageBroker ABC | 09_MIDDLEWARE_INTEGRATION | ABC van, nincs bekotes | F2 |
+| RetryPolicy ABC | 01_ARCHITECTURE | ABC van, nincs config | F0 |
+| CircuitBreaker | 01_ARCHITECTURE | Error osztaly van, logika nincs | F0 |
+| HumanReviewRequiredError | 01_ARCHITECTURE | Error van, API nincs | F3 |
+| Audit log | 20_SECURITY_HARDENING | Emlitve, nem implementalt | F4 |
+| Budget enforcement | 01_ARCHITECTURE | Mezo van, logika nincs | F2 |
+| Schema versioning | 28_MODULAR_DEPLOYMENT | Instance YAML van, verzio nincs | F0 |
+| PII detection | 20_SECURITY_HARDENING | Emlitve, nem implementalt | F4 |
+| Prompt sync (Langfuse) | 06_CLAUDE_CODE_INTEGRATION | Tervezett, nincs API | F4 |
+
+### DB tablak API nelkul (Zombie tablak)
+
+| Tabla | Definialo dokumentum | API | Tervezett fazis |
+|-------|---------------------|-----|-----------------|
+| human_review_requests | 01_ARCHITECTURE | Nincs | F3 |
+| schedule_triggers | 01_ARCHITECTURE | Nincs | F4 |
+| model_registry | 15_ML_MODEL_INTEGRATION | Nincs | F4 |
+| test_datasets | 18_TESTING_AUTOMATION | Nincs | F4 |
+| test_results | 18_TESTING_AUTOMATION | Nincs | F4 |
+| rag_query_log | 30_RAG_PRODUCTION_PLAN | Reszleges | F2 |
 
 ---
 
 ## Hivatkozasok
 
-- `01_PLAN/22_API_SPECIFICATION.md` — Eredeti API specifikacio
+- `01_PLAN/01_ARCHITECTURE.md` — Core architektura (RetryPolicy, CircuitBreaker, HumanReview)
+- `01_PLAN/09_MIDDLEWARE_INTEGRATION.md` — MessageBroker ABC, back-pressure
+- `01_PLAN/20_SECURITY_HARDENING.md` — PII detection, audit trail kovetelmeny
+- `01_PLAN/22_API_SPECIFICATION.md` — Eredeti API specifikacio (50+ endpoint)
 - `01_PLAN/28_MODULAR_DEPLOYMENT.md` — Multi-customer instance architektura
 - `01_PLAN/29_OPTIMIZATION_PLAN.md` — Korabbi optimalizacios lepesek
-- `01_PLAN/30_RAG_PRODUCTION_PLAN.md` — RAG pipeline checklist
+- `01_PLAN/30_RAG_PRODUCTION_PLAN.md` — RAG pipeline checklist (embedding cache!)
 - `v0.9.0-stable` git tag — Rollback pont
