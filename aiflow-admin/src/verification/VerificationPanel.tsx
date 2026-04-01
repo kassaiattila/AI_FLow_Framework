@@ -67,37 +67,70 @@ export const VerificationPanel = () => {
 
   const vs = useVerificationState();
 
-  // Load invoice
+  // Load invoice — try by-id first (UUID), fall back to source_file search
   useEffect(() => {
     if (!id) { setLoading(false); return; }
-    fetch("/api/v1/documents")
-      .then((r) => r.json())
-      .then((data) => {
-        const docs = (data.documents || []) as Record<string, unknown>[];
-        const found = docs.find((d) => d.source_file === id);
-        if (found) {
-          setInvoice(found);
-          const vd = generateVerificationData(found, docs.indexOf(found));
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const loadUrl = isUuid ? `/api/v1/documents/by-id/${id}` : `/api/v1/documents`;
+
+    if (isUuid) {
+      fetch(loadUrl)
+        .then((r) => r.ok ? r.json() : Promise.reject(r.statusText))
+        .then((data) => {
+          setInvoice(data);
+          const vd = generateVerificationData(data, 0);
           vs.loadData(vd);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    } else {
+      fetch(loadUrl)
+        .then((r) => r.json())
+        .then((data) => {
+          const docs = (data.documents || []) as Record<string, unknown>[];
+          const found = docs.find((d) => d.source_file === id);
+          if (found) {
+            setInvoice(found);
+            const vd = generateVerificationData(found, docs.indexOf(found));
+            vs.loadData(vd);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Save handler
+  // Save handler — calls real backend verify API
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaveStatus("idle");
     try {
-      const corrections: Record<string, string> = {};
+      const verifiedFields: Record<string, unknown> = {};
       for (const dp of vs.dataPoints) {
-        if (dp.status === "corrected") {
-          corrections[dp.id] = dp.current_value;
+        if (dp.status === "corrected" || dp.status === "confirmed") {
+          verifiedFields[dp.field_name] = dp.current_value;
         }
       }
-      // Save to localStorage as backup
-      localStorage.setItem(`aiflow_verification_${id}`, JSON.stringify({ corrections, confirmed: vs.stats.confirmed }));
+
+      // Get the invoice DB id
+      const invoiceId = (invoice as Record<string, unknown>)?.id as string;
+      if (invoiceId) {
+        const resp = await fetch(`/api/v1/documents/${invoiceId}/verify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            verified_fields: verifiedFields,
+            verified_by: "user",
+          }),
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+      }
+
+      // Also save to localStorage as backup
+      localStorage.setItem(`aiflow_verification_${id}`, JSON.stringify({
+        verified_fields: verifiedFields,
+        confirmed: vs.stats.confirmed,
+      }));
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 3000);
     } catch {
@@ -105,7 +138,7 @@ export const VerificationPanel = () => {
     } finally {
       setSaving(false);
     }
-  }, [vs.dataPoints, vs.stats.confirmed, id]);
+  }, [vs.dataPoints, vs.stats.confirmed, id, invoice]);
 
   if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><CircularProgress /></Box>;
   if (!invoice) return <Alert severity="error">Invoice not found: {id}</Alert>;
