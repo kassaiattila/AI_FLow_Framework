@@ -437,6 +437,20 @@ async def validate_invoice(data: dict) -> dict:
 # Step 5: Store to PostgreSQL
 # ---------------------------------------------------------------------------
 
+def _parse_date(val: str | None) -> object | None:
+    """Parse a YYYY-MM-DD string to datetime.date, or return None."""
+    if not val:
+        return None
+    try:
+        from datetime import date as _date
+        parts = val.strip().split("-")
+        if len(parts) == 3:
+            return _date(int(parts[0]), int(parts[1]), int(parts[2]))
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
 @step(name="store_invoice", description="Persist extracted invoices to database")
 async def store_invoice(data: dict) -> dict:
     """Store invoices and line items in PostgreSQL (best-effort)."""
@@ -471,7 +485,7 @@ async def store_invoice(data: dict) -> dict:
                         parser_used, raw_text_hash, customer
                     ) VALUES (
                         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                        $11, $12, $13::date, $14::date, $15::date,
+                        $11, $12, $13, $14, $15,
                         $16, $17, $18, $19, $20, $21, $22,
                         $23::jsonb, $24, $25::jsonb, $26,
                         $27, $28, $29
@@ -491,9 +505,9 @@ async def store_invoice(data: dict) -> dict:
                     f.get("buyer", {}).get("address", ""),
                     f.get("buyer", {}).get("tax_number", ""),
                     f.get("header", {}).get("invoice_number", ""),
-                    f.get("header", {}).get("invoice_date") or None,
-                    f.get("header", {}).get("fulfillment_date") or None,
-                    f.get("header", {}).get("due_date") or None,
+                    _parse_date(f.get("header", {}).get("invoice_date")),
+                    _parse_date(f.get("header", {}).get("fulfillment_date")),
+                    _parse_date(f.get("header", {}).get("due_date")),
                     f.get("header", {}).get("currency", "HUF"),
                     f.get("header", {}).get("payment_method", ""),
                     f.get("header", {}).get("invoice_type", "szamla"),
