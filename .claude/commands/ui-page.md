@@ -1,8 +1,23 @@
 Generate a new page for the AIFlow admin dashboard.
 
-> **ELOFELTETEL:** Futtasd eloszor `/ui-journey`-t (user journey + API audit),
-> majd `/ui-design`-t (Figma MCP design). Ez a command a 7 lepesu pipeline 5. lepese!
-> Ha nincs Figma design, eloszor keszitsd el — ld. `aiflow-admin/figma-sync/PAGE_SPECS.md`
+> **GATE 5 a 7 HARD GATE pipeline-bol. CSAK Gate 1-4 UTAN futtatható!**
+
+## HARD GATE ELLENORZES (AUTOMATIKUS — ha FAIL → STOP, NEM GENERÁLUNK!):
+```bash
+# GATE CHECK 1: Journey LETEZIK?
+grep -ri "Journey:" 01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md | grep -i "{page}"
+# Ha NINCS → **STOP** — futtasd `/ui-journey` ELOSZOR!
+
+# GATE CHECK 2: Figma design LETEZIK a PAGE_SPECS.md-ben?
+grep -ic "{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md
+# Ha 0 → **STOP** — futtasd `/ui-design` ELOSZOR!
+
+# GATE CHECK 3: API endpoint valos adatot ad?
+curl -s http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; print(json.load(sys.stdin).get('source','?'))"
+# Ha NEM "backend" → **STOP** — implementald az API-t ELOSZOR!
+```
+**Mind a 3 GATE PASS kell mielott BARMILYEN UI kodot generalnal!**
+Ha barmelyik FAIL → jelezd a felhasznalonak melyik elofeltetel hianyzik.
 
 ## Context
 The UI project is at `aiflow-admin/` using Vite + React Admin + React 19 + MUI + TypeScript.

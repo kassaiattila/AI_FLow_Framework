@@ -176,8 +176,8 @@ make lock                                   # Regenerate uv.lock from pyproject.
 
 ## Claude Code Slash Commands (use these during development!)
 
-### Vertikalis Szelet Orchestracio
-- `/start-phase` - **FAZIS INDITAS**: teljes vertikalis szelet orchestracio (backend → API → Figma → UI → E2E)
+### Vertikalis Szelet Orchestracio (DETERMINISZTIKUS — nincs kiveteles!)
+- `/start-phase` - **FAZIS INDITAS**: 12 lepesu pipeline, MINDEN lepes GATE-elt. Sorrend: Alembic → Service → API → curl → Journey → Figma → UI → E2E → regression → tag. **Ha barmelyik gate FAIL → STOP.**
 - `/service-test` - **SZOLGALTATAS TESZT**: backend + API + UI end-to-end teszt (PASS/FAIL report)
 
 ### Fejlesztes + Teszteles
@@ -191,13 +191,15 @@ make lock                                   # Regenerate uv.lock from pyproject.
 - `/new-module` - Generate framework module + tests + registry updates
 - `/new-prompt` - Generate prompt YAML + Promptfoo test cases
 
-### UI (7 lepesu pipeline: Journey → API → Figma → UI → Teszt)
-- `/ui-journey` - **ELSO LEPES**: User journey definicio + API audit + implementation terv
-- `/ui-design` - **Figma MCP**: UI/UX design Figma-ban a journey alapjan (PAGE_SPECS.md frissites)
-- `/ui-page` - Generate React Admin + MUI page for the dashboard (Figma design alapjan!)
-- `/ui-component` - Generate MUI + TypeScript component for the dashboard
-- `/ui-viewer` - Generate skill-specific result viewer component
-- `/ui-api-endpoint` - Generate FastAPI endpoint for the UI (API-first!)
+### UI (7 HARD GATE pipeline — kihagyni TILOS, sorrend KOTELEZO!)
+- `/ui-journey` - **GATE 1**: User journey doc → `01_PLAN/` fajl KELL mielott barmi mas
+- `/ui-api-endpoint` - **GATE 2-3**: API implementacio + curl teszt — `source: "backend"` KELL
+- `/ui-design` - **GATE 4**: Figma MCP design → PAGE_SPECS.md frissites KELL mielott UI kod
+- `/ui-page` - **GATE 5**: React page — CSAK ha PAGE_SPECS.md-ben mar letezik a design!
+- `/ui-component` - **GATE 5**: MUI component — CSAK ha PAGE_SPECS.md-ben mar letezik!
+- `/ui-viewer` - **GATE 5**: Skill viewer — CSAK ha PAGE_SPECS.md-ben mar letezik!
+> **TILOS** `/ui-page`-et vagy `/ui-component`-et futtatni `/ui-design` NELKUL!
+> **TILOS** `/ui-design`-t futtatni `/ui-journey` NELKUL!
 
 ### Tervek + Audit
 - `/phase-status` - Check implementation progress for a phase (F0-F5)
@@ -274,9 +276,42 @@ result = await runner.run_steps([step1, step2], {"input": "..."})
 > Never build 5 viewers in parallel — build 1, test it manually, fix it, THEN move to the next.
 > A feature is NOT "KESZ" until Playwright E2E teszten atment.
 
-### API-First + Figma-First Rule (FONTOS!)
-> **UI fejlesztes 7 lepesu pipeline-t kovet, 3 MCP eszkozzel (Figma, Playwright, Claude Code).**
-> Sorrend: `/ui-journey` → API audit → `/ui-api-endpoint` → `/ui-design` (Figma MCP) → `/ui-page` → Playwright E2E → Figma sync
+### DETERMINISTIC UI PIPELINE — 7 HARD GATE (NINCS KIVETELES!)
+> **MINDEN UI munka KIZAROLAG ezen a 7 lepesu pipeline-on mehet keresztul.**
+> **Egy lepes CSAK AKKOR indithato ha az elozo lepes ARTEFAKTUMA letezik es ellenorizheto.**
+> Ez NEM ajanlás — ez BLOKKOLÓ kovetelmeny. Ha egy gate nem teljesul, STOP.
+
+```
+GATE 1: /ui-journey → OUTPUT: 01_PLAN/ journey dokumentacio fajl
+   ↓ GATE CHECK: journey fajl LETEZIK-e?
+GATE 2: API audit → OUTPUT: minden endpoint curl-lel tesztelve, source: "backend"
+   ↓ GATE CHECK: curl tesztek PASS, nincs ❌ endpoint?
+GATE 3: /ui-api-endpoint → OUTPUT: hianyzó endpointok implementálva
+   ↓ GATE CHECK: MINDEN journey endpoint 200 OK + valos adat?
+GATE 4: /ui-design (Figma MCP) → OUTPUT: PAGE_SPECS.md frissitve + Figma frame letezik
+   ↓ GATE CHECK: PAGE_SPECS.md-ben az uj oldal szekcioja LETEZIK-e?
+GATE 5: /ui-page vagy /ui-component → OUTPUT: .tsx fajl + tsc --noEmit PASS
+   ↓ GATE CHECK: TypeScript HIBA NELKUL?
+GATE 6: Playwright E2E → OUTPUT: screenshot + 0 console error + i18n HU/EN toggle
+   ↓ GATE CHECK: MINDEN E2E check PASS?
+GATE 7: Figma sync → OUTPUT: PAGE_SPECS.md vegso frissites, Figma ↔ Code konzisztens
+   ↓ GATE CHECK: PAGE_SPECS.md es a .tsx fajl KONZISZTENS?
+```
+
+**HARD GATE ELLENORZES — amit a Claude Code MINDEN lepes ELOTT vegrehajt:**
+- Gate 1 → 2: `ls 01_PLAN/*journey*` VAGY `grep -r "Journey:" 01_PLAN/` — ha NINCS → STOP
+- Gate 2 → 3: Minden endpoint `curl` PASS — ha BARMELYIK FAIL → STOP
+- Gate 3 → 4: `curl` MIND 200 OK + `source: "backend"` — ha NEM → STOP
+- Gate 4 → 5: `grep "{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md` — ha NINCS → STOP
+- Gate 5 → 6: `cd aiflow-admin && npx tsc --noEmit` — ha HIBA → STOP
+- Gate 6 → 7: Playwright screenshot + `browser_console_messages` 0 error — ha FAIL → STOP
+
+**TILOS:**
+- UI kodot irni Figma design NELKUL (Gate 4 kihagyasa)
+- UI kodot irni journey dokumentacio NELKUL (Gate 1 kihagyasa)
+- Playwright tesztet kihagyni (Gate 6 kihagyasa)
+- Barmelyik gate-et "kesobb megcsinalom" alapon athagyni
+
 > Reszletek: `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 11 (UI/UX Fejlesztesi Pipeline)
 > Design System: Untitled UI (React 19 + Tailwind v4), Figma channel: `e71e0crh`
 

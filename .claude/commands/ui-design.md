@@ -3,12 +3,29 @@ Design UI/UX in Figma for an AIFlow page or component based on a user journey.
 Arguments: $ARGUMENTS
 (e.g., "service config page", "RAG collection manager", "human review panel")
 
-> **FONTOS:** Ez a command a UI fejlesztes MASODIK lepese (az `/ui-journey` UTAN).
-> A Figma design az API backend UTAN keszul — ha az API meg nem letezik, eloszor `/ui-api-endpoint`!
+> **GATE 4 a 7 HARD GATE pipeline-bol.**
+> Ez a command KIZAROLAG a `/ui-journey` (Gate 1) es API teszt (Gate 2-3) UTAN futtatható.
+> **OUTPUT ARTEFAKTUM:** PAGE_SPECS.md frissites + Figma frame. Enelkul /ui-page FAIL.
 
-## Pre-requisites (ellenorizd MIELOTT designolsz!):
-1. **User Journey letezik** — `/ui-journey` mar lefutott es dokumentalta a journey-t
-2. **API endpoint letezik** — `curl` hivással ellenorizd, hogy valos adatot ad
+## HARD GATE ELLENORZES (AUTOMATIKUS — ha FAIL → STOP):
+```bash
+# GATE CHECK 1: Journey dokumentacio LETEZIK?
+grep -ri "Journey:" 01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md | grep -i "{page_name}"
+# VAGY: ls 01_PLAN/*journey*
+# Ha NINCS → **STOP** — futtasd `/ui-journey` ELOSZOR!
+
+# GATE CHECK 2: API endpoint valos adatot ad?
+curl -s http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', 'NO BACKEND DATA'"
+# Ha FAIL → **STOP** — implementald az API-t ELOSZOR!
+
+# GATE CHECK 3: Figma MCP elerheto?
+# join_channel → "e71e0crh" — ha FAIL → **STOP**
+```
+**Ha BARMELYIK gate FAIL → NEM DESIGNOLUNK! Eloszor az elofeltetel.**
+
+## Pre-requisites (HARD — nem advisory!):
+1. **User Journey LETEZIK** — `/ui-journey` LEFUTOTT es ARTEFAKTUM van (01_PLAN/)
+2. **API endpoint LETEZIK** — `curl` VALOS adatot ad, `source: "backend"`
 3. **Figma MCP csatlakozva** — `join_channel` channel ID: `e71e0crh`
 
 ## Design Workflow:

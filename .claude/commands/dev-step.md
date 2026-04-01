@@ -18,7 +18,18 @@ Arguments: $ARGUMENTS
 3. **Check existing code** - never reinvent what already works
 4. **If DB change needed**: create Alembic migration FIRST
 5. **If new service**: check `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 3-4
-6. **If UI change**: read CLAUDE.md "MANDATORY Next.js UI Development Rules"
+6. **If UI change — HARD GATE ELLENORZES (KIHAGYNI TILOS!):**
+   ```bash
+   # GATE A: Journey dokumentacio LETEZIK?
+   grep -ri "Journey:" 01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md | head -3
+   # Ha NINCS a releváns journey → STOP → futtasd /ui-journey ELOSZOR!
+
+   # GATE B: Figma design LETEZIK a PAGE_SPECS.md-ben?
+   grep -i "{page_name}" aiflow-admin/figma-sync/PAGE_SPECS.md
+   # Ha NINCS → STOP → futtasd /ui-design ELOSZOR!
+   ```
+   **TILOS UI kodot irni journey es Figma design NELKUL!**
+   **Ha barmelyik gate FAIL → futtasd a megfelelo /ui-* parancsot ELOSZOR!**
 
 ## POST-IMPLEMENTATION VALIDATION:
 

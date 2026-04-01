@@ -1,7 +1,15 @@
 Generate a new MUI + TypeScript component for the AIFlow admin dashboard.
 
-> **ELOFELTETEL:** Ha uj komponens, ellenorizd a Figma design-t: `aiflow-admin/figma-sync/PAGE_SPECS.md`
-> Ha nincs design, futtasd eloszor `/ui-design`-t (Figma MCP). Ld. pipeline: `/ui-journey` → `/ui-design` → `/ui-component`
+> **GATE 5 a 7 HARD GATE pipeline-bol. CSAK Gate 1-4 UTAN futtatható!**
+
+## HARD GATE ELLENORZES (AUTOMATIKUS — ha FAIL → STOP, NEM GENERÁLUNK!):
+```bash
+# GATE CHECK: Figma design LETEZIK a PAGE_SPECS.md-ben?
+grep -ic "{ComponentName}" aiflow-admin/figma-sync/PAGE_SPECS.md
+# Ha 0 → **STOP** — futtasd `/ui-design` ELOSZOR!
+# Ha /ui-design sem futott → futtasd `/ui-journey` ELOSZOR!
+```
+**TILOS komponenst generalni Figma design NELKUL!**
 
 ## Context
 The UI project is at `aiflow-admin/` using Vite + React Admin + React 19 + MUI + TypeScript.
