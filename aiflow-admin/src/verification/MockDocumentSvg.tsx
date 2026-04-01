@@ -6,7 +6,7 @@ interface Props {
   height: number;
 }
 
-export const MockInvoiceSvg = ({ invoice, width, height }: Props) => {
+export const MockDocumentSvg = ({ invoice, width, height }: Props) => {
   const lineItems = (invoice.line_items as unknown[]) || [];
   const lineCount = Math.min(lineItems.length, 6);
   const allFields = [...STATIC_FIELDS];

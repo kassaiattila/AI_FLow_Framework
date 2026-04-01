@@ -11,14 +11,14 @@ import { i18nProvider } from "./i18nProvider";
 import { lightTheme, darkTheme } from "./theme";
 import { RunList } from "./resources/RunList";
 import { RunShow } from "./resources/RunShow";
-import { InvoiceList } from "./resources/InvoiceList";
-import { InvoiceShow } from "./resources/InvoiceShow";
+import { DocumentList } from "./resources/DocumentList";
+import { DocumentShow } from "./resources/DocumentShow";
 import { EmailList } from "./resources/EmailList";
 import { EmailShow } from "./resources/EmailShow";
 import { ProcessDocViewer } from "./pages/ProcessDocViewer";
 import { RagChat } from "./pages/RagChat";
 import { CubixViewer } from "./pages/CubixViewer";
-import { InvoiceUpload } from "./pages/InvoiceUpload";
+import { DocumentUpload } from "./pages/DocumentUpload";
 import { EmailUpload } from "./pages/EmailUpload";
 import { EmailConnectors } from "./pages/EmailConnectors";
 import { CostsPage } from "./pages/CostsPage";
@@ -43,11 +43,11 @@ export const App = () => (
       options={{ label: "Workflow Runs" }}
     />
     <Resource
-      name="invoices"
-      list={InvoiceList}
-      show={InvoiceShow}
+      name="documents"
+      list={DocumentList}
+      show={DocumentShow}
       icon={ReceiptIcon}
-      options={{ label: "Invoices" }}
+      options={{ label: "Documents" }}
     />
     <Resource
       name="emails"
@@ -60,11 +60,11 @@ export const App = () => (
       <Route path="/process-docs" element={<ProcessDocViewer />} />
       <Route path="/rag-chat" element={<RagChat />} />
       <Route path="/cubix" element={<CubixViewer />} />
-      <Route path="/invoice-upload" element={<InvoiceUpload />} />
+      <Route path="/document-upload" element={<DocumentUpload />} />
       <Route path="/email-upload" element={<EmailUpload />} />
       <Route path="/email-connectors" element={<EmailConnectors />} />
       <Route path="/costs" element={<CostsPage />} />
-      <Route path="/invoices/:id/verify" element={<VerificationPanel />} />
+      <Route path="/documents/:id/verify" element={<VerificationPanel />} />
     </CustomRoutes>
   </Admin>
 );

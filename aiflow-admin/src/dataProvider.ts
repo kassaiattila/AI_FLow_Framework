@@ -11,7 +11,7 @@ export function getResourceSource(resource: string): string | null {
 // Subprocess routes (upload, process, generate) still go through Next.js (/api/*)
 const RESOURCE_MAP: Record<string, { endpoint: string; listKey: string; idField: string }> = {
   runs: { endpoint: "/api/v1/runs", listKey: "runs", idField: "run_id" },
-  invoices: { endpoint: "/api/v1/documents", listKey: "documents", idField: "source_file" },
+  documents: { endpoint: "/api/v1/documents", listKey: "documents", idField: "source_file" },
   emails: { endpoint: "/api/v1/emails", listKey: "emails", idField: "email_id" },
   "process-docs": { endpoint: "/api/v1/process-docs", listKey: "documents", idField: "doc_id" },
   cubix: { endpoint: "/api/v1/cubix", listKey: "courses", idField: "course_id" },
@@ -66,8 +66,8 @@ export const dataProvider: DataProvider = {
     const filter = params.filter || {};
     for (const [key, value] of Object.entries(filter)) {
       if (!value || (typeof value === "string" && !value.trim())) continue;
-      // Special filter: only processed invoices (has real vendor name and non-zero total)
-      if (key === "_processed" && value === true && resource === "invoices") {
+      // Special filter: only processed documents (has real vendor name and non-zero total)
+      if (key === "_processed" && value === true && resource === "documents") {
         allData = allData.filter((item: Record<string, unknown>) => {
           const vendor = item.vendor as Record<string, unknown> | undefined;
           const totals = item.totals as Record<string, unknown> | undefined;

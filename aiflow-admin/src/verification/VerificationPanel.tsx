@@ -14,9 +14,9 @@ import { useVerificationState } from "./use-verification-state";
 import { DocumentCanvas } from "./DocumentCanvas";
 import { DataPointEditor } from "./DataPointEditor";
 import { getAllFields, fieldToBBox, resolvePath } from "./document-layout";
-import type { DataPoint, InvoiceVerificationData, DataPointCategory } from "./types";
+import type { DataPoint, DocumentVerificationData, DataPointCategory } from "./types";
 
-function generateVerificationData(invoice: Record<string, unknown>, index: number): InvoiceVerificationData {
+function generateVerificationData(invoice: Record<string, unknown>, index: number): DocumentVerificationData {
   const lineItems = (invoice.line_items as unknown[]) || [];
   const fields = getAllFields(lineItems.length);
   const dataPoints: DataPoint[] = fields.map((f) => {
@@ -40,7 +40,7 @@ function generateVerificationData(invoice: Record<string, unknown>, index: numbe
   });
 
   return {
-    invoice_index: index,
+    document_index: index,
     source_file: (invoice.source_file as string) || "",
     document_meta: {
       document_type: "invoice",
@@ -141,7 +141,7 @@ export const VerificationPanel = () => {
   }, [vs.dataPoints, vs.stats.confirmed, id, invoice]);
 
   if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><CircularProgress /></Box>;
-  if (!invoice) return <Alert severity="error">Invoice not found: {id}</Alert>;
+  if (!invoice) return <Alert severity="error">Document not found: {id}</Alert>;
 
   const progress = vs.stats.total > 0 ? ((vs.stats.confirmed + vs.stats.corrected) / vs.stats.total) * 100 : 0;
 
@@ -151,7 +151,7 @@ export const VerificationPanel = () => {
 
       {/* Header — Row 1: navigation */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/invoices")} size="small">
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/documents")} size="small">
           {translate("ra.action.back")}
         </Button>
         <Typography variant="h6" sx={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -159,7 +159,7 @@ export const VerificationPanel = () => {
         </Typography>
         <Button
           startIcon={<InfoOutlinedIcon />}
-          onClick={() => navigate(`/invoices/${encodeURIComponent(id!)}/show`)}
+          onClick={() => navigate(`/documents/${encodeURIComponent(id!)}/show`)}
           size="small"
           variant="outlined"
           color="inherit"

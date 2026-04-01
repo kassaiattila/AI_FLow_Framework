@@ -21,7 +21,7 @@ const SKILLS: SkillInfo[] = [
   { name: "process_documentation", display_name: "Process Documentation", status: "production", description: "skillDesc.process_documentation", viewerPath: "/process-docs" },
   { name: "aszf_rag_chat", display_name: "ASZF RAG Chat", status: "production", description: "skillDesc.aszf_rag_chat", viewerPath: "/rag-chat" },
   { name: "email_intent_processor", display_name: "Email Intent Processor", status: "in-development", description: "skillDesc.email_intent_processor", viewerPath: "/email-upload" },
-  { name: "invoice_processor", display_name: "Invoice Processor", status: "in-development", description: "skillDesc.invoice_processor", viewerPath: "/invoice-upload" },
+  { name: "document_extractor", display_name: "Document Extractor", status: "in-development", description: "skillDesc.document_extractor", viewerPath: "/document-upload" },
   { name: "cubix_course_capture", display_name: "Cubix Course Capture", status: "results-viewer", description: "skillDesc.cubix_course_capture", viewerPath: "/cubix" },
 ];
 

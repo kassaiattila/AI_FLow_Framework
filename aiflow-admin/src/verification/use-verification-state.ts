@@ -1,7 +1,7 @@
 // Verification state management — ported from aiflow-ui (useReducer, no framework deps)
 
 import { useReducer, useCallback, useMemo } from "react";
-import type { DataPoint, DocumentMeta, InvoiceVerificationData } from "./types";
+import type { DataPoint, DocumentMeta, DocumentVerificationData } from "./types";
 
 export interface AuditEntry {
   timestamp: string;
@@ -36,7 +36,7 @@ const INITIAL: VerificationState = {
 };
 
 type Action =
-  | { type: "LOAD_DATA"; payload: InvoiceVerificationData }
+  | { type: "LOAD_DATA"; payload: DocumentVerificationData }
   | { type: "HOVER_POINT"; payload: string | null }
   | { type: "SELECT_POINT"; payload: string }
   | { type: "NEXT_POINT" }
@@ -133,7 +133,7 @@ function reducer(state: VerificationState, action: Action): VerificationState {
 export function useVerificationState() {
   const [state, dispatch] = useReducer(reducer, INITIAL);
 
-  const loadData = useCallback((data: InvoiceVerificationData) => dispatch({ type: "LOAD_DATA", payload: data }), []);
+  const loadData = useCallback((data: DocumentVerificationData) => dispatch({ type: "LOAD_DATA", payload: data }), []);
   const hoverPoint = useCallback((id: string | null) => dispatch({ type: "HOVER_POINT", payload: id }), []);
   const selectPoint = useCallback((id: string) => dispatch({ type: "SELECT_POINT", payload: id }), []);
   const startEdit = useCallback((id: string) => dispatch({ type: "START_EDIT", payload: id }), []);

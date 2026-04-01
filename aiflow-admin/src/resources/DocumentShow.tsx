@@ -29,7 +29,7 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </Paper>
 );
 
-const InvoiceShowContent = () => {
+const DocumentShowContent = () => {
   const translate = useTranslate();
   const navigate = useNavigate();
   const record = useRecordContext();
@@ -49,7 +49,7 @@ const InvoiceShowContent = () => {
     <Box sx={{ p: 2, maxWidth: 1200, mx: "auto" }}>
       {/* Top bar: back + filename + verify */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/invoices")} size="small">
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/documents")} size="small">
           {translate("ra.action.back")}
         </Button>
         <Typography variant="h6" sx={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -64,7 +64,7 @@ const InvoiceShowContent = () => {
           startIcon={<VerifiedIcon />}
           variant="contained"
           size="small"
-          onClick={() => navigate(`/invoices/${encodeURIComponent(record.source_file as string)}/verify`)}
+          onClick={() => navigate(`/documents/${encodeURIComponent(record.source_file as string)}/verify`)}
         >
           {translate("aiflow.verification.verify")}
         </Button>
@@ -73,34 +73,34 @@ const InvoiceShowContent = () => {
       {/* Main grid: 3 columns */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 2, mb: 2 }}>
 
-        {/* Invoice header */}
-        <Section title={translate("aiflow.invoices.headerSection")}>
+        {/* Document header */}
+        <Section title={translate("aiflow.documents.headerSection")}>
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
-            <F label={translate("aiflow.invoices.invoiceNumber")}>{header.invoice_number as string}</F>
-            <F label={translate("aiflow.invoices.type")}>{header.invoice_type as string}</F>
-            <F label={translate("aiflow.invoices.date")}>{header.invoice_date as string}</F>
-            <F label={translate("aiflow.invoices.fulfillmentDate")}>{header.fulfillment_date as string}</F>
-            <F label={translate("aiflow.invoices.dueDate")}>{header.due_date as string}</F>
-            <F label={translate("aiflow.invoices.paymentMethod")}>{header.payment_method as string}</F>
-            <F label={translate("aiflow.invoices.currency")}>{header.currency as string}</F>
+            <F label={translate("aiflow.documents.invoiceNumber")}>{header.invoice_number as string}</F>
+            <F label={translate("aiflow.documents.type")}>{header.invoice_type as string}</F>
+            <F label={translate("aiflow.documents.date")}>{header.invoice_date as string}</F>
+            <F label={translate("aiflow.documents.fulfillmentDate")}>{header.fulfillment_date as string}</F>
+            <F label={translate("aiflow.documents.dueDate")}>{header.due_date as string}</F>
+            <F label={translate("aiflow.documents.paymentMethod")}>{header.payment_method as string}</F>
+            <F label={translate("aiflow.documents.currency")}>{header.currency as string}</F>
           </Box>
         </Section>
 
         {/* Vendor */}
-        <Section title={translate("aiflow.invoices.vendorSection")}>
+        <Section title={translate("aiflow.documents.vendorSection")}>
           <Stack spacing={1.5}>
-            <F label={translate("aiflow.invoices.name")}>{vendor.name as string}</F>
-            <F label={translate("aiflow.invoices.address")}>{vendor.address as string}</F>
-            <F label={translate("aiflow.invoices.taxNumber")}>{vendor.tax_number as string}</F>
+            <F label={translate("aiflow.documents.name")}>{vendor.name as string}</F>
+            <F label={translate("aiflow.documents.address")}>{vendor.address as string}</F>
+            <F label={translate("aiflow.documents.taxNumber")}>{vendor.tax_number as string}</F>
           </Stack>
         </Section>
 
         {/* Buyer */}
-        <Section title={translate("aiflow.invoices.buyerSection")}>
+        <Section title={translate("aiflow.documents.buyerSection")}>
           <Stack spacing={1.5}>
-            <F label={translate("aiflow.invoices.name")}>{buyer.name as string}</F>
-            <F label={translate("aiflow.invoices.address")}>{buyer.address as string}</F>
-            <F label={translate("aiflow.invoices.taxNumber")}>{buyer.tax_number as string}</F>
+            <F label={translate("aiflow.documents.name")}>{buyer.name as string}</F>
+            <F label={translate("aiflow.documents.address")}>{buyer.address as string}</F>
+            <F label={translate("aiflow.documents.taxNumber")}>{buyer.tax_number as string}</F>
           </Stack>
         </Section>
       </Box>
@@ -109,7 +109,7 @@ const InvoiceShowContent = () => {
       <Paper variant="outlined" sx={{ mb: 2 }}>
         <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: "0.85rem" }}>
-            {translate("aiflow.invoices.lineItems")}
+            {translate("aiflow.documents.lineItems")}
           </Typography>
         </Box>
         <TableContainer>
@@ -117,13 +117,13 @@ const InvoiceShowContent = () => {
             <TableHead>
               <TableRow>
                 <TableCell>#</TableCell>
-                <TableCell>{translate("aiflow.invoices.description")}</TableCell>
-                <TableCell align="right">{translate("aiflow.invoices.quantity")}</TableCell>
-                <TableCell>{translate("aiflow.invoices.unit")}</TableCell>
-                <TableCell align="right">{translate("aiflow.invoices.unitPrice")}</TableCell>
-                <TableCell align="right">{translate("aiflow.invoices.netAmount")}</TableCell>
-                <TableCell align="right">{translate("aiflow.invoices.vatRate")}</TableCell>
-                <TableCell align="right">{translate("aiflow.invoices.grossAmount")}</TableCell>
+                <TableCell>{translate("aiflow.documents.description")}</TableCell>
+                <TableCell align="right">{translate("aiflow.documents.quantity")}</TableCell>
+                <TableCell>{translate("aiflow.documents.unit")}</TableCell>
+                <TableCell align="right">{translate("aiflow.documents.unitPrice")}</TableCell>
+                <TableCell align="right">{translate("aiflow.documents.netAmount")}</TableCell>
+                <TableCell align="right">{translate("aiflow.documents.vatRate")}</TableCell>
+                <TableCell align="right">{translate("aiflow.documents.grossAmount")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -148,13 +148,13 @@ const InvoiceShowContent = () => {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
 
         {/* Totals */}
-        <Section title={translate("aiflow.invoices.totalsSection")}>
+        <Section title={translate("aiflow.documents.totalsSection")}>
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1.5 }}>
-            <F label={translate("aiflow.invoices.netTotal")}>{fmtNum(totals.net_total)}</F>
-            <F label={translate("aiflow.invoices.vatTotal")}>{fmtNum(totals.vat_total)}</F>
+            <F label={translate("aiflow.documents.netTotal")}>{fmtNum(totals.net_total)}</F>
+            <F label={translate("aiflow.documents.vatTotal")}>{fmtNum(totals.vat_total)}</F>
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.2, fontSize: "0.7rem" }}>
-                {translate("aiflow.invoices.grossTotal")}
+                {translate("aiflow.documents.grossTotal")}
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 {fmtNum(totals.gross_total)} {header.currency as string}
@@ -164,24 +164,24 @@ const InvoiceShowContent = () => {
         </Section>
 
         {/* Validation */}
-        <Section title={translate("aiflow.invoices.validationSection")}>
+        <Section title={translate("aiflow.documents.validationSection")}>
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1.5 }}>
-            <F label={translate("aiflow.invoices.valid")}>
+            <F label={translate("aiflow.documents.valid")}>
               <Chip
                 label={validation.is_valid ? "Valid" : "Invalid"}
                 color={validation.is_valid ? "success" : "error"}
                 size="small"
               />
             </F>
-            <F label={translate("aiflow.invoices.confidence")}>
+            <F label={translate("aiflow.documents.confidence")}>
               {validation.confidence_score != null ? `${((validation.confidence_score as number) * 100).toFixed(0)}%` : "–"}
             </F>
-            <F label={translate("aiflow.invoices.parser")}>{record.parser_used as string}</F>
+            <F label={translate("aiflow.documents.parser")}>{record.parser_used as string}</F>
           </Box>
           {errors.length > 0 && (
             <Box sx={{ mt: 1.5 }}>
               <Typography variant="caption" color="error" sx={{ fontWeight: 600 }}>
-                {translate("aiflow.invoices.errors")}:
+                {translate("aiflow.documents.errors")}:
               </Typography>
               {errors.map((e, i) => (
                 <Typography key={i} variant="body2" color="error" sx={{ fontSize: "0.8rem" }}>• {e}</Typography>
@@ -194,11 +194,11 @@ const InvoiceShowContent = () => {
   );
 };
 
-export const InvoiceShow = () => {
+export const DocumentShow = () => {
   const translate = useTranslate();
   return (
-    <Show title={translate("aiflow.invoices.detail")} actions={false}>
-      <InvoiceShowContent />
+    <Show title={translate("aiflow.documents.detail")} actions={false}>
+      <DocumentShowContent />
     </Show>
   );
 };

@@ -12,7 +12,7 @@ import { useTranslate } from "react-admin";
 import type { DataPoint } from "./types";
 import { getConfidenceLevel } from "./types";
 import { PAGE } from "./document-layout";
-import { MockInvoiceSvg } from "./MockInvoiceSvg";
+import { MockDocumentSvg } from "./MockDocumentSvg";
 
 const CONFIDENCE_FILL: Record<string, string> = {
   high: "rgba(16,185,129,0.15)",
@@ -148,7 +148,7 @@ export const DocumentCanvas = ({
                 style={{ width: w, height: h, objectFit: "contain", display: "block" }}
               />
             ) : (
-              <MockInvoiceSvg invoice={invoice} width={w} height={h} />
+              <MockDocumentSvg invoice={invoice} width={w} height={h} />
             )}
           </Box>
 

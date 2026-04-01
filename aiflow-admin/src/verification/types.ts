@@ -1,4 +1,4 @@
-// Invoice Verification — TypeScript types (ported from aiflow-ui)
+// Document Verification — TypeScript types (ported from aiflow-ui)
 
 export interface BoundingBox {
   x: number;
@@ -44,8 +44,8 @@ export interface DocumentMeta {
   language_confidence: number;
 }
 
-export interface InvoiceVerificationData {
-  invoice_index: number;
+export interface DocumentVerificationData {
+  document_index: number;
   source_file: string;
   document_meta: DocumentMeta;
   data_points: DataPoint[];

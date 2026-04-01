@@ -17,7 +17,7 @@ export const AppMenu = () => {
     <Menu>
       <Menu.DashboardItem />
       <Menu.Item to="/runs" primaryText={translate("aiflow.resources.runs")} leftIcon={<PlayArrowIcon />} />
-      <Menu.Item to="/invoices" primaryText={translate("aiflow.resources.invoices")} leftIcon={<ReceiptIcon />} />
+      <Menu.Item to="/documents" primaryText={translate("aiflow.resources.documents")} leftIcon={<ReceiptIcon />} />
       <Menu.Item to="/emails" primaryText={translate("aiflow.resources.emails")} leftIcon={<EmailIcon />} />
       <Menu.Item
         to="/costs"
@@ -48,8 +48,8 @@ export const AppMenu = () => {
         leftIcon={<VideoLibraryIcon />}
       />
       <Menu.Item
-        to="/invoice-upload"
-        primaryText={translate("aiflow.invoiceUpload.menuLabel")}
+        to="/document-upload"
+        primaryText={translate("aiflow.documentUpload.menuLabel")}
         leftIcon={<UploadFileIcon />}
       />
       <Menu.Item

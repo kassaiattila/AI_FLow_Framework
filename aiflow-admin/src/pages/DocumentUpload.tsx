@@ -13,7 +13,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useNavigate } from "react-router-dom";
 import { PipelineProgress, type PipelineStep } from "../components/PipelineProgress";
 
-const INVOICE_PIPELINE: PipelineStep[] = [
+const DOCUMENT_PIPELINE: PipelineStep[] = [
   { name: "PDF parse", description: "Docling inicializacio + parse" },
   { name: "Classify", description: "Irany felismeres" },
   { name: "Field extraction", description: "LLM header + tetelek" },
@@ -40,7 +40,7 @@ interface ProcessedFile {
 
 type FileStatus = "pending" | "processing" | "done" | "error";
 
-export const InvoiceUpload = () => {
+export const DocumentUpload = () => {
   const translate = useTranslate();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,7 +66,7 @@ export const InvoiceUpload = () => {
   // Restore state from sessionStorage on mount
   useEffect(() => {
     try {
-      const saved = sessionStorage.getItem("aiflow_invoiceUpload");
+      const saved = sessionStorage.getItem("aiflow_documentUpload");
       if (saved) {
         const s = JSON.parse(saved);
         if (s.uploadResult) setUploadResult(s.uploadResult);
@@ -78,8 +78,8 @@ export const InvoiceUpload = () => {
 
   // Persist state to sessionStorage on change
   useEffect(() => {
-    if (!uploadResult) { sessionStorage.removeItem("aiflow_invoiceUpload"); return; }
-    sessionStorage.setItem("aiflow_invoiceUpload", JSON.stringify({
+    if (!uploadResult) { sessionStorage.removeItem("aiflow_documentUpload"); return; }
+    sessionStorage.setItem("aiflow_documentUpload", JSON.stringify({
       uploadResult,
       fileStatuses: Object.fromEntries(fileStatuses),
       processResults: Object.fromEntries(processResults),
@@ -94,7 +94,7 @@ export const InvoiceUpload = () => {
     setStepTimings(new Map());
     setCurrentFileIndex(-1);
     setError(null);
-    sessionStorage.removeItem("aiflow_invoiceUpload");
+    sessionStorage.removeItem("aiflow_documentUpload");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -205,7 +205,7 @@ export const InvoiceUpload = () => {
         const result = fileResult || { file, success: false, confidence: 0, run_id: "", pages: 0, error: "No result" };
         results.set(file, result);
         setProcessResults(new Map(results));
-        setStepProgress((prev) => new Map(prev).set(file, INVOICE_PIPELINE.length));
+        setStepProgress((prev) => new Map(prev).set(file, DOCUMENT_PIPELINE.length));
         setFileStatuses((prev) => new Map(prev).set(file, result.success ? "done" : "error"));
       } catch (e) {
         const errResult: ProcessedFile = { file, success: false, confidence: 0, run_id: "", pages: 0, error: e instanceof Error ? e.message : "Failed" };
@@ -225,12 +225,12 @@ export const InvoiceUpload = () => {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
-      <Title title={translate("aiflow.invoiceUpload.title")} />
-      <Typography variant="h6" sx={{ mb: 2 }}>{translate("aiflow.invoiceUpload.title")}</Typography>
+      <Title title={translate("aiflow.documentUpload.title")} />
+      <Typography variant="h6" sx={{ mb: 2 }}>{translate("aiflow.documentUpload.title")}</Typography>
 
       {apiOnline === false && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          {translate("aiflow.invoiceUpload.apiOffline")}
+          {translate("aiflow.documentUpload.apiOffline")}
         </Alert>
       )}
 
@@ -252,7 +252,7 @@ export const InvoiceUpload = () => {
             ) : (
               <>
                 <CloudUploadIcon sx={{ fontSize: 48, color: "text.secondary", mb: 1 }} />
-                <Typography color="text.secondary">{translate("aiflow.invoiceUpload.dropzone")}</Typography>
+                <Typography color="text.secondary">{translate("aiflow.documentUpload.dropzone")}</Typography>
                 <Typography variant="caption" color="text.secondary">PDF, max 20MB</Typography>
               </>
             )}
@@ -269,7 +269,7 @@ export const InvoiceUpload = () => {
             {/* Batch progress header */}
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
               <Typography variant="subtitle1">
-                {translate("aiflow.invoiceUpload.files")}: {totalFiles} db
+                {translate("aiflow.documentUpload.files")}: {totalFiles} db
               </Typography>
               {processing && (
                 <Chip label={`${doneFiles}/${totalFiles} ${translate("aiflow.pipeline.done")}`} color="primary" size="small" />
@@ -286,7 +286,7 @@ export const InvoiceUpload = () => {
                 />
                 <Typography variant="caption" color="text.secondary">
                   {processing
-                    ? `${translate("aiflow.invoiceUpload.processingFile")} ${currentFileIndex + 1}/${totalFiles}...`
+                    ? `${translate("aiflow.documentUpload.processingFile")} ${currentFileIndex + 1}/${totalFiles}...`
                     : doneFiles === totalFiles ? translate("aiflow.pipeline.done") : ""}
                 </Typography>
               </Box>
@@ -329,7 +329,7 @@ export const InvoiceUpload = () => {
                           <Button
                             size="small"
                             startIcon={<VerifiedIcon />}
-                            onClick={() => navigate(`/invoices/${encodeURIComponent(file)}/verify`)}
+                            onClick={() => navigate(`/documents/${encodeURIComponent(file)}/verify`)}
                             sx={{ textTransform: "none", fontSize: "0.75rem" }}
                           >
                             {translate("aiflow.verification.verify")}
@@ -345,7 +345,7 @@ export const InvoiceUpload = () => {
                     {(isActive || status === "done") && (
                       <Box sx={{ mt: 1 }}>
                         <PipelineProgress
-                          steps={INVOICE_PIPELINE}
+                          steps={DOCUMENT_PIPELINE}
                           completedSteps={stepProgress.get(file) || 0}
                           running={isActive}
                           completed={status === "done"}
@@ -367,7 +367,7 @@ export const InvoiceUpload = () => {
                 fullWidth
                 sx={{ mt: 2 }}
               >
-                {translate("aiflow.invoiceUpload.process")} ({totalFiles} {translate("aiflow.invoiceUpload.files")})
+                {translate("aiflow.documentUpload.process")} ({totalFiles} {translate("aiflow.documentUpload.files")})
               </Button>
             )}
 
@@ -385,7 +385,7 @@ export const InvoiceUpload = () => {
                 fullWidth
                 sx={{ mt: 1 }}
               >
-                {translate("aiflow.invoiceUpload.newBatch")}
+                {translate("aiflow.documentUpload.newBatch")}
               </Button>
             )}
           </CardContent>
