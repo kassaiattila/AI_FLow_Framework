@@ -41,6 +41,10 @@ from aiflow.services.resilience import (
     ResilienceRule,
     ResilienceService,
 )
+from aiflow.services.rag_engine import (
+    RAGEngineConfig,
+    RAGEngineService,
+)
 from aiflow.services.schema_registry import (
     SchemaRegistryConfig,
     SchemaRegistryService,
@@ -71,6 +75,9 @@ __all__ = [
     "EmailConnectorService",
     "FetchedEmail",
     "FetchResult",
+    # RAG Engine
+    "RAGEngineConfig",
+    "RAGEngineService",
     # Rate Limiter
     "RateLimiterConfig",
     "RateLimiterService",
