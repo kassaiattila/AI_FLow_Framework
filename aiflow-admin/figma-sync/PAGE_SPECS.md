@@ -3,6 +3,26 @@
 
 > Reference file: `figma.com/design/GPg8UQzYXYust9vjN5AAwQ`
 > Copy frames from the Untitled UI file into the AIFlow project, then modify content as specified below.
+> **Figma channel:** `hq5dlkhu` (session-specifikus, user adja meg)
+
+## Figma Page & Frame Registry
+> **Minden oldalnak van Figma page-e es frame-je. A PAGE_SPECS entry CSAK Figma design alapjan keszulhet.**
+
+| Page | Figma Page ID | Frame ID | Frame Name |
+|------|--------------|----------|------------|
+| Dashboard | `11638:24254` | `11638:24259` | AIFlow Dashboard — Desktop 1440px |
+| Runs | `11623:13186` | `11623:11464` | AIFlow Runs — Desktop 1440px |
+| Documents | `11623:13187` | `11623:12038` | AIFlow Documents — Desktop 1440px |
+| Emails | `11623:13188` | — | (existing frame) |
+| Costs | `11623:13189` | — | (existing frame) |
+| Process Docs | `11625:10531` | — | (existing frame) |
+| RAG Chat | `11625:10532` | — | (existing frame) |
+| Document Upload | `11625:10533` | `11625:10941` | AIFlow Document Upload — Desktop 1440px |
+| Verification | `11625:10534` | — | (existing frame) |
+| Email Connectors | `11638:24255` | `11638:24268` | AIFlow Email Connectors — Desktop 1440px |
+| Email Detail | `11638:24256` | `11638:24275` | AIFlow Email Detail — Desktop 1440px |
+| Email Upload | `11638:24257` | `11638:24284` | AIFlow Email Upload — Desktop 1440px |
+| RAG Collections | `11638:24258` | `11638:24290` | AIFlow RAG Collections — Desktop 1440px |
 
 ---
 
@@ -15,12 +35,12 @@
 **Modify content to:**
 ```
 Logo: "AI Flow" (brand-700 icon + text-md semibold)
-Search: "Search runs, skills, invoices..." (Input component, sm)
+Search: "Search runs, skills, documents..." (Input component, sm)
 
 ─── MONITOR ─── (section label, text-xs, fg-quaternary)
   Overview        (Home icon)
   Runs            (Play icon)
-  Invoices        (FileText icon)
+  Documents       (FileText icon)
   Emails          (Mail icon)
   Cost Analytics  (BarChart icon)
 
@@ -28,8 +48,9 @@ Search: "Search runs, skills, invoices..." (Input component, sm)
   Process Docs    (FileCode icon)
   RAG Chat        (MessageCircle icon)
   Cubix Capture   (Video icon)
-  Invoice Upload  (Upload icon)
+  Document Upload (Upload icon)
   Email Upload    (MailPlus icon)
+  Connectors      (Settings icon)
 
 ─── Footer ───
   ● Backend connected (BadgeWithDot, success)
@@ -204,7 +225,7 @@ Sidebar + Main:
 
 ---
 
-## Page 4: Invoices (/invoices)
+## Page 4: Documents (/documents)
 
 ### Same table pattern as Runs, with these columns:
 | Column | Width | Content |
@@ -227,11 +248,11 @@ Sidebar + Main:
 
 ---
 
-## Page 5: Invoice Detail (/invoices/:id)
+## Page 5: Document Detail (/documents/:id)
 
 ### Layout: Tab-based
 ```
-  ← Back to Invoices    invoice_001.pdf    ● Valid    [Verify]
+  ← Back to Documents    invoice_001.pdf    ● Valid    [Verify]
 
   [Overview]  [Line Items]  [Validation]  [History]
 
@@ -252,21 +273,21 @@ Sidebar + Main:
 
 ---
 
-## Page 6: Verification (/invoices/:id/verify)
+## Page 6: Verification (/documents/:id/verify)
 
 ### THE MOST CRITICAL PAGE — needs special attention
 
 ### Layout: Full-width split
 ```
 ┌─ Header Bar ─────────────────────────────────────────────────┐
-│ ← Back   invoice_001.pdf   Invoice · Incoming                │
+│ ← Back   invoice_001.pdf   Document · Incoming                │
 │ Auto: 12  Corrected: 2  Pending: 2     87% verified  [Save] │
 ├──────────────────────┬───────────────────────────────────────┤
 │                      │                                       │
 │  Document Canvas     │  Data Points                          │
 │  (55% width)         │  (45% width)                          │
 │                      │                                       │
-│  ┌────────────────┐  │  ┌─ Invoice Number ──────────────┐   │
+│  ┌────────────────┐  │  ┌─ Document Number ─────────────┐   │
 │  │                │  │  │ INV-2026-042         98% ✓ Auto│   │
 │  │  PDF/SVG       │  │  └────────────────────────────────┘   │
 │  │  Document      │  │  ┌─ Vendor Name ─────────────────┐   │
@@ -450,11 +471,11 @@ Sidebar + Main:
 
 ---
 
-## Page 12: Invoice Upload (/invoice-upload)
+## Page 12: Document Upload (/document-upload)
 
 ### Layout
 ```
-  Page Header: "Invoice Upload"
+  Page Header: "Document Upload"
 
   ┌─ Upload Zone ──────────────────────────────────────────────┐
   │                                                             │
@@ -484,7 +505,7 @@ Sidebar + Main:
 
 ## Page 13: Email Upload (/email-upload)
 
-### Same pattern as Invoice Upload, with:
+### Same pattern as Document Upload, with:
 - Accept: `.eml`, `.msg`, `.txt` files
 - Results show: Intent + Priority + Entities instead of Confidence
 
@@ -540,6 +561,67 @@ Sidebar + Main:
 - filters, imap, o365, gmail, history, emailCount, status
 
 **Playwright E2E Verified:** 2026-04-01 (commit 8fbdb19) — 9 checks, 0 console errors, i18n HU/EN toggle OK
+
+---
+
+## Page 15: RAG Collections (/rag/collections) — F3
+
+**Phase:** F3 (RAG Engine)
+**Figma Page:** `11638:24258` | **Frame:** `11638:24290` (AIFlow RAG Collections — Desktop 1440px)
+**Journey:** `01_PLAN/F3_RAG_ENGINE_JOURNEY.md`
+**Layout:** Collection list table + Create dialog + Collection detail (ingest + stats + chat)
+**Data Source:** `GET /api/v1/rag/collections` (CRUD), `POST /api/v1/rag/collections/{id}/ingest`, `POST /api/v1/rag/collections/{id}/query`
+
+**Header:**
+- Title: "RAG Collections" (i18n: `aiflow.rag.title`)
+- "+ New Collection" button (primary, top-right)
+
+**Table Columns:**
+| Column | Source | Content |
+|--------|--------|---------|
+| Name | `name` | Collection name |
+| Description | `description` | Short description |
+| Documents | `doc_count` | Document count |
+| Chunks | `chunk_count` | Chunk count |
+| Created | `created_at` | Date |
+| Actions | — | Ingest · Chat · Stats · Delete |
+
+**Row Actions:**
+1. Ingest (UploadIcon) → Navigate to collection detail ingest zone
+2. Chat (ChatIcon) → Navigate to RAG Chat with collection pre-selected
+3. Stats (BarChartIcon) → Collection statistics view
+4. Delete (DeleteIcon, red) → Confirm dialog → `DELETE /api/v1/rag/collections/{id}`
+
+**Create Dialog (Modal):**
+- Fields: Name* (text), Description (textarea), Language (select: hu/en/auto)
+- Actions: Cancel, Create
+- Validation: Name required, unique
+
+**Collection Detail View (/rag/collections/{id}):**
+- Ingest zone: drag-drop for PDF/DOCX/TXT files
+- Stats cards: doc count, chunk count, query count, avg response time
+- Chunk browser: paginated table of chunks with search
+
+**States:**
+- Loading: CircularProgress centered
+- Error: Alert severity="error"
+- Empty: "No collections yet. Create your first knowledge base." + CTA
+
+---
+
+## Page 16: RAG Chat — Redesign (/rag/chat) — F3
+
+**Phase:** F3 (RAG Engine) — redesign of existing RagChat.tsx
+**Figma Page:** `11625:10532` (AIFlow — RAG Chat, existing)
+**Journey:** `01_PLAN/F3_RAG_ENGINE_JOURNEY.md`
+
+**New Features vs Current:**
+- **Collection selector** dropdown (dynamic from API)
+- **Role selector** (baseline / mentor / expert)
+- **Feedback buttons** wired to `POST /api/v1/rag/collections/{id}/feedback`
+- **Stats sidebar** (optional): total queries, avg time, hallucination score
+
+**Layout:** Same chat pattern as Page 11, with added controls above input.
 
 ---
 
