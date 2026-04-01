@@ -63,7 +63,7 @@ grep -rn "22 het\|21 het\|22 week" 01_PLAN/*.md CLAUDE.md
 grep -rn "6 skill\|5 skill\|6 db skill" 01_PLAN/*.md CLAUDE.md
 # Phase week ranges (legacy framework Phase 1-7)
 grep -rn "Het 10-1[0-9]\|Het 14-1[0-9]\|Het 17-1[0-9]\|Het 20-2[0-9]" 01_PLAN/*.md
-# Fazis system (service gen F0-F4) — ne keveredjen Phase 1-7-tel
+# Fazis system (service gen F0-F5 vertikalis szeletek) — ne keveredjen Phase 1-7-tel
 grep -rn "Fazis [0-4]" 01_PLAN/*.md CLAUDE.md
 # Directory check — llm/ ne legyen (models/ a helyes), agents/ ne legyen (torolve)
 grep -rn "llm/" 01_PLAN/*.md CLAUDE.md | grep -v "NOT\|models/\|LiteLLM\|litellm"

@@ -7,8 +7,8 @@
 
 > **Elozmeny:** Az eredeti framework implementacio (Phase 1-7, Het 1-22, ld. `04_IMPLEMENTATION_PHASES.md`) **KESZ**.
 > A `src/aiflow/` framework mag teljes egeszeben implementalva lett (v0.1.0 → v0.9.0-stable).
-> Ez a terv (Fazis 0-4) egy **UJ, onallo fejezet**: a skill-specifikus kodot altalanos, konfiguralhato szolgaltatasokka alakitjuk.
-> A ket fazis-rendszer fuggetlen: Phase 1-7 = framework mag, Fazis 0-4 = service generalizacio.
+> Ez a terv (Fazis 0-5, vertikalis szeletek) egy **UJ, onallo fejezet**: a skill-specifikus kodot altalanos, konfiguralhato szolgaltatasokka alakitjuk.
+> A ket fazis-rendszer fuggetlen: Phase 1-7 = framework mag, Fazis 0-5 = service generalizacio.
 
 ---
 
@@ -1165,60 +1165,73 @@ src/aiflow/services/               # ← UJ
 > es MINDEN teszt VALOS adatokkal, valos backend-del, valos bongeszioben tortenik.
 > Mock/fake teszteles NEM SZAMIT — a fazist NEM lehet lezarni mock tesztekkel!
 
-### Fazis 0 utan (Infra):
+### F0 utan (Infra):
 - [ ] Redis cache mukodik (embedding + LLM response)
 - [ ] Config versioning: uj verzio deploy + rollback
 - [ ] Rate limiter: per-service konfiguralhato limit
 - [ ] Retry/Circuit breaker: LLM hivasokon aktiv
+- [ ] Schema Registry: kozpontilag kezelt schemak
+- [ ] Auth: refresh token + API key management
 - [ ] 7 modul `__all__` export javitva
 - [ ] Alembic migraciok (014-016) HIBA NELKUL: `upgrade head` + `downgrade -1` + `upgrade head`
-- [ ] **VALOS TESZT:** `curl` hivással cache hit/miss ellenorizve, rate limit 429-et ad, config CRUD mukodik
+- [ ] **VALOS TESZT:** `curl` hivással cache hit/miss, rate limit 429, config CRUD, auth refresh
 
-### Fazis 1 utan (Domain A):
-- [ ] Schema Registry: intent + entity + doc-type schemak kozpontilag kezelve
+### F1 utan (Document Extractor — TELJES VERTIKALIS SZELET):
+- [ ] Document Extractor service altalanosan mukodik (szamla + 1 masik doc tipus)
+- [ ] `POST /documents/{file}/verify` endpoint mukodik (blocker fix!)
+- [ ] Figma design elkeszult (VerificationPanel, Document config page)
+- [ ] UI: upload → extract → verify → save — TELJESEN MUKODIK
+- [ ] Regi `invoice_processor` skill backward compat (service-t hasznalja belul)
+- [ ] Alembic migraciok (018-019) HIBA NELKUL futnak
+- [ ] **VALOS TESZT:** Playwright E2E: valos PDF upload → Docling extract → verify → save → reload → check
+- [ ] **VALOS TESZT:** `python -m skills.invoice_processor` valos PDF-fel — JSON helyes
+
+### F2 utan (Email Connector + Classifier — TELJES VERTIKALIS SZELET):
 - [ ] Email Connector: O365 + IMAP mukodik parameterezhetoen
-- [ ] Document Extractor: szamla + 1 masik doc tipus (pl. szerzodes)
-- [ ] Intent Classifier: email + 1 masik kontextus (pl. support ticket)
-- [ ] Auth: refresh token + API key management
-- [ ] Admin UI-ban konfiguralhato mindegyik
-- [ ] Regi skill-ek tovabbra is mukodnek (backward compat)
-- [ ] Alembic migraciok (017-019) HIBA NELKUL futnak
-- [ ] **VALOS TESZT:** Valos email fetch (IMAP), valos PDF extraction (Docling), Playwright E2E az Admin UI-n
-- [ ] **VALOS TESZT:** `python -m skills.invoice_processor` valos PDF-fel — eredmeny JSON helyes
+- [ ] Intent Classifier: hibrid ML+LLM, konfiguralhato intentek
+- [ ] `GET /emails/{email_id}` endpoint mukodik (blocker fix!)
+- [ ] Figma design elkeszult (Email detail, Connector config, Classifier tune)
+- [ ] UI: config → fetch → list → detail → intent → routing — TELJESEN MUKODIK
+- [ ] Regi `email_intent_processor` skill backward compat
+- [ ] Alembic migracio (017) HIBA NELKUL fut
+- [ ] **VALOS TESZT:** Playwright E2E: valos IMAP email fetch → classify → route → show
 
-### Fazis 2 utan (RAG + Monitoring):
-- [ ] RAG Chat: uj kollekcio letrehozasa + dokumentum feltoltes + kerdezes
-- [ ] Chat UI: kollekcio valaszto, streaming valasz, citaciok
-- [ ] Health monitoring: minden service egeszseget mutatja az Admin UI
-- [ ] Event bus: step_completed, budget_alert esemenyek mukodnek
-- [ ] Notification: email/Slack/webhook csatornak konfiguralhatoak
-- [ ] Cost budget: service szintu koltseg limit + alert
-- [ ] Runs API: cancel, result, DLQ endpointok
-- [ ] Alembic migraciok (020-022) HIBA NELKUL futnak
-- [ ] **VALOS TESZT:** RAG ingest valos PDF + query valasz relevanciaja, Playwright chat E2E
-- [ ] **VALOS TESZT:** Health endpoint valos service statuszt mutat, event publish + subscribe mukodik
+### F3 utan (RAG Engine — TELJES VERTIKALIS SZELET):
+- [ ] RAG Engine: multi-collection ingest + query mukodik
+- [ ] Collection CRUD API letezik es mukodik
+- [ ] Feedback gombok bekotve az UI-ban (POST /feedback hivas)
+- [ ] Figma design elkeszult (Collection manager, Chat UI)
+- [ ] UI: kollekcio → ingest → query → chat → feedback → stats — TELJESEN MUKODIK
+- [ ] Regi `aszf_rag_chat` skill backward compat
+- [ ] **VALOS TESZT:** Playwright E2E: valos PDF ingest → query → valasz + citaciok → feedback
 
-### Fazis 3 utan (RPA + Media + Approval):
-- [ ] RPA: YAML konfiguracioval bongeszo automatizalas
-- [ ] Media: video → szoveg barmilyen formatumbol, tobbfele STT provider
-- [ ] Diagram Generator: onallo service, nem csak process_doc skill-bol
-- [ ] Human Review: approval flow mukodik (pending → approved → workflow resume)
+### F4 utan (RPA + Media + Diagram + Human Review — 4 MINI SZELET):
+- [ ] Diagram Generator: onallo service, SVG/PNG/BPMN export, persistence
+- [ ] Media Processor: video → szoveg, tobbfele STT provider
+- [ ] RPA Browser: YAML konfiguracioval bongeszo automatizalas
+- [ ] Human Review: approval flow (pending → approved → workflow resume)
 - [ ] Cubix skill: RPA + Media + RAG Engine compose-kent fut
 - [ ] Skills API: detail, manifest, ingest endpointok
 - [ ] Alembic migraciok (023-024) HIBA NELKUL futnak
-- [ ] **VALOS TESZT:** Playwright-tal valos weboldal scrape, valos video transcript (ffmpeg+Whisper)
-- [ ] **VALOS TESZT:** Human review approval flow Playwright E2E, diagram SVG valos render (Kroki)
+- [ ] **VALOS TESZT:** 4 kulon Playwright E2E (diagram, media, RPA, human review)
 
-### Fazis 4 utan (Governance):
+### F5 utan (Monitoring + Governance + Production Ready):
+- [ ] Health Monitoring: minden service egeszseget mutatja az Admin UI-ban
+- [ ] Event Bus + Notifications: email/Slack/webhook csatornak konfiguralhatoak
+- [ ] Cost Budget: service szintu koltseg limit + alert
 - [ ] Audit Trail: immutable log, GDPR data erasure
-- [ ] 90%+ endpoint lefedettse (45+ / 50)
+- [ ] Admin endpointok: users, teams, API keys CRUD
 - [ ] Prompts API: list, sync, promote, version history
-- [ ] Scheduling: cron + webhook trigger konfiguralhas
-- [ ] tools/ + skill_system/ tesztek ≥ 80% coverage
+- [ ] Scheduling: cron + webhook trigger konfiguralhato
+- [ ] Runs API: cancel, result, DLQ endpointok
 - [ ] Multi-tenant RLS aktiv a fo tablakon
+- [ ] 90%+ endpoint lefedettse (45+ / 50 endpoint)
+- [ ] tools/ + skill_system/ tesztek ≥ 80% coverage
 - [ ] Backup/DR strategia dokumentalva + tesztelve
-- [ ] **VALOS TESZT:** Audit rekord letezik DB-ben valos muvelet utan, RLS blokkol mas team adatait
-- [ ] **VALOS TESZT:** Teljes E2E regresszio (L4 Complete): unit + integration + skill + Playwright UI
+- [ ] Alembic migraciok (020-022) HIBA NELKUL futnak
+- [ ] **VALOS TESZT:** Audit rekord DB-ben, RLS blokkol mas team adatait
+- [ ] **VALOS TESZT:** Monitoring dashboard valos service health megjelenitssel
+- [ ] **VALOS TESZT:** L4 Complete regresszio: unit + integration + skill + Playwright UI
 - [ ] **VALOS TESZT:** `pytest tests/ --cov=aiflow` ≥ 80% OVERALL coverage
 
 ---
@@ -1304,7 +1317,7 @@ src/aiflow/services/               # ← UJ
 
 > **ALAPELV:** A UI fejlesztes MINDIG az API utan kovetkezik, SOHA nem elotte.
 > Eloszor: User Journey definicio → Szukseges API endpointok → Backend implementacio → UI/UX tervezes → UI fejlesztes → Playwright E2E teszt
-> A service generalizacio (F0-F4) a **fo cel** — a UI fejlesztes ezekre epul.
+> A service generalizacio (F0-F5) a **fo cel** — a UI fejlesztes ezekre epul.
 
 ### 11.1 Jelenlegi UI Allapot (2026-04-01)
 

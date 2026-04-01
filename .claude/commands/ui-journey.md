@@ -66,4 +66,4 @@ Mentsd el a journey dokumentaciot:
 - **API-First:** Ha API hianyzik, ELOSZOR backend, AZTAN design, AZTAN UI
 - **Figma-First:** Ha API letezik de design nincs, ELOSZOR Figma, AZTAN UI kod
 - **Valos teszt:** Journey CSAK AKKOR "KESZ" ha Playwright E2E teszten atment valos backend-del
-- **42_ plan reference:** Minden journey a megfelelo fazishoz (F0-F4) tartozik
+- **42_ plan reference:** Minden journey a megfelelo fazishoz (F0-F5) tartozik

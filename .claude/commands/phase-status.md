@@ -54,7 +54,7 @@ Arguments: $ARGUMENTS
 - Egy fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul (ld. 42_SERVICE_GENERALIZATION_PLAN.md Section 8)
 - Git tag CSAK sikeres fazis utan kerul kiadasra
 - Valos teszteles KOTELEZO — mock/fake eredmeny NEM szamit!
-- **Phase 1-7** (framework) es **Fazis 0-4** (service gen) KET FUGGETLEN fazis-rendszer — ne keverd!
+- **Phase 1-7** (framework) es **Fazis 0-5** (service gen) KET FUGGETLEN fazis-rendszer — ne keverd!
 
 ## Valos teszteles ellenorzes fazisokent (vertikalis szelet!):
 | Fazis | VALOS teszt kovetelmeny |

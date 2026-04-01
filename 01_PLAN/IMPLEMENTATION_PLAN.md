@@ -4,7 +4,7 @@
 es a 6 skill-t felepigtse, lepesrol lepesre. A `01_PLAN/` mappa dokumentumai alapjan.
 
 **Utolso frissites:** 2026-04-01 (konzisztencia audit alapjan)
-**Statusz:** Framework KESZ (Phase 1-7), 4/6 skill WORKING, 1/6 IN DEV, 1/6 STUB. Aktualis: Service Generalization (Fazis 0-4) → ld. `42_SERVICE_GENERALIZATION_PLAN.md`
+**Statusz:** Framework KESZ (Phase 1-7), 4/6 skill WORKING, 1/6 IN DEV, 1/6 STUB. Aktualis: Service Generalization (Fazis 0-5, vertikalis szeletek) → ld. `42_SERVICE_GENERALIZATION_PLAN.md`
 
 ---
 

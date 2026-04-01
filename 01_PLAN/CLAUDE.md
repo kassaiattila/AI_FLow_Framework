@@ -4,8 +4,8 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 
 ## Phase Relationship (FONTOS!)
 > **Phase 1-7 (Het 1-22):** Eredeti framework implementacio — KESZ (v0.1.0 → v0.9.0-stable)
-> **Fazis 0-4 (Service Generalization):** UJ fejezet — skill → altalanos szolgaltatas (v0.9.1 → v1.0.0-rc1)
-> A ket fazis-rendszer FUGGETLEN. Phase 1-7 a framework magot epitette, Fazis 0-4 a service reteget.
+> **Fazis 0-5 (Service Generalization, vertikalis szeletek):** UJ fejezet — skill → altalanos szolgaltatas (v0.9.1 → v1.0.0-rc1)
+> A ket fazis-rendszer FUGGETLEN. Phase 1-7 a framework magot epitette, Fazis 0-5 a service reteget.
 
 ## Structure
 - **00-05**: Core architecture, DB schema (36 tables, 13 views), implementation phases (22 weeks), tech stack
@@ -15,9 +15,9 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - **17-19**: Dev rules (git, testing, RPA)
 - **20-27**: Security, deployment, API spec, config, testing/regression, test structure, Claude Code setup, dev environment
 - **28**: Modular Deployment (Skill Instance architecture, multi-customer deployment)
-- **42**: Service Generalization Plan (7 domain service + 9 infra epitokocka + Fazis 0-4)
+- **42**: Service Generalization Plan (7 domain service + 9 infra epitokocka + Fazis 0-5 vertikalis szeletek)
 - **AIFLOW_MASTER_PLAN.md**: Integrated overview of everything
-- **IMPLEMENTATION_PLAN.md**: Step-by-step execution guide (Phase 1-7 KESZ, Fazis 0-4 → ld. 42_)
+- **IMPLEMENTATION_PLAN.md**: Step-by-step execution guide (Phase 1-7 KESZ, Fazis 0-5 → ld. 42_)
 - **SKILL_DEVELOPMENT.md**: How to create new skills
 
 ## When editing plan documents

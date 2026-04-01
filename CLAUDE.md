@@ -19,8 +19,8 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 **Terv:** `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`
 
 > **Elozmeny:** Az eredeti framework implementacio (Phase 1-7, Het 1-22) KESZ — `src/aiflow/` teljes.
-> Ez a fazis (Fazis 0-4) EGY UJ, onallo fejezet: skill-specifikus kodot altalanos szolgaltatasokka alakitunk.
-> A ket fazis-rendszer fuggetlen: Phase 1-7 = framework mag, Fazis 0-4 = service generalizacio.
+> Ez a fazis (Fazis 0-5) EGY UJ, onallo fejezet: skill-specifikus kodot altalanos szolgaltatasokka alakitunk.
+> A ket fazis-rendszer fuggetlen: Phase 1-7 = framework mag, Fazis 0-5 = service generalizacio (vertikalis szeletek).
 
 Skill-specifikus kodot altalanos, konfiguralhato szolgaltatasokka alakitjuk:
 - **Email Connector** (O365/Gmail/IMAP) ← email_intent_processor
@@ -90,7 +90,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 
 ### STRICT: Real Testing Only (SOHA NE MOCK/FAKE!)
 > **Csak valos, sikeres teszteles utan szabad tovabblepni. SOHA NE mockolt/fake adatokkal!**
-> Ez a szabaly MINDEN fejlesztesi fazisra vonatkozik (F0-F4), MINDEN modulra, MINDEN PR-re.
+> Ez a szabaly MINDEN fejlesztesi fazisra vonatkozik (F0-F5), MINDEN modulra, MINDEN PR-re.
 
 - **API tesztek:** Valos FastAPI szerver fut, valos HTTP keresek (curl vagy Playwright)
 - **Service tesztek:** Valos fuggoosegek (PostgreSQL, Redis Docker-ben), NEM in-memory mock
@@ -104,8 +104,8 @@ This enables: new intents/entities without code changes, per-customer customizat
 - **Fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul** (ld. 42_SERVICE_GENERALIZATION_PLAN.md Section 8)
 
 ### Key plan documents:
-- **`01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`** - AKTUALIS: Service generalizalas terv (F0-F4), infra epitokockak, domain szolgaltatasok
-- `01_PLAN/IMPLEMENTATION_PLAN.md` - Legacy fazisok (A1-A5 KESZ). Aktualis: ld. 42_SERVICE_GENERALIZATION_PLAN F0-F4
+- **`01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`** - AKTUALIS: Service generalizalas terv (F0-F5 vertikalis szeletek), infra + domain szolgaltatasok
+- `01_PLAN/IMPLEMENTATION_PLAN.md` - Legacy fazisok (Phase 1-7 KESZ). Aktualis: ld. 42_SERVICE_GENERALIZATION_PLAN F0-F5
 - `01_PLAN/29_OPTIMIZATION_PLAN.md` - O1-O3 (KESZ) + framework audit eredmeny
 - `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist (Cubix tananyag alapjan!)
 - `01_PLAN/28_MODULAR_DEPLOYMENT.md` - Multi-customer instance architecture
@@ -176,6 +176,10 @@ make lock                                   # Regenerate uv.lock from pyproject.
 
 ## Claude Code Slash Commands (use these during development!)
 
+### Vertikalis Szelet Orchestracio
+- `/start-phase` - **FAZIS INDITAS**: teljes vertikalis szelet orchestracio (backend → API → Figma → UI → E2E)
+- `/service-test` - **SZOLGALTATAS TESZT**: backend + API + UI end-to-end teszt (PASS/FAIL report)
+
 ### Fejlesztes + Teszteles
 - `/dev-step` - **FO PARANCS**: fejlesztes + valos teszt + commit. Playwright E2E teszteles KOTELEZO!
 - `/regression` - **MANDATORY before commit**: regresszios tesztek az erintett fajlokra
@@ -196,7 +200,7 @@ make lock                                   # Regenerate uv.lock from pyproject.
 - `/ui-api-endpoint` - Generate FastAPI endpoint for the UI (API-first!)
 
 ### Tervek + Audit
-- `/phase-status` - Check implementation progress for a phase (F0-F4)
+- `/phase-status` - Check implementation progress for a phase (F0-F5)
 - `/validate-plan` - Validate plan document consistency
 - `/update-plan` - **MANDATORY for plan changes**: propagate + 2-pass validation
 
@@ -438,7 +442,7 @@ regression_diff.json. Stored in tests/artifacts/{date}/{run_id}/
 - **Development step tracking: every change recorded in development_steps DB table**
 - Full strategy: `01_PLAN/24_TESTING_REGRESSION_STRATEGY.md`
 
-### VALOS Teszteles Fazisokent (Service Generalization F0-F4)
+### VALOS Teszteles Fazisokent (Service Generalization F0-F5)
 > **Minden fazisban VALOS, nem mockolt teszteles kell. Az alabbi tablazat mutatja, MIT kell tesztelni.**
 
 | Fazis | Mit tesztelunk VALOSAN | Eszkoz | Elfogadasi kriterium |
