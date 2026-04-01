@@ -12,7 +12,14 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-__all__ = ["Base", "WorkflowRunModel", "StepRunModel", "SkillInstanceModel"]
+__all__ = [
+    "Base",
+    "WorkflowRunModel",
+    "StepRunModel",
+    "SkillInstanceModel",
+    "EmailConnectorConfigModel",
+    "EmailFetchHistoryModel",
+]
 
 
 class Base(DeclarativeBase):
@@ -209,3 +216,72 @@ class SkillInstanceModel(Base):
 
     def __repr__(self) -> str:
         return f"<SkillInstance {self.instance_name} customer={self.customer} status={self.status}>"
+
+
+class EmailConnectorConfigModel(Base):
+    """Email connector configuration (IMAP, O365/Graph, Gmail)."""
+
+    __tablename__ = "email_connector_configs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False)
+    host: Mapped[str | None] = mapped_column(String(255))
+    port: Mapped[int | None] = mapped_column(Integer)
+    use_ssl: Mapped[bool] = mapped_column(Boolean, default=True)
+    mailbox: Mapped[str | None] = mapped_column(String(255))
+    credentials_encrypted: Mapped[str | None] = mapped_column(Text)
+    filters: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    polling_interval_minutes: Mapped[int] = mapped_column(Integer, default=15)
+    max_emails_per_fetch: Mapped[int] = mapped_column(Integer, default=50)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+    # Relationships
+    fetch_history: Mapped[list["EmailFetchHistoryModel"]] = relationship(
+        back_populates="config", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "provider IN ('imap', 'o365_graph', 'gmail')",
+            name="chk_ecc_provider",
+        ),
+        Index("idx_ecc_provider", "provider"),
+        Index("idx_ecc_is_active", "is_active"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<EmailConnectorConfig {self.name} provider={self.provider} active={self.is_active}>"
+
+
+class EmailFetchHistoryModel(Base):
+    """Tracks each email fetch operation per connector."""
+
+    __tablename__ = "email_fetch_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    config_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("email_connector_configs.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    email_count: Mapped[int] = mapped_column(Integer, default=0)
+    new_emails: Mapped[int] = mapped_column(Integer, default=0)
+    duration_ms: Mapped[float | None] = mapped_column(Float)
+    error: Mapped[str | None] = mapped_column(Text)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+    # Relationships
+    config: Mapped["EmailConnectorConfigModel"] = relationship(back_populates="fetch_history")
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'running', 'completed', 'failed')",
+            name="chk_efh_status",
+        ),
+        Index("idx_efh_config_id", "config_id"),
+        Index("idx_efh_fetched_at", "fetched_at"),
+        Index("idx_efh_status", "status"),
+    )

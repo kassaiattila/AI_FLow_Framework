@@ -11,10 +11,23 @@ from aiflow.services.base import (
     ServiceStatus,
 )
 from aiflow.services.cache import CacheConfig, CacheService
+from aiflow.services.classifier import (
+    ClassificationResult,
+    ClassificationStrategy,
+    ClassifierConfig,
+    ClassifierService,
+)
 from aiflow.services.config import (
     ConfigVersion,
     ConfigVersioningConfig,
     ConfigVersioningService,
+)
+from aiflow.services.email_connector import (
+    ConnectorProvider,
+    EmailConnectorConfig,
+    EmailConnectorService,
+    FetchedEmail,
+    FetchResult,
 )
 from aiflow.services.rate_limiter import (
     RateLimiterConfig,
@@ -43,10 +56,21 @@ __all__ = [
     # Cache
     "CacheConfig",
     "CacheService",
+    # Classifier
+    "ClassificationResult",
+    "ClassificationStrategy",
+    "ClassifierConfig",
+    "ClassifierService",
     # Config Versioning
     "ConfigVersion",
     "ConfigVersioningConfig",
     "ConfigVersioningService",
+    # Email Connector
+    "ConnectorProvider",
+    "EmailConnectorConfig",
+    "EmailConnectorService",
+    "FetchedEmail",
+    "FetchResult",
     # Rate Limiter
     "RateLimiterConfig",
     "RateLimiterService",
