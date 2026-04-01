@@ -22,6 +22,8 @@ import { DocumentUpload } from "./pages/DocumentUpload";
 import { EmailUpload } from "./pages/EmailUpload";
 import { EmailConnectors } from "./pages/EmailConnectors";
 import { CostsPage } from "./pages/CostsPage";
+import { CollectionManager } from "./pages/CollectionManager";
+import { CollectionDetail } from "./pages/CollectionDetail";
 import { VerificationPanel } from "./verification/VerificationPanel";
 
 export const App = () => (
@@ -64,6 +66,8 @@ export const App = () => (
       <Route path="/email-upload" element={<EmailUpload />} />
       <Route path="/email-connectors" element={<EmailConnectors />} />
       <Route path="/costs" element={<CostsPage />} />
+      <Route path="/rag/collections" element={<CollectionManager />} />
+      <Route path="/rag/collections/:id" element={<CollectionDetail />} />
       <Route path="/documents/:id/verify" element={<VerificationPanel />} />
     </CustomRoutes>
   </Admin>

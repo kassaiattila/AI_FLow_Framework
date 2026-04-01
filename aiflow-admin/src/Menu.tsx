@@ -9,6 +9,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AttachEmailIcon from "@mui/icons-material/AttachEmail";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
 import { Divider, Typography, Box } from "@mui/material";
 
 export const AppMenu = () => {
@@ -38,8 +39,13 @@ export const AppMenu = () => {
         leftIcon={<DescriptionIcon />}
       />
       <Menu.Item
+        to="/rag/collections"
+        primaryText={translate("aiflow.rag.title")}
+        leftIcon={<CollectionsBookmarkIcon />}
+      />
+      <Menu.Item
         to="/rag-chat"
-        primaryText={translate("aiflow.skills.aszf_rag_chat")}
+        primaryText="RAG Chat"
         leftIcon={<ChatIcon />}
       />
       <Menu.Item

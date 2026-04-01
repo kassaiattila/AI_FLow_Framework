@@ -1,11 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useTranslate, Title } from "react-admin";
+import { useTranslate, Title, useNotify } from "react-admin";
+import { useSearchParams } from "react-router-dom";
 import {
   Card, CardContent, TextField, IconButton, Typography,
   CircularProgress, Alert, Chip, Box, Paper, Stack,
+  MenuItem, ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
+import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import ThumbDownOutlinedIcon from "@mui/icons-material/ThumbDownOutlined";
 
 const PRESET_QUESTIONS = [
@@ -13,6 +17,13 @@ const PRESET_QUESTIONS = [
   { key: "rights", text: "Milyen jogaim vannak fogyasztokent?" },
   { key: "cancel", text: "Hogyan mondhatok fel egy szerzodest?" },
 ];
+
+interface SimpleCollection {
+  id: string;
+  name: string;
+}
+
+type Role = "baseline" | "mentor" | "expert";
 
 type RagStage = "embed" | "search" | "generate" | "hallucination" | "done";
 
@@ -37,20 +48,52 @@ interface ChatMessage {
 
 export const RagChat = () => {
   const translate = useTranslate();
+  const notify = useNotify();
+  const [searchParams] = useSearchParams();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [source, setSource] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ragStage, setRagStage] = useState<RagStage | null>(null);
+  const [collections, setCollections] = useState<SimpleCollection[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState<string>(searchParams.get("collection") || "");
+  const [role, setRole] = useState<Role>("mentor");
+  const [feedback, setFeedback] = useState<Record<number, "up" | "down">>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Load collections for selector
+  useEffect(() => {
+    fetch("/api/v1/rag/collections")
+      .then((r) => r.ok ? r.json() : { collections: [] })
+      .then((data) => {
+        const cols = (data.collections || []).map((c: { id: string; name: string }) => ({ id: c.id, name: c.name }));
+        setCollections(cols);
+        if (!selectedCollection && cols.length > 0) setSelectedCollection(cols[0].id);
+      })
+      .catch(() => {});
+  }, []);// eslint-disable-line react-hooks/exhaustive-deps
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   useEffect(scrollToBottom, [messages, scrollToBottom]);
+
+  const handleFeedback = async (msgIndex: number, thumbsUp: boolean) => {
+    if (!selectedCollection) return;
+    setFeedback((prev) => ({ ...prev, [msgIndex]: thumbsUp ? "up" : "down" }));
+    try {
+      await fetch(`/api/v1/rag/collections/${selectedCollection}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query_id: `msg-${msgIndex}`, thumbs_up: thumbsUp }),
+      });
+    } catch {
+      notify("Feedback failed", { type: "error" });
+    }
+  };
 
   const handleSend = async () => {
     const question = input.trim();
@@ -65,11 +108,16 @@ export const RagChat = () => {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    // Use collection-specific endpoint if available, fallback to legacy
+    const endpoint = selectedCollection
+      ? `/api/v1/rag/collections/${selectedCollection}/query`
+      : "/api/v1/chat/completions";
+
     try {
-      const res = await fetch("/api/v1/chat/completions", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, role }),
         signal: controller.signal,
       });
 
@@ -159,6 +207,33 @@ export const RagChat = () => {
         )}
       </Stack>
 
+      {/* Collection + Role selectors */}
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+        <TextField
+          select
+          size="small"
+          label={translate("aiflow.ragChat.collection")}
+          value={selectedCollection}
+          onChange={(e) => setSelectedCollection(e.target.value)}
+          sx={{ minWidth: 250 }}
+        >
+          {collections.map((c) => (
+            <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+          ))}
+          {collections.length === 0 && <MenuItem disabled>{translate("aiflow.rag.noCollections")}</MenuItem>}
+        </TextField>
+        <ToggleButtonGroup
+          value={role}
+          exclusive
+          onChange={(_, v) => v && setRole(v as Role)}
+          size="small"
+        >
+          <ToggleButton value="baseline">Baseline</ToggleButton>
+          <ToggleButton value="mentor">Mentor</ToggleButton>
+          <ToggleButton value="expert">Expert</ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
+
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
 
       {/* Messages */}
@@ -196,14 +271,14 @@ export const RagChat = () => {
               <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
                 {msg.content || (streaming && i === messages.length - 1 ? "..." : "")}
               </Typography>
-              {/* Feedback buttons (Pattern #9) */}
+              {/* Feedback buttons — wired to API */}
               {msg.role === "assistant" && msg.content && !streaming && (
                 <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
-                  <IconButton size="small" sx={{ opacity: 0.5, "&:hover": { opacity: 1 } }}>
-                    <ThumbUpOutlinedIcon sx={{ fontSize: 14 }} />
+                  <IconButton size="small" onClick={() => handleFeedback(i, true)} color={feedback[i] === "up" ? "primary" : "default"} sx={{ opacity: feedback[i] === "up" ? 1 : 0.5, "&:hover": { opacity: 1 } }}>
+                    {feedback[i] === "up" ? <ThumbUpIcon sx={{ fontSize: 14 }} /> : <ThumbUpOutlinedIcon sx={{ fontSize: 14 }} />}
                   </IconButton>
-                  <IconButton size="small" sx={{ opacity: 0.5, "&:hover": { opacity: 1 } }}>
-                    <ThumbDownOutlinedIcon sx={{ fontSize: 14 }} />
+                  <IconButton size="small" onClick={() => handleFeedback(i, false)} color={feedback[i] === "down" ? "error" : "default"} sx={{ opacity: feedback[i] === "down" ? 1 : 0.5, "&:hover": { opacity: 1 } }}>
+                    {feedback[i] === "down" ? <ThumbDownIcon sx={{ fontSize: 14 }} /> : <ThumbDownOutlinedIcon sx={{ fontSize: 14 }} />}
                   </IconButton>
                 </Stack>
               )}

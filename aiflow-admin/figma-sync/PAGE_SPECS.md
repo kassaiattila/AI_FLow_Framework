@@ -23,6 +23,7 @@
 | Email Detail | `11638:24256` | `11638:24275` | AIFlow Email Detail — Desktop 1440px |
 | Email Upload | `11638:24257` | `11638:24284` | AIFlow Email Upload — Desktop 1440px |
 | RAG Collections | `11638:24258` | `11638:24290` | AIFlow RAG Collections — Desktop 1440px |
+| Collection Detail | `11648:118043` | `11648:118044` | AIFlow Collection Detail — Desktop 1440px |
 
 ---
 
@@ -622,6 +623,51 @@ Sidebar + Main:
 - **Stats sidebar** (optional): total queries, avg time, hallucination score
 
 **Layout:** Same chat pattern as Page 11, with added controls above input.
+
+---
+
+## Page 17: Collection Detail (/rag/collections/{id}) — F3
+
+**Phase:** F3 (RAG Engine)
+**Figma Page:** `11648:118043` | **Frame:** `11648:118044` (AIFlow Collection Detail — Desktop 1440px)
+**Journey:** `01_PLAN/F3_RAG_ENGINE_JOURNEY.md` (Steps 2, 3, 7)
+**Data Source:** `GET /api/v1/rag/collections/{id}`, `POST .../ingest`, `GET .../stats`, `GET .../chunks`, `DELETE .../chunks/{chunk_id}`
+
+**Header:**
+- "← Back to Collections" link
+- Collection name (display-sm semibold)
+- Description + language + embedding model (text-sm tertiary)
+
+**Stats Cards (4-column row):**
+| Card | Source | Content |
+|------|--------|---------|
+| Documents | `doc_count` | Document count |
+| Chunks | `chunk_count` | Chunk count |
+| Total Queries | `stats.query_count` | Query count |
+| Avg Response Time | `stats.avg_response_time` | Average in seconds |
+
+**Ingest Section:**
+- Title: "Document Ingestion"
+- Drag-drop upload zone (PDF, DOCX, TXT, MD, XLSX)
+- Per-file progress: filename — status · chunk count · duration
+- API: `POST /api/v1/rag/collections/{id}/ingest` + `GET .../ingest-status`
+
+**Chunk Browser Table:**
+| Column | Width | Content |
+|--------|-------|---------|
+| Chunk ID | 100px | Short ID |
+| Content Preview | 500px | Truncated chunk text |
+| Source Document | 200px | Filename + page |
+| Created | 140px | Date |
+| Actions | 80px | Delete (red) |
+- Pagination: "Showing 1-50 of N chunks"
+- Search: text search in chunk content
+- API: `GET .../chunks?limit=50&offset=0`, `DELETE .../chunks/{chunk_id}`
+
+**States:**
+- Loading: Skeleton cards + table
+- Empty collection: "No documents yet. Upload files to get started."
+- Ingest running: per-file progress with steps (Parse → Chunk → Embed → Store)
 
 ---
 
