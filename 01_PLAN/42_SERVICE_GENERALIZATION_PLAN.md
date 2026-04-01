@@ -754,6 +754,125 @@ schemas/
 
 ---
 
+## 4.10 Alembic Migracios Strategia (DB Schema Management)
+
+**Statusz:** 13 migracio letezik (`alembic/versions/001-013`), 28 tabla + 6 view a DB-ben.
+**Szabaly:** SOHA ne hozz letre tablat Alembic nelkul! (`CLAUDE.md` MANDATORY rule)
+
+### Jelenlegi DB allapot (28 tabla + 6 view)
+
+```
+LETEZO TABLAK (13 migracio altal letrehozva):
+  Core:          users, teams, skills, skill_instances, workflow_definitions, workflow_runs, step_runs
+  Documents:     documents, document_sync_schedules
+  Costs:         cost_records
+  ML:            model_registry, embedding_models
+  RAG:           rag_collections, rag_chunks, rag_query_log, collections, chunks
+  Security:      audit_log
+  Scheduling:    schedules
+  Human Review:  human_reviews
+  A/B Testing:   ab_experiments, ab_assignments, ab_outcomes
+  Testing:       test_datasets, test_cases, test_results
+  Prompts:       skill_prompt_versions
+  Alembic:       alembic_version
+
+LETEZO VIEWK:
+  v_daily_team_costs, v_instance_stats, v_model_usage,
+  v_monthly_budget, v_test_trends, v_workflow_metrics
+```
+
+### Uj migraciok fazisokent
+
+Minden fazisnak kulon Alembic migracio kell. A migraciok ELORE keszulnek, MIELOTT a service kod irasra kerul.
+
+**Fazis 0 — Infra (014-016):**
+```
+014_add_service_config_versions.py
+  - service_config_versions (id, service_instance_id FK, version, config_jsonb, deployed_at, deployed_by, is_active, change_description)
+  - UNIQUE(service_instance_id, version)
+
+015_add_cache_stats.py
+  - cache_stats (id, cache_type, hit_count, miss_count, memory_bytes, recorded_at)
+  - INDEX on (cache_type, recorded_at)
+
+016_add_rate_limit_state.py
+  - rate_limit_state (id, key, window_start, request_count, limit_value)
+  - INDEX on (key, window_start)
+```
+
+**Fazis 1 — Domain A (017-019):**
+```
+017_add_email_connector_configs.py
+  - email_connector_configs (id, name, provider, credentials_encrypted, mailbox, filters_jsonb, created_at)
+  - email_fetch_history (id, config_id FK, fetched_at, email_count, error)
+
+018_add_document_extractor_configs.py
+  - document_type_configs (id, name, document_type, parser, fields_jsonb, validation_rules_jsonb, created_at)
+  - extraction_results (id, config_id FK, source_file, extracted_data_jsonb, confidence, created_at)
+
+019_add_invoices_table.py
+  - invoices (id, source_file, direction, vendor_*, buyer_*, header_*, totals_*, validation_*, line_items_jsonb, parser_used, confidence_score, created_at)
+  - invoice_line_items (id, invoice_id FK, line_number, description, quantity, unit, unit_price, net_amount, vat_rate, vat_amount, gross_amount)
+  - MEGJEGYZES: Ez a tabla HIANYZIK a DB-bol! A documents.py jelenleg JSON fallback-et hasznal.
+```
+
+**Fazis 2 — RAG + Monitoring (020-022):**
+```
+020_add_notification_system.py
+  - notification_channels (id, channel_type, config_jsonb, enabled, created_at)
+  - notification_rules (id, event_type, channel_id FK, template_text, created_at)
+  - notification_log (id, channel_id FK, event_type, sent_at, delivery_status, retry_count, error)
+
+021_add_service_metrics.py
+  - service_metrics (id, service_instance_id FK, metric_name, value_float, collected_at)
+  - INDEX on (service_instance_id, metric_name, collected_at)
+
+022_add_event_log.py
+  - event_log (id, event_type, payload_jsonb, source_service, published_at)
+  - event_subscriptions (id, event_type, subscriber_url, active)
+```
+
+**Fazis 3 — RPA + Media (023-024):**
+```
+023_add_rpa_configs.py
+  - rpa_configs (id, name, steps_jsonb, browser, headless, created_at)
+  - rpa_execution_log (id, config_id FK, started_at, completed_at, status, results_jsonb, error)
+
+024_add_media_processor_configs.py
+  - media_configs (id, name, pipeline_jsonb, provider, language, created_at)
+  - media_results (id, config_id FK, source_file, transcript_text, structured_jsonb, created_at)
+```
+
+### Migracio Szabalyok
+
+1. **Elnevezesi konvencio:** `NNN_add_{feature}.py` (haromjegyu sorszam)
+2. **Upgrade + downgrade:** Minden migracio KOTELEZO `downgrade()` fuggveny (rollback!)
+3. **Teszt:** `alembic upgrade head` + `alembic downgrade -1` + `alembic upgrade head` — mindharom HIBA NELKUL
+4. **Review:** Minden migracio elott `alembic check` — konzisztencia ellenorzes
+5. **Sorrend:** Migracio ELOSZOR, service kod MASODSZOR — soha ne legyen kod tabla nelkul
+6. **Adat migracio:** Ha letezo tablat modositunk, `op.execute()` az adat migraciohoz
+7. **Index:** Minden FK-ra es gyakori WHERE feltetelre INDEX
+
+### Parancsok
+```bash
+# Uj migracio letrehozasa
+make migrate-new NAME=add_invoices_table
+
+# Migracio futtatasa
+alembic upgrade head
+
+# Rollback (1 lepes)
+alembic downgrade -1
+
+# Jelenlegi allapot
+alembic current
+
+# Migracio tortenete
+alembic history
+```
+
+---
+
 ## 5. Bovitett Implementacios Fazisok
 
 ### Fazis 0: Infrastruktura Alapozas (1 het) ← UJ!
