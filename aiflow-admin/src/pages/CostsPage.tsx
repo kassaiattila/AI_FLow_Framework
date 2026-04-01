@@ -78,16 +78,17 @@ export const CostsPage = () => {
       existing.totalDuration += run.total_duration_ms;
 
       for (const step of run.steps || []) {
-        existing.totalTokens += step.tokens_used;
-        totalTokens += step.tokens_used;
+        const stepTokens = (step.tokens_used ?? 0) || ((step as Record<string, unknown>).input_tokens as number ?? 0) + ((step as Record<string, unknown>).output_tokens as number ?? 0);
+        existing.totalTokens += stepTokens;
+        totalTokens += stepTokens;
 
         const key = `${run.skill_name}::${step.step_name}`;
         const s = byStep.get(key) || {
           skill: run.skill_name, step: step.step_name, calls: 0, totalCost: 0, totalTokens: 0, avgCost: 0,
         };
         s.calls++;
-        s.totalCost += step.cost_usd;
-        s.totalTokens += step.tokens_used;
+        s.totalCost += step.cost_usd || 0;
+        s.totalTokens += stepTokens;
         byStep.set(key, s);
       }
 

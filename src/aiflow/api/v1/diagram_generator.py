@@ -106,6 +106,9 @@ async def export_diagram(diagram_id: str, fmt: str) -> PlainTextResponse:
     svc = _get_service()
     content = await svc.export_diagram(diagram_id, fmt=fmt)
     if content is None:
-        raise HTTPException(status_code=404, detail=f"Export not available for format: {fmt}")
+        detail = f"Export not available for format: {fmt}."
+        if fmt == "svg":
+            detail += " SVG requires Kroki service (docker compose up -d kroki) or a previous render."
+        raise HTTPException(status_code=404, detail=detail)
     content_types = {"mermaid": "text/plain", "svg": "image/svg+xml", "drawio": "application/xml", "bpmn": "application/xml"}
     return PlainTextResponse(content=content, media_type=content_types.get(fmt, "text/plain"))

@@ -84,7 +84,7 @@ export const CollectionManager = () => {
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      notify(translate("aiflow.rag.createSuccess"), { type: "success" });
+      notify("aiflow.rag.createSuccess", { type: "success" });
       setCreateOpen(false);
       setForm(EMPTY_FORM);
       fetchCollections();
@@ -105,7 +105,7 @@ export const CollectionManager = () => {
         body: JSON.stringify({ name: form.name, description: form.description }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      notify(translate("aiflow.rag.editSuccess"), { type: "success" });
+      notify("aiflow.rag.editSuccess", { type: "success" });
       setEditOpen(false);
       fetchCollections();
     } catch (e) {
@@ -121,7 +121,7 @@ export const CollectionManager = () => {
     try {
       const res = await fetch(`/api/v1/rag/collections/${selectedId}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      notify(translate("aiflow.rag.deleteSuccess"), { type: "success" });
+      notify("aiflow.rag.deleteSuccess", { type: "success" });
       setDeleteOpen(false);
       setSelectedId(null);
       fetchCollections();

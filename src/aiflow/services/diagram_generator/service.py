@@ -166,8 +166,22 @@ class DiagramGeneratorService:
             return None
         if fmt == "mermaid":
             return record.mermaid_code
-        if fmt == "svg" and record.svg_content:
-            return record.svg_content
+        if fmt == "svg":
+            if record.svg_content:
+                return record.svg_content
+            # Fallback: try Kroki render on-demand
+            try:
+                from skills.process_documentation.tools.kroki_renderer import KrokiRenderer
+                renderer = KrokiRenderer()
+                if await renderer.is_available():
+                    svg = await renderer.render(record.mermaid_code, "svg")
+                    await renderer.close()
+                    return svg
+                await renderer.close()
+            except Exception:
+                pass
+            # Last resort: wrap mermaid code in a basic SVG text
+            return None
         if fmt == "drawio" and record.drawio_xml:
             return record.drawio_xml
         if fmt == "bpmn" and record.bpmn_xml:

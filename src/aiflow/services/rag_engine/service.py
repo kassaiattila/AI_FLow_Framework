@@ -478,6 +478,23 @@ class RAGEngineService(BaseService):
         if not coll:
             return QueryResult(query_id=query_id, question=question, answer="Collection not found.")
 
+        if coll.chunk_count == 0:
+            elapsed = (time.time() - start) * 1000
+            return QueryResult(
+                query_id=query_id, question=question,
+                answer="A kollekcio ures. Tolts fel dokumentumokat eloszor.",
+                response_time_ms=elapsed,
+            )
+
+        if self._embedder is None:
+            elapsed = (time.time() - start) * 1000
+            logger.error("query_failed_no_embedder", collection_id=collection_id)
+            return QueryResult(
+                query_id=query_id, question=question,
+                answer="Embedder not initialized. Check OPENAI_API_KEY environment variable.",
+                response_time_ms=elapsed,
+            )
+
         # Embed query
         query_embedding = await self._embedder.embed_query(question)
 
