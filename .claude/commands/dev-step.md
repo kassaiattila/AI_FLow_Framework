@@ -11,8 +11,8 @@ Arguments: $ARGUMENTS
 ## PRE-IMPLEMENTATION CHECKS (before writing any code!):
 
 1. **Read the relevant plan document** in `01_PLAN/`:
-   - `42_SERVICE_GENERALIZATION_PLAN.md` - aktualis fazis es feladat
-   - `IMPLEMENTATION_PLAN.md` - current phase and task list
+   - `43_UI_RATIONALIZATION_PLAN.md` - AKTUALIS: UI migracio (F6.0-F6.6)
+   - `42_SERVICE_GENERALIZATION_PLAN.md` - KESZ: service generalizalas (F0-F5)
    - `30_RAG_PRODUCTION_PLAN.md` - for RAG features
 2. **Check reference materials** - `skills/*/reference/` if relevant
 3. **Check existing code** - never reinvent what already works
@@ -49,7 +49,9 @@ Arguments: $ARGUMENTS
 ### 2. UI checks (if aiflow-admin/ files changed):
 5. `cd aiflow-admin && npx tsc --noEmit` — TypeScript hiba nelkul
 6. **i18n check**: grep for hardcoded strings in changed files
-7. **Data fetch check**: no `fetch("/data/...")` in page files — must use `/api/`
+7. **Data fetch check**: no `fetch("/data/...")` in page files — must use `fetchApi()` or `/api/`
+   - **Stack check**: no `@mui/material` imports — must use Untitled UI + Tailwind
+   - **No MUI icons**: no `@mui/icons-material` — must use `@untitledui/icons`
 
 ### 3. VALOS Playwright E2E Teszt (KOTELEZO minden UI valtozasnal!):
 8. **Inditsd el a szervereket** (FastAPI + Vite) ha nem futnak

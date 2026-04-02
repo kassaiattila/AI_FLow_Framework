@@ -15,27 +15,23 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - **Skill Instance** = configured deployment of a Skill template per customer
 - **VectorStore** = pgvector hybrid search (vector HNSW + BM25 tsvector + RRF)
 
-## Current Phase: Service Generalization (v0.9.0-stable → v1.0.0)
-**Terv:** `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`
+## Current Phase: UI Modernization (v1.0.0 → v1.1.0)
+**Terv:** `01_PLAN/43_UI_RATIONALIZATION_PLAN.md`
 
-> **Elozmeny:** Az eredeti framework implementacio (Phase 1-7, Het 1-22) KESZ — `src/aiflow/` teljes.
-> Ez a fazis (Fazis 0-5) EGY UJ, onallo fejezet: skill-specifikus kodot altalanos szolgaltatasokka alakitunk.
-> A ket fazis-rendszer fuggetlen: Phase 1-7 = framework mag, Fazis 0-5 = service generalizacio (vertikalis szeletek).
+> **Elozmeny:** Service Generalization (F0-F5) KESZ (v1.0.0, 2026-04-02).
+> 15 service, 87 API endpoint, 21 UI oldal, 41 DB tabla.
+> Ez a fazis (F6.0-F6.6) a frontend TELJES ujrairasát vegzi:
+> React Admin + MUI → Untitled UI + Tailwind v4 + React Aria.
 
-Skill-specifikus kodot altalanos, konfiguralhato szolgaltatasokka alakitjuk:
-- **Email Connector** (O365/Gmail/IMAP) ← email_intent_processor
-- **Document Extractor** (barmilyen doc tipus) ← invoice_processor
-- **RAG Engine** (cserelheto tudasbazis + chat UI) ← aszf_rag_chat
-- **Intent Classifier** (hibrid ML+LLM) ← email_intent_processor
-- **RPA Browser** (YAML-alapu automatizalas) ← cubix_course_capture
-- **Media Processor** (video→szoveg) ← cubix_course_capture
-- **Diagram Generator** (DrawIO/SVG) ← process_documentation
+Fo celok:
+- **UI racionalizalas** — 21 oldal → 14, menu 16 → 11 item
+- **Untitled UI migracio** — React Admin + MUI eltavolitasa
+- **Professzionalis megjelenes** — Tailwind v4 token theming, React Aria accessibility
+- **Backend bovites** — uj endpointok (skills/summary, runs/stats, costs/daily)
 
-Infrastruktura epitokockak: Cache Layer, Event Bus, Config Versioning, Health Monitoring,
-Rate Limiter, Circuit Breaker, Human Review, Audit Trail, Schema Registry.
-
-**Fazisok (vertikalis szelet — egy szolgaltatas TELJESEN KESZ mielott a kovetkezore lepunk):**
-F0 (infra) → F1 (Document Extractor) → F2 (Email+Classifier) → F3 (RAG Engine) → F4 (RPA+Media+Diagram) → F5 (Monitoring+Governance)
+**Fazisok:**
+F6.0 (Foundation) → F6.1 (Dashboard) → F6.2 (Documents) → F6.3 (Emails)
+→ F6.4 (RAG+AI Services) → F6.5 (Operations+Admin) → F6.6 (Polish+Cleanup)
 
 ## Skills (6 db)
 
@@ -90,7 +86,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 
 ### STRICT: Real Testing Only (SOHA NE MOCK/FAKE!)
 > **Csak valos, sikeres teszteles utan szabad tovabblepni. SOHA NE mockolt/fake adatokkal!**
-> Ez a szabaly MINDEN fejlesztesi fazisra vonatkozik (F0-F5), MINDEN modulra, MINDEN PR-re.
+> Ez a szabaly MINDEN fejlesztesi fazisra vonatkozik (F0-F6), MINDEN modulra, MINDEN PR-re.
 
 - **API tesztek:** Valos FastAPI szerver fut, valos HTTP keresek (curl vagy Playwright)
 - **Service tesztek:** Valos fuggoosegek (PostgreSQL, Redis Docker-ben), NEM in-memory mock
@@ -104,8 +100,9 @@ This enables: new intents/entities without code changes, per-customer customizat
 - **Fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul** (ld. 42_SERVICE_GENERALIZATION_PLAN.md Section 8)
 
 ### Key plan documents:
-- **`01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`** - AKTUALIS: Service generalizalas terv (F0-F5 vertikalis szeletek), infra + domain szolgaltatasok
-- `01_PLAN/IMPLEMENTATION_PLAN.md` - Legacy fazisok (Phase 1-7 KESZ). Aktualis: ld. 42_SERVICE_GENERALIZATION_PLAN F0-F5
+- **`01_PLAN/43_UI_RATIONALIZATION_PLAN.md`** - AKTUALIS: UI migracio terv (F6.0-F6.6, Untitled UI + Tailwind v4)
+- `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` - KESZ: Service generalizalas (F0-F5 COMPLETE, v1.0.0)
+- `01_PLAN/IMPLEMENTATION_PLAN.md` - Legacy fazisok (Phase 1-7 KESZ)
 - `01_PLAN/29_OPTIMIZATION_PLAN.md` - O1-O3 (KESZ) + framework audit eredmeny
 - `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist (Cubix tananyag alapjan!)
 - `01_PLAN/28_MODULAR_DEPLOYMENT.md` - Multi-customer instance architecture
@@ -121,7 +118,8 @@ This enables: new intents/entities without code changes, per-customer customizat
 - LiteLLM (multi-LLM), instructor (structured output), Langfuse (LLM observability)
 - PyJWT[crypto] (RS256 JWT auth), bcrypt (hashing), APScheduler 4.x (async cron)
 - Promptfoo (prompt testing), structlog (JSON logging), Alembic (DB migrations), ruff (lint+format)
-- React Admin + Vite + React 19 + MUI (production admin dashboard - **aiflow-admin/**)
+- ~~React Admin + MUI~~ → **Untitled UI + Tailwind v4 + React Aria** (v1.1.0 migracio, ld. 43_UI_RATIONALIZATION_PLAN.md)
+- Vite 7 + React 19 + TypeScript 5.1 + recharts (production admin dashboard - **aiflow-admin/**)
 - ~~Legacy: Next.js 16 + shadcn/ui~~ (aiflow-ui/ TOROLVE v1.0.0-ban, archiv: tag v0.9-nextjs-ui)
 - typer (CLI), Playwright (GUI testing + RPA skills), ffmpeg (media processing in RPA skills)
 
@@ -235,13 +233,15 @@ skills/            # Self-contained skill packages (each with own tools, tests, 
   email_intent_processor/ # IN DEVELOPMENT - email + attachment processing
   invoice_processor/      # IN DEVELOPMENT - PDF invoice extraction
   qbpp_test_automation/   # STUB - insurance calculator test automation
-aiflow-admin/      # React Admin + Vite + React 19 + MUI (AKTIV production dashboard)
-  src/pages/         # Oldalak (Dashboard, InvoiceUpload, stb.)
-  src/resources/     # React Admin resource definiciok (InvoiceList, InvoiceShow, stb.)
-  src/components/    # Komponensek (PipelineProgress, stb.)
-  src/verification/  # Szamla verifikacio (DocumentCanvas, VerificationPanel, MockInvoiceSvg)
-  src/dataProvider.ts # FastAPI → React Admin adatkapcsolat
-  vite.config.ts     # Vite config + API proxy (localhost:8100)
+aiflow-admin/      # Untitled UI + Vite + React 19 + Tailwind v4 (AKTIV production dashboard)
+  src/layout/        # AppShell, Sidebar, TopBar
+  src/pages/         # Oldalak (Dashboard, Documents, Emails, stb.)
+  src/components/    # Ujrahasznalhato komponensek (DataTable, KpiCard, StatusBadge, stb.)
+  src/lib/           # API kliens, auth, i18n, hooks
+  src/locales/       # hu.json, en.json (i18n forditasok)
+  src/router.tsx     # React Router v7 config
+  tailwind.config.ts # AIFlow design tokenek
+  vite.config.ts     # Vite config + API proxy (localhost:8101)
 # aiflow-ui/       # TOROLVE v1.0.0 — archiv: git tag v0.9-nextjs-ui
 deployments/       # Per-customer deployment configs (AZHU, NPRA, BESTIX)
 tests/             # unit/, integration/, e2e/, conftest.py
@@ -269,7 +269,7 @@ result = await runner.run_steps([step1, step2], {"input": "..."})
 - **Pydantic everywhere** - config, API models, step I/O, agent messages, DB schemas
 - All errors inherit from `AIFlowError` with `is_transient` flag for retry decisions
 
-## MANDATORY Admin UI Development Rules (aiflow-admin/ — Vite + React Admin)
+## MANDATORY Admin UI Development Rules (aiflow-admin/ — Vite + Untitled UI + Tailwind v4)
 
 ### The Depth Rule
 > **Finish ONE feature properly before starting the next.**
@@ -311,6 +311,7 @@ GATE 7: Figma sync → OUTPUT: PAGE_SPECS.md vegso frissites, Figma ↔ Code kon
 | F3 | `01_PLAN/F3_RAG_ENGINE_JOURNEY.md` | Page: RAGChat (redesign), RAGCollections, RAGIngest | `e2e-f3-*.png` |
 | F4 | `01_PLAN/F4_RPA_MEDIA_DIAGRAM_JOURNEY.md` | Page: ProcessDocs (redesign), CubixViewer (redesign) | `e2e-f4-*.png` |
 | F5 | `01_PLAN/F5_MONITORING_GOVERNANCE_JOURNEY.md` | Page: AdminDashboard, AuditLog, Scheduling | `e2e-f5-*.png` |
+| F6 | `01_PLAN/F6_UI_RATIONALIZATION_JOURNEY.md` | Page: Dashboard, Documents, Emails, RAG (Untitled UI) | `e2e-f6-*.png` |
 
 ### MANDATORY GATE CHECK PROTOCOL
 > **Claude Code MINDEN UI-t erinto /dev-step, /ui-page, /ui-component, /ui-design ELOTT KOTELES lefuttatni:**
@@ -341,18 +342,27 @@ curl -sf http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d
 > Reszletek: `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 11 (UI/UX Fejlesztesi Pipeline)
 > Design System: Untitled UI (React 19 + Tailwind v4), Figma channel: `hq5dlkhu`
 
+### Untitled UI + Tailwind Rules (v1.1.0+)
+- **Styling:** Tailwind utility classes — NEM inline style, NEM sx prop, NEM emotion
+- **Components:** Untitled UI primitives (Button, Input, Table, Badge, etc.) — NEM MUI
+- **Icons:** @untitledui/icons — NEM @mui/icons-material
+- **Accessibility:** React Aria hooks (useButton, useDialog, useTable, etc.)
+- **Theming:** tailwind.config.ts design tokenek — NEM MUI createTheme
+- **Data fetching:** `fetchApi<T>()` from `src/lib/api-client.ts` — NEM dataProvider
+- **Auth:** `src/lib/auth.ts` — NEM authProvider
+
 ### i18n Rules (NEVER skip!)
-- **EVERY user-visible string MUST use `useTranslate()` from react-admin** — no exceptions
+- **EVERY user-visible string MUST use `useTranslate()` from `src/lib/i18n.ts`** — no exceptions
 - Wire i18n AS YOU BUILD — not after
 - Check: page titles, button labels, table headers, KPI labels, error messages, empty states
 - Test: click HU/EN toggle → EVERY string on screen must change
 
-### Vite + React Admin Rules (avoid common pitfalls!)
-- **vite.config.ts** tartalmazza az API proxy-t (`/api` → `localhost:8100`) — NEM proxy.ts/middleware.ts
+### Vite + Routing Rules (avoid common pitfalls!)
+- **vite.config.ts** tartalmazza az API proxy-t (`/api` → `localhost:8101`) — NEM proxy.ts/middleware.ts
 - **No hardcoded `localhost` URLs** — use relative paths via `/api/` proxy routes
-- **Data fetches: dataProvider.ts** → FastAPI `/api/v1/*` endpointok
+- **Data fetches:** `fetchApi<T>()` from `src/lib/api-client.ts` → FastAPI `/api/v1/*` endpointok
 - **No `localStorage` in `useState()` initializer** — causes hydration mismatch. Use `useEffect`
-- **React Admin resource-ok** a `src/resources/` mappaban
+- **Routing:** React Router v7 route-ok `src/router.tsx`-ben
 
 ### UI Component Checklist (verify BEFORE marking done)
 Every new page/component MUST have:
@@ -360,7 +370,7 @@ Every new page/component MUST have:
 2. [ ] Loading state (show spinner/skeleton while data loads)
 3. [ ] Error state (show error message + retry button)
 4. [ ] Empty state (meaningful message when no data)
-5. [ ] Data fetched via dataProvider or `/api/` routes
+5. [ ] Data fetched via `fetchApi()` / `useApi()` hook or `/api/` routes
 6. [ ] No hardcoded Hungarian/English strings
 7. [ ] Works in both light and dark mode
 8. [ ] **Playwright E2E teszt:** navigate → snapshot → click → screenshot → console check
@@ -514,6 +524,7 @@ regression_diff.json. Stored in tests/artifacts/{date}/{run_id}/
 | **F3** (RAG Engine) | Collection + ingest + query + feedback — TELJES szelet | `curl` + Playwright chat UI | Create → ingest → query → feedback → stats |
 | **F4** (RPA+Media+Diagram) | 3 mini-szelet: Diagram → Media → RPA → Human Review | Playwright E2E + subprocess | Valos render, valos STT, valos scrape |
 | **F5** (Monitoring+Gov) | Health, audit, admin, scheduling, RLS | `curl` + L4 regresszio | 90%+ API, ≥80% coverage, L4 atment |
+| **F6** (UI Migracio) | Minden oldal Untitled UI-val, i18n, dark mode, responsive | Playwright E2E | 14 oldal E2E PASS, 0 console error, bundle <500KB |
 
 ## Plan Reference (All docs in 01_PLAN/)
 Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
