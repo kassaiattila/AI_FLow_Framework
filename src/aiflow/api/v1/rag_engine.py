@@ -1,7 +1,6 @@
 """RAG Engine API — collection CRUD, document ingestion, query, feedback, stats."""
 from __future__ import annotations
 
-import os
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -9,6 +8,8 @@ from typing import Any
 import structlog
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from pydantic import BaseModel, Field
+
+from aiflow.api.deps import get_pool, get_engine
 
 __all__ = ["router"]
 
@@ -95,20 +96,12 @@ class StatsResponse(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _get_db_url() -> str:
-    return os.getenv(
-        "AIFLOW_DATABASE_URL",
-        "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-    )
-
-
 async def _get_service():
     """Create and start RAG Engine service instance."""
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+    from sqlalchemy.ext.asyncio import async_sessionmaker
     from aiflow.services.rag_engine import RAGEngineService, RAGEngineConfig
 
-    db_url = _get_db_url().replace("postgresql://", "postgresql+asyncpg://")
-    engine = create_async_engine(db_url, pool_size=5)
+    engine = await get_engine()
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
     service = RAGEngineService(session_factory=session_factory, config=RAGEngineConfig())
@@ -303,16 +296,13 @@ async def list_chunks(
     offset: int = Query(0, ge=0),
 ):
     """List chunks in a collection (paginated)."""
-    import asyncpg
-
     svc = await _get_service()
     coll = await svc.get_collection(collection_id)
     if not coll:
         raise HTTPException(status_code=404, detail="Collection not found")
 
-    db_url = _get_db_url()
-    conn = await asyncpg.connect(db_url)
-    try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
             SELECT id, content, document_name, metadata, created_at
@@ -327,8 +317,6 @@ async def list_chunks(
             "SELECT COUNT(*) FROM rag_chunks WHERE collection = $1",
             coll.name,
         )
-    finally:
-        await conn.close()
 
     return {
         "chunks": [
@@ -348,16 +336,11 @@ async def list_chunks(
 @router.delete("/collections/{collection_id}/chunks/{chunk_id}", status_code=204)
 async def delete_chunk(collection_id: str, chunk_id: str):
     """Delete a single chunk from a collection."""
-    import asyncpg
-
-    db_url = _get_db_url()
-    conn = await asyncpg.connect(db_url)
-    try:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         deleted = await conn.execute(
             "DELETE FROM rag_chunks WHERE id = $1",
             chunk_id,
         )
         if "DELETE 0" in deleted:
             raise HTTPException(status_code=404, detail="Chunk not found")
-    finally:
-        await conn.close()

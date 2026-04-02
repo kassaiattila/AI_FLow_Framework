@@ -12,6 +12,8 @@ import structlog
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
+from aiflow.api.deps import get_engine
+
 __all__ = ["router"]
 
 logger = structlog.get_logger(__name__)
@@ -19,8 +21,6 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 _health_service = None
 _audit_service = None
-_db_engine = None
-
 
 def _get_health():
     global _health_service
@@ -138,21 +138,6 @@ async def get_audit_entry(entry_id: str):
     return AuditEntryResponse(**entry.model_dump(), source="backend")
 
 
-# --- DB helper ---
-
-async def _get_db():
-    global _db_engine
-    if _db_engine is None:
-        import os
-        from sqlalchemy.ext.asyncio import create_async_engine
-        db_url = os.environ.get(
-            "AIFLOW_DATABASE__URL",
-            "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-        )
-        _db_engine = create_async_engine(db_url)
-    return _db_engine
-
-
 # --- Users ---
 
 class UserResponse(BaseModel):
@@ -181,7 +166,7 @@ class CreateUserRequest(BaseModel):
 
 @router.get("/users", response_model=UserListResponse)
 async def list_users():
-    engine = await _get_db()
+    engine = await get_engine()
     from sqlalchemy import text
     async with engine.connect() as conn:
         result = await conn.execute(text(
@@ -208,7 +193,7 @@ async def create_user(req: CreateUserRequest):
 
     password_hash = bcrypt.hashpw(req.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-    engine = await _get_db()
+    engine = await get_engine()
     from sqlalchemy import text
     user_id = uuid.uuid4()
     now = datetime.now(UTC)
@@ -258,7 +243,7 @@ class CreateAPIKeyRequest(BaseModel):
 
 @router.get("/api-keys", response_model=APIKeyListResponse)
 async def list_api_keys():
-    engine = await _get_db()
+    engine = await get_engine()
     from sqlalchemy import text
     async with engine.connect() as conn:
         result = await conn.execute(text(
@@ -288,7 +273,7 @@ async def create_api_key(req: CreateAPIKeyRequest):
     key_id = uuid.uuid4()
     now = datetime.now(UTC)
 
-    engine = await _get_db()
+    engine = await get_engine()
     from sqlalchemy import text
     async with engine.begin() as conn:
         await conn.execute(text(
@@ -303,7 +288,7 @@ async def create_api_key(req: CreateAPIKeyRequest):
 
 @router.delete("/api-keys/{key_id}", status_code=204)
 async def delete_api_key(key_id: str):
-    engine = await _get_db()
+    engine = await get_engine()
     from sqlalchemy import text
     async with engine.begin() as conn:
         result = await conn.execute(text(

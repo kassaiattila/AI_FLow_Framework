@@ -1,12 +1,11 @@
 """Cost tracking and aggregation endpoints."""
 from __future__ import annotations
 
-import os
-
-import asyncpg
 import structlog
 from fastapi import APIRouter
 from pydantic import BaseModel
+
+from aiflow.api.deps import get_pool
 
 __all__ = ["router"]
 
@@ -37,21 +36,14 @@ class CostsSummaryResponse(BaseModel):
     daily: list[DailyCost] = []
 
 
-def _get_db_url() -> str:
-    return os.getenv(
-        "AIFLOW_DATABASE_URL",
-        "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-    )
-
-
 @router.get("/summary", response_model=CostsSummaryResponse)
 async def costs_summary() -> CostsSummaryResponse:
     """Get aggregated cost summary by skill and by day."""
     result = CostsSummaryResponse()
 
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             # Per-skill aggregation
             skill_rows = await conn.fetch(
                 """
@@ -95,8 +87,6 @@ async def costs_summary() -> CostsSummaryResponse:
                     total_cost_usd=float(row["total_cost"] or 0),
                     run_count=row["run_count"],
                 ))
-        finally:
-            await conn.close()
     except Exception as e:
         logger.warning("costs_db_failed", error=str(e))
 

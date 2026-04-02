@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import Any
 
-import asyncpg
 import structlog
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+
+from aiflow.api.deps import get_pool
 
 __all__ = ["router"]
 
@@ -48,13 +48,6 @@ class RunListResponse(BaseModel):
     total: int
 
 
-def _get_db_url() -> str:
-    return os.getenv(
-        "AIFLOW_DATABASE_URL",
-        "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-    )
-
-
 @router.get("", response_model=RunListResponse)
 async def list_runs(
     skill: str | None = Query(None, description="Filter by skill name"),
@@ -67,8 +60,8 @@ async def list_runs(
     total = 0
 
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             # Build query with optional filters
             where_clauses: list[str] = []
             params: list[Any] = []
@@ -149,8 +142,6 @@ async def list_runs(
                     total_cost_usd=row["total_cost_usd"] or 0.0,
                     steps=steps_by_run.get(rid, []),
                 ))
-        finally:
-            await conn.close()
     except Exception as e:
         logger.warning("runs_db_failed", error=str(e))
 
@@ -188,8 +179,8 @@ async def list_runs(
 async def get_run(run_id: str) -> RunItem:
     """Get a single workflow run with step details."""
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
                 SELECT id, workflow_name, skill_name, status,
@@ -235,8 +226,6 @@ async def get_run(run_id: str) -> RunItem:
                 total_cost_usd=row["total_cost_usd"] or 0.0,
                 steps=steps,
             )
-        finally:
-            await conn.close()
     except HTTPException:
         raise
     except Exception as e:

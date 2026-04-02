@@ -20,6 +20,8 @@ from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
+from aiflow.api.deps import get_pool, get_engine
+
 __all__ = ["router"]
 
 logger = structlog.get_logger(__name__)
@@ -88,13 +90,6 @@ class ProcessResponse(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _get_db_url() -> str:
-    return os.getenv(
-        "AIFLOW_DATABASE_URL",
-        "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-    )
-
-
 def _upload_dir() -> Path:
     """Where uploaded PDFs are stored."""
     d = Path(os.getenv("AIFLOW_UPLOAD_DIR", "./data/uploads/invoices"))
@@ -132,8 +127,8 @@ async def list_documents(
     total = 0
 
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             count_row = await conn.fetchrow("SELECT COUNT(*) AS cnt FROM invoices")
             total = count_row["cnt"] if count_row else 0
 
@@ -231,8 +226,6 @@ async def list_documents(
                     extraction_confidence=float(row["confidence_score"] or 0),
                     created_at=row["created_at"].isoformat() if row["created_at"] else None,
                 ))
-        finally:
-            await conn.close()
     except Exception as e:
         logger.warning("documents_db_failed", error=str(e))
 
@@ -545,16 +538,12 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
 # Document Extractor Service endpoints (F1)
 # ---------------------------------------------------------------------------
 
-def _get_doc_extractor():
+async def _get_doc_extractor():
     """Lazy-init Document Extractor service."""
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+    from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
     from aiflow.services.document_extractor import DocumentExtractorService
 
-    db_url = os.getenv(
-        "AIFLOW_DATABASE__URL",
-        "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-    )
-    engine = create_async_engine(db_url)
+    engine = await get_engine()
     sf = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     return DocumentExtractorService(sf)
 
@@ -575,7 +564,7 @@ class VerifyResponse(BaseModel):
 @router.post("/{invoice_id}/verify", response_model=VerifyResponse)
 async def verify_document(invoice_id: str, request: VerifyRequest) -> VerifyResponse:
     """Verify an extracted document — confirm or correct extracted fields."""
-    svc = _get_doc_extractor()
+    svc = await _get_doc_extractor()
     await svc.start()
     try:
         ok = await svc.verify(
@@ -594,7 +583,7 @@ async def verify_document(invoice_id: str, request: VerifyRequest) -> VerifyResp
 @router.get("/by-id/{invoice_id}")
 async def get_document_by_id(invoice_id: str) -> dict[str, Any]:
     """Get a single invoice by database ID."""
-    svc = _get_doc_extractor()
+    svc = await _get_doc_extractor()
     await svc.start()
     try:
         result = await svc.get_invoice(invoice_id)
@@ -612,7 +601,7 @@ async def get_document_by_id(invoice_id: str) -> dict[str, Any]:
 @router.get("/extractor/configs")
 async def list_extractor_configs() -> dict[str, Any]:
     """List all document extraction configurations."""
-    svc = _get_doc_extractor()
+    svc = await _get_doc_extractor()
     await svc.start()
     try:
         configs = await svc.list_configs()
@@ -652,7 +641,7 @@ async def create_extractor_config(request: CreateConfigRequest) -> dict[str, Any
     """Create a new document extraction configuration."""
     from aiflow.services.document_extractor import DocumentTypeConfig, FieldDefinition
 
-    svc = _get_doc_extractor()
+    svc = await _get_doc_extractor()
     await svc.start()
     try:
         config = DocumentTypeConfig(

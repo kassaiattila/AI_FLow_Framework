@@ -9,6 +9,7 @@ import structlog
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
+from aiflow.api.deps import get_engine
 from aiflow.security.auth import AuthProvider
 
 __all__ = ["router"]
@@ -45,22 +46,6 @@ def _init_auth() -> AuthProvider:
 
 
 _auth = _init_auth()
-
-# --- DB helper (shared with admin.py pattern) ---
-
-_db_engine = None
-
-
-async def _get_db():
-    global _db_engine
-    if _db_engine is None:
-        from sqlalchemy.ext.asyncio import create_async_engine
-        db_url = os.environ.get(
-            "AIFLOW_DATABASE__URL",
-            "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-        )
-        _db_engine = create_async_engine(db_url)
-    return _db_engine
 
 
 # --- Models ---
@@ -99,7 +84,7 @@ async def login(request: LoginRequest) -> LoginResponse:
     """
     from sqlalchemy import text
 
-    engine = await _get_db()
+    engine = await get_engine()
     async with engine.connect() as conn:
         result = await conn.execute(
             text(

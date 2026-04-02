@@ -12,6 +12,8 @@ import structlog
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel, Field
 
+from aiflow.api.deps import get_pool, get_engine
+
 __all__ = ["router"]
 
 logger = structlog.get_logger(__name__)
@@ -195,13 +197,6 @@ class TestConnectionResponse(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _get_db_url() -> str:
-    return os.getenv(
-        "AIFLOW_DATABASE_URL",
-        "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-    )
-
-
 def _email_upload_dir() -> Path:
     d = Path(os.getenv("AIFLOW_EMAIL_UPLOAD_DIR", "./data/uploads/emails"))
     d.mkdir(parents=True, exist_ok=True)
@@ -243,8 +238,8 @@ async def list_emails(
     total = 0
 
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             where = "WHERE r.skill_name = 'email_intent_processor' AND r.status = 'completed'"
             params: list[Any] = []
             idx = 1
@@ -295,8 +290,6 @@ async def list_emails(
                     attachment_count=data.get("attachment_count", 0),
                     processing_time_ms=row["total_duration_ms"] or 0.0,
                 ))
-        finally:
-            await conn.close()
     except Exception as e:
         logger.warning("emails_db_failed", error=str(e))
 
@@ -470,8 +463,8 @@ async def classify_text(request: ClassifyRequest) -> ClassifyResponse:
 async def list_connectors() -> list[ConnectorConfigResponse]:
     """List all email connector configurations."""
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """SELECT id, name, provider, host, port, use_ssl, mailbox,
                           filters, polling_interval_minutes, max_emails_per_fetch,
@@ -483,8 +476,6 @@ async def list_connectors() -> list[ConnectorConfigResponse]:
                 ConnectorConfigResponse(**_row_to_dict(row))
                 for row in rows
             ]
-        finally:
-            await conn.close()
     except Exception as e:
         logger.error("list_connectors_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
@@ -494,8 +485,8 @@ async def list_connectors() -> list[ConnectorConfigResponse]:
 async def get_connector(config_id: str) -> ConnectorConfigResponse:
     """Get a single connector config by ID."""
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """SELECT id, name, provider, host, port, use_ssl, mailbox,
                           filters, polling_interval_minutes, max_emails_per_fetch,
@@ -506,8 +497,6 @@ async def get_connector(config_id: str) -> ConnectorConfigResponse:
             if not row:
                 raise HTTPException(status_code=404, detail=f"Connector not found: {config_id}")
             return ConnectorConfigResponse(**_row_to_dict(row))
-        finally:
-            await conn.close()
     except HTTPException:
         raise
     except Exception as e:
@@ -524,8 +513,8 @@ async def create_connector(config: ConnectorConfigCreate) -> ConnectorConfigResp
         raise HTTPException(status_code=400, detail=f"Invalid provider: {config.provider}")
 
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """INSERT INTO email_connector_configs
                        (name, provider, host, port, use_ssl, mailbox,
@@ -548,8 +537,6 @@ async def create_connector(config: ConnectorConfigCreate) -> ConnectorConfigResp
             )
             logger.info("connector_created", name=config.name, provider=config.provider)
             return ConnectorConfigResponse(**_row_to_dict(row))
-        finally:
-            await conn.close()
     except asyncpg.UniqueViolationError:
         raise HTTPException(status_code=409, detail=f"Connector '{config.name}' already exists")
     except Exception as e:
@@ -572,8 +559,8 @@ async def update_connector(config_id: str, update: ConnectorConfigUpdate) -> Con
         raise HTTPException(status_code=400, detail="No fields to update")
 
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             # Build SET clause dynamically
             set_parts: list[str] = []
             params: list[Any] = [config_id]
@@ -603,8 +590,6 @@ async def update_connector(config_id: str, update: ConnectorConfigUpdate) -> Con
                 raise HTTPException(status_code=404, detail=f"Connector not found: {config_id}")
             logger.info("connector_updated", config_id=config_id)
             return ConnectorConfigResponse(**_row_to_dict(row))
-        finally:
-            await conn.close()
     except HTTPException:
         raise
     except Exception as e:
@@ -616,8 +601,8 @@ async def update_connector(config_id: str, update: ConnectorConfigUpdate) -> Con
 async def delete_connector(config_id: str) -> None:
     """Delete a connector config."""
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             result = await conn.execute(
                 "DELETE FROM email_connector_configs WHERE id::text = $1",
                 config_id,
@@ -625,8 +610,6 @@ async def delete_connector(config_id: str) -> None:
             if result == "DELETE 0":
                 raise HTTPException(status_code=404, detail=f"Connector not found: {config_id}")
             logger.info("connector_deleted", config_id=config_id)
-        finally:
-            await conn.close()
     except HTTPException:
         raise
     except Exception as e:
@@ -641,11 +624,10 @@ async def delete_connector(config_id: str) -> None:
 @router.post("/connectors/{config_id}/test", response_model=TestConnectionResponse)
 async def test_connector(config_id: str) -> TestConnectionResponse:
     """Test connectivity for a connector config."""
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker as asm
+    from sqlalchemy.ext.asyncio import async_sessionmaker as asm
     from aiflow.services.email_connector import EmailConnectorService, EmailConnectorConfig
 
-    db_url = _get_db_url().replace("postgresql://", "postgresql+asyncpg://")
-    engine = create_async_engine(db_url)
+    engine = await get_engine()
     session_factory = asm(engine, expire_on_commit=False)
 
     service = EmailConnectorService(session_factory=session_factory, config=EmailConnectorConfig())
@@ -663,7 +645,6 @@ async def test_connector(config_id: str) -> TestConnectionResponse:
         return TestConnectionResponse(success=False, message=str(e), source="backend")
     finally:
         await service.stop()
-        await engine.dispose()
 
 
 # ---------------------------------------------------------------------------
@@ -673,11 +654,10 @@ async def test_connector(config_id: str) -> TestConnectionResponse:
 @router.post("/fetch", response_model=FetchResponse)
 async def fetch_emails(request: FetchRequest) -> FetchResponse:
     """Trigger email fetch from a configured connector."""
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker as asm
+    from sqlalchemy.ext.asyncio import async_sessionmaker as asm
     from aiflow.services.email_connector import EmailConnectorService, EmailConnectorConfig
 
-    db_url = _get_db_url().replace("postgresql://", "postgresql+asyncpg://")
-    engine = create_async_engine(db_url)
+    engine = await get_engine()
     session_factory = asm(engine, expire_on_commit=False)
 
     since_date = None
@@ -711,7 +691,6 @@ async def fetch_emails(request: FetchRequest) -> FetchResponse:
         )
     finally:
         await service.stop()
-        await engine.dispose()
 
 
 # ---------------------------------------------------------------------------
@@ -725,8 +704,8 @@ async def get_fetch_history(
 ) -> list[FetchHistoryItem]:
     """Get fetch history for a connector."""
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """SELECT id, config_id, status, email_count, new_emails,
                           duration_ms, error, fetched_at
@@ -738,8 +717,6 @@ async def get_fetch_history(
                 limit,
             )
             return [FetchHistoryItem(**_row_to_dict(row)) for row in rows]
-        finally:
-            await conn.close()
     except Exception as e:
         logger.error("fetch_history_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
@@ -753,8 +730,8 @@ async def get_fetch_history(
 async def get_email(email_id: str) -> EmailDetailResponse:
     """Get full email detail by ID (workflow_run id or email_id in output_data)."""
     try:
-        conn = await asyncpg.connect(_get_db_url())
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
                 SELECT r.id, r.output_data, r.input_data, r.started_at, r.total_duration_ms, r.status
@@ -785,8 +762,6 @@ async def get_email(email_id: str) -> EmailDetailResponse:
                     status=row["status"],
                     source="backend",
                 )
-        finally:
-            await conn.close()
     except Exception as e:
         logger.warning("email_detail_db_failed", error=str(e), email_id=email_id)
 

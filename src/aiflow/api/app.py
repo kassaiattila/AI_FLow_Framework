@@ -1,5 +1,6 @@
 """FastAPI application factory."""
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,12 +51,23 @@ def create_app() -> FastAPI:
     from dotenv import load_dotenv
     load_dotenv(Path(__file__).parent.parent.parent.parent / ".env")
 
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # Startup: pool/engine created lazily on first use
+        logger.info("app_startup")
+        yield
+        # Shutdown: close shared DB connections
+        from aiflow.api.deps import close_all
+        await close_all()
+        logger.info("app_shutdown")
+
     app = FastAPI(
         title="AIFlow API",
         version=__version__,
         description="Enterprise AI Automation Framework",
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,
@@ -64,6 +76,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Auth middleware — enforces Bearer/API key auth on /api/v1/* (after CORS)
+    from aiflow.api.middleware import AuthMiddleware
+    app.add_middleware(AuthMiddleware)
     # Include routers
     from aiflow.api.v1.health import router as health_router
     from aiflow.api.v1.workflows import router as workflows_router

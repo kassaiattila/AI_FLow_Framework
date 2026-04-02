@@ -4,8 +4,8 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 import structlog
-import asyncpg
-import os
+
+from aiflow.api.deps import get_pool
 
 __all__ = ["router"]
 
@@ -44,14 +44,6 @@ class FeedbackStatsResponse(BaseModel):
     stats: list[FeedbackStatsItem] = []
 
 
-def _get_db_url() -> str:
-    """Get database URL from environment."""
-    return os.getenv(
-        "AIFLOW_DATABASE_URL",
-        "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-    )
-
-
 @router.post("/feedback", response_model=FeedbackResponse)
 async def submit_feedback(request: FeedbackRequest) -> FeedbackResponse:
     """Submit user feedback for a RAG query result.
@@ -60,10 +52,9 @@ async def submit_feedback(request: FeedbackRequest) -> FeedbackResponse:
     feedback is logged via structlog and a success response is still returned
     (best-effort persistence).
     """
-    db_url = _get_db_url()
     try:
-        conn = await asyncpg.connect(db_url)
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             await conn.execute(
                 """
                 INSERT INTO rag_query_log
@@ -76,8 +67,6 @@ async def submit_feedback(request: FeedbackRequest) -> FeedbackResponse:
                 f"feedback:{request.score}",
                 request.comment,
             )
-        finally:
-            await conn.close()
     except Exception as e:
         logger.warning("feedback_db_failed", error=str(e))
 
@@ -97,11 +86,10 @@ async def feedback_stats() -> FeedbackStatsResponse:
     Queries rag_query_log for rows where role starts with 'feedback:'
     and aggregates scores per collection.
     """
-    db_url = _get_db_url()
     items: list[FeedbackStatsItem] = []
     try:
-        conn = await asyncpg.connect(db_url)
-        try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
                 SELECT
@@ -128,8 +116,6 @@ async def feedback_stats() -> FeedbackStatsResponse:
                     thumbs_up_count=row["thumbs_up_count"] or 0,
                     thumbs_down_count=row["thumbs_down_count"] or 0,
                 ))
-        finally:
-            await conn.close()
     except Exception as e:
         logger.warning("feedback_stats_db_failed", error=str(e))
 
