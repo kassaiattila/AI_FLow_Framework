@@ -24,6 +24,7 @@
 | Email Upload | `11638:24257` | `11638:24284` | AIFlow Email Upload — Desktop 1440px |
 | RAG Collections | `11638:24258` | `11638:24290` | AIFlow RAG Collections — Desktop 1440px |
 | Collection Detail | `11648:118043` | `11648:118044` | AIFlow Collection Detail — Desktop 1440px |
+| RPA Browser | `11655:845` | `11655:846` | AIFlow RPA Browser — Desktop 1440px |
 
 ---
 
@@ -668,6 +669,70 @@ Sidebar + Main:
 - Loading: Skeleton cards + table
 - Empty collection: "No documents yet. Upload files to get started."
 - Ingest running: per-file progress with steps (Parse → Chunk → Embed → Store)
+
+---
+
+## Page 18: RPA Browser (/rpa) — F4c
+
+**Phase:** F4c (RPA Browser)
+**Figma Page:** `11655:845` | **Frame:** `11655:846` (AIFlow RPA Browser — Desktop 1440px)
+**Dialog Frame:** `11655:914` (New Config Dialog — Modal)
+**Journey:** `01_PLAN/F4_RPA_MEDIA_DIAGRAM_JOURNEY.md` (F4c section)
+**Data Source:** `GET /api/v1/rpa/configs` (CRUD), `POST /api/v1/rpa/configs/{id}/execute`, `GET /api/v1/rpa/logs`
+
+**Header:**
+- Title: "RPA Browser Automation" (i18n: `aiflow.rpa.title`)
+- Subtitle: "Configure and run YAML-based browser automations" (i18n: `aiflow.rpa.subtitle`)
+- "+ New Config" button (primary, top-right)
+
+**Automation Configs Table (Card):**
+| Column | Width | Source | Content |
+|--------|-------|--------|---------|
+| Name | 280px | `name` | Config name (fontWeight 500) |
+| Target URL | 240px | `target_url` | URL link (primary color) |
+| Steps | 80px | YAML parse | Step count from yaml_config |
+| Active | 80px | `is_active` | ● Active (green) / ○ Inactive (gray) |
+| Schedule | 140px | `schedule_cron` | Cron expression or "—" |
+| Created | 140px | `created_at` | Date |
+| Actions | 160px | — | ▶ Run · ✎ Edit · ✕ Delete |
+
+**Row Actions:**
+1. Run (PlayArrow) → `POST /api/v1/rpa/configs/{id}/execute` → status update + log refresh
+2. Edit (Edit) → Open dialog pre-filled with config data
+3. Delete (Delete, red) → Confirm dialog → `DELETE /api/v1/rpa/configs/{id}`
+
+**New Config Dialog (Modal):**
+- Fields: Name* (text), Target URL (text), Description (text), YAML Config* (monospace textarea, 160px height)
+- YAML placeholder: steps with navigate/click/screenshot actions
+- Actions: Cancel, Create Config (primary)
+- Validation: Name required, YAML required + syntax check
+- API: `POST /api/v1/rpa/configs`
+
+**Execution Log Table (Card):**
+| Column | Width | Source | Content |
+|--------|-------|--------|---------|
+| Config | 240px | config name lookup | Config name |
+| Status | 120px | `status` | ● Completed (green) / ● Running (amber) / ◆ Failed (red) |
+| Steps | 120px | `steps_completed / steps_total` | Progress "2 / 5" |
+| Duration | 120px | `duration_ms` | Formatted "1.2s" |
+| Started | 180px | `started_at` | DateTime |
+| Error | 400px | `error` | Error message (red) or "—" |
+
+**States:**
+- Loading: CircularProgress centered in each card
+- Error: Alert severity="error" with retry button
+- Empty configs: "No automation configs yet. Create your first one." + CTA
+- Empty logs: "No executions yet. Run a config to see results."
+
+**i18n Keys (aiflow.rpa.*):**
+- title, subtitle, configsTitle, configsCount, newConfig, name, targetUrl, description
+- yamlConfig, steps, active, inactive, schedule, created, actions, run, edit, delete
+- logsTitle, logsCount, config, status, stepsProgress, duration, started, error
+- completed, running, failed, pending, noConfigs, noLogs, createFirst
+- dialogTitle, dialogCreate, dialogCancel, deleteTitle, deleteConfirm
+- executeSuccess, executeFailed, createSuccess, deleteSuccess, yamlError
+
+**Playwright E2E Verified:** — (pending)
 
 ---
 

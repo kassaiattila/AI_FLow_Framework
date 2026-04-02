@@ -11,6 +11,7 @@ import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputCompone
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import { Divider, Typography, Box } from "@mui/material";
 
 export const AppMenu = () => {
@@ -53,6 +54,11 @@ export const AppMenu = () => {
         to="/media"
         primaryText={translate("aiflow.media.title")}
         leftIcon={<AudiotrackIcon />}
+      />
+      <Menu.Item
+        to="/rpa"
+        primaryText={translate("aiflow.rpa.menuLabel")}
+        leftIcon={<SmartToyIcon />}
       />
       <Menu.Item
         to="/cubix"

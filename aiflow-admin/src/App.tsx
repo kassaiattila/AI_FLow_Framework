@@ -25,6 +25,7 @@ import { CostsPage } from "./pages/CostsPage";
 import { CollectionManager } from "./pages/CollectionManager";
 import { CollectionDetail } from "./pages/CollectionDetail";
 import { MediaViewer } from "./pages/MediaViewer";
+import { RpaViewer } from "./pages/RpaViewer";
 import { VerificationPanel } from "./verification/VerificationPanel";
 
 export const App = () => (
@@ -70,6 +71,7 @@ export const App = () => (
       <Route path="/rag/collections" element={<CollectionManager />} />
       <Route path="/rag/collections/:id" element={<CollectionDetail />} />
       <Route path="/media" element={<MediaViewer />} />
+      <Route path="/rpa" element={<RpaViewer />} />
       <Route path="/documents/:id/verify" element={<VerificationPanel />} />
     </CustomRoutes>
   </Admin>
