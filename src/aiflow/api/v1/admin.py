@@ -1,6 +1,10 @@
-"""Admin API — health monitoring + audit trail + metrics."""
+"""Admin API — health monitoring + audit trail + metrics + user/key management."""
 from __future__ import annotations
 
+import hashlib
+import secrets
+import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -14,6 +18,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 _health_service = None
 _audit_service = None
+_db_engine = None
 
 
 def _get_health():
@@ -130,3 +135,172 @@ async def get_audit_entry(entry_id: str):
     if not entry:
         raise HTTPException(status_code=404, detail="Audit entry not found")
     return AuditEntryResponse(**entry.model_dump(), source="backend")
+
+
+# --- DB helper ---
+
+async def _get_db():
+    global _db_engine
+    if _db_engine is None:
+        import os
+        from sqlalchemy.ext.asyncio import create_async_engine
+        db_url = os.environ.get(
+            "AIFLOW_DATABASE__URL",
+            "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
+        )
+        _db_engine = create_async_engine(db_url)
+    return _db_engine
+
+
+# --- Users ---
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    name: str
+    role: str
+    is_active: bool
+    team_id: str | None = None
+    last_login_at: str | None = None
+    created_at: str = ""
+
+
+class UserListResponse(BaseModel):
+    users: list[UserResponse]
+    total: int
+    source: str = "backend"
+
+
+class CreateUserRequest(BaseModel):
+    email: str
+    name: str
+    role: str = "viewer"
+
+
+@router.get("/users", response_model=UserListResponse)
+async def list_users():
+    engine = await _get_db()
+    from sqlalchemy import text
+    async with engine.connect() as conn:
+        result = await conn.execute(text(
+            "SELECT id, email, name, role, is_active, team_id, last_login_at, created_at "
+            "FROM users ORDER BY created_at DESC"
+        ))
+        rows = result.fetchall()
+    users = [
+        UserResponse(
+            id=str(r[0]), email=r[1], name=r[2], role=r[3],
+            is_active=r[4], team_id=str(r[5]) if r[5] else None,
+            last_login_at=str(r[6]) if r[6] else None,
+            created_at=str(r[7]) if r[7] else "",
+        )
+        for r in rows
+    ]
+    return UserListResponse(users=users, total=len(users))
+
+
+@router.post("/users", response_model=UserResponse, status_code=201)
+async def create_user(req: CreateUserRequest):
+    engine = await _get_db()
+    from sqlalchemy import text
+    user_id = uuid.uuid4()
+    now = datetime.now(UTC)
+    async with engine.begin() as conn:
+        await conn.execute(text(
+            "INSERT INTO users (id, email, name, role, is_active, created_at, updated_at) "
+            "VALUES (:id, :email, :name, :role, true, :now, :now)"
+        ), {"id": user_id, "email": req.email, "name": req.name, "role": req.role, "now": now})
+    logger.info("user_created", user_id=str(user_id), email=req.email)
+    return UserResponse(id=str(user_id), email=req.email, name=req.name, role=req.role, is_active=True, created_at=now.isoformat())
+
+
+# --- API Keys ---
+
+API_KEY_PREFIX = "aiflow_sk_"
+
+
+class APIKeyResponse(BaseModel):
+    id: str
+    name: str
+    prefix: str
+    user_id: str | None = None
+    created_at: str = ""
+    last_used_at: str | None = None
+    is_active: bool = True
+
+
+class APIKeyListResponse(BaseModel):
+    keys: list[APIKeyResponse]
+    total: int
+    source: str = "backend"
+
+
+class APIKeyCreatedResponse(BaseModel):
+    id: str
+    name: str
+    key: str
+    prefix: str
+    source: str = "backend"
+
+
+class CreateAPIKeyRequest(BaseModel):
+    name: str
+    user_id: str | None = None
+
+
+@router.get("/api-keys", response_model=APIKeyListResponse)
+async def list_api_keys():
+    engine = await _get_db()
+    from sqlalchemy import text
+    async with engine.connect() as conn:
+        result = await conn.execute(text(
+            "SELECT id, name, prefix, user_id, created_at, last_used_at, is_active "
+            "FROM api_keys ORDER BY created_at DESC"
+        ))
+        rows = result.fetchall()
+    keys = [
+        APIKeyResponse(
+            id=str(r[0]), name=r[1], prefix=r[2],
+            user_id=str(r[3]) if r[3] else None,
+            created_at=str(r[4]) if r[4] else "",
+            last_used_at=str(r[5]) if r[5] else None,
+            is_active=r[6],
+        )
+        for r in rows
+    ]
+    return APIKeyListResponse(keys=keys, total=len(keys))
+
+
+@router.post("/api-keys", response_model=APIKeyCreatedResponse, status_code=201)
+async def create_api_key(req: CreateAPIKeyRequest):
+    raw_key = secrets.token_urlsafe(32)
+    full_key = f"{API_KEY_PREFIX}{raw_key}"
+    prefix = full_key[:16]
+    key_hash = hashlib.sha256(full_key.encode()).hexdigest()
+    key_id = uuid.uuid4()
+    now = datetime.now(UTC)
+
+    engine = await _get_db()
+    from sqlalchemy import text
+    async with engine.begin() as conn:
+        await conn.execute(text(
+            "INSERT INTO api_keys (id, name, prefix, key_hash, user_id, is_active, created_at) "
+            "VALUES (:id, :name, :prefix, :key_hash, :user_id, true, :now)"
+        ), {"id": key_id, "name": req.name, "prefix": prefix, "key_hash": key_hash,
+            "user_id": uuid.UUID(req.user_id) if req.user_id else None, "now": now})
+
+    logger.info("api_key_created", key_id=str(key_id), name=req.name, prefix=prefix)
+    return APIKeyCreatedResponse(id=str(key_id), name=req.name, key=full_key, prefix=prefix)
+
+
+@router.delete("/api-keys/{key_id}", status_code=204)
+async def delete_api_key(key_id: str):
+    engine = await _get_db()
+    from sqlalchemy import text
+    async with engine.begin() as conn:
+        result = await conn.execute(text(
+            "DELETE FROM api_keys WHERE id = :id"
+        ), {"id": key_id})
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="API key not found")
+    logger.info("api_key_deleted", key_id=key_id)
