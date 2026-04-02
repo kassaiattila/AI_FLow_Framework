@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode — useTheme() adds/removes .dark on <html> */
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Brand colors (indigo — continuing from MUI theme) */
   --color-brand-50: #eef2ff;

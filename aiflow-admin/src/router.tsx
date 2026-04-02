@@ -1,6 +1,6 @@
 /**
  * AIFlow Router — React Router v7 configuration with auth guard.
- * F6.6: All pages migrated to Tailwind. Only Cubix + Verification remain as legacy.
+ * F6.6: All pages migrated to Tailwind. Only Cubix remains as legacy.
  */
 
 import { createHashRouter, Navigate } from "react-router-dom";
@@ -23,10 +23,10 @@ import { Costs as CostsNew } from "./pages-new/Costs";
 import { Monitoring as MonitoringNew } from "./pages-new/Monitoring";
 import { Audit as AuditNew } from "./pages-new/Audit";
 import { Admin as AdminNew } from "./pages-new/Admin";
+import { Verification } from "./pages-new/Verification";
 
 // --- Legacy MUI (to be migrated in future) ---
 import { CubixViewer } from "./pages/CubixViewer";
-import { VerificationPanel } from "./verification/VerificationPanel";
 
 /** Auth guard */
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -64,7 +64,7 @@ export const router = createHashRouter([
 
       // Data
       { path: "documents", element: <DocumentsNew /> },
-      { path: "documents/:id/verify", element: <LegacyPage><VerificationPanel /></LegacyPage> },
+      { path: "documents/:id/verify", element: <Verification /> },
       { path: "document-upload", element: <Navigate to="/documents" replace /> },
       { path: "emails", element: <EmailsNew /> },
       { path: "email-upload", element: <Navigate to="/emails" replace /> },

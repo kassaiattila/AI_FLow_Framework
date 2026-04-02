@@ -322,6 +322,27 @@ const docColumns: Column<Record<string, unknown>>[] = [
       );
     },
   },
+  {
+    key: "actions",
+    label: "",
+    sortable: false,
+    render: (item) => {
+      const docId = (item as unknown as DocItem).id;
+      if (!docId) return null;
+      return (
+        <a
+          href={`#/documents/${encodeURIComponent(docId)}/verify`}
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-1 rounded-lg border border-brand-300 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-900/20"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Verify
+        </a>
+      );
+    },
+  },
 ];
 
 // --- Main Component ---
@@ -407,6 +428,10 @@ export function Documents() {
               searchKeys={["source_file", "vendor.name", "header.invoice_number"]}
               pageSize={10}
               columns={docColumns}
+              onRowClick={(item) => {
+                const docId = (item as unknown as DocItem).id;
+                if (docId) navigate(`/documents/${encodeURIComponent(docId)}/verify`);
+              }}
             />
           )}
         </>
