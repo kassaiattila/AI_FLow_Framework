@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 
 // --- NEW Tailwind pages (F6.1+) ---
 import { DashboardNew } from "./pages-new/Dashboard";
+import { Documents as DocumentsNew } from "./pages-new/Documents";
 
 // --- Old MUI pages (temporary, will be replaced in F6.2-F6.5) ---
 import { ProcessDocViewer } from "./pages/ProcessDocViewer";
@@ -73,9 +74,8 @@ export const router = createHashRouter([
       { path: "runs", element: <LegacyPage><RunList /></LegacyPage> },
       { path: "runs/:id", element: <LegacyPage><RunShow /></LegacyPage> },
 
-      // Documents (old MUI, replaced in F6.2)
-      { path: "documents", element: <LegacyPage><DocumentList /></LegacyPage> },
-      { path: "documents/:id", element: <LegacyPage><DocumentShow /></LegacyPage> },
+      // Documents (NEW Tailwind — F6.2)
+      { path: "documents", element: <DocumentsNew /> },
       { path: "documents/:id/verify", element: <LegacyPage><VerificationPanel /></LegacyPage> },
       { path: "document-upload", element: <Navigate to="/documents" replace /> },
 
