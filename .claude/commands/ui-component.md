@@ -32,6 +32,7 @@ Design specs in `aiflow-admin/figma-sync/PAGE_SPECS.md`.
 - Import from Untitled UI and `@untitledui/icons`
 - **Styling**: Tailwind utility classes (`className="..."`) — NEM inline style, NEM sx prop
 - Named export (not default)
+- **Tables**: Ha tabla kell, hasznald a `<DataTable>` from `src/components-new/DataTable.tsx` — TanStack Table, sort+search+pagination beepitett
 - **No MUI imports** — NEM `@mui/material`, NEM `@mui/icons-material`
 - **No emotion/styled** — NEM `sx` prop, NEM `styled()`
 - **No hardcoded URLs** — use `/api/` routes via Vite proxy, never `localhost`

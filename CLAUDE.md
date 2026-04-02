@@ -350,6 +350,11 @@ curl -sf http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d
 - **Theming:** tailwind.config.ts design tokenek — NEM MUI createTheme
 - **Data fetching:** `fetchApi<T>()` from `src/lib/api-client.ts` — NEM dataProvider
 - **Auth:** `src/lib/auth.ts` — NEM authProvider
+- **Tables:** `<DataTable>` from `src/components-new/DataTable.tsx` — KOTELEZO minden lista oldalon
+  - Powered by `@tanstack/react-table` v8 (headless, Tailwind styled)
+  - Beepitett: oszlop rendezés (asc/desc), global search, pagination
+  - NEM szabad kezi `<table>` markup-ot irni — MINDIG DataTable-t hasznalj
+  - Peldak: Documents.tsx, Emails.tsx (Inbox + Connectors tab)
 
 ### i18n Rules (NEVER skip!)
 - **EVERY user-visible string MUST use `useTranslate()` from `src/lib/i18n.ts`** — no exceptions

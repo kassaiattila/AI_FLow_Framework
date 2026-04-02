@@ -45,6 +45,7 @@ Design specs in `aiflow-admin/figma-sync/PAGE_SPECS.md`.
 - **Components**: Untitled UI primitives — NEM `@mui/material`
 - **Icons**: `@untitledui/icons` — NEM `@mui/icons-material`
 - **Layout**: Wrap content in `<PageLayout>` component
+- **Tables**: `<DataTable>` from `src/components-new/DataTable.tsx` (TanStack Table) — KOTELEZO lista oldalaknal. Sort, search, pagination beepitett. NEM szabad kezi `<table>` markup-ot irni.
 - **3 states required**: Loading (`<LoadingState />`), Error (`<ErrorState />`), Empty (`<EmptyState />`)
 - **No hardcoded `localhost` URLs** — use relative `/api/` paths via Vite proxy
 - **No localStorage/sessionStorage in useState** — defer to useEffect
