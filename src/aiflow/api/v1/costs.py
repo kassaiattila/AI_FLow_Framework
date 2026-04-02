@@ -36,6 +36,25 @@ class CostsSummaryResponse(BaseModel):
     daily: list[DailyCost] = []
 
 
+class TeamDailyCost(BaseModel):
+    """Daily cost per team from v_daily_team_costs view."""
+    team_name: str | None = None
+    cost_date: str
+    model: str | None = None
+    request_count: int = 0
+    total_cost_usd: float = 0.0
+
+
+class BudgetStatus(BaseModel):
+    """Team budget status from v_monthly_budget view."""
+    team_name: str | None = None
+    budget_limit_usd: float = 0.0
+    used_usd: float = 0.0
+    remaining_usd: float = 0.0
+    usage_pct: float = 0.0
+    alert_level: str = "ok"
+
+
 @router.get("/summary", response_model=CostsSummaryResponse)
 async def costs_summary() -> CostsSummaryResponse:
     """Get aggregated cost summary by skill and by day."""
@@ -91,3 +110,54 @@ async def costs_summary() -> CostsSummaryResponse:
         logger.warning("costs_db_failed", error=str(e))
 
     return result
+
+
+@router.get("/team-daily", response_model=list[TeamDailyCost])
+async def team_daily_costs() -> list[TeamDailyCost]:
+    """Get daily costs per team (uses v_daily_team_costs view)."""
+    try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT team_name, cost_date, model, request_count, total_cost_usd "
+                "FROM v_daily_team_costs ORDER BY cost_date DESC LIMIT 100"
+            )
+            return [
+                TeamDailyCost(
+                    team_name=r["team_name"],
+                    cost_date=r["cost_date"].isoformat() if r["cost_date"] else "",
+                    model=r["model"],
+                    request_count=r["request_count"] or 0,
+                    total_cost_usd=float(r["total_cost_usd"] or 0),
+                )
+                for r in rows
+            ]
+    except Exception as e:
+        logger.warning("team_daily_costs_failed", error=str(e))
+        return []
+
+
+@router.get("/budget", response_model=list[BudgetStatus])
+async def budget_status() -> list[BudgetStatus]:
+    """Get monthly budget status per team (uses v_monthly_budget view)."""
+    try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT team_name, budget_limit_usd, used_usd, remaining_usd, usage_pct, alert_level "
+                "FROM v_monthly_budget ORDER BY usage_pct DESC"
+            )
+            return [
+                BudgetStatus(
+                    team_name=r["team_name"],
+                    budget_limit_usd=float(r["budget_limit_usd"] or 0),
+                    used_usd=float(r["used_usd"] or 0),
+                    remaining_usd=float(r["remaining_usd"] or 0),
+                    usage_pct=float(r["usage_pct"] or 0),
+                    alert_level=r["alert_level"] or "ok",
+                )
+                for r in rows
+            ]
+    except Exception as e:
+        logger.warning("budget_status_failed", error=str(e))
+        return []

@@ -165,32 +165,27 @@ class LangfuseTracer(TracerBackend):
         self._public_key = public_key
         self._secret_key = secret_key
         self._host = host or "http://localhost:3000"
-        # TODO: Initialize langfuse.Langfuse(public_key, secret_key, host) here
-        logger.info("langfuse_tracer_init", host=self._host)
+        # Stub: wire langfuse.Langfuse(public_key, secret_key, host) when SDK is installed
+        logger.info("langfuse_tracer_init", host=self._host, stub=True)
 
     async def create_trace(self, name: str, metadata: dict[str, Any]) -> str:
         trace_id = str(uuid.uuid4())
-        logger.info("langfuse_trace_created", trace_id=trace_id, name=name)
-        # TODO: self._client.trace(id=trace_id, name=name, metadata=metadata)
+        logger.info("langfuse_trace_created", trace_id=trace_id, name=name, stub=True)
         return trace_id
 
     async def create_span(self, trace_id: str, name: str, metadata: dict[str, Any] | None = None) -> str:
         span_id = str(uuid.uuid4())
-        logger.info("langfuse_span_created", trace_id=trace_id, span_id=span_id, name=name)
-        # TODO: self._client.span(trace_id=trace_id, id=span_id, name=name, metadata=metadata)
+        logger.info("langfuse_span_created", trace_id=trace_id, span_id=span_id, name=name, stub=True)
         return span_id
 
     async def finish_span(self, trace_id: str, span_id: str, metadata: dict[str, Any] | None = None) -> None:
-        logger.info("langfuse_span_finished", trace_id=trace_id, span_id=span_id)
-        # TODO: update span end_time + metadata in Langfuse
+        logger.info("langfuse_span_finished", trace_id=trace_id, span_id=span_id, stub=True)
 
     async def finish_trace(self, trace_id: str, metadata: dict[str, Any] | None = None) -> None:
-        logger.info("langfuse_trace_finished", trace_id=trace_id)
-        # TODO: update trace end_time + metadata, flush client
+        logger.info("langfuse_trace_finished", trace_id=trace_id, stub=True)
 
     async def get_trace(self, trace_id: str) -> TraceRecord | None:
-        logger.info("langfuse_get_trace", trace_id=trace_id)
-        # TODO: fetch from Langfuse API
+        logger.info("langfuse_get_trace", trace_id=trace_id, stub=True)
         return None
 
 

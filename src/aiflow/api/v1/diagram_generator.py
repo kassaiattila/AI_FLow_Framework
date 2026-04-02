@@ -4,6 +4,7 @@ CRUD + generate + export for persisted BPMN diagrams.
 """
 from __future__ import annotations
 
+from functools import cache
 from typing import Any
 
 import structlog
@@ -16,15 +17,11 @@ __all__ = ["router"]
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/diagrams", tags=["diagrams"])
 
-_service = None
 
-
+@cache
 def _get_service():
-    global _service
-    if _service is None:
-        from aiflow.services.diagram_generator import DiagramGeneratorService
-        _service = DiagramGeneratorService()
-    return _service
+    from aiflow.services.diagram_generator import DiagramGeneratorService
+    return DiagramGeneratorService()
 
 
 class GenerateRequest(BaseModel):

@@ -12,6 +12,8 @@ import structlog
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
+from functools import cache
+
 from aiflow.api.deps import get_engine
 
 __all__ = ["router"]
@@ -19,23 +21,17 @@ __all__ = ["router"]
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
-_health_service = None
-_audit_service = None
 
+@cache
 def _get_health():
-    global _health_service
-    if _health_service is None:
-        from aiflow.services.health_monitor import HealthMonitorService
-        _health_service = HealthMonitorService()
-    return _health_service
+    from aiflow.services.health_monitor import HealthMonitorService
+    return HealthMonitorService()
 
 
+@cache
 def _get_audit():
-    global _audit_service
-    if _audit_service is None:
-        from aiflow.services.audit import AuditTrailService
-        _audit_service = AuditTrailService()
-    return _audit_service
+    from aiflow.services.audit import AuditTrailService
+    return AuditTrailService()
 
 
 # --- Health ---

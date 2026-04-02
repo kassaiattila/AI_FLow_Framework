@@ -105,38 +105,16 @@ class VaultSecretProvider(SecretProvider):
         logger.info("vault_secret_provider_initialized", vault_url=vault_url)
 
     def get_secret(self, key: str) -> str | None:
-        # TODO: Implement with hvac client
-        #   client = hvac.Client(url=self._vault_url, token=self._token)
-        #   resp = client.secrets.kv.v2.read_secret_version(path=key)
-        #   return resp["data"]["data"]["value"]
-        raise NotImplementedError(
-            "VaultSecretProvider.get_secret requires hvac dependency"
-        )
+        raise NotImplementedError("VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default")
 
     def set_secret(self, key: str, value: str) -> None:
-        # TODO: Implement with hvac client
-        #   client = hvac.Client(url=self._vault_url, token=self._token)
-        #   client.secrets.kv.v2.create_or_update_secret(path=key, secret={"value": value})
-        raise NotImplementedError(
-            "VaultSecretProvider.set_secret requires hvac dependency"
-        )
+        raise NotImplementedError("VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default")
 
     def delete_secret(self, key: str) -> None:
-        # TODO: Implement with hvac client
-        #   client = hvac.Client(url=self._vault_url, token=self._token)
-        #   client.secrets.kv.v2.delete_metadata_and_all_versions(path=key)
-        raise NotImplementedError(
-            "VaultSecretProvider.delete_secret requires hvac dependency"
-        )
+        raise NotImplementedError("VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default")
 
     def list_keys(self) -> list[str]:
-        # TODO: Implement with hvac client
-        #   client = hvac.Client(url=self._vault_url, token=self._token)
-        #   resp = client.secrets.kv.v2.list_secrets(path="")
-        #   return resp["data"]["keys"]
-        raise NotImplementedError(
-            "VaultSecretProvider.list_keys requires hvac dependency"
-        )
+        raise NotImplementedError("VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default")
 
 
 # ---------------------------------------------------------------------------

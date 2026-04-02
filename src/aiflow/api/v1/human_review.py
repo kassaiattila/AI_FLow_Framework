@@ -5,6 +5,7 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, HTTPException
+from functools import cache
 from pydantic import BaseModel, Field
 
 __all__ = ["router"]
@@ -12,15 +13,11 @@ __all__ = ["router"]
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/reviews", tags=["reviews"])
 
-_service = None
 
-
+@cache
 def _get_service():
-    global _service
-    if _service is None:
-        from aiflow.services.human_review import HumanReviewService
-        _service = HumanReviewService()
-    return _service
+    from aiflow.services.human_review import HumanReviewService
+    return HumanReviewService()
 
 
 class ReviewCreateRequest(BaseModel):
