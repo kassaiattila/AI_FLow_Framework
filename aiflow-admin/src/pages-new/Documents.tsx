@@ -12,6 +12,7 @@ import { PageLayout } from "../layout/PageLayout";
 import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
 import { EmptyState } from "../components-new/EmptyState";
+import { DataTable, type Column } from "../components-new/DataTable";
 
 // --- Types ---
 
@@ -248,6 +249,81 @@ function UploadTab() {
   );
 }
 
+// --- Document Table Columns ---
+
+const docColumns: Column<Record<string, unknown>>[] = [
+  {
+    key: "source_file",
+    label: "File",
+    getValue: (item) => fileName(String(item.source_file ?? "")),
+    render: (item) => (
+      <span className="font-medium text-gray-900 dark:text-gray-100">
+        {fileName(String(item.source_file ?? ""))}
+      </span>
+    ),
+  },
+  {
+    key: "status",
+    label: "Status",
+    sortable: false,
+    render: (item) => {
+      const badge = statusBadge(item as unknown as DocItem);
+      return (
+        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${badge.color}`}>
+          {badge.label}
+        </span>
+      );
+    },
+  },
+  {
+    key: "vendor.name",
+    label: "Vendor",
+    getValue: (item) => (item.vendor as DocVendor | null)?.name ?? "",
+    render: (item) => (
+      <span className="text-gray-600 dark:text-gray-400">
+        {(item.vendor as DocVendor | null)?.name ?? "—"}
+      </span>
+    ),
+  },
+  {
+    key: "header.invoice_number",
+    label: "Invoice #",
+    getValue: (item) => (item.header as DocHeader | null)?.invoice_number ?? "",
+    render: (item) => (
+      <span className="text-gray-600 dark:text-gray-400">
+        {(item.header as DocHeader | null)?.invoice_number ?? "—"}
+      </span>
+    ),
+  },
+  {
+    key: "totals.gross_total",
+    label: "Gross Total",
+    getValue: (item) => (item.totals as DocTotals | null)?.gross_total ?? 0,
+    render: (item) => {
+      const total = (item.totals as DocTotals | null)?.gross_total;
+      const currency = (item.header as DocHeader | null)?.currency ?? "HUF";
+      return (
+        <span className="text-gray-600 dark:text-gray-400">
+          {total ? `${total.toLocaleString()} ${currency}` : "—"}
+        </span>
+      );
+    },
+  },
+  {
+    key: "extraction_confidence",
+    label: "Confidence",
+    getValue: (item) => (item.extraction_confidence as number | null) ?? 0,
+    render: (item) => {
+      const conf = item.extraction_confidence as number | null;
+      return (
+        <span className={`font-medium ${confidenceColor(conf)}`}>
+          {conf ? `${conf}%` : "—"}
+        </span>
+      );
+    },
+  },
+];
+
 // --- Main Component ---
 
 export function Documents() {
@@ -321,78 +397,18 @@ export function Documents() {
             </div>
           </div>
 
-          {/* Documents Table */}
-          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
-            {loading ? (
-              <div className="p-4"><LoadingState rows={5} /></div>
-            ) : error ? (
-              <div className="p-4"><ErrorState error={error} onRetry={refetch} /></div>
-            ) : docs.length === 0 ? (
-              <div className="p-4"><EmptyState messageKey="aiflow.common.empty" icon="file" /></div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:text-gray-400">
-                    <th className="px-4 py-3">{translate("aiflow.documents.file")}</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">{translate("aiflow.documents.vendor")}</th>
-                    <th className="px-4 py-3">{translate("aiflow.documents.invoiceNumber")}</th>
-                    <th className="px-4 py-3">{translate("aiflow.documents.grossTotal")}</th>
-                    <th className="px-4 py-3">{translate("aiflow.documents.confidence")}</th>
-                    <th className="px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {docs.map((doc) => {
-                    const badge = statusBadge(doc);
-                    return (
-                      <tr
-                        key={doc.id}
-                        className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/50"
-                      >
-                        <td className="px-4 py-3">
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
-                            {fileName(doc.source_file)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${badge.color}`}>
-                            {badge.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                          {doc.vendor?.name ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                          {doc.header?.invoice_number ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                          {doc.totals?.gross_total
-                            ? `${doc.totals.gross_total.toLocaleString()} ${doc.header?.currency ?? "HUF"}`
-                            : "—"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`font-medium ${confidenceColor(doc.extraction_confidence)}`}>
-                            {doc.extraction_confidence ? `${doc.extraction_confidence}%` : "—"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          {doc.extraction_confidence && doc.extraction_confidence > 0 && (
-                            <button
-                              onClick={() => navigate(`/documents/${encodeURIComponent(doc.id)}/verify`)}
-                              className="rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-400"
-                            >
-                              {translate("aiflow.verification.verify")}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+          {/* Documents Table — sortable, searchable, paginated */}
+          {error ? (
+            <ErrorState error={error} onRetry={refetch} />
+          ) : (
+            <DataTable
+              data={docs as unknown as Record<string, unknown>[]}
+              loading={loading}
+              searchKeys={["source_file", "vendor.name", "header.invoice_number"]}
+              pageSize={10}
+              columns={docColumns}
+            />
+          )}
         </>
       )}
     </PageLayout>

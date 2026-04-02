@@ -8,9 +8,8 @@ import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
 import { fetchApi, uploadFile } from "../lib/api-client";
 import { PageLayout } from "../layout/PageLayout";
-import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
-import { EmptyState } from "../components-new/EmptyState";
+import { DataTable, type Column } from "../components-new/DataTable";
 
 // --- Types ---
 
@@ -84,57 +83,25 @@ function InboxTab() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
-        {loading ? (
-          <div className="p-4"><LoadingState rows={5} /></div>
-        ) : error ? (
-          <div className="p-4"><ErrorState error={error} onRetry={refetch} /></div>
-        ) : emails.length === 0 ? (
-          <div className="p-4"><EmptyState messageKey="aiflow.common.empty" icon="mail" /></div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-800">
-                <th className="px-4 py-3">{translate("aiflow.emails.sender")}</th>
-                <th className="px-4 py-3">{translate("aiflow.emails.subject")}</th>
-                <th className="px-4 py-3">{translate("aiflow.emails.intent")}</th>
-                <th className="px-4 py-3">{translate("aiflow.emails.priority")}</th>
-                <th className="px-4 py-3">{translate("aiflow.emails.confidence")}</th>
-                <th className="px-4 py-3">{translate("aiflow.emails.received")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {emails.map((email) => (
-                <tr key={email.id} className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/50">
-                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{email.sender}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{email.subject}</td>
-                  <td className="px-4 py-3">
-                    {email.intent ? (
-                      <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
-                        {email.intent}
-                      </span>
-                    ) : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {email.priority ? (
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor[email.priority] ?? priorityColor.normal}`}>
-                        {email.priority}
-                      </span>
-                    ) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                    {email.confidence ? `${email.confidence}%` : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
-                    {email.received_at ? new Date(email.received_at).toLocaleString() : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* Table — sortable, searchable */}
+      {error ? (
+        <ErrorState error={error} onRetry={refetch} />
+      ) : (
+        <DataTable
+          data={emails as unknown as Record<string, unknown>[]}
+          loading={loading}
+          searchKeys={["sender", "subject", "intent"]}
+          pageSize={10}
+          columns={[
+            { key: "sender", label: translate("aiflow.emails.sender"), render: (item) => <span className="font-medium text-gray-900 dark:text-gray-100">{String(item.sender ?? "")}</span> },
+            { key: "subject", label: translate("aiflow.emails.subject"), render: (item) => <span className="text-gray-600 dark:text-gray-400">{String(item.subject ?? "")}</span> },
+            { key: "intent", label: translate("aiflow.emails.intent"), render: (item) => item.intent ? <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">{String(item.intent)}</span> : <span>—</span> },
+            { key: "priority", label: translate("aiflow.emails.priority"), render: (item) => item.priority ? <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor[String(item.priority)] ?? priorityColor.normal}`}>{String(item.priority)}</span> : <span>—</span> },
+            { key: "confidence", label: translate("aiflow.emails.confidence"), getValue: (item) => (item.confidence as number) ?? 0, render: (item) => <span className="text-gray-600 dark:text-gray-400">{item.confidence ? `${item.confidence}%` : "—"}</span> },
+            { key: "received_at", label: translate("aiflow.emails.received"), render: (item) => <span className="text-xs text-gray-500">{item.received_at ? new Date(String(item.received_at)).toLocaleString() : "—"}</span> },
+          ]}
+        />
+      )}
     </>
   );
 }
@@ -239,72 +206,36 @@ function ConnectorsTab() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
-        {loading ? (
-          <div className="p-4"><LoadingState rows={3} /></div>
-        ) : error ? (
-          <div className="p-4"><ErrorState error={error} onRetry={refetch} /></div>
-        ) : connectors.length === 0 ? (
-          <div className="p-4"><EmptyState messageKey="aiflow.connectors.noConnectors" icon="mail" /></div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-800">
-                <th className="px-4 py-3">{translate("aiflow.connectors.name")}</th>
-                <th className="px-4 py-3">{translate("aiflow.connectors.provider")}</th>
-                <th className="px-4 py-3">{translate("aiflow.connectors.host")}</th>
-                <th className="px-4 py-3">{translate("aiflow.connectors.mailbox")}</th>
-                <th className="px-4 py-3">{translate("aiflow.connectors.pollingInterval")}</th>
-                <th className="px-4 py-3">{translate("aiflow.connectors.status")}</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {connectors.map((conn) => (
-                <tr key={conn.id} className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/50">
-                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{conn.name}</td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
-                      {conn.provider.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{conn.host}:{conn.port}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{conn.mailbox}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{conn.polling_interval_minutes} min</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                      conn.is_active
-                        ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                    }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${conn.is_active ? "bg-green-500" : "bg-gray-400"}`} />
-                      {conn.is_active ? translate("aiflow.connectors.active") : "Paused"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleTest(conn.id)}
-                        disabled={testing === conn.id}
-                        className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                      >
-                        {testing === conn.id ? "..." : translate("aiflow.connectors.testConnection")}
-                      </button>
-                      <button
-                        onClick={() => handleFetch(conn.id)}
-                        className="rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-400"
-                      >
-                        {translate("aiflow.connectors.fetchNow")}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* Connectors Table — sortable, searchable */}
+      {error ? (
+        <ErrorState error={error} onRetry={refetch} />
+      ) : (
+        <DataTable
+          data={connectors as unknown as Record<string, unknown>[]}
+          loading={loading}
+          searchKeys={["name", "host", "provider"]}
+          emptyMessageKey="aiflow.connectors.noConnectors"
+          columns={[
+            { key: "name", label: translate("aiflow.connectors.name"), render: (item) => <span className="font-medium text-gray-900 dark:text-gray-100">{String(item.name)}</span> },
+            { key: "provider", label: translate("aiflow.connectors.provider"), render: (item) => <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">{String(item.provider).toUpperCase()}</span> },
+            { key: "host", label: translate("aiflow.connectors.host"), render: (item) => <span className="text-gray-600 dark:text-gray-400">{String(item.host)}:{String(item.port)}</span> },
+            { key: "mailbox", label: translate("aiflow.connectors.mailbox"), render: (item) => <span className="text-gray-600 dark:text-gray-400">{String(item.mailbox)}</span> },
+            { key: "polling_interval_minutes", label: translate("aiflow.connectors.pollingInterval"), render: (item) => <span className="text-gray-600 dark:text-gray-400">{String(item.polling_interval_minutes)} min</span> },
+            { key: "is_active", label: translate("aiflow.connectors.status"), render: (item) => {
+              const active = item.is_active as boolean;
+              return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${active ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-500"}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-green-500" : "bg-gray-400"}`} />{active ? translate("aiflow.connectors.active") : "Paused"}
+              </span>;
+            }},
+            { key: "actions", label: "Actions", sortable: false, render: (item) => (
+              <div className="flex gap-1">
+                <button onClick={() => handleTest(String(item.id))} disabled={testing === String(item.id)} className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400">{testing === String(item.id) ? "..." : translate("aiflow.connectors.testConnection")}</button>
+                <button onClick={() => handleFetch(String(item.id))} className="rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-400">{translate("aiflow.connectors.fetchNow")}</button>
+              </div>
+            )},
+          ]}
+        />
+      )}
     </div>
   );
 }
