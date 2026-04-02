@@ -182,6 +182,15 @@ const hungarianMessages = {
       chunkId: "Chunk ID", chunkContent: "Tartalom", chunkSource: "Forras", chunkCreated: "Letrehozva",
       noChunks: "Nincs chunk. Tolts fel dokumentumokat.",
     },
+    media: {
+      title: "Media Feldolgozas", subtitle: "Video/audio feltoltes es beszed-szoveg atalakitas (STT).",
+      dropzone: "Kattints vagy huzd ide a media fajlokat",
+      uploadSuccess: "Feltoltes sikeres", deleted: "Torolve",
+      jobsTitle: "Feldolgozasi feladatok", filename: "Fajlnev", status: "Allapot",
+      provider: "STT Provider", duration: "Idotartam", actions: "Muveletek",
+      noJobs: "Nincs meg feldolgozas. Tolts fel video/audio fajlokat.",
+      transcript: "Atirat", processingTime: "Feldolgozasi ido", noTranscript: "Nincs atirat.",
+    },
     cubix: {
       title: "Cubix Kurzusok", empty: "Nincs kurzus adat.",
       duration: "Idotartam", sections: "Szekciok", transcripts: "Atiratok",
@@ -304,6 +313,15 @@ const englishCustom = {
       chunkBrowser: "Chunk Browser", chunkSearch: "Search chunks...",
       chunkId: "Chunk ID", chunkContent: "Content Preview", chunkSource: "Source Document", chunkCreated: "Created",
       noChunks: "No chunks yet. Upload documents to get started.",
+    },
+    media: {
+      title: "Media Processing", subtitle: "Upload video/audio files for speech-to-text (STT) processing.",
+      dropzone: "Click to upload or drag and drop",
+      uploadSuccess: "Upload successful", deleted: "Deleted",
+      jobsTitle: "Processing Jobs", filename: "Filename", status: "Status",
+      provider: "STT Provider", duration: "Duration", actions: "Actions",
+      noJobs: "No jobs yet. Upload video/audio files to get started.",
+      transcript: "Transcript", processingTime: "Processing time", noTranscript: "No transcript available.",
     },
     cubix: {
       title: "Cubix Courses", empty: "No course data available.",

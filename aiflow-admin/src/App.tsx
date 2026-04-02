@@ -24,6 +24,7 @@ import { EmailConnectors } from "./pages/EmailConnectors";
 import { CostsPage } from "./pages/CostsPage";
 import { CollectionManager } from "./pages/CollectionManager";
 import { CollectionDetail } from "./pages/CollectionDetail";
+import { MediaViewer } from "./pages/MediaViewer";
 import { VerificationPanel } from "./verification/VerificationPanel";
 
 export const App = () => (
@@ -68,6 +69,7 @@ export const App = () => (
       <Route path="/costs" element={<CostsPage />} />
       <Route path="/rag/collections" element={<CollectionManager />} />
       <Route path="/rag/collections/:id" element={<CollectionDetail />} />
+      <Route path="/media" element={<MediaViewer />} />
       <Route path="/documents/:id/verify" element={<VerificationPanel />} />
     </CustomRoutes>
   </Admin>

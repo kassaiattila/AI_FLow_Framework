@@ -10,6 +10,7 @@ import AttachEmailIcon from "@mui/icons-material/AttachEmail";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
+import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import { Divider, Typography, Box } from "@mui/material";
 
 export const AppMenu = () => {
@@ -47,6 +48,11 @@ export const AppMenu = () => {
         to="/rag-chat"
         primaryText="RAG Chat"
         leftIcon={<ChatIcon />}
+      />
+      <Menu.Item
+        to="/media"
+        primaryText={translate("aiflow.media.title")}
+        leftIcon={<AudiotrackIcon />}
       />
       <Menu.Item
         to="/cubix"
