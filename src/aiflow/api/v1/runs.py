@@ -149,6 +149,73 @@ async def list_runs(
     return RunListResponse(runs=runs, total=total)
 
 
+class DailyStats(BaseModel):
+    """Stats for a single day."""
+    date: str
+    run_count: int
+    cost_usd: float
+    success_count: int
+    failed_count: int
+
+
+class RunStatsResponse(BaseModel):
+    """7-day trend statistics for dashboard."""
+    daily: list[DailyStats]
+    total_runs: int
+    total_cost_usd: float
+    success_rate: float
+    source: str = "backend"
+
+
+@router.get("/stats", response_model=RunStatsResponse)
+async def get_run_stats() -> RunStatsResponse:
+    """Get 7-day run statistics for dashboard KPI sparklines."""
+    daily: list[DailyStats] = []
+    total_runs = 0
+    total_cost = 0.0
+    total_success = 0
+
+    try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT
+                    DATE(started_at) AS day,
+                    COUNT(*) AS run_count,
+                    COALESCE(SUM(total_cost_usd), 0) AS cost_usd,
+                    COUNT(*) FILTER (WHERE status = 'completed') AS success_count,
+                    COUNT(*) FILTER (WHERE status = 'failed') AS failed_count
+                FROM workflow_runs
+                WHERE started_at >= NOW() - INTERVAL '7 days'
+                GROUP BY DATE(started_at)
+                ORDER BY day
+                """
+            )
+            for row in rows:
+                daily.append(DailyStats(
+                    date=row["day"].isoformat(),
+                    run_count=row["run_count"],
+                    cost_usd=float(row["cost_usd"]),
+                    success_count=row["success_count"],
+                    failed_count=row["failed_count"],
+                ))
+                total_runs += row["run_count"]
+                total_cost += float(row["cost_usd"])
+                total_success += row["success_count"]
+    except Exception as e:
+        logger.warning("run_stats_db_failed", error=str(e))
+
+    success_rate = (total_success / total_runs * 100) if total_runs > 0 else 0.0
+
+    return RunStatsResponse(
+        daily=daily,
+        total_runs=total_runs,
+        total_cost_usd=total_cost,
+        success_rate=round(success_rate, 1),
+    )
+
+
 @router.get("/{run_id}", response_model=RunItem)
 async def get_run(run_id: str) -> RunItem:
     """Get a single workflow run with step details."""

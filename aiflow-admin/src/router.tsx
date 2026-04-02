@@ -10,8 +10,10 @@ import { Login } from "./pages-new/Login";
 import { isAuthenticated } from "./lib/auth";
 import type { ReactNode } from "react";
 
-// --- Old MUI pages (temporary, will be replaced in F6.1-F6.5) ---
-import { Dashboard } from "./Dashboard";
+// --- NEW Tailwind pages (F6.1+) ---
+import { DashboardNew } from "./pages-new/Dashboard";
+
+// --- Old MUI pages (temporary, will be replaced in F6.2-F6.5) ---
 import { ProcessDocViewer } from "./pages/ProcessDocViewer";
 import { RagChat } from "./pages/RagChat";
 import { CubixViewer } from "./pages/CubixViewer";
@@ -64,8 +66,8 @@ export const router = createHashRouter([
       </RequireAuth>
     ),
     children: [
-      // Dashboard (old MUI, replaced in F6.1)
-      { index: true, element: <LegacyPage><Dashboard /></LegacyPage> },
+      // Dashboard (NEW Tailwind — F6.1)
+      { index: true, element: <DashboardNew /> },
 
       // Runs (old MUI, replaced in F6.5)
       { path: "runs", element: <LegacyPage><RunList /></LegacyPage> },
