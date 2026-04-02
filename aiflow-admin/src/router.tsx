@@ -19,6 +19,11 @@ import { ProcessDocs as ProcessDocsNew } from "./pages-new/ProcessDocs";
 import { Media as MediaNew } from "./pages-new/Media";
 import { Rpa as RpaNew } from "./pages-new/Rpa";
 import { Reviews as ReviewsNew } from "./pages-new/Reviews";
+import { Runs as RunsNew } from "./pages-new/Runs";
+import { Costs as CostsNew } from "./pages-new/Costs";
+import { Monitoring as MonitoringNew } from "./pages-new/Monitoring";
+import { Audit as AuditNew } from "./pages-new/Audit";
+import { Admin as AdminNew } from "./pages-new/Admin";
 
 // --- Old MUI pages (temporary, will be replaced in F6.2-F6.5) ---
 import { ProcessDocViewer } from "./pages/ProcessDocViewer";
@@ -76,9 +81,8 @@ export const router = createHashRouter([
       // Dashboard (NEW Tailwind — F6.1)
       { index: true, element: <DashboardNew /> },
 
-      // Runs (old MUI, replaced in F6.5)
-      { path: "runs", element: <LegacyPage><RunList /></LegacyPage> },
-      { path: "runs/:id", element: <LegacyPage><RunShow /></LegacyPage> },
+      // Runs (NEW Tailwind — F6.5)
+      { path: "runs", element: <RunsNew /> },
 
       // Documents (NEW Tailwind — F6.2)
       { path: "documents", element: <DocumentsNew /> },
@@ -90,8 +94,8 @@ export const router = createHashRouter([
       { path: "email-upload", element: <Navigate to="/emails" replace /> },
       { path: "email-connectors", element: <Navigate to="/emails" replace /> },
 
-      // Costs (old MUI, replaced in F6.5)
-      { path: "costs", element: <LegacyPage><CostsPage /></LegacyPage> },
+      // Costs (NEW Tailwind — F6.5)
+      { path: "costs", element: <CostsNew /> },
 
       // RAG (NEW Tailwind — F6.4)
       { path: "rag", element: <RagNew /> },
@@ -107,10 +111,10 @@ export const router = createHashRouter([
       { path: "reviews", element: <ReviewsNew /> },
       { path: "cubix", element: <LegacyPage><CubixViewer /></LegacyPage> },
 
-      // Operations (old MUI, replaced in F6.5)
-      { path: "monitoring", element: <LegacyPage><MonitoringDashboard /></LegacyPage> },
-      { path: "audit", element: <LegacyPage><AuditLog /></LegacyPage> },
-      { path: "admin", element: <LegacyPage><AdminPage /></LegacyPage> },
+      // Operations + Admin (NEW Tailwind — F6.5)
+      { path: "monitoring", element: <MonitoringNew /> },
+      { path: "audit", element: <AuditNew /> },
+      { path: "admin", element: <AdminNew /> },
       { path: "admin/users", element: <Navigate to="/admin" replace /> },
     ],
   },
