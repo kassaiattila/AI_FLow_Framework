@@ -28,6 +28,7 @@
 | Human Review | `11657:935` | `11658:936` | AIFlow Human Review — Desktop 1440px |
 | Monitoring | `11659:111466` | `11659:111467` | AIFlow Monitoring Dashboard — Desktop 1440px |
 | Audit Log | `11659:111546` | `11659:111547` | AIFlow Audit Log — Desktop 1440px |
+| Admin | `11659:111584` | `11659:111585` | AIFlow Admin — Desktop 1440px |
 
 ---
 

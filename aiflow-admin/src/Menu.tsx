@@ -15,6 +15,7 @@ import SmartToyIcon from "@mui/icons-material/SmartToy";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
 import HistoryIcon from "@mui/icons-material/History";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import { Divider, Typography, Box } from "@mui/material";
 
 export const AppMenu = () => {
@@ -47,6 +48,11 @@ export const AppMenu = () => {
         to="/audit"
         primaryText={translate("aiflow.audit.title")}
         leftIcon={<HistoryIcon />}
+      />
+      <Menu.Item
+        to="/admin/users"
+        primaryText={translate("aiflow.admin.menuLabel")}
+        leftIcon={<AdminPanelSettingsIcon />}
       />
 
       <Box sx={{ px: 2, pt: 2, pb: 0.5 }}>

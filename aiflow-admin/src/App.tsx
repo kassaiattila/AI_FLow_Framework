@@ -29,6 +29,7 @@ import { RpaViewer } from "./pages/RpaViewer";
 import { ReviewQueue } from "./pages/ReviewQueue";
 import { MonitoringDashboard } from "./pages/MonitoringDashboard";
 import { AuditLog } from "./pages/AuditLog";
+import { AdminPage } from "./pages/AdminPage";
 import { VerificationPanel } from "./verification/VerificationPanel";
 
 export const App = () => (
@@ -78,6 +79,7 @@ export const App = () => (
       <Route path="/reviews" element={<ReviewQueue />} />
       <Route path="/monitoring" element={<MonitoringDashboard />} />
       <Route path="/audit" element={<AuditLog />} />
+      <Route path="/admin/users" element={<AdminPage />} />
       <Route path="/documents/:id/verify" element={<VerificationPanel />} />
     </CustomRoutes>
   </Admin>

@@ -24,6 +24,7 @@ export const FIGMA_CONFIG = {
     verification: "2:9",
     monitoring: "11659:111466",
     auditLog: "11659:111546",
+    admin: "11659:111584",
   },
 
   /** Component keys (created via create_component_from_node) */
@@ -269,5 +270,12 @@ export const PAGE_MAP: PageMapping[] = [
     route: "/admin/audit",
     reactPath: "src/pages/AuditLog.tsx",
     reactComponent: "AuditLog",
+  },
+  {
+    figmaPageId: FIGMA_CONFIG.pages.admin,
+    figmaFrameName: "AIFlow Admin — Desktop 1440px",
+    route: "/admin/users",
+    reactPath: "src/pages/AdminPage.tsx",
+    reactComponent: "AdminPage",
   },
 ];
