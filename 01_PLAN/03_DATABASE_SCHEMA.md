@@ -2,8 +2,13 @@
 
 ## PostgreSQL Database: `aiflow`
 
-**Teljes schema:** 36 tabla, 13 view, 60+ index, 13 letezo migracio (001-013) + 11 tervezett (014-024)
-**Utolso frissites:** 2026-03-28 (v1 + v2 + v3 test tracking egyesittes)
+**Teljes schema:** 41 tabla, 6 view, 60+ index, 25 Alembic migracio (001-025)
+**Utolso frissites:** 2026-04-02 (v1.0.0-rc1 audit → v1.0.0 final)
+
+> **Megjegyzes:** Az eredeti terv 36 tablat es 13 view-t tartalmazott.
+> A vegleges schema 41 tabla (5 uj: api_keys, email_fetch_history, generated_diagrams, media_jobs, rpa_configs/rpa_execution_log)
+> es 6 view (v_daily_team_costs, v_instance_stats, v_model_usage, v_monthly_budget, v_test_trends, v_workflow_metrics).
+> Migraciok: 001-013 (Phase 1-7 framework), 014-025 (Fazis 0-5 service generalizacio + security fix).
 
 ---
 
@@ -1229,11 +1234,13 @@ alembic/versions/
 | 34 | conversations | ~100-500/nap | RAG chat beszelgetesek | 2+ |
 | 35 | conversation_messages | ~500-5,000/nap | Chat uzenetek + citations | 2+ |
 
-**Osszes tabla:** 36
-**Osszes view:** 13
+**Osszes tabla:** 41 (v1.0.0 final, introspect alapjan)
+**Osszes view:** 6 (v_daily_team_costs, v_instance_stats, v_model_usage, v_monthly_budget, v_test_trends, v_workflow_metrics)
 **Osszes index:** 60+
-**Osszes letezo migracio:** 13 (001-013, fizikailag letezik az `alembic/versions/`-ben)
-**Tervezett migraciok:** +11 (014-024, ld. `42_SERVICE_GENERALIZATION_PLAN.md` Section 4.10)
+**Osszes migracio:** 25 (001-025, mind fizikailag letezik az `alembic/versions/`-ben)
+  - 001-013: Framework mag (Phase 1-7)
+  - 014-024: Service generalizacio (Fazis 0-5)
+  - 025: Security fix (password_hash column)
 
 ---
 

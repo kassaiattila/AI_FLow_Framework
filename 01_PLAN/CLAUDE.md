@@ -30,7 +30,7 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - 6 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, invoice_processor, qbpp_test_automation (cfpb_complaint_router merged into email_intent_processor)
 
 ## Key numbers to keep consistent
-- 36 DB tables, 13 views, 13 letezo Alembic migracio (001-013), 11 tervezett migracio (014-024), 60+ indexes
+- 41 DB tables, 6 views, 25 Alembic migracio (001-025, mind letezik), 60+ indexes
 - Framework: 22 weeks, 7 phases (Phase 1-7 KESZ)
 - Service Generalization: Fazis 0-5 vertikalis szelet (F0=infra, F1=Document Extractor, F2=Email+Classifier, F3=RAG Engine, F4=RPA+Media+Diagram, F5=Monitoring+Governance)
 - 6 skills, src/aiflow/ 18 alkonyvtar (core, engine, models, prompts, services[tervezett], execution, evaluation, skill_system, tools, vectorstore, documents, ingestion, state, security, api, observability, cli, skills, contrib)

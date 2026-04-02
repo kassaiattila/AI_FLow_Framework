@@ -109,7 +109,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 - `01_PLAN/29_OPTIMIZATION_PLAN.md` - O1-O3 (KESZ) + framework audit eredmeny
 - `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist (Cubix tananyag alapjan!)
 - `01_PLAN/28_MODULAR_DEPLOYMENT.md` - Multi-customer instance architecture
-- `01_PLAN/22_API_SPECIFICATION.md` - API specifikacio (50+ endpoint, 58% implementalt)
+- `01_PLAN/22_API_SPECIFICATION.md` - API specifikacio (114 endpoint, 19 router)
 
 ### Database:
 - PostgreSQL pgvector @ localhost:5433 (Docker: `docker compose up -d db`)
@@ -519,7 +519,7 @@ regression_diff.json. Stored in tests/artifacts/{date}/{run_id}/
 Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
 
 **Core:**
-- 01_ARCHITECTURE, 02_DIRECTORY_STRUCTURE, 03_DATABASE_SCHEMA (36 tabla, 13 view, 13 letezo migracio)
+- 01_ARCHITECTURE, 02_DIRECTORY_STRUCTURE, 03_DATABASE_SCHEMA (41 tabla, 6 view, 25 Alembic migracio)
 - 04_IMPLEMENTATION_PHASES (22 het, konszolidalt), 05_TECH_STACK (PyJWT, bcrypt, APScheduler 4.x)
 
 **Operations:**
@@ -541,7 +541,7 @@ Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
 
 **Security & Operations:**
 - 20_SECURITY_HARDENING, 21_DEPLOYMENT_OPERATIONS
-- 22_API_SPECIFICATION (50+ endpoint), 23_CONFIGURATION_REFERENCE
+- 22_API_SPECIFICATION (114 endpoint, 19 router), 23_CONFIGURATION_REFERENCE
 
 **Environment:**
 - **27_DEVELOPMENT_ENVIRONMENT** - uv, .venv, Docker Compose, Makefile, onboarding

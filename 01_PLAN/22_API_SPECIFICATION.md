@@ -1,9 +1,10 @@
 # AIFlow Framework -- REST API Specification
 
-> **Version:** 1.0.0
+> **Version:** 1.0.0 (v1.0.0-rc1 → v1.0.0 final)
 > **Framework:** FastAPI (Python 3.12+)
-> **Utolso frissites:** 2026-03-28
+> **Utolso frissites:** 2026-04-02
 > **Megjegyzes:** Ez a dokumentum az AIFlow framework teljes REST API specifikaciojat tartalmazza.
+> **Statisztika:** 114 endpoint, 19 router, auth middleware minden /api/v1/* endpoint-on.
 
 ---
 
@@ -14,9 +15,28 @@
 | **Base URL** | `https://{host}/api/v1/` |
 | **Verziozas** | URI-prefix: `/api/v1/`, `/api/v2/` stb. |
 | **Content-Type** | `application/json` (minden request es response) |
-| **Datumformatum** | ISO 8601 -- `2026-03-28T14:30:00Z` |
+| **Datumformatum** | ISO 8601 -- `2026-04-02T14:30:00Z` |
 | **Karakterkodolas** | UTF-8 |
-| **Autentikacio** | Bearer JWT token VAGY `X-API-Key` header |
+| **Autentikacio** | Bearer JWT token VAGY API key (`Authorization: Bearer aiflow_sk_...`) |
+
+### 1.0.1 API Prefix Variansok (Dokumentalt Elteres)
+
+> **3 fele prefix letezik.** A legtobb endpoint `/api/v1/` prefix-et hasznal (standard).
+> Ket router eltero prefix-et hasznal kompatibilitasi okokbol:
+
+| Prefix | Router | Endpoint peldak | Ok |
+|--------|--------|----------------|-----|
+| (nincs) | `health.py` | `/health`, `/health/live`, `/health/ready` | Kubernetes probe kompatibilitas |
+| `/v1` | `chat_completions.py` | `/v1/chat/completions` | OpenAI API kompatibilitas |
+| `/v1` | `feedback.py` | `/v1/feedback/submit`, `/v1/feedback/stats` | OpenAI API kompatibilitas |
+| `/api/v1` | **Minden mas (16 router)** | `/api/v1/runs`, `/api/v1/documents`, stb. | Standard prefix |
+
+### 1.0.2 Autentikacio (v1.0.0 — AuthMiddleware)
+
+> **Minden `/api/v1/*` endpoint autentikaciot kovetel** (Bearer JWT vagy API key).
+> Kivetel (whitelist): `/api/v1/auth/login`, `/health/*`, `/docs`, `/redoc`, `/openapi.json`.
+> Admin endpoint-ok (`/api/v1/admin/*`) admin role-t kovetlnek (RBAC).
+> API key formatum: `aiflow_sk_<random>`, DB-bol validalva (api_keys tabla).
 
 ### 1.1 Paginacio (Cursor-based)
 

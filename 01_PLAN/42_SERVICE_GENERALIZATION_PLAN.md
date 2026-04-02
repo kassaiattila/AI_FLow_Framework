@@ -1,9 +1,15 @@
 # AIFlow Service Generalizalas - Reszletes Atalakitasi Terv
 
-**Datum:** 2026-04-01
-**Alapja:** Backend audit (endpoint vs dokumentacio), dead code analzis, skill pipeline analzis, felhasznaloi vizioA
+**Datum:** 2026-04-01 (terv) → 2026-04-02 (v1.0.0-rc1 BEFEJEZVE)
+**Alapja:** Backend audit (endpoint vs dokumentacio), dead code analzis, skill pipeline analzis, felhasznaloi vizio
 **Kiindulo verzio:** `v0.9.0-stable` (rollback pont)
-**Status:** TERVEZES
+**Vegso verzio:** `v1.0.0-rc1` (tag: 2026-04-02), security fix-ek → `v1.0.0` (folyamatban)
+**Status:** BEFEJEZVE (F0-F5 COMPLETE)
+
+> **Eredmenyek (v1.0.0-rc1):** 180 Python modul, 114 API endpoint (19 router), 41 DB tabla (25 Alembic migracio),
+> 15 service, 18 admin UI oldal, teljes HU/EN i18n.
+> **Audit:** `01_PLAN/AUDIT_REPORT_v1.0.0-rc1.md` — teljes terv/kod/API/security audit.
+> **Security fix-ek (v1.0.0):** `01_PLAN/AUDIT_FIX_PLAN.md` — T1-T13, Sprint 1-4.
 
 > **Elozmeny:** Az eredeti framework implementacio (Phase 1-7, Het 1-22, ld. `04_IMPLEMENTATION_PHASES.md`) **KESZ**.
 > A `src/aiflow/` framework mag teljes egeszeben implementalva lett (v0.1.0 → v0.9.0-stable).
@@ -910,6 +916,7 @@ alembic history
 **Vegeredmeny:** Stabil infra alap — cache, config versioning, rate limit, retry, schema registry, auth.
 **Tag:** `v0.9.1-infra`
 **Teszteles:** curl tesztek (cache hit/miss, rate limit 429, config CRUD, auth refresh). NEM kell UI.
+**Status:** ✅ COMPLETE (2026-04-01)
 
 ---
 
@@ -933,6 +940,7 @@ alembic history
 **Vegeredmeny:** Dokumentum feldolgozas TELJESEN mukodik: upload → extract → verify → save.
 **Tag:** `v0.10.0-document-extractor`
 **Elfogadasi kriterium:** Playwright E2E teszten valos PDF feldolgozas + verifikacio atment.
+**Status:** ✅ COMPLETE (2026-04-01)
 
 ---
 
@@ -957,6 +965,7 @@ alembic history
 **Vegeredmeny:** Email feldolgozas TELJESEN mukodik: connector config → fetch → classify → route → show.
 **Tag:** `v0.10.1-email-connector`
 **Elfogadasi kriterium:** Playwright E2E teszten valos email feldolgozas + intent elemzes atment.
+**Status:** ✅ COMPLETE (2026-04-01)
 
 ---
 
@@ -980,6 +989,7 @@ alembic history
 **Vegeredmeny:** RAG TELJESEN mukodik: kollekcio → ingest → query → chat → feedback → stats.
 **Tag:** `v0.11.0-rag-engine`
 **Elfogadasi kriterium:** Playwright E2E teszten valos PDF ingest + chat + feedback atment.
+**Status:** ✅ COMPLETE (2026-04-01)
 
 ---
 
@@ -1029,6 +1039,7 @@ alembic history
 **Vegeredmeny:** Mind a 7 domain service TELJESEN mukodik. Skills API: detail, manifest, ingest.
 **Tag:** `v0.12.0-complete-services`
 **Elfogadasi kriterium:** Minden service Playwright E2E teszten atment. Cubix skill composable.
+**Status:** ✅ COMPLETE (2026-04-02)
 
 ---
 
@@ -1053,8 +1064,9 @@ alembic history
 **Vegeredmeny:** Production-ready framework, 90%+ API lefedettse, monitoring, audit, admin.
 **Tag:** `v1.0.0-rc1`
 **Elfogadasi kriterium:** L4 Complete regresszio atment. Minden zombie tabla API-t kapott.
+**Status:** ✅ COMPLETE (2026-04-02) — tag: v1.0.0-rc1
 
-**Vegeredmeny:** Production-ready framework, 90%+ API lefedettse.
+**Vegeredmeny:** Production-ready framework, 114 API endpoint, 41 DB tabla, 18 admin UI oldal.
 **Tag:** `v1.0.0-rc1`
 
 ---
