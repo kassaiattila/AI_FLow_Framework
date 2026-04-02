@@ -27,10 +27,10 @@ Papir vagy digitalis PDF dokumentumbol strukturalt, ellenorzott adatot kinyerni 
 
 ## Steps (User Journey)
 
-### 1. Dokumentum feltoltes (Document Upload oldal)
+### 1. Dokumentum feltoltes (Documents oldal — Upload tab)
 
-**URL:** `/document-upload`
-**Felhasznalo:** Megnyitja a "Document Upload" oldalt a sidebar menubol.
+**URL:** `/documents` → **Upload** tab (v1.1 konszolidacio: `/document-upload` megszunt)
+**Felhasznalo:** Megnyitja a "Documents" oldalt es atvalt az "Upload" tab-ra.
 
 - Drag-and-drop vagy kattintas a dropzone-ra
 - 1 vagy tobb PDF fajl kivalasztasa (max 20MB/fajl)

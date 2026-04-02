@@ -30,8 +30,8 @@ Email postafiokok csatlakoztatasa a rendszerhez (IMAP/O365), beerkezett levelek 
 
 ### 1. Email Connector konfiguracio (Connectors oldal)
 
-**URL:** `/email-connectors`
-**Felhasznalo:** Megnyitja a "Connectors" oldalt a sidebar menubol.
+**URL:** `/emails` → **Connectors** tab (v1.1 konszolidacio: `/email-connectors` megszunt)
+**Felhasznalo:** Megnyitja az "Emails" oldalt es atvalt a "Connectors" tab-ra.
 
 - Latja a meglevo connectorok tablazatat (nev, provider, szerver, postafink, polling, aktiv, utolso lekeres)
 - **Uj connector:** "+ Uj connector" gombra kattint

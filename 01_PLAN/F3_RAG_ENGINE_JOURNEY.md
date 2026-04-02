@@ -33,8 +33,8 @@ Barmilyen dokumentumgyujtemenyt tudasbazissa alakitani: kollekcio letrehozas →
 
 ### 1. Kollekcio letrehozas (Collection Manager oldal)
 
-**URL:** `/rag/collections`
-**Felhasznalo:** Megnyitja a "RAG Collections" oldalt a sidebar menubol.
+**URL:** `/rag` → **Collections** tab (v1.1 konszolidacio: `/rag/collections` → `/rag`)
+**Felhasznalo:** Megnyitja a "RAG" oldalt a sidebar menubol (alapertelmezett: Collections tab).
 
 - Latja a meglevo kollekcok listaját: nev, leiras, dok szam, chunk szam, letrehozva, statusz
 - **Uj kollekcio:** "+ Uj kollekcio" gomb → dialog:
@@ -47,7 +47,7 @@ Barmilyen dokumentumgyujtemenyt tudasbazissa alakitani: kollekcio letrehozas →
 
 ### 2. Dokumentumok feltoltese (Ingestion)
 
-**URL:** `/rag/collections/{id}` (kollekcio reszletezio oldal)
+**URL:** `/rag/{id}` (kollekcio reszletezo oldal, v1.1: `/rag/collections/{id}` → `/rag/{id}`)
 **Felhasznalo:** A kollekcio sorara kattint, vagy "Ingest" gyors gomb.
 
 - Drag-and-drop zona: PDF, DOCX, TXT, MD, XLSX fajlok (tobb fajl egyszerre)
