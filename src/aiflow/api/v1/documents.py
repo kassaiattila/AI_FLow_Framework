@@ -11,6 +11,7 @@ import os
 import tempfile
 import shutil
 import time as _time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -304,6 +305,13 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
             "format": "all",
         }
 
+        # Create workflow_run record for tracking
+        run_id = str(uuid.uuid4())
+        run_start = _time.perf_counter()
+        step_records: list[dict[str, Any]] = []
+        run_status = "running"
+        run_error: str | None = None
+
         for i, (name, step_fn) in enumerate(pipeline):
             yield f"data: {json.dumps({'event': 'step_start', 'step': i, 'name': name})}\n\n"
             # Ensure the step_start event flushes before blocking step runs
@@ -315,12 +323,20 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
                 else:
                     data = await step_fn(data)
                 elapsed_ms = int((_time.perf_counter() - t) * 1000)
+                step_records.append({"name": name, "status": "completed", "duration_ms": elapsed_ms})
                 yield f"data: {json.dumps({'event': 'step_done', 'step': i, 'name': name, 'elapsed_ms': elapsed_ms})}\n\n"
             except Exception as e:
                 elapsed_ms = int((_time.perf_counter() - t) * 1000)
+                step_records.append({"name": name, "status": "failed", "duration_ms": elapsed_ms, "error": str(e)})
+                run_status = "failed"
+                run_error = str(e)
                 logger.error("process_stream_step_failed", step=name, error=str(e))
                 yield f"data: {json.dumps({'event': 'error', 'step': i, 'name': name, 'error': str(e), 'elapsed_ms': elapsed_ms})}\n\n"
-                return
+                break
+
+        total_duration_ms = int((_time.perf_counter() - run_start) * 1000)
+        if run_status == "running":
+            run_status = "completed"
 
         # Build final result
         results = []
@@ -333,6 +349,32 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
                 "confidence": f.get("validation", {}).get("confidence_score", 0),
                 "error": f.get("error"),
             })
+
+        # Persist workflow_run + step_runs to DB for Runs/Costs tracking
+        try:
+            pool = await get_pool()
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    """INSERT INTO workflow_runs
+                       (id, workflow_name, workflow_version, skill_name, status, input_data,
+                        started_at, completed_at, total_duration_ms, total_cost_usd, error)
+                       VALUES ($1, $2, $3, $4, $5, $6,
+                               NOW() - MAKE_INTERVAL(secs := $7::float / 1000),
+                               NOW(), $7, $8, $9)""",
+                    uuid.UUID(run_id), "invoice_processing", "1.0", "invoice_processor",
+                    run_status, json.dumps({"files": file_list}),
+                    float(total_duration_ms), 0.0, run_error,
+                )
+                for idx, sr in enumerate(step_records):
+                    await conn.execute(
+                        """INSERT INTO step_runs
+                           (id, workflow_run_id, step_name, step_index, status, duration_ms)
+                           VALUES ($1, $2, $3, $4, $5, $6)""",
+                        uuid.uuid4(), uuid.UUID(run_id), sr["name"], idx,
+                        sr["status"], float(sr["duration_ms"]),
+                    )
+        except Exception as e:
+            logger.warning("workflow_run_persist_failed", error=str(e), run_id=run_id)
 
         yield f"data: {json.dumps({'event': 'complete', 'results': results})}\n\n"
 
