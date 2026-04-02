@@ -32,6 +32,83 @@
 
 ---
 
+## v1.1 Redesign — Unified Tailwind + Untitled UI (2026-04-02)
+
+> **Figma Page:** "AIFlow v1.1 — Redesign" (ID: `11662:113170`)
+> **Design System:** Untitled UI (Tables, Charts, Badges, Inputs — innen instance-oljuk)
+> **Stack:** Tailwind v4 + React Aria (kódban), Untitled UI (Figma-ban)
+
+### v1.1 Frame Registry (konszolidalt, 15 frame)
+
+| # | Page | Frame ID | Route | Megjegyzes |
+|---|------|----------|-------|------------|
+| 01 | Login | `11662:113171` | `/login` | UJ oldal — email/password form |
+| 02 | Dashboard | `11662:113172` | `/` | 3 KPI sparkline + Active Pipelines + Skill Cards |
+| 03 | Documents (Tabbed) | `11662:113173` | `/documents` | **List + Upload** tab, 3 KPI, filter, tabla |
+| 04 | Emails (Tabbed) | `11662:113174` | `/emails` | **Inbox + Upload + Connectors** tab |
+| 05 | RAG (Tabbed) | `11662:113175` | `/rag` | **Collections + Chat** tab |
+| 06 | Runs | `11662:113176` | `/runs` | Run lista + detail |
+| 07 | Costs | `11662:113177` | `/costs` | recharts BarChart + LineChart |
+| 08 | Monitoring | `11662:113178` | `/monitoring` | 8 service health cards |
+| 09 | Audit Log | `11662:113179` | `/audit` | Filter + export + tabla |
+| 10 | Admin | `11662:113180` | `/admin` | Users + API Keys tabs |
+| 11 | Process Docs | `11662:113181` | `/process-docs` | Split: input + Mermaid preview |
+| 12 | Media | `11662:113182` | `/media` | Upload + STT jobs tabla |
+| 13 | RPA | `11662:113183` | `/rpa` | Configs + Execution log |
+| 14 | Reviews | `11662:113184` | `/reviews` | Pending + History |
+| 15 | Verification | `11662:113185` | `/documents/:id/verify` | Canvas + DataPointEditor |
+
+### v1.1 Sidebar Structure (4 collapsible groups, 11 items)
+```
+[Dashboard]                      — always visible
+── OPERATIONS ──                 — collapsible, default open
+   Workflow Runs    /runs
+   Cost Analytics   /costs
+   Monitoring       /monitoring
+── DATA ──                       — collapsible, default open
+   Documents        /documents   (tabbed: List + Upload)
+   Emails           /emails      (tabbed: Inbox + Upload + Connectors)
+── AI SERVICES ──                — collapsible, default open
+   RAG              /rag         (tabbed: Collections + Chat)
+   Process Docs     /process-docs
+   Media            /media
+   RPA              /rpa
+── ADMIN ──                      — collapsible, default collapsed
+   Users & Keys     /admin
+   Audit Log        /audit
+   Human Review     /reviews
+```
+
+### v1.1 Design Tokens (Tailwind v4)
+```
+Brand:     #4F46E5 (primary), #EEF2FF (active bg)
+Surface:   #F8FAFC (light bg), #0F172A (dark bg), #FFFFFF (cards)
+Border:    #E2E8F0
+Text:      #0F172A (primary), #64748B (secondary)
+Status:    #059669 (success), #D97706 (warning), #DC2626 (error)
+Font:      Inter, 13px base, 8px spacing grid
+Cards:     12px radius, 1px border, no shadow
+Buttons:   8px radius, 600 weight
+```
+
+### v1.1 Untitled UI Components Used
+| Component | Figma Source Page | Usage |
+|-----------|------------------|-------|
+| Table (Companies) | `↳ Tables` | Runs, Documents, Emails, Audit, Admin |
+| Table header cell | `↳ Tables` | Sort arrows, checkboxes |
+| Table cell (Badge) | `↳ Tables` | Status columns |
+| Line & Bar chart | `↳ Charts` | Costs daily trend, Dashboard sparklines |
+| Pie chart | `↳ Charts` | Costs by-model |
+| Progress circle | `↳ Charts` | Pipeline progress |
+| Badges | `↳ Badges` | Status, Priority, Role |
+| Inputs | `↳ Inputs` | Search, filters, forms |
+| Buttons | `↳ Buttons` | Primary (purple), Secondary (white), Destructive (red) |
+| Tabs | `↳ 🔒 Tabs` | Documents, Emails, RAG, Admin page tabs |
+| Empty states | `↳ 🔒 Empty states` | No data, upload prompt |
+| File upload | `↳ 🔒 File upload` | Documents Upload, Media Upload |
+
+---
+
 ## Global Shell (every page)
 
 ### Sidebar Navigation
