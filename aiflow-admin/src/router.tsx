@@ -14,6 +14,11 @@ import type { ReactNode } from "react";
 import { DashboardNew } from "./pages-new/Dashboard";
 import { Documents as DocumentsNew } from "./pages-new/Documents";
 import { Emails as EmailsNew } from "./pages-new/Emails";
+import { Rag as RagNew } from "./pages-new/Rag";
+import { ProcessDocs as ProcessDocsNew } from "./pages-new/ProcessDocs";
+import { Media as MediaNew } from "./pages-new/Media";
+import { Rpa as RpaNew } from "./pages-new/Rpa";
+import { Reviews as ReviewsNew } from "./pages-new/Reviews";
 
 // --- Old MUI pages (temporary, will be replaced in F6.2-F6.5) ---
 import { ProcessDocViewer } from "./pages/ProcessDocViewer";
@@ -88,18 +93,18 @@ export const router = createHashRouter([
       // Costs (old MUI, replaced in F6.5)
       { path: "costs", element: <LegacyPage><CostsPage /></LegacyPage> },
 
-      // RAG (old MUI, replaced in F6.4)
-      { path: "rag", element: <LegacyPage><CollectionManager /></LegacyPage> },
+      // RAG (NEW Tailwind — F6.4)
+      { path: "rag", element: <RagNew /> },
       { path: "rag/collections", element: <Navigate to="/rag" replace /> },
-      { path: "rag/collections/:id", element: <LegacyPage><CollectionDetail /></LegacyPage> },
-      { path: "rag/:id", element: <LegacyPage><CollectionDetail /></LegacyPage> },
+      { path: "rag/collections/:id", element: <RagNew /> },
+      { path: "rag/:id", element: <RagNew /> },
       { path: "rag-chat", element: <Navigate to="/rag" replace /> },
 
-      // AI Services (old MUI, replaced in F6.4)
-      { path: "process-docs", element: <LegacyPage><ProcessDocViewer /></LegacyPage> },
-      { path: "media", element: <LegacyPage><MediaViewer /></LegacyPage> },
-      { path: "rpa", element: <LegacyPage><RpaViewer /></LegacyPage> },
-      { path: "reviews", element: <LegacyPage><ReviewQueue /></LegacyPage> },
+      // AI Services (NEW Tailwind — F6.4)
+      { path: "process-docs", element: <ProcessDocsNew /> },
+      { path: "media", element: <MediaNew /> },
+      { path: "rpa", element: <RpaNew /> },
+      { path: "reviews", element: <ReviewsNew /> },
       { path: "cubix", element: <LegacyPage><CubixViewer /></LegacyPage> },
 
       // Operations (old MUI, replaced in F6.5)
