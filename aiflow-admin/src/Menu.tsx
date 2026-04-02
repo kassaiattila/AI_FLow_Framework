@@ -13,6 +13,8 @@ import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import RateReviewIcon from "@mui/icons-material/RateReview";
+import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import HistoryIcon from "@mui/icons-material/History";
 import { Divider, Typography, Box } from "@mui/material";
 
 export const AppMenu = () => {
@@ -27,6 +29,24 @@ export const AppMenu = () => {
         to="/costs"
         primaryText={translate("aiflow.costs.title")}
         leftIcon={<AttachMoneyIcon />}
+      />
+
+      <Box sx={{ px: 2, pt: 2, pb: 0.5 }}>
+        <Divider />
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+          {translate("aiflow.menu.admin")}
+        </Typography>
+      </Box>
+
+      <Menu.Item
+        to="/monitoring"
+        primaryText={translate("aiflow.monitoring.title")}
+        leftIcon={<MonitorHeartIcon />}
+      />
+      <Menu.Item
+        to="/audit"
+        primaryText={translate("aiflow.audit.title")}
+        leftIcon={<HistoryIcon />}
       />
 
       <Box sx={{ px: 2, pt: 2, pb: 0.5 }}>

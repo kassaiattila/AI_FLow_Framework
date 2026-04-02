@@ -26,6 +26,8 @@
 | Collection Detail | `11648:118043` | `11648:118044` | AIFlow Collection Detail — Desktop 1440px |
 | RPA Browser | `11655:845` | `11655:846` | AIFlow RPA Browser — Desktop 1440px |
 | Human Review | `11657:935` | `11658:936` | AIFlow Human Review — Desktop 1440px |
+| Monitoring | `11659:111466` | `11659:111467` | AIFlow Monitoring Dashboard — Desktop 1440px |
+| Audit Log | `11659:111546` | `11659:111547` | AIFlow Audit Log — Desktop 1440px |
 
 ---
 
@@ -824,3 +826,178 @@ Sidebar + Main:
 | Date picker | Input + Dropdown with calendar grid |
 | Card headers | Frame + text + divider |
 | Navigation | Frame + nav items (already in Dashboard) |
+
+---
+
+## Page: Monitoring Dashboard (/admin/monitoring)
+
+**Figma Page:** `AIFlow — Monitoring` (ID: `11659:111466`)
+**Figma Frame:** `AIFlow Monitoring Dashboard — Desktop 1440px` (ID: `11659:111467`)
+**Data Source:** `GET /api/v1/admin/health` + `GET /api/v1/admin/metrics`
+**Phase:** F5a
+
+### Layout
+```
+┌─ Sidebar (280px) ─┬─ Main Content ──────────────────────────┐
+│                    │                                          │
+│  AI Flow           │  Page Header                             │
+│  MONITOR           │  "Monitoring"                            │
+│  Overview          │  "Service health and performance metrics" │
+│  Runs              │                                          │
+│  Documents         │  Status Banner (green/yellow/red)        │
+│  Emails            │  ┌──────────────────────────────────────┐│
+│  Cost Analytics    │  │ ✓ All Systems Operational — 9/9      ││
+│  ADMIN             │  │   Last checked: 2 min ago            ││
+│  ● Monitoring      │  └──────────────────────────────────────┘│
+│  Audit Log         │                                          │
+│  Users & Keys      │  KPI Cards (3 columns)                   │
+│  SKILLS            │  ┌──────────┬──────────┬────────────────┐│
+│  Process Docs      │  │Total Svc │Avg Ltcy  │ Overall Uptime ││
+│  RAG Chat          │  │  9       │ 152 ms   │   100%         ││
+│  ...               │  │9h·0d·0dn│p95: 234ms│100% (last 24h) ││
+│                    │  └──────────┴──────────┴────────────────┘│
+│                    │                                          │
+│                    │  Service Health (3×3 grid)                │
+│                    │  ┌─────────┐ ┌─────────┐ ┌─────────────┐│
+│                    │  │●Postgres│ │● Redis  │ │● Doc Extract││
+│                    │  │Healthy  │ │Healthy  │ │Healthy      ││
+│                    │  │94ms p95 │ │0ms  p95 │ │94ms p95     ││
+│                    │  └─────────┘ └─────────┘ └─────────────┘│
+│                    │  ┌─────────┐ ┌─────────┐ ┌─────────────┐│
+│                    │  │●Email   │ │● RAG    │ │● Diagram    ││
+│                    │  │Healthy  │ │Healthy  │ │Healthy      ││
+│                    │  └─────────┘ └─────────┘ └─────────────┘│
+│                    │  ┌─────────┐ ┌─────────┐ ┌─────────────┐│
+│                    │  │●Media   │ │● RPA    │ │● Human Rev  ││
+│                    │  │Healthy  │ │Healthy  │ │Healthy      ││
+│                    │  └─────────┘ └─────────┘ └─────────────┘│
+└────────────────────┴──────────────────────────────────────────┘
+```
+
+### Components Used
+| Element | Component | Props/Variant |
+|---------|-----------|---------------|
+| Page title | Text `display-sm` semibold | fg-primary |
+| Subtitle | Text `text-md` | fg-tertiary |
+| Status banner | Frame (rounded, green/yellow/red bg) | success/warning/error |
+| KPI card | Frame (rounded-12, indigo-50 bg) | label, value, detail |
+| KPI value | Text `display-md` semibold | fg-primary |
+| KPI label | Text `text-xs` medium | fg-tertiary |
+| Service card | Frame (rounded-10, 1px border) | name, status, metrics, detail |
+| Status dot | ● character | green/yellow/red |
+| Status text | Text `text-sm` medium | success/warning/error color |
+| Metrics line | Text `text-xs` | fg-tertiary |
+
+### States
+- **Loading:** Skeleton placeholders for status banner + KPI cards + service grid
+- **Error:** Red banner "Failed to load health data" + Retry button
+- **Empty:** N/A (always shows all registered services)
+- **Degraded:** Yellow banner "X services degraded", affected cards with yellow dot
+- **Down:** Red banner "X services down", affected cards with red dot + red border
+
+### Interactions
+- Click service card → expand to show detailed history/chart (future)
+- Refresh button → re-fetch health data
+- Auto-refresh every 30 seconds
+
+### i18n Keys
+- `monitoring.title`: "Monitoring" / "Monitoring"
+- `monitoring.subtitle`: "Service health and performance metrics" / "Szolgáltatás állapot és teljesítmény metrikák"
+- `monitoring.allOperational`: "All Systems Operational" / "Minden rendszer működik"
+- `monitoring.lastChecked`: "Last checked" / "Utolsó ellenőrzés"
+- `monitoring.totalServices`: "Total Services" / "Összes szolgáltatás"
+- `monitoring.avgLatency`: "Avg Latency" / "Átlag késleltetés"
+- `monitoring.overallUptime`: "Overall Uptime" / "Összes üzemidő"
+- `monitoring.healthy`: "Healthy" / "Egészséges"
+- `monitoring.degraded`: "Degraded" / "Korlátozott"
+- `monitoring.down`: "Down" / "Leállt"
+- `monitoring.serviceHealth`: "Service Health" / "Szolgáltatás állapot"
+
+---
+
+## Page: Audit Log (/admin/audit)
+
+**Figma Page:** `AIFlow — Audit Log` (ID: `11659:111546`)
+**Figma Frame:** `AIFlow Audit Log — Desktop 1440px` (ID: `11659:111547`)
+**Data Source:** `GET /api/v1/admin/audit` + `GET /api/v1/admin/audit/{id}` + `POST /api/v1/admin/audit/export`
+**Phase:** F5b
+
+### Layout
+```
+┌─ Sidebar (280px) ─┬─ Main Content ──────────────────────────┐
+│                    │                                          │
+│  ADMIN             │  Page Header                             │
+│  Monitoring        │  "Audit Log"          [Export ▾]         │
+│  ● Audit Log       │  "Track all system operations..."       │
+│  Users & Keys      │                                          │
+│                    │  Filter Bar                               │
+│                    │  ┌──────────────────────────────────────┐│
+│                    │  │Date: Last 7d ▾│Action: All ▾│User ▾│🔍││
+│                    │  └──────────────────────────────────────┘│
+│                    │                                          │
+│                    │  Audit Table                              │
+│                    │  ┌──────────────────────────────────────┐│
+│                    │  │ Timestamp│Action │Resource│User│Detail││
+│                    │  │──────────────────────────────────────││
+│                    │  │ 05:06:35 │doc.up │Doc #42 │admin│PDF  ││
+│                    │  │ 04:58:12 │email  │Email187│syst │0.94 ││
+│                    │  │ 04:45:03 │review │Rev #15 │admin│appr ││
+│                    │  │ 04:32:19 │rag.q  │"docs"  │user │ÁSZF ││
+│                    │  │ 04:15:44 │diag.g │PDoc #8 │admin│BPMN ││
+│                    │  │──────────────────────────────────────││
+│                    │  │ 1-5 of 142       ← Prev 1 2 3 Next →││
+│                    │  └──────────────────────────────────────┘│
+└────────────────────┴──────────────────────────────────────────┘
+```
+
+### Components Used
+| Element | Component | Props/Variant |
+|---------|-----------|---------------|
+| Page title | Text `display-sm` semibold | fg-primary |
+| Subtitle | Text `text-md` | fg-tertiary |
+| Export button | Button primary (indigo bg) | "Export" |
+| Filter bar | Frame (rounded-8, gray-50 bg) | dropdowns + search |
+| Filter dropdown | Text `text-sm` medium | with ▾ indicator |
+| Search input | Text `text-sm` | placeholder, fg-quaternary |
+| Table | Frame (rounded-10, 1px border) | header + rows + pagination |
+| Table header | Frame (gray-100 bg) | column labels |
+| Table row | Frame (alternating white/gray-50) | data cells |
+| Pagination | Text links + page numbers | indigo active |
+
+### Table Columns
+| Column | Width | Content |
+|--------|-------|---------|
+| Timestamp | 180px | `YYYY-MM-DD HH:mm:ss` |
+| Action | 160px | `service.action` format |
+| Resource | 180px | Resource type + ID |
+| User | 160px | Email or "system" |
+| Details | flex | Action-specific details |
+
+### States
+- **Loading:** Table skeleton (header + 5 shimmer rows)
+- **Error:** Alert "Failed to load audit log" + Retry
+- **Empty:** "No audit entries found" + adjust filters suggestion
+- **Filtered empty:** "No entries match filters" + Clear filters button
+
+### Interactions
+- Click row → slide-over panel with full audit entry details (JSON)
+- Export button → dropdown (CSV / JSON) → triggers POST /admin/audit/export
+- Filters → update query params → re-fetch
+- Date range picker → calendar modal
+- Pagination → standard prev/next + page numbers
+
+### i18n Keys
+- `audit.title`: "Audit Log" / "Audit napló"
+- `audit.subtitle`: "Track all system operations and user actions" / "Rendszer műveletek és felhasználói akciók nyomon követése"
+- `audit.export`: "Export" / "Exportálás"
+- `audit.filterDate`: "Date range" / "Időszak"
+- `audit.filterAction`: "Action" / "Művelet"
+- `audit.filterUser`: "User" / "Felhasználó"
+- `audit.search`: "Search..." / "Keresés..."
+- `audit.timestamp`: "Timestamp" / "Időpont"
+- `audit.action`: "Action" / "Művelet"
+- `audit.resource`: "Resource" / "Erőforrás"
+- `audit.user`: "User" / "Felhasználó"
+- `audit.details`: "Details" / "Részletek"
+- `audit.showing`: "Showing %{from}–%{to} of %{total} entries" / "%{from}–%{to} / %{total} bejegyzés"
+- `audit.noEntries`: "No audit entries found" / "Nincs audit bejegyzés"

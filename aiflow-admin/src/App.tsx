@@ -27,6 +27,8 @@ import { CollectionDetail } from "./pages/CollectionDetail";
 import { MediaViewer } from "./pages/MediaViewer";
 import { RpaViewer } from "./pages/RpaViewer";
 import { ReviewQueue } from "./pages/ReviewQueue";
+import { MonitoringDashboard } from "./pages/MonitoringDashboard";
+import { AuditLog } from "./pages/AuditLog";
 import { VerificationPanel } from "./verification/VerificationPanel";
 
 export const App = () => (
@@ -74,6 +76,8 @@ export const App = () => (
       <Route path="/media" element={<MediaViewer />} />
       <Route path="/rpa" element={<RpaViewer />} />
       <Route path="/reviews" element={<ReviewQueue />} />
+      <Route path="/monitoring" element={<MonitoringDashboard />} />
+      <Route path="/audit" element={<AuditLog />} />
       <Route path="/documents/:id/verify" element={<VerificationPanel />} />
     </CustomRoutes>
   </Admin>

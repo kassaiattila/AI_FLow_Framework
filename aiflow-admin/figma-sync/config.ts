@@ -22,6 +22,8 @@ export const FIGMA_CONFIG = {
     costs: "2:7",
     skillViewers: "2:8",
     verification: "2:9",
+    monitoring: "11659:111466",
+    auditLog: "11659:111546",
   },
 
   /** Component keys (created via create_component_from_node) */
@@ -253,5 +255,19 @@ export const PAGE_MAP: PageMapping[] = [
     route: "/invoices/:id/verify",
     reactPath: "src/verification/VerificationPanel.tsx",
     reactComponent: "VerificationPanel",
+  },
+  {
+    figmaPageId: FIGMA_CONFIG.pages.monitoring,
+    figmaFrameName: "AIFlow Monitoring Dashboard — Desktop 1440px",
+    route: "/admin/monitoring",
+    reactPath: "src/pages/MonitoringDashboard.tsx",
+    reactComponent: "MonitoringDashboard",
+  },
+  {
+    figmaPageId: FIGMA_CONFIG.pages.auditLog,
+    figmaFrameName: "AIFlow Audit Log — Desktop 1440px",
+    route: "/admin/audit",
+    reactPath: "src/pages/AuditLog.tsx",
+    reactComponent: "AuditLog",
   },
 ];
