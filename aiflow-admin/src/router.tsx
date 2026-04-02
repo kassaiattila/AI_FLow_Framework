@@ -1,7 +1,6 @@
 /**
  * AIFlow Router — React Router v7 configuration with auth guard.
- * During F6.0, old MUI pages are wrapped and served through the new shell.
- * They will be replaced one by one in F6.1-F6.5.
+ * F6.6: All pages migrated to Tailwind. Only Cubix + Verification remain as legacy.
  */
 
 import { createHashRouter, Navigate } from "react-router-dom";
@@ -10,7 +9,7 @@ import { Login } from "./pages-new/Login";
 import { isAuthenticated } from "./lib/auth";
 import type { ReactNode } from "react";
 
-// --- NEW Tailwind pages (F6.1+) ---
+// --- Tailwind pages ---
 import { DashboardNew } from "./pages-new/Dashboard";
 import { Documents as DocumentsNew } from "./pages-new/Documents";
 import { Emails as EmailsNew } from "./pages-new/Emails";
@@ -25,31 +24,11 @@ import { Monitoring as MonitoringNew } from "./pages-new/Monitoring";
 import { Audit as AuditNew } from "./pages-new/Audit";
 import { Admin as AdminNew } from "./pages-new/Admin";
 
-// --- Old MUI pages (temporary, will be replaced in F6.2-F6.5) ---
-import { ProcessDocViewer } from "./pages/ProcessDocViewer";
-import { RagChat } from "./pages/RagChat";
+// --- Legacy MUI (to be migrated in future) ---
 import { CubixViewer } from "./pages/CubixViewer";
-import { DocumentUpload } from "./pages/DocumentUpload";
-import { EmailUpload } from "./pages/EmailUpload";
-import { EmailConnectors } from "./pages/EmailConnectors";
-import { CostsPage } from "./pages/CostsPage";
-import { CollectionManager } from "./pages/CollectionManager";
-import { CollectionDetail } from "./pages/CollectionDetail";
-import { MediaViewer } from "./pages/MediaViewer";
-import { RpaViewer } from "./pages/RpaViewer";
-import { ReviewQueue } from "./pages/ReviewQueue";
-import { MonitoringDashboard } from "./pages/MonitoringDashboard";
-import { AuditLog } from "./pages/AuditLog";
-import { AdminPage } from "./pages/AdminPage";
 import { VerificationPanel } from "./verification/VerificationPanel";
-import { RunList } from "./resources/RunList";
-import { RunShow } from "./resources/RunShow";
-import { DocumentList } from "./resources/DocumentList";
-import { DocumentShow } from "./resources/DocumentShow";
-import { EmailList } from "./resources/EmailList";
-import { EmailShow } from "./resources/EmailShow";
 
-/** Auth guard — redirects to /login if not authenticated */
+/** Auth guard */
 function RequireAuth({ children }: { children: ReactNode }) {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
@@ -57,10 +36,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/**
- * Wrapper for old MUI pages in the new Tailwind shell.
- * Provides a neutral container that doesn't conflict with MUI styles.
- */
+/** Legacy wrapper for remaining MUI pages */
 function LegacyPage({ children }: { children: ReactNode }) {
   return <div className="legacy-mui-wrapper">{children}</div>;
 }
@@ -78,41 +54,35 @@ export const router = createHashRouter([
       </RequireAuth>
     ),
     children: [
-      // Dashboard (NEW Tailwind — F6.1)
+      // Dashboard
       { index: true, element: <DashboardNew /> },
 
-      // Runs (NEW Tailwind — F6.5)
+      // Operations
       { path: "runs", element: <RunsNew /> },
+      { path: "costs", element: <CostsNew /> },
+      { path: "monitoring", element: <MonitoringNew /> },
 
-      // Documents (NEW Tailwind — F6.2)
+      // Data
       { path: "documents", element: <DocumentsNew /> },
       { path: "documents/:id/verify", element: <LegacyPage><VerificationPanel /></LegacyPage> },
       { path: "document-upload", element: <Navigate to="/documents" replace /> },
-
-      // Emails (NEW Tailwind — F6.3)
       { path: "emails", element: <EmailsNew /> },
       { path: "email-upload", element: <Navigate to="/emails" replace /> },
       { path: "email-connectors", element: <Navigate to="/emails" replace /> },
 
-      // Costs (NEW Tailwind — F6.5)
-      { path: "costs", element: <CostsNew /> },
-
-      // RAG (NEW Tailwind — F6.4)
+      // AI Services
       { path: "rag", element: <RagNew /> },
       { path: "rag/collections", element: <Navigate to="/rag" replace /> },
       { path: "rag/collections/:id", element: <RagNew /> },
       { path: "rag/:id", element: <RagNew /> },
       { path: "rag-chat", element: <Navigate to="/rag" replace /> },
-
-      // AI Services (NEW Tailwind — F6.4)
       { path: "process-docs", element: <ProcessDocsNew /> },
       { path: "media", element: <MediaNew /> },
       { path: "rpa", element: <RpaNew /> },
       { path: "reviews", element: <ReviewsNew /> },
       { path: "cubix", element: <LegacyPage><CubixViewer /></LegacyPage> },
 
-      // Operations + Admin (NEW Tailwind — F6.5)
-      { path: "monitoring", element: <MonitoringNew /> },
+      // Admin
       { path: "audit", element: <AuditNew /> },
       { path: "admin", element: <AdminNew /> },
       { path: "admin/users", element: <Navigate to="/admin" replace /> },
