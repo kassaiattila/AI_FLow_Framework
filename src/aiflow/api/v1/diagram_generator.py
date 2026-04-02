@@ -50,6 +50,11 @@ class DiagramListResponse(BaseModel):
     source: str = "backend"
 
 
+class DeleteResponse(BaseModel):
+    deleted: bool = True
+    source: str = "backend"
+
+
 @router.post("/generate", response_model=DiagramResponse)
 async def generate_diagram(request: GenerateRequest) -> DiagramResponse:
     """Generate a BPMN diagram from natural language and persist it."""
@@ -85,14 +90,14 @@ async def get_diagram(diagram_id: str) -> DiagramResponse:
     return DiagramResponse(**record.model_dump(), source="backend")
 
 
-@router.delete("/{diagram_id}")
+@router.delete("/{diagram_id}", response_model=DeleteResponse)
 async def delete_diagram(diagram_id: str):
     """Delete a diagram by ID."""
     svc = _get_service()
     deleted = await svc.delete_diagram(diagram_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Diagram not found")
-    return {"deleted": True, "source": "backend"}
+    return DeleteResponse()
 
 
 @router.get("/{diagram_id}/export/{fmt}")

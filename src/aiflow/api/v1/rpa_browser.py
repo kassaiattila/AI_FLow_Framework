@@ -66,6 +66,11 @@ class ExecutionListResponse(BaseModel):
     source: str = "backend"
 
 
+class DeleteResponse(BaseModel):
+    deleted: bool = True
+    source: str = "backend"
+
+
 @router.get("/configs", response_model=ConfigListResponse)
 async def list_configs():
     svc = _get_service()
@@ -95,13 +100,13 @@ async def get_config(config_id: str):
     return ConfigResponse(**{k: v for k, v in cfg.model_dump().items() if k in ConfigResponse.model_fields}, source="backend")
 
 
-@router.delete("/configs/{config_id}")
+@router.delete("/configs/{config_id}", response_model=DeleteResponse)
 async def delete_config(config_id: str):
     svc = _get_service()
     deleted = await svc.delete_config(config_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Config not found")
-    return {"deleted": True, "source": "backend"}
+    return DeleteResponse()
 
 
 @router.post("/configs/{config_id}/execute", response_model=ExecutionResponse)

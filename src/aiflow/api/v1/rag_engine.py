@@ -92,6 +92,26 @@ class StatsResponse(BaseModel):
     source: str = "backend"
 
 
+class IngestStatusResponse(BaseModel):
+    collection_id: str
+    document_count: int
+    chunk_count: int
+    source: str = "backend"
+
+
+class ChunkItem(BaseModel):
+    chunk_id: str
+    content: str
+    document_name: str | None = None
+    created_at: str | None = None
+
+
+class ChunkListResponse(BaseModel):
+    chunks: list[ChunkItem]
+    total: int
+    source: str = "backend"
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -221,19 +241,19 @@ async def ingest_documents(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/collections/{collection_id}/ingest-status")
+@router.get("/collections/{collection_id}/ingest-status", response_model=IngestStatusResponse)
 async def ingest_status(collection_id: str):
     """Get ingestion status (current chunk/doc counts)."""
     svc = await _get_service()
     coll = await svc.get_collection(collection_id)
     if not coll:
         raise HTTPException(status_code=404, detail="Collection not found")
-    return {
-        "collection_id": collection_id,
-        "document_count": coll.document_count,
-        "chunk_count": coll.chunk_count,
-        "source": "backend",
-    }
+    return IngestStatusResponse(
+        collection_id=collection_id,
+        document_count=coll.document_count,
+        chunk_count=coll.chunk_count,
+        source="backend",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -289,7 +309,7 @@ async def collection_stats(collection_id: str):
 # Chunks (admin)
 # ---------------------------------------------------------------------------
 
-@router.get("/collections/{collection_id}/chunks")
+@router.get("/collections/{collection_id}/chunks", response_model=ChunkListResponse)
 async def list_chunks(
     collection_id: str,
     limit: int = Query(50, ge=1, le=200),
@@ -318,19 +338,19 @@ async def list_chunks(
             coll.name,
         )
 
-    return {
-        "chunks": [
-            {
-                "chunk_id": r["id"],
-                "content": r["content"][:300],
-                "document_name": r["document_name"],
-                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
-            }
+    return ChunkListResponse(
+        chunks=[
+            ChunkItem(
+                chunk_id=str(r["id"]),
+                content=r["content"][:300],
+                document_name=r["document_name"],
+                created_at=r["created_at"].isoformat() if r["created_at"] else None,
+            )
             for r in rows
         ],
-        "total": total_row or 0,
-        "source": "backend",
-    }
+        total=total_row or 0,
+        source="backend",
+    )
 
 
 @router.delete("/collections/{collection_id}/chunks/{chunk_id}", status_code=204)

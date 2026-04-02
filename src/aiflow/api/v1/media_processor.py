@@ -47,6 +47,11 @@ class MediaJobListResponse(BaseModel):
     source: str = "backend"
 
 
+class DeleteResponse(BaseModel):
+    deleted: bool = True
+    source: str = "backend"
+
+
 @router.post("/upload", response_model=MediaJobResponse)
 async def upload_and_process(
     file: UploadFile = File(...),
@@ -91,11 +96,11 @@ async def get_job(job_id: str):
     return MediaJobResponse(**{k: v for k, v in job.model_dump().items() if k in MediaJobResponse.model_fields}, source="backend")
 
 
-@router.delete("/{job_id}")
+@router.delete("/{job_id}", response_model=DeleteResponse)
 async def delete_job(job_id: str):
     """Delete a media job."""
     svc = _get_service()
     deleted = await svc.delete_job(job_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Job not found")
-    return {"deleted": True, "source": "backend"}
+    return DeleteResponse()

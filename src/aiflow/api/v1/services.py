@@ -5,6 +5,7 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from aiflow.services import (
     CacheConfig,
@@ -23,18 +24,74 @@ __all__ = ["router"]
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/services", tags=["services"])
 
-# Global service registry — initialized on first request
-_registry: ServiceRegistry | None = None
-_initialized = False
+
+# ---------------------------------------------------------------------------
+# Response models
+# ---------------------------------------------------------------------------
+
+
+class ServiceInfo(BaseModel):
+    name: str
+    status: str
+    description: str
+
+
+class ServiceListResponse(BaseModel):
+    services: list[ServiceInfo]
+    count: int
+    source: str = "backend"
+
+
+class ServiceHealthResponse(BaseModel):
+    status: str
+    services: dict[str, Any]
+    source: str = "backend"
+
+
+class CacheStatsResponse(BaseModel):
+    stats: dict[str, Any]
+    source: str = "backend"
+
+
+class CacheInvalidateResponse(BaseModel):
+    deleted: int
+    scope: str
+    source: str = "backend"
+
+
+class RateLimitInfoResponse(BaseModel):
+    source: str = "backend"
+
+    class Config:
+        extra = "allow"
+
+
+class ResetResponse(BaseModel):
+    reset: bool = True
+    key: str
+    source: str = "backend"
+
+
+class CircuitStateResponse(BaseModel):
+    source: str = "backend"
+
+    class Config:
+        extra = "allow"
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton (mutable container avoids `global` keyword)
+# ---------------------------------------------------------------------------
+
+_state: dict[str, Any] = {}
 
 
 async def _get_registry() -> ServiceRegistry:
     """Lazy-init service registry with all F0 infra services."""
-    global _registry, _initialized
-    if _registry is not None and _initialized:
-        return _registry
+    if "registry" in _state:
+        return _state["registry"]
 
-    _registry = ServiceRegistry()
+    registry = ServiceRegistry()
 
     from aiflow.core.config import get_settings
 
@@ -44,36 +101,36 @@ async def _get_registry() -> ServiceRegistry:
     cache = CacheService(
         CacheConfig(redis_url=settings.redis.url)
     )
-    _registry.register(cache)
+    registry.register(cache)
 
     # Rate limiter
     rate_limiter = RateLimiterService(
         RateLimiterConfig(redis_url=settings.redis.url)
     )
-    _registry.register(rate_limiter)
+    registry.register(rate_limiter)
 
     # Resilience (no external deps)
     resilience = ResilienceService()
-    _registry.register(resilience)
+    registry.register(resilience)
 
     # Schema registry
     schema_reg = SchemaRegistryService(
         SchemaRegistryConfig(skills_dir="skills")
     )
-    _registry.register(schema_reg)
+    registry.register(schema_reg)
 
     # Start all services
-    results = await _registry.start_all()
+    results = await registry.start_all()
     logger.info("services_initialized", results=results)
-    _initialized = True
+    _state["registry"] = registry
 
-    return _registry
+    return registry
 
 
 # --- Discovery endpoints ---
 
 
-@router.get("/")
+@router.get("/", response_model=ServiceListResponse)
 async def list_services() -> dict[str, Any]:
     """List all registered services with their status."""
     registry = await _get_registry()
@@ -92,7 +149,7 @@ async def list_services() -> dict[str, Any]:
     }
 
 
-@router.get("/health")
+@router.get("/health", response_model=ServiceHealthResponse)
 async def service_health() -> dict[str, Any]:
     """Health check all services."""
     registry = await _get_registry()
@@ -108,7 +165,7 @@ async def service_health() -> dict[str, Any]:
 # --- Cache endpoints ---
 
 
-@router.get("/cache/stats")
+@router.get("/cache/stats", response_model=CacheStatsResponse)
 async def cache_stats() -> dict[str, Any]:
     """Get cache statistics."""
     registry = await _get_registry()
@@ -119,7 +176,7 @@ async def cache_stats() -> dict[str, Any]:
     return {"stats": stats, "source": "backend"}
 
 
-@router.post("/cache/invalidate")
+@router.post("/cache/invalidate", response_model=CacheInvalidateResponse)
 async def cache_invalidate(scope: str = "all") -> dict[str, Any]:
     """Invalidate cache entries.
 
@@ -152,7 +209,7 @@ async def cache_invalidate(scope: str = "all") -> dict[str, Any]:
 # --- Rate limiter endpoints ---
 
 
-@router.get("/rate-limit/{key}")
+@router.get("/rate-limit/{key}", response_model=RateLimitInfoResponse)
 async def rate_limit_info(key: str) -> dict[str, Any]:
     """Get rate limit status for a key."""
     registry = await _get_registry()
@@ -163,7 +220,7 @@ async def rate_limit_info(key: str) -> dict[str, Any]:
     return {**info, "source": "backend"}
 
 
-@router.post("/rate-limit/{key}/reset")
+@router.post("/rate-limit/{key}/reset", response_model=ResetResponse)
 async def rate_limit_reset(key: str) -> dict[str, Any]:
     """Reset rate limit counter for a key."""
     registry = await _get_registry()
@@ -177,7 +234,7 @@ async def rate_limit_reset(key: str) -> dict[str, Any]:
 # --- Resilience endpoints ---
 
 
-@router.get("/resilience/{key}")
+@router.get("/resilience/{key}", response_model=CircuitStateResponse)
 async def circuit_state(key: str) -> dict[str, Any]:
     """Get circuit breaker state for a service key."""
     registry = await _get_registry()
@@ -188,7 +245,7 @@ async def circuit_state(key: str) -> dict[str, Any]:
     return {**state, "source": "backend"}
 
 
-@router.post("/resilience/{key}/reset")
+@router.post("/resilience/{key}/reset", response_model=ResetResponse)
 async def circuit_reset(key: str) -> dict[str, Any]:
     """Reset circuit breaker for a service key."""
     registry = await _get_registry()

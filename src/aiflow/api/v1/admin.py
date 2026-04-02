@@ -57,7 +57,7 @@ class MetricsResponse(BaseModel):
 
 
 @router.get("/health", response_model=HealthListResponse)
-async def check_all_health():
+async def check_all_health() -> HealthListResponse:
     svc = _get_health()
     results = await svc.check_all()
     overall = "healthy"
@@ -75,7 +75,7 @@ async def check_all_health():
 
 
 @router.get("/health/{service_name}", response_model=ServiceHealthResponse)
-async def get_service_health(service_name: str):
+async def get_service_health(service_name: str) -> ServiceHealthResponse:
     svc = _get_health()
     result = await svc.get_service_health(service_name)
     if not result:
@@ -84,7 +84,7 @@ async def get_service_health(service_name: str):
 
 
 @router.get("/metrics", response_model=MetricsResponse)
-async def get_metrics():
+async def get_metrics() -> MetricsResponse:
     svc = _get_health()
     metrics = await svc.get_metrics()
     return MetricsResponse(metrics=metrics)
@@ -116,7 +116,7 @@ async def list_audit(
     entity_type: str | None = Query(None),
     user_id: str | None = Query(None),
     limit: int = Query(50, le=500),
-):
+) -> AuditListResponse:
     svc = _get_audit()
     entries = await svc.list_entries(action=action, entity_type=entity_type, user_id=user_id, limit=limit)
     return AuditListResponse(
@@ -126,7 +126,7 @@ async def list_audit(
 
 
 @router.get("/audit/{entry_id}", response_model=AuditEntryResponse)
-async def get_audit_entry(entry_id: str):
+async def get_audit_entry(entry_id: str) -> AuditEntryResponse:
     svc = _get_audit()
     entry = await svc.get_entry(entry_id)
     if not entry:

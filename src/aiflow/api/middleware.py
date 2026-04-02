@@ -6,7 +6,7 @@ import os
 
 import structlog
 from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from aiflow.api.deps import get_engine
@@ -111,7 +111,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         return True, user_id, role
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next) -> Response:
         path = request.url.path
 
         # Skip auth for non-API paths and public endpoints

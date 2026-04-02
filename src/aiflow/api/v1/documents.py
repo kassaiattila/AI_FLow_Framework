@@ -547,6 +547,29 @@ async def _get_doc_extractor():
     return DocumentExtractorService(sf)
 
 
+class DocumentDetailResponse(BaseModel):
+    """Single document detail response (flexible schema)."""
+    source: str = "backend"
+
+    model_config = {"extra": "allow"}
+
+
+class ExtractorConfigItem(BaseModel):
+    """A single extractor config summary."""
+    name: str
+    display_name: str = ""
+    document_type: str = ""
+    field_count: int = 0
+    enabled: bool = True
+
+
+class ExtractorConfigListResponse(BaseModel):
+    """List of extractor configurations."""
+    configs: list[ExtractorConfigItem]
+    total: int
+    source: str = "backend"
+
+
 class VerifyRequest(BaseModel):
     """Document verification request."""
     verified_fields: dict[str, Any] = {}
@@ -579,8 +602,8 @@ async def verify_document(invoice_id: str, request: VerifyRequest) -> VerifyResp
         await svc.stop()
 
 
-@router.get("/by-id/{invoice_id}")
-async def get_document_by_id(invoice_id: str) -> dict[str, Any]:
+@router.get("/by-id/{invoice_id}", response_model=DocumentDetailResponse)
+async def get_document_by_id(invoice_id: str) -> DocumentDetailResponse:
     """Get a single invoice by database ID."""
     svc = await _get_doc_extractor()
     await svc.start()
@@ -588,7 +611,7 @@ async def get_document_by_id(invoice_id: str) -> dict[str, Any]:
         result = await svc.get_invoice(invoice_id)
         if not result:
             raise HTTPException(status_code=404, detail=f"Invoice not found: {invoice_id}")
-        return result
+        return DocumentDetailResponse(**result, source="backend")
     finally:
         await svc.stop()
 
@@ -597,27 +620,27 @@ async def get_document_by_id(invoice_id: str) -> dict[str, Any]:
 # Document Type Config endpoints (F1)
 # ---------------------------------------------------------------------------
 
-@router.get("/extractor/configs")
-async def list_extractor_configs() -> dict[str, Any]:
+@router.get("/extractor/configs", response_model=ExtractorConfigListResponse)
+async def list_extractor_configs() -> ExtractorConfigListResponse:
     """List all document extraction configurations."""
     svc = await _get_doc_extractor()
     await svc.start()
     try:
         configs = await svc.list_configs()
-        return {
-            "configs": [
-                {
-                    "name": c.name,
-                    "display_name": c.display_name,
-                    "document_type": c.document_type,
-                    "field_count": len(c.fields),
-                    "enabled": c.enabled,
-                }
+        return ExtractorConfigListResponse(
+            configs=[
+                ExtractorConfigItem(
+                    name=c.name,
+                    display_name=c.display_name,
+                    document_type=c.document_type,
+                    field_count=len(c.fields),
+                    enabled=c.enabled,
+                )
                 for c in configs
             ],
-            "total": len(configs),
-            "source": "backend",
-        }
+            total=len(configs),
+            source="backend",
+        )
     finally:
         await svc.stop()
 
@@ -635,8 +658,14 @@ class CreateConfigRequest(BaseModel):
     output_formats: list[str] = ["json"]
 
 
-@router.post("/extractor/configs")
-async def create_extractor_config(request: CreateConfigRequest) -> dict[str, Any]:
+class CreateConfigResponse(BaseModel):
+    created: bool = True
+    name: str
+    source: str = "backend"
+
+
+@router.post("/extractor/configs", response_model=CreateConfigResponse, status_code=201)
+async def create_extractor_config(request: CreateConfigRequest) -> CreateConfigResponse:
     """Create a new document extraction configuration."""
     from aiflow.services.document_extractor import DocumentTypeConfig, FieldDefinition
 
@@ -655,7 +684,7 @@ async def create_extractor_config(request: CreateConfigRequest) -> dict[str, Any
             output_formats=request.output_formats,
         )
         await svc.create_config(config)
-        return {"created": True, "name": config.name, "source": "backend"}
+        return CreateConfigResponse(name=config.name)
     except Exception as e:
         logger.error("create_config_failed", error=str(e))
         raise HTTPException(status_code=400, detail=str(e))
