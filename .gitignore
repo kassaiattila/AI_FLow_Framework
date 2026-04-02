@@ -66,5 +66,28 @@ test_output/
 test_emails/
 test_rag_docs/
 
+# === E2E / audit screenshots (regenerated on test runs) ===
+e2e-*.png
+audit-*.png
+test-*.png
+verify-*.png
+verification-*.png
+dashboard-*.png
+invoice-*.png
+process-docs-*.png
+rag-chat.png
+f2-*.png
+
+# === Temp output directories ===
+output/
+tmp_*/
+fastapi_log.txt
+test_audio.wav
+
+# === MCP / Figma tool configs (local) ===
+.playwright-mcp/
+claude-talk-to-figma-mcp/
+aiflow-admin/figma-sync/reference/
+
 # === Claude Code local (session data, NOT commands/settings) ===
 # .claude/commands/ and .claude/settings.local.json ARE committed
