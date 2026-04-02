@@ -14,7 +14,6 @@ import time as _time
 from pathlib import Path
 from typing import Any
 
-import asyncpg
 import structlog
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel

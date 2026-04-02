@@ -1,4 +1,4 @@
-"""Authentication middleware — enforces auth on all /api/v1/* endpoints."""
+"""Authentication middleware — enforces auth on all /api/v1/* and /v1/* endpoints."""
 from __future__ import annotations
 
 import hashlib
@@ -40,7 +40,7 @@ _API_KEY_PREFIX = "aiflow_sk_"
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
-    """Middleware that enforces Bearer token or API key auth on /api/v1/* routes.
+    """Middleware that enforces Bearer token or API key auth on /api/v1/* and /v1/* routes.
 
     Public endpoints (login, health, docs) are whitelisted.
     Admin endpoints require admin role.
@@ -115,7 +115,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         path = request.url.path
 
         # Skip auth for non-API paths and public endpoints
-        if not path.startswith("/api/") or self._is_public(path):
+        if not (path.startswith("/api/") or path.startswith("/v1/")) or self._is_public(path):
             return await call_next(request)
 
         # Extract auth from header

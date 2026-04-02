@@ -163,12 +163,19 @@ class HealthMonitorService:
                 checked_at=datetime.now(timezone.utc).isoformat(),
             )
 
+    _ALLOWED_TABLES: frozenset[str] = frozenset({
+        "documents", "email_connector_configs", "rag_collections",
+        "generated_diagrams", "media_jobs", "rpa_configs", "human_review_queue",
+    })
+
     async def _check_service_table(self, service_name: str, table_name: str) -> ServiceHealth:
+        if table_name not in self._ALLOWED_TABLES:
+            raise ValueError(f"Table '{table_name}' not in health check whitelist")
         t0 = time.monotonic()
         try:
             pool = await self._get_pool()
             async with pool.acquire() as conn:
-                count = await conn.fetchval(f"SELECT COUNT(*) FROM {table_name}")
+                count = await conn.fetchval(f"SELECT COUNT(*) FROM {table_name}")  # noqa: S608 — table_name validated above
             latency = (time.monotonic() - t0) * 1000
             return ServiceHealth(
                 service_name=service_name,

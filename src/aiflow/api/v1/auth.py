@@ -186,7 +186,7 @@ async def refresh_token(request: RefreshRequest) -> RefreshResponse:
             if len(parts) == 2:
                 payload_json = base64.urlsafe_b64decode(parts[0]).decode()
                 payload = json.loads(payload_json)
-                if time.time() - payload.get("exp", 0) < 86400:
+                if time.time() - payload.get("exp", 0) < 300:  # 5-minute grace period
                     new_token = _auth.create_token(
                         user_id=payload["sub"],
                         team_id=payload.get("team_id"),
