@@ -97,18 +97,7 @@ def _upload_dir() -> Path:
 
 
 def _json_fallback(resource: str) -> list[dict[str, Any]]:
-    """Load data from Next.js JSON files as fallback when DB is empty."""
-    for base in [Path("aiflow-ui/data"), Path("aiflow-ui/public/data")]:
-        f = base / f"{resource}.json"
-        if f.exists():
-            try:
-                data = json.loads(f.read_text(encoding="utf-8"))
-                if isinstance(data, list):
-                    return data
-                if isinstance(data, dict) and "documents" in data:
-                    return data["documents"]
-            except Exception:
-                pass
+    """Return empty list — legacy Next.js JSON fallback removed (aiflow-ui deleted)."""
     return []
 
 

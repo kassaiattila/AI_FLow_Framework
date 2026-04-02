@@ -46,7 +46,7 @@ F0 (infra) → F1 (Document Extractor) → F2 (Email+Classifier) → F3 (RAG Eng
 - **email_intent_processor** (ai) - Email + csatolmany feldolgozo (hibrid ML+LLM, intent discovery, JSON schema vezerelt)
 
 ### In Development
-- **invoice_processor** (ai) - PDF szamla feldolgozas (Docling + gpt-4o extraction, CSV/Excel/JSON export) - Next.js UI + valos Docling integracio
+- **invoice_processor** (ai) - PDF szamla feldolgozas (Docling + gpt-4o extraction, CSV/Excel/JSON export)
 
 ### Stub
 - **qbpp_test_automation** (rpa) - Insurance calculator test automation - STUB (__main__.py hianyzik)
@@ -122,7 +122,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 - PyJWT[crypto] (RS256 JWT auth), bcrypt (hashing), APScheduler 4.x (async cron)
 - Promptfoo (prompt testing), structlog (JSON logging), Alembic (DB migrations), ruff (lint+format)
 - React Admin + Vite + React 19 + MUI (production admin dashboard - **aiflow-admin/**)
-- Legacy: Next.js 16 + shadcn/ui (aiflow-ui/ — deprecated, kept for compatibility)
+- ~~Legacy: Next.js 16 + shadcn/ui~~ (aiflow-ui/ TOROLVE v1.0.0-ban, archiv: tag v0.9-nextjs-ui)
 - typer (CLI), Playwright (GUI testing + RPA skills), ffmpeg (media processing in RPA skills)
 
 ## Development Environment
@@ -233,7 +233,7 @@ skills/            # Self-contained skill packages (each with own tools, tests, 
   cubix_course_capture/   # WORKING - video transcript pipeline + RPA
   aszf_rag_chat/          # WORKING - RAG chat (86% eval pass)
   email_intent_processor/ # IN DEVELOPMENT - email + attachment processing
-  invoice_processor/      # IN DEVELOPMENT - PDF invoice extraction + Next.js UI
+  invoice_processor/      # IN DEVELOPMENT - PDF invoice extraction
   qbpp_test_automation/   # STUB - insurance calculator test automation
 aiflow-admin/      # React Admin + Vite + React 19 + MUI (AKTIV production dashboard)
   src/pages/         # Oldalak (Dashboard, InvoiceUpload, stb.)
@@ -242,7 +242,7 @@ aiflow-admin/      # React Admin + Vite + React 19 + MUI (AKTIV production dashb
   src/verification/  # Szamla verifikacio (DocumentCanvas, VerificationPanel, MockInvoiceSvg)
   src/dataProvider.ts # FastAPI → React Admin adatkapcsolat
   vite.config.ts     # Vite config + API proxy (localhost:8100)
-aiflow-ui/         # LEGACY Next.js 16 + shadcn/ui (deprecated, kept for reference)
+# aiflow-ui/       # TOROLVE v1.0.0 — archiv: git tag v0.9-nextjs-ui
 deployments/       # Per-customer deployment configs (AZHU, NPRA, BESTIX)
 tests/             # unit/, integration/, e2e/, conftest.py
 ```
@@ -394,7 +394,7 @@ cd aiflow-admin && npx tsc --noEmit     # TypeScript hiba nelkul
 - NEVER mark a viewer as "KESZ" or "Production" if it only shows mock data
 
 ### Subprocess Pattern (for skill execution from UI)
-- Reference implementation: `aiflow-ui/src/app/api/documents/process/route.ts`
+- Reference implementation: FastAPI `/api/v1/documents/process` endpoint
 - Pattern: `execFileAsync(PYTHON, ["-m", "skills.<name>", ...args])`
 - Priority: 1. FastAPI backend (fetchBackend) → 2. subprocess (Python CLI) → 3. mock (labeled as demo)
 - ALWAYS tag output with `source` field
