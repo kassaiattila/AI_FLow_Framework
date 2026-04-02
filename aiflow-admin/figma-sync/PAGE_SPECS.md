@@ -25,6 +25,7 @@
 | RAG Collections | `11638:24258` | `11638:24290` | AIFlow RAG Collections — Desktop 1440px |
 | Collection Detail | `11648:118043` | `11648:118044` | AIFlow Collection Detail — Desktop 1440px |
 | RPA Browser | `11655:845` | `11655:846` | AIFlow RPA Browser — Desktop 1440px |
+| Human Review | `11657:935` | `11658:936` | AIFlow Human Review — Desktop 1440px |
 
 ---
 
@@ -731,6 +732,58 @@ Sidebar + Main:
 - completed, running, failed, pending, noConfigs, noLogs, createFirst
 - dialogTitle, dialogCreate, dialogCancel, deleteTitle, deleteConfirm
 - executeSuccess, executeFailed, createSuccess, deleteSuccess, yamlError
+
+**Playwright E2E Verified:** — (pending)
+
+---
+
+## Page 19: Human Review (/reviews) — F4d
+
+**Phase:** F4d (Human Review)
+**Figma Page:** `11657:935` | **Frame:** `11658:936` (AIFlow Human Review — Desktop 1440px)
+**Journey:** `01_PLAN/F4_RPA_MEDIA_DIAGRAM_JOURNEY.md` (F4d section)
+**Data Source:** `GET /api/v1/reviews/pending`, `GET /api/v1/reviews/history`, `POST /api/v1/reviews/{id}/approve`, `POST /api/v1/reviews/{id}/reject`
+
+**Header:**
+- Title: "Human Review Queue" (i18n: `aiflow.reviews.title`)
+- Subtitle: "Review and approve or reject AI-generated results" (i18n: `aiflow.reviews.subtitle`)
+
+**Pending Reviews Table (Card):**
+| Column | Width | Source | Content |
+|--------|-------|--------|---------|
+| Title | 350px | `title` | Review item title |
+| Type | 140px | `entity_type` | Entity type (diagram, email_classification, etc.) |
+| Priority | 100px | `priority` | High (amber) / Normal (gray) / Critical (red) / Low (muted) |
+| Created | 160px | `created_at` | DateTime |
+| Actions | 250px | — | Approve (green) + Reject (red) buttons with comment dialog |
+
+**Review Decision Dialog (Modal):**
+- Comment textarea (optional)
+- Confirm/Cancel buttons
+- API: `POST /api/v1/reviews/{id}/approve` or `/reject`
+
+**Review History Table (Card):**
+| Column | Width | Source | Content |
+|--------|-------|--------|---------|
+| Title | 300px | `title` | Truncated title |
+| Decision | 120px | `status` | Approved (green) / Rejected (red) |
+| Reviewer | 120px | `reviewer` | Reviewer name |
+| Comment | 350px | `comment` | Decision comment |
+| Reviewed | 160px | `reviewed_at` | DateTime |
+
+**States:**
+- Loading: CircularProgress centered
+- Error: Alert severity="error" with retry
+- Empty pending: "No pending reviews. All caught up!"
+- Empty history: "No review history yet."
+
+**i18n Keys (aiflow.reviews.*):**
+- title, subtitle, pendingTitle, pendingCount, historyTitle, historyCount
+- itemTitle, type, priority, created, actions, approve, reject
+- decision, reviewer, comment, reviewed, approved, rejected, pending
+- high, normal, low, critical, noPending, noHistory
+- approveTitle, rejectTitle, commentLabel, confirmApprove, confirmReject
+- approveSuccess, rejectSuccess
 
 **Playwright E2E Verified:** — (pending)
 
