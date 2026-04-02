@@ -7,6 +7,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+import bcrypt
 import structlog
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -174,6 +175,7 @@ class UserListResponse(BaseModel):
 class CreateUserRequest(BaseModel):
     email: str
     name: str
+    password: str
     role: str = "viewer"
 
 
@@ -201,15 +203,21 @@ async def list_users():
 
 @router.post("/users", response_model=UserResponse, status_code=201)
 async def create_user(req: CreateUserRequest):
+    if len(req.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    password_hash = bcrypt.hashpw(req.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
     engine = await _get_db()
     from sqlalchemy import text
     user_id = uuid.uuid4()
     now = datetime.now(UTC)
     async with engine.begin() as conn:
         await conn.execute(text(
-            "INSERT INTO users (id, email, name, role, is_active, created_at, updated_at) "
-            "VALUES (:id, :email, :name, :role, true, :now, :now)"
-        ), {"id": user_id, "email": req.email, "name": req.name, "role": req.role, "now": now})
+            "INSERT INTO users (id, email, name, role, password_hash, is_active, created_at, updated_at) "
+            "VALUES (:id, :email, :name, :role, :password_hash, true, :now, :now)"
+        ), {"id": user_id, "email": req.email, "name": req.name, "role": req.role,
+            "password_hash": password_hash, "now": now})
     logger.info("user_created", user_id=str(user_id), email=req.email)
     return UserResponse(id=str(user_id), email=req.email, name=req.name, role=req.role, is_active=True, created_at=now.isoformat())
 

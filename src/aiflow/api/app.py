@@ -1,14 +1,49 @@
 """FastAPI application factory."""
+import os
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import structlog
 import traceback
+import uuid
+import structlog
 from aiflow._version import __version__
 
 __all__ = ["create_app"]
 logger = structlog.get_logger(__name__)
+
+_DEFAULT_DEV_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+]
+
+
+def _get_cors_origins() -> list[str]:
+    """Resolve CORS allowed origins from env.
+
+    - AIFLOW_CORS_ORIGINS env var: comma-separated list of origins.
+    - Dev/test: falls back to localhost defaults.
+    - Production: requires explicit AIFLOW_CORS_ORIGINS.
+    """
+    raw = os.getenv("AIFLOW_CORS_ORIGINS", "").strip()
+    env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
+    is_production = env in ("production", "prod")
+
+    if raw:
+        origins = [o.strip() for o in raw.split(",") if o.strip()]
+        logger.info("cors_origins_configured", origins=origins, env=env)
+        return origins
+
+    if is_production:
+        raise RuntimeError(
+            "AIFLOW_CORS_ORIGINS is REQUIRED in production mode. "
+            "Set a comma-separated list of allowed origins."
+        )
+
+    logger.warning("cors_using_dev_defaults", origins=_DEFAULT_DEV_ORIGINS, env=env)
+    return _DEFAULT_DEV_ORIGINS
+
 
 def create_app() -> FastAPI:
     # Load .env inside factory (not at module level - avoids test interference)
@@ -24,7 +59,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Restrict in production
+        allow_origins=_get_cors_origins(),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -68,14 +103,26 @@ def create_app() -> FastAPI:
     app.include_router(rpa_router)
     app.include_router(review_router)
     app.include_router(admin_router)
-    # Global exception handler for debugging
+    # Global exception handler — hides internals in production
+    env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
+    is_production = env in ("production", "prod")
+
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
+        error_id = str(uuid.uuid4())
         tb = traceback.format_exc()
-        logger.error("unhandled_exception", error=str(exc), traceback=tb[:500])
+        # Always log full details server-side
+        logger.error("unhandled_exception", error_id=error_id, error=str(exc), traceback=tb[:2000])
+
+        if is_production:
+            return JSONResponse(
+                status_code=500,
+                content={"detail": "Internal server error", "error_id": error_id},
+            )
+        # Dev/test: include traceback for debugging
         return JSONResponse(
             status_code=500,
-            content={"detail": str(exc), "traceback": tb[:1000]},
+            content={"detail": str(exc), "error_id": error_id, "traceback": tb[:1000]},
         )
 
     logger.info("app_created", version=__version__)

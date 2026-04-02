@@ -1,28 +1,69 @@
-"""Authentication endpoints — login and token verification."""
+"""Authentication endpoints — login, token verification, token refresh."""
 from __future__ import annotations
 
 import os
+from datetime import UTC, datetime
 
+import bcrypt
 import structlog
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
-from aiflow.security.auth import APIKeyProvider, AuthProvider
+from aiflow.security.auth import AuthProvider
 
 __all__ = ["router"]
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-# Simple user store — in production use database
-_USERS: dict[str, dict[str, str]] = {
-    "admin": {"password": "admin", "role": "admin", "team_id": "bestix"},
-    "operator": {"password": "operator", "role": "operator", "team_id": "bestix"},
-    "viewer": {"password": "viewer", "role": "viewer", "team_id": "bestix"},
-}
+def _init_auth() -> AuthProvider:
+    """Initialize AuthProvider with JWT secret validation.
 
-_auth = AuthProvider(secret=os.getenv("AIFLOW_JWT_SECRET", "dev-secret-change-in-production"))
-_api_keys = APIKeyProvider()
+    Production mode requires an explicit AIFLOW_JWT_SECRET (min 32 chars).
+    Dev/test mode falls back to a default secret.
+    """
+    secret = os.getenv("AIFLOW_JWT_SECRET", "")
+    env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
+    is_production = env in ("production", "prod")
+
+    if is_production:
+        if not secret:
+            raise RuntimeError(
+                "AIFLOW_JWT_SECRET is REQUIRED in production mode. "
+                "Set AIFLOW_JWT_SECRET env var (minimum 32 characters)."
+            )
+        if len(secret) < 32:
+            raise RuntimeError(
+                f"AIFLOW_JWT_SECRET is too short ({len(secret)} chars). "
+                "Minimum 32 characters required for production."
+            )
+    elif not secret:
+        secret = "dev-secret-change-in-production"
+        logger.warning("jwt_using_default_secret", env=env)
+
+    return AuthProvider(secret=secret)
+
+
+_auth = _init_auth()
+
+# --- DB helper (shared with admin.py pattern) ---
+
+_db_engine = None
+
+
+async def _get_db():
+    global _db_engine
+    if _db_engine is None:
+        from sqlalchemy.ext.asyncio import create_async_engine
+        db_url = os.environ.get(
+            "AIFLOW_DATABASE__URL",
+            "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
+        )
+        _db_engine = create_async_engine(db_url)
+    return _db_engine
+
+
+# --- Models ---
 
 
 class LoginRequest(BaseModel):
@@ -47,27 +88,66 @@ class MeResponse(BaseModel):
     team_id: str | None = None
 
 
+# --- Login (DB + bcrypt) ---
+
+
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest) -> LoginResponse:
-    """Authenticate with username/password, return JWT token."""
-    user = _USERS.get(request.username)
-    if not user or user["password"] != request.password:
-        logger.warning("login_failed", username=request.username)
+    """Authenticate with username/password, return JWT token.
+
+    Looks up user by email in the database and verifies password with bcrypt.
+    """
+    from sqlalchemy import text
+
+    engine = await _get_db()
+    async with engine.connect() as conn:
+        result = await conn.execute(
+            text(
+                "SELECT id, email, name, role, team_id, password_hash "
+                "FROM users WHERE email = :email AND is_active = true"
+            ),
+            {"email": request.username},
+        )
+        row = result.fetchone()
+
+    if not row:
+        logger.warning("login_failed", username=request.username, reason="user_not_found")
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    user_id, email, name, role, team_id, password_hash = row
+
+    if not password_hash:
+        logger.warning("login_failed", username=request.username, reason="no_password_set")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if not bcrypt.checkpw(request.password.encode("utf-8"), password_hash.encode("utf-8")):
+        logger.warning("login_failed", username=request.username, reason="wrong_password")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Update last_login_at
+    async with engine.begin() as conn:
+        from sqlalchemy import text as t
+        await conn.execute(
+            t("UPDATE users SET last_login_at = :now WHERE id = :id"),
+            {"now": datetime.now(UTC), "id": user_id},
+        )
+
     token = _auth.create_token(
-        user_id=request.username,
-        team_id=user.get("team_id"),
-        role=user["role"],
+        user_id=str(user_id),
+        team_id=str(team_id) if team_id else None,
+        role=role,
     )
 
-    logger.info("login_success", username=request.username, role=user["role"])
+    logger.info("login_success", user_id=str(user_id), email=email, role=role)
     return LoginResponse(
         token=token,
-        user_id=request.username,
-        role=user["role"],
-        team_id=user.get("team_id"),
+        user_id=str(user_id),
+        role=role,
+        team_id=str(team_id) if team_id else None,
     )
+
+
+# --- Me ---
 
 
 @router.get("/me", response_model=MeResponse)
@@ -112,17 +192,15 @@ async def refresh_token(request: RefreshRequest) -> RefreshResponse:
     result = _auth.verify_token(request.token)
 
     if not result.authenticated:
-        # Allow refresh of recently expired tokens (within 24h grace period)
         if result.error == "token_expired":
             import base64
             import json
+            import time
 
             parts = request.token.split(".")
             if len(parts) == 2:
                 payload_json = base64.urlsafe_b64decode(parts[0]).decode()
                 payload = json.loads(payload_json)
-                import time
-
                 if time.time() - payload.get("exp", 0) < 86400:
                     new_token = _auth.create_token(
                         user_id=payload["sub"],
@@ -141,76 +219,3 @@ async def refresh_token(request: RefreshRequest) -> RefreshResponse:
     )
     logger.info("token_refreshed", user_id=result.user_id)
     return RefreshResponse(token=new_token)
-
-
-# --- API key management ---
-
-
-class APIKeyCreateRequest(BaseModel):
-    """API key creation request."""
-    name: str = "default"
-
-
-class APIKeyCreateResponse(BaseModel):
-    """API key creation response. key is only shown once!"""
-    key: str
-    prefix: str
-    name: str
-
-
-class APIKeyListResponse(BaseModel):
-    """List of API key prefixes."""
-    keys: list[dict[str, str]]
-
-
-@router.post("/api-keys", response_model=APIKeyCreateResponse)
-async def create_api_key(
-    request: APIKeyCreateRequest,
-    authorization: str = Header(""),
-) -> APIKeyCreateResponse:
-    """Create a new API key. Requires admin authentication."""
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authentication required")
-
-    token = authorization.replace("Bearer ", "").strip()
-    result = _auth.verify_token(token)
-    if not result.authenticated or result.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin role required")
-
-    full_key, prefix, _ = _api_keys.generate_key(result.user_id or "unknown")
-    logger.info("api_key_created", user_id=result.user_id, prefix=prefix, name=request.name)
-    return APIKeyCreateResponse(key=full_key, prefix=prefix, name=request.name)
-
-
-@router.get("/api-keys", response_model=APIKeyListResponse)
-async def list_api_keys(authorization: str = Header("")) -> APIKeyListResponse:
-    """List API key prefixes (not the full keys)."""
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authentication required")
-
-    token = authorization.replace("Bearer ", "").strip()
-    result = _auth.verify_token(token)
-    if not result.authenticated:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    keys = [{"prefix": p} for p in _api_keys._keys.keys()]
-    return APIKeyListResponse(keys=keys)
-
-
-@router.delete("/api-keys/{prefix}")
-async def revoke_api_key(prefix: str, authorization: str = Header("")) -> dict:
-    """Revoke an API key by prefix."""
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authentication required")
-
-    token = authorization.replace("Bearer ", "").strip()
-    result = _auth.verify_token(token)
-    if not result.authenticated or result.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin role required")
-
-    if prefix not in _api_keys._keys:
-        raise HTTPException(status_code=404, detail=f"API key with prefix '{prefix}' not found")
-
-    del _api_keys._keys[prefix]
-    logger.info("api_key_revoked", prefix=prefix, user_id=result.user_id)
-    return {"revoked": True, "prefix": prefix}
