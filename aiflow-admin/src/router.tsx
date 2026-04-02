@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 // --- NEW Tailwind pages (F6.1+) ---
 import { DashboardNew } from "./pages-new/Dashboard";
 import { Documents as DocumentsNew } from "./pages-new/Documents";
+import { Emails as EmailsNew } from "./pages-new/Emails";
 
 // --- Old MUI pages (temporary, will be replaced in F6.2-F6.5) ---
 import { ProcessDocViewer } from "./pages/ProcessDocViewer";
@@ -79,9 +80,8 @@ export const router = createHashRouter([
       { path: "documents/:id/verify", element: <LegacyPage><VerificationPanel /></LegacyPage> },
       { path: "document-upload", element: <Navigate to="/documents" replace /> },
 
-      // Emails (old MUI, replaced in F6.3)
-      { path: "emails", element: <LegacyPage><EmailList /></LegacyPage> },
-      { path: "emails/:id", element: <LegacyPage><EmailShow /></LegacyPage> },
+      // Emails (NEW Tailwind — F6.3)
+      { path: "emails", element: <EmailsNew /> },
       { path: "email-upload", element: <Navigate to="/emails" replace /> },
       { path: "email-connectors", element: <Navigate to="/emails" replace /> },
 
