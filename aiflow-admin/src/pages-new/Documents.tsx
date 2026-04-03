@@ -272,7 +272,7 @@ function makeDocColumns(translate: (key: string) => string, onDelete?: (id: stri
     label: translate("aiflow.documents.file"),
     getValue: (item) => fileName(String(item.source_file ?? "")),
     render: (item) => (
-      <span className="font-medium text-gray-900 dark:text-gray-100">
+      <span className="block max-w-[200px] truncate font-medium text-gray-900 dark:text-gray-100" title={fileName(String(item.source_file ?? ""))}>
         {fileName(String(item.source_file ?? ""))}
       </span>
     ),
@@ -295,7 +295,7 @@ function makeDocColumns(translate: (key: string) => string, onDelete?: (id: stri
     label: translate("aiflow.documents.vendor"),
     getValue: (item) => (item.vendor as DocVendor | null)?.name ?? "",
     render: (item) => (
-      <span className="text-gray-600 dark:text-gray-400">
+      <span className="block max-w-[160px] truncate text-gray-600 dark:text-gray-400" title={(item.vendor as DocVendor | null)?.name ?? ""}>
         {(item.vendor as DocVendor | null)?.name ?? "—"}
       </span>
     ),
@@ -305,7 +305,7 @@ function makeDocColumns(translate: (key: string) => string, onDelete?: (id: stri
     label: translate("aiflow.documents.invoiceNumber"),
     getValue: (item) => (item.header as DocHeader | null)?.invoice_number ?? "",
     render: (item) => (
-      <span className="text-gray-600 dark:text-gray-400">
+      <span className="text-xs text-gray-600 dark:text-gray-400">
         {(item.header as DocHeader | null)?.invoice_number ?? "—"}
       </span>
     ),
@@ -318,7 +318,7 @@ function makeDocColumns(translate: (key: string) => string, onDelete?: (id: stri
       const total = (item.totals as DocTotals | null)?.gross_total;
       const currency = (item.header as DocHeader | null)?.currency ?? "HUF";
       return (
-        <span className="text-gray-600 dark:text-gray-400">
+        <span className="whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
           {total ? `${total.toLocaleString()} ${currency}` : "—"}
         </span>
       );
@@ -326,12 +326,12 @@ function makeDocColumns(translate: (key: string) => string, onDelete?: (id: stri
   },
   {
     key: "extraction_confidence",
-    label: translate("aiflow.documents.confidence"),
+    label: "%",
     getValue: (item) => (item.extraction_confidence as number | null) ?? 0,
     render: (item) => {
       const conf = item.extraction_confidence as number | null;
       return (
-        <span className={`font-medium ${confidenceColor(conf)}`}>
+        <span className={`text-xs font-medium ${confidenceColor(conf)}`}>
           {conf ? `${Math.round(conf * 100)}%` : "—"}
         </span>
       );
@@ -349,17 +349,17 @@ function makeDocColumns(translate: (key: string) => string, onDelete?: (id: stri
           <a
             href={`#/documents/${encodeURIComponent(docId)}/verify`}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 rounded-lg border border-brand-300 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-900/20"
+            className="inline-flex items-center rounded-md border border-brand-300 p-1 text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-900/20"
+            title="Verify"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Verify
           </a>
           {onDelete && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(docId); }}
-              className="inline-flex items-center rounded-lg border border-red-200 p-1 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+              className="inline-flex items-center rounded-md border border-red-200 p-1 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
               title={translate("aiflow.documents.deleteTitle")}
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

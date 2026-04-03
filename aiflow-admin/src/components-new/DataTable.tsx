@@ -250,7 +250,7 @@ export function DataTable<T extends Record<string, unknown>>({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="border-b border-gray-100 text-left dark:border-gray-800">
