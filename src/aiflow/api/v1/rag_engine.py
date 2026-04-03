@@ -343,14 +343,35 @@ async def ingest_documents_stream(
             total_chunk_count = sum(len(c) for _, c in all_chunks_data)
             yield f"data: {_json.dumps({'event': 'step_done', 'step': 2, 'name': 'chunk', 'chunks': total_chunk_count})}\n\n"
 
-            # Step 3: Embed
+            # Step 3: Embed + record cost
             yield f"data: {_json.dumps({'event': 'step_start', 'step': 3, 'name': 'embed'})}\n\n"
             all_embeddings: list[tuple[Path, list, list]] = []
+            embed_total_tokens = 0
             for fp, chunks in all_chunks_data:
                 chunk_texts = [c.text for c in chunks]
                 embeddings = await svc._embedder.embed_texts(chunk_texts)
                 all_embeddings.append((fp, chunks, embeddings))
-            yield f"data: {_json.dumps({'event': 'step_done', 'step': 3, 'name': 'embed'})}\n\n"
+                embed_total_tokens += sum(len(t) // 4 for t in chunk_texts)  # ~4 chars/token estimate
+
+            # Record embedding cost
+            try:
+                from aiflow.api.cost_recorder import record_cost
+                from aiflow.models.cost import ModelCostCalculator
+                embed_model = "openai/text-embedding-3-small"
+                calc = ModelCostCalculator()
+                embed_cost = calc.calculate(embed_model, embed_total_tokens, 0)
+                import uuid as _cost_uuid
+                await record_cost(
+                    workflow_run_id=_cost_uuid.uuid4(),
+                    step_name="rag_ingest_embed",
+                    model=embed_model,
+                    input_tokens=embed_total_tokens,
+                    output_tokens=0,
+                    cost_usd=embed_cost,
+                )
+            except Exception:
+                pass
+            yield f"data: {_json.dumps({'event': 'step_done', 'step': 3, 'name': 'embed', 'tokens': embed_total_tokens})}\n\n"
 
             # Step 4: Store
             yield f"data: {_json.dumps({'event': 'step_start', 'step': 4, 'name': 'store'})}\n\n"

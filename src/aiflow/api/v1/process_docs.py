@@ -95,6 +95,24 @@ async def generate_process_doc(request: GenerateRequest) -> GenerateResponse:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         total_duration_ms = int((_time.perf_counter() - run_start) * 1000)
+        # Estimate BPMN generation cost: 4 LLM calls, ~2K input + 1K output tokens each
+        _estimated_bpmn_cost = 0.0
+        try:
+            from aiflow.models.cost import ModelCostCalculator
+            calc = ModelCostCalculator()
+            # 4 steps use LLM: classify, elaborate, extract, review (~2000 in, 1000 out each)
+            _estimated_bpmn_cost = calc.calculate("openai/gpt-4o", 8000, 4000)
+            from aiflow.api.cost_recorder import record_cost
+            await record_cost(
+                workflow_run_id=run_id,
+                step_name="bpmn_generation",
+                model="openai/gpt-4o",
+                input_tokens=8000,
+                output_tokens=4000,
+                cost_usd=_estimated_bpmn_cost,
+            )
+        except Exception:
+            pass
         try:
             pool = await get_pool()
             async with pool.acquire() as conn:
@@ -107,7 +125,7 @@ async def generate_process_doc(request: GenerateRequest) -> GenerateResponse:
                                NOW(), $7, $8, $9)""",
                     uuid.UUID(run_id), "bpmn_generation", "1.0", "process_documentation",
                     run_status, json.dumps({"user_input": request.user_input[:100]}),
-                    float(total_duration_ms), 0.0, run_error,
+                    float(total_duration_ms), _estimated_bpmn_cost, run_error,
                 )
                 for idx, sr in enumerate(step_records):
                     await conn.execute(
