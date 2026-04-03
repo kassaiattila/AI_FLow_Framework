@@ -25,6 +25,7 @@ import { Monitoring as MonitoringNew } from "./pages-new/Monitoring";
 import { Audit as AuditNew } from "./pages-new/Audit";
 import { Admin as AdminNew } from "./pages-new/Admin";
 import { Verification } from "./pages-new/Verification";
+import { DocumentDetail } from "./pages-new/DocumentDetail";
 
 // --- Legacy MUI (to be migrated in future) ---
 import { CubixViewer } from "./pages/CubixViewer";
@@ -65,6 +66,7 @@ export const router = createHashRouter([
 
       // Data
       { path: "documents", element: <DocumentsNew /> },
+      { path: "documents/:id/show", element: <DocumentDetail /> },
       { path: "documents/:id/verify", element: <Verification /> },
       { path: "document-upload", element: <Navigate to="/documents" replace /> },
       { path: "emails", element: <EmailsNew /> },
