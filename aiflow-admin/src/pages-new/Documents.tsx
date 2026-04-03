@@ -62,8 +62,9 @@ function fileName(path: string): string {
 
 function confidenceColor(conf: number | null): string {
   if (!conf) return "text-gray-400";
-  if (conf >= 90) return "text-green-600 dark:text-green-400";
-  if (conf >= 70) return "text-amber-600 dark:text-amber-400";
+  const pct = conf <= 1 ? conf * 100 : conf; // handle 0-1 or 0-100 scale
+  if (pct >= 90) return "text-green-600 dark:text-green-400";
+  if (pct >= 70) return "text-amber-600 dark:text-amber-400";
   return "text-red-600 dark:text-red-400";
 }
 
@@ -128,27 +129,41 @@ function UploadTab() {
         { name: "Export", status: "pending" },
       ]);
 
-      const source = streamApi(
+      streamApi(
         `/api/v1/documents/process-stream`,
         (data) => {
           try {
             const msg = JSON.parse(data);
-            if (msg.step_index !== undefined) {
+            if (msg.event === "step_start" && msg.step !== undefined) {
               setSteps(prev => prev.map((s, i) => ({
                 ...s,
-                status: i < msg.step_index ? "done" : i === msg.step_index ? "running" : "pending",
-                elapsed_ms: i === msg.step_index ? msg.elapsed_ms : s.elapsed_ms,
+                status: i < msg.step ? "done" : i === msg.step ? "running" : s.status,
               })));
             }
-            if (msg.status === "completed") {
-              setResult(`${files.length} file(s) processed successfully`);
+            if (msg.event === "step_done" && msg.step !== undefined) {
+              setSteps(prev => prev.map((s, i) => ({
+                ...s,
+                status: i <= msg.step ? "done" : s.status,
+                elapsed_ms: i === msg.step ? msg.elapsed_ms : s.elapsed_ms,
+              })));
+            }
+            if (msg.event === "complete") {
+              const results = msg.results ?? [];
+              const vendor = results[0]?.vendor ?? "";
+              const total = results[0]?.gross_total ?? 0;
+              setResult(`${files.length} file(s) processed — ${vendor}, ${total.toLocaleString()} HUF`);
               setProcessing(false);
               setSteps(prev => prev.map(s => ({ ...s, status: "done" })));
+            }
+            if (msg.event === "error") {
+              setError(`Step ${msg.name} failed: ${msg.error}`);
+              setProcessing(false);
             }
           } catch { /* ignore non-json */ }
         },
         () => { setProcessing(false); },
         () => { setProcessing(false); },
+        { method: "POST", body: { files: files.map(f => f.name) } },
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
@@ -317,7 +332,7 @@ const docColumns: Column<Record<string, unknown>>[] = [
       const conf = item.extraction_confidence as number | null;
       return (
         <span className={`font-medium ${confidenceColor(conf)}`}>
-          {conf ? `${conf}%` : "—"}
+          {conf ? `${Math.round(conf * 100)}%` : "—"}
         </span>
       );
     },
@@ -364,12 +379,31 @@ export function Documents() {
       subtitleKey="aiflow.documents.detail"
       source={data?.source}
       actions={
-        <button
-          onClick={() => setTab("upload")}
-          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
-        >
-          + Upload
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetchApi<Response>("GET", "/api/v1/documents/export/csv", undefined, { rawResponse: true });
+                const blob = await (res as unknown as Response).blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "aiflow_documents.csv";
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch { /* ignore */ }
+            }}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
+          >
+            CSV Export
+          </button>
+          <button
+            onClick={() => setTab("upload")}
+            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+          >
+            + Upload
+          </button>
+        </div>
       }
     >
       {/* Tabs */}

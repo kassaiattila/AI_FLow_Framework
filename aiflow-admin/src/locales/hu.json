@@ -171,7 +171,8 @@
       "latencyLabel": "Kesleltetes",
       "uptimeLabel": "Uzemido",
       "records": "rekord",
-      "successRate": "Sikeresseg"
+      "successRate": "Sikeresseg",
+      "refresh": "Frissites"
     },
     "admin": {
       "title": "Felhasznalok es API kulcsok",
@@ -225,6 +226,7 @@
       "placeholder": "Ird le a folyamatot termeszetes nyelven...",
       "generate": "Diagram generalas",
       "diagram": "BPMN Diagram",
+      "diagramPlaceholder": "A diagram itt jelenik meg",
       "review": "Minoseg ertekeles",
       "issues": "Problemas",
       "suggestions": "Javaslatok",
@@ -248,7 +250,10 @@
       "title": "RAG Chat",
       "placeholder": "Kerdezes...",
       "empty": "Tedd fel az elso kerdest!",
-      "collection": "Kollekcio"
+      "collection": "Kollekcio",
+      "send": "Kuldes",
+      "sources": "forras",
+      "noAnswer": "Nem talaltam valaszt a kerdesedre."
     },
     "rag": {
       "title": "RAG Kollekcok",
@@ -284,7 +289,14 @@
       "chunkContent": "Tartalom",
       "chunkSource": "Forras",
       "chunkCreated": "Letrehozva",
-      "noChunks": "Nincs chunk. Tolts fel dokumentumokat."
+      "noChunks": "Nincs chunk. Tolts fel dokumentumokat.",
+      "ingestTab": "Dokumentum feltoltes",
+      "chatTab": "Chat",
+      "chunksTab": "Chunk-ok",
+      "ingestFormats": "PDF, DOCX, TXT, MD (max 50MB)",
+      "ingestButton": "Feltoltes es feldolgozas",
+      "chunksCreated": "chunk letrehozva",
+      "chunkIndex": "Index"
     },
     "rpa": {
       "title": "RPA Browser",

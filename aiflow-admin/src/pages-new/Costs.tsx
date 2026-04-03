@@ -7,7 +7,7 @@ import { PageLayout } from "../layout/PageLayout";
 import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
 
-interface SkillCost { skill: string; runs: number; total_cost: number; avg_cost: number; }
+interface SkillCost { skill_name: string; run_count: number; total_cost_usd: number; avg_cost_usd: number; }
 interface CostsSummary { total_cost_usd: number; total_runs: number; per_skill: SkillCost[]; daily: unknown[]; source?: string; }
 
 export function Costs() {
@@ -15,10 +15,10 @@ export function Costs() {
   const { data, loading, error, refetch } = useApi<CostsSummary>("/api/v1/costs/summary");
 
   const columns: Column<Record<string, unknown>>[] = [
-    { key: "skill", label: "Skill", render: (item) => <span className="font-medium text-gray-900 dark:text-gray-100">{String(item.skill)}</span> },
-    { key: "runs", label: translate("aiflow.costs.runs"), getValue: (item) => item.runs as number },
-    { key: "total_cost", label: translate("aiflow.costs.totalCostCol"), getValue: (item) => item.total_cost as number, render: (item) => <span className="text-gray-600">${(item.total_cost as number).toFixed(3)}</span> },
-    { key: "avg_cost", label: translate("aiflow.costs.avgCost"), getValue: (item) => item.avg_cost as number, render: (item) => <span className="text-gray-500">${(item.avg_cost as number).toFixed(4)}</span> },
+    { key: "skill_name", label: "Skill", render: (item) => <span className="font-medium text-gray-900 dark:text-gray-100">{String(item.skill_name)}</span> },
+    { key: "run_count", label: translate("aiflow.costs.runs"), getValue: (item) => item.run_count as number },
+    { key: "total_cost_usd", label: translate("aiflow.costs.totalCostCol"), getValue: (item) => item.total_cost_usd as number, render: (item) => <span className="text-gray-600 dark:text-gray-400">${((item.total_cost_usd as number) ?? 0).toFixed(3)}</span> },
+    { key: "avg_cost_usd", label: translate("aiflow.costs.avgCost"), getValue: (item) => item.avg_cost_usd as number, render: (item) => <span className="text-gray-500 dark:text-gray-400">${((item.avg_cost_usd as number) ?? 0).toFixed(4)}</span> },
   ];
 
   return (

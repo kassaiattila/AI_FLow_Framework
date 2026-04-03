@@ -136,7 +136,7 @@ def create_app() -> FastAPI:
         # Dev/test: include traceback for debugging
         return JSONResponse(
             status_code=500,
-            content={"detail": str(exc), "error_id": error_id, "traceback": tb[:1000]},
+            content={"detail": str(exc), "error_id": error_id, "traceback": tb[:5000]},
         )
 
     logger.info("app_created", version=__version__)

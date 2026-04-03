@@ -14,6 +14,7 @@ import { DashboardNew } from "./pages-new/Dashboard";
 import { Documents as DocumentsNew } from "./pages-new/Documents";
 import { Emails as EmailsNew } from "./pages-new/Emails";
 import { Rag as RagNew } from "./pages-new/Rag";
+import { RagDetail } from "./pages-new/RagDetail";
 import { ProcessDocs as ProcessDocsNew } from "./pages-new/ProcessDocs";
 import { Media as MediaNew } from "./pages-new/Media";
 import { Rpa as RpaNew } from "./pages-new/Rpa";
@@ -73,8 +74,8 @@ export const router = createHashRouter([
       // AI Services
       { path: "rag", element: <RagNew /> },
       { path: "rag/collections", element: <Navigate to="/rag" replace /> },
-      { path: "rag/collections/:id", element: <RagNew /> },
-      { path: "rag/:id", element: <RagNew /> },
+      { path: "rag/collections/:id", element: <RagDetail /> },
+      { path: "rag/:id", element: <RagDetail /> },
       { path: "rag-chat", element: <Navigate to="/rag" replace /> },
       { path: "process-docs", element: <ProcessDocsNew /> },
       { path: "media", element: <MediaNew /> },

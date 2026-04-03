@@ -131,7 +131,10 @@ class RAGEngineService(BaseService):
         """Initialize vector store, embedder, and search engine."""
         db_url = os.environ.get(
             "DATABASE_URL",
-            "postgresql+asyncpg://aiflow:aiflow@localhost:5433/aiflow",
+            os.environ.get(
+                "AIFLOW_DATABASE__URL",
+                "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
+            ),
         )
         # Convert async URL to sync for PgVectorStore (uses asyncpg directly)
         sync_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
@@ -141,7 +144,7 @@ class RAGEngineService(BaseService):
             from aiflow.vectorstore.embedder import Embedder
             from aiflow.vectorstore.search import HybridSearchEngine, SearchConfig
             from aiflow.models.client import ModelClient
-            from aiflow.models.litellm_backend import LiteLLMBackend
+            from aiflow.models.backends.litellm_backend import LiteLLMBackend
 
             backend = LiteLLMBackend()
             self._model_client = ModelClient(

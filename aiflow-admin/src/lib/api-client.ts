@@ -117,32 +117,79 @@ export async function uploadFile<T>(
 }
 
 /**
- * SSE stream for real-time updates (document processing, etc.)
- * Returns an EventSource-like async iterator.
+ * SSE stream via fetch (supports POST + auth headers).
+ * EventSource only supports GET without headers, so we use fetch + ReadableStream.
+ * Returns an AbortController to cancel the stream.
  */
 export function streamApi(
   path: string,
   onMessage: (data: string) => void,
   onError?: (error: Event) => void,
   onDone?: () => void,
-): EventSource {
+  options?: { method?: string; body?: unknown },
+): { close: () => void } {
   const url = path.startsWith("/") ? path : `/${path}`;
-  const source = new EventSource(url);
+  const controller = new AbortController();
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  if (options?.body) {
+    headers["Content-Type"] = "application/json";
+  }
 
-  source.onmessage = (event) => {
-    onMessage(event.data);
-  };
+  (async () => {
+    try {
+      const response = await fetch(url, {
+        method: options?.method ?? "POST",
+        headers,
+        body: options?.body ? JSON.stringify(options.body) : undefined,
+        signal: controller.signal,
+      });
 
-  source.onerror = (event) => {
-    if (onError) onError(event);
-    source.close();
-    if (onDone) onDone();
-  };
+      if (!response.ok) {
+        if (onError) onError(new Event("error"));
+        if (onDone) onDone();
+        return;
+      }
 
-  source.addEventListener("done", () => {
-    source.close();
-    if (onDone) onDone();
-  });
+      const reader = response.body?.getReader();
+      if (!reader) {
+        if (onDone) onDone();
+        return;
+      }
 
-  return source;
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") {
+              if (onDone) onDone();
+              return;
+            }
+            onMessage(data);
+          }
+        }
+      }
+      if (onDone) onDone();
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        if (onError) onError(new Event("error"));
+      }
+      if (onDone) onDone();
+    }
+  })();
+
+  return { close: () => controller.abort() };
 }

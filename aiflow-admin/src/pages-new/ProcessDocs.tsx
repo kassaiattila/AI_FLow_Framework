@@ -2,13 +2,33 @@
  * AIFlow Process Docs — F6.4 diagram generation + saved diagrams.
  */
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
 import { fetchApi } from "../lib/api-client";
 import { PageLayout } from "../layout/PageLayout";
 import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
+import mermaid from "mermaid";
+
+mermaid.initialize({ startOnLoad: false, theme: "dark", securityLevel: "loose" });
+
+function MermaidDiagram({ code }: { code: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [svg, setSvg] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    const id = `mermaid-${Date.now()}`;
+    mermaid.render(id, code).then(({ svg: rendered }) => {
+      if (!cancelled) setSvg(rendered);
+    }).catch(() => {
+      if (!cancelled) setSvg("");
+    });
+    return () => { cancelled = true; };
+  }, [code]);
+  if (!svg) return <pre className="overflow-auto text-xs text-gray-600 dark:text-gray-300">{code}</pre>;
+  return <div ref={ref} className="overflow-auto" dangerouslySetInnerHTML={{ __html: svg }} />;
+}
 
 interface Diagram {
   id: string;
@@ -71,8 +91,8 @@ export function ProcessDocs() {
         {/* Output */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
           <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">{translate("aiflow.processDocs.diagram")}</p>
-          <div className="flex h-48 items-center justify-center rounded-lg bg-gray-50 text-sm text-gray-400 dark:bg-gray-800">
-            {result ? <pre className="overflow-auto text-xs text-gray-600 dark:text-gray-300">{result}</pre> : "Mermaid diagram renders here"}
+          <div className="flex min-h-48 items-center justify-center rounded-lg bg-gray-50 p-2 text-sm text-gray-400 dark:bg-gray-800">
+            {result ? <MermaidDiagram code={result} /> : translate("aiflow.processDocs.diagramPlaceholder")}
           </div>
         </div>
       </div>

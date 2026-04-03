@@ -22,7 +22,7 @@ export function Monitoring() {
 
   return (
     <PageLayout titleKey="aiflow.monitoring.title" subtitleKey="aiflow.monitoring.subtitle" source={health?.source}
-      actions={<button onClick={refetch} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400">{translate("ra.action.refresh") || "Refresh"}</button>}
+      actions={<button onClick={refetch} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400">{translate("aiflow.monitoring.refresh")}</button>}
     >
       {hl ? <LoadingState fullPage /> : he ? <ErrorState error={he} onRetry={refetch} /> : health ? (
         <>

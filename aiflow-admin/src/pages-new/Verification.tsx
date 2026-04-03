@@ -56,9 +56,7 @@ function generateVerificationData(
   const fields = getAllFields(lineItems.length);
   const dataPoints: DataPoint[] = fields.map((f) => {
     const value = resolvePath(invoice, f.fieldPath);
-    const baseConf = (invoice.extraction_confidence as number) || 0.8;
-    const jitter = Math.sin(f.id.length * 7) * 0.15;
-    const confidence = Math.max(0.3, Math.min(1, baseConf + jitter));
+    const confidence = (invoice.extraction_confidence as number) || 0.8;
     return {
       id: f.id,
       category: f.category as DataPointCategory,
@@ -117,14 +115,16 @@ function DocumentCanvas({
   const [zoom, setZoom] = useState(100);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [hasRealImage, setHasRealImage] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("mock");
+  const [viewMode, setViewMode] = useState<ViewMode>("real");
 
   const sourceFile = (invoice.source_file as string) || "";
+  // Extract just the filename (strip directory path with / or \)
+  const fileName = sourceFile.split(/[/\\]/).pop() || sourceFile;
 
   // Try to load the real rendered PNG image from FastAPI
   useEffect(() => {
-    if (!sourceFile) return;
-    const imgPath = `/api/v1/documents/images/${encodeURIComponent(sourceFile)}/page_1.png`;
+    if (!fileName) return;
+    const imgPath = `/api/v1/documents/images/${encodeURIComponent(fileName)}/page_1.png`;
     const img = new Image();
     img.onload = () => {
       setImageUrl(imgPath);
@@ -136,7 +136,7 @@ function DocumentCanvas({
       setViewMode("mock");
     };
     img.src = imgPath;
-  }, [sourceFile]);
+  }, [fileName]);
 
   const filteredPoints = dataPoints.filter((dp) => {
     if (!dp.bounding_box) return false;
@@ -632,28 +632,35 @@ export function Verification() {
   const [docIds, setDocIds] = useState<string[]>([]);
 
   const vs = useVerificationState();
+  const docListRef = useRef<DocumentResponse[]>([]);
 
-  // Load document + full list (for prev/next navigation)
+  // Helper: ensure doc list is loaded (cached in ref)
+  const ensureDocList = useCallback(async () => {
+    if (docListRef.current.length > 0) return docListRef.current;
+    const listData = await fetchApi<DocumentListResponse>("GET", `/api/v1/documents?limit=500`);
+    const allDocs = listData.documents || [];
+    docListRef.current = allDocs;
+    setDocIds(allDocs.filter((d) => d.id).map((d) => d.id!));
+    setSource(listData.source ?? "backend");
+    return allDocs;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load current document + ensure list is available
   useEffect(() => {
     if (!id) {
       setLoading(false);
       return;
     }
+    setLoading(true);
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    const load = async () => {
+    const loadDoc = async () => {
       try {
-        // Always fetch list for prev/next navigation
-        const listData = await fetchApi<DocumentListResponse>("GET", `/api/v1/documents`);
-        const allDocs = listData.documents || [];
-        setDocIds(allDocs.filter((d) => d.id).map((d) => d.id!));
-        setSource(listData.source ?? "backend");
-
+        const allDocs = await ensureDocList();
         let found: DocumentResponse | undefined;
         if (isUuid) {
           found = allDocs.find((d) => d.id === id);
           if (!found) {
-            // Direct lookup if not in paginated list
             found = await fetchApi<DocumentResponse>("GET", `/api/v1/documents/by-id/${id}`);
           }
         } else {
@@ -665,14 +672,11 @@ export function Verification() {
           const idx = allDocs.indexOf(found);
           vs.loadData(generateVerificationData(found as Record<string, unknown>, idx >= 0 ? idx : 0));
         }
-      } catch {
-        // Error handled by showing not-found state
-      } finally {
-        setLoading(false);
-      }
+      } catch { /* not found */ }
+      finally { setLoading(false); }
     };
-    load();
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+    loadDoc();
+  }, [id, ensureDocList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Prev/Next document navigation
   const currentIdx = docIds.indexOf(id ?? "");

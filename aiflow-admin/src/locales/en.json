@@ -171,7 +171,8 @@
       "latencyLabel": "Latency",
       "uptimeLabel": "Uptime",
       "records": "records",
-      "successRate": "Success rate"
+      "successRate": "Success rate",
+      "refresh": "Refresh"
     },
     "admin": {
       "title": "Users & API Keys",
@@ -225,6 +226,7 @@
       "placeholder": "Describe the process in natural language...",
       "generate": "Generate Diagram",
       "diagram": "BPMN Diagram",
+      "diagramPlaceholder": "Diagram will render here",
       "review": "Quality Review",
       "issues": "Issues",
       "suggestions": "Suggestions",
@@ -248,7 +250,10 @@
       "title": "RAG Chat",
       "placeholder": "Ask a question...",
       "empty": "Ask your first question!",
-      "collection": "Collection"
+      "collection": "Collection",
+      "send": "Send",
+      "sources": "sources",
+      "noAnswer": "No answer found for your question."
     },
     "rag": {
       "title": "RAG Collections",
@@ -284,7 +289,14 @@
       "chunkContent": "Content Preview",
       "chunkSource": "Source Document",
       "chunkCreated": "Created",
-      "noChunks": "No chunks yet. Upload documents to get started."
+      "noChunks": "No chunks yet. Upload documents to get started.",
+      "ingestTab": "Document Upload",
+      "chatTab": "Chat",
+      "chunksTab": "Chunks",
+      "ingestFormats": "PDF, DOCX, TXT, MD (max 50MB)",
+      "ingestButton": "Upload & Ingest",
+      "chunksCreated": "chunks created",
+      "chunkIndex": "Index"
     },
     "rpa": {
       "title": "RPA Browser",

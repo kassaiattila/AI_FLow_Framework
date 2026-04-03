@@ -176,7 +176,7 @@ async def list_documents(
                     validation_errors = json.loads(validation_errors)
 
                 documents.append(DocumentItem(
-                    id=row["source_file"],  # Use source_file as ID for compatibility
+                    id=str(row["id"]),  # Use real DB UUID as ID
                     source_file=row["source_file"],
                     direction=row["direction"] or "",
                     vendor={
@@ -401,10 +401,17 @@ async def render_pdf_page(source_file: str, page: int = 1) -> StreamingResponse:
     Returns a cached PNG image of the requested page.
     """
     upload_dir = _upload_dir()
-    pdf_path = upload_dir / source_file
+    # Normalize: if source_file contains a path, extract just the filename
+    clean_name = Path(source_file).name if ("/" in source_file or "\\" in source_file) else source_file
+    pdf_path = upload_dir / clean_name
 
     if not pdf_path.exists():
-        raise HTTPException(status_code=404, detail=f"PDF not found: {source_file}")
+        # Try the original path as-is (in case it's a relative path from project root)
+        alt_path = Path(source_file)
+        if alt_path.exists():
+            pdf_path = alt_path
+        else:
+            raise HTTPException(status_code=404, detail=f"PDF not found: {clean_name}")
 
     try:
         import pypdfium2 as pdfium
@@ -721,6 +728,66 @@ async def create_extractor_config(request: CreateConfigRequest) -> CreateConfigR
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         await svc.stop()
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/documents/export/csv — Export all invoices as CSV
+# ---------------------------------------------------------------------------
+
+@router.get("/export/csv")
+async def export_documents_csv():
+    """Export all invoices as downloadable CSV file."""
+    import csv
+    import io
+
+    result = await list_documents(limit=1000, offset=0)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "source_file", "direction", "vendor_name", "vendor_tax_number",
+        "buyer_name", "buyer_tax_number", "invoice_number", "invoice_date",
+        "due_date", "currency", "net_total", "vat_total", "gross_total",
+        "is_valid", "confidence_score", "created_at",
+    ])
+    for doc in result.documents:
+        writer.writerow([
+            doc.source_file,
+            doc.direction,
+            doc.vendor.get("name", "") if doc.vendor else "",
+            doc.vendor.get("tax_number", "") if doc.vendor else "",
+            doc.buyer.get("name", "") if doc.buyer else "",
+            doc.buyer.get("tax_number", "") if doc.buyer else "",
+            doc.header.get("invoice_number", "") if doc.header else "",
+            doc.header.get("invoice_date", "") if doc.header else "",
+            doc.header.get("due_date", "") if doc.header else "",
+            doc.header.get("currency", "HUF") if doc.header else "HUF",
+            doc.totals.get("net_total", "") if doc.totals else "",
+            doc.totals.get("vat_total", "") if doc.totals else "",
+            doc.totals.get("gross_total", "") if doc.totals else "",
+            doc.validation.get("is_valid", "") if doc.validation else "",
+            doc.extraction_confidence or "",
+            doc.created_at or "",
+        ])
+
+    from fastapi.responses import StreamingResponse
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=aiflow_invoices_export.csv"},
+    )
+
+
+@router.get("/export/json")
+async def export_documents_json():
+    """Export all invoices as downloadable JSON file."""
+    result = await list_documents(limit=1000, offset=0)
+    data = [doc.model_dump() for doc in result.documents]
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        content=data,
+        headers={"Content-Disposition": "attachment; filename=aiflow_invoices_export.json"},
+    )
 
 
 # ---------------------------------------------------------------------------
