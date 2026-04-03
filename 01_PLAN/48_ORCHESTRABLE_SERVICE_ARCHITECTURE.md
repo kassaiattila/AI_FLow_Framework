@@ -13,7 +13,20 @@ The framework already has a mature WorkflowRunner + DAG engine, ServiceRegistry,
 - **No GUI pipeline builder:** Complex pipelines are maintained as code (YAML + Jinja2), not as visual graphs
 - **Unknown future needs:** The adapter registry + YAML schema is open for extension
 
-**Prerequisite:** Commit all session 4 changes first (20+ modified files, uncommitted on main).
+**Prerequisite:** Commit all session 4 changes first (20+ modified files, uncommitted on main). ✅ DONE (61ce21e)
+
+---
+
+## Reszletes Tervek (kulon fajlok)
+
+| Fajl | Tema | Allapot |
+|------|------|---------|
+| [49_STABILITY_REGRESSION.md](49_STABILITY_REGRESSION.md) | API/DB/UI stabilitas, regresszios tesztek | KESZ |
+| [50_RAG_VECTOR_CONTEXT_SERVICE.md](50_RAG_VECTOR_CONTEXT_SERVICE.md) | Advanced RAG: OCR, chunking, metadata, reranking, VectorOps, GraphRAG | KESZ |
+| [51_DOCUMENT_EXTRACTION_INTENT.md](51_DOCUMENT_EXTRACTION_INTENT.md) | Parameterezheeto dokumentumtipusok, intent routing, szamla use case | KESZ |
+| [52_HUMAN_IN_THE_LOOP_NOTIFICATION.md](52_HUMAN_IN_THE_LOOP_NOTIFICATION.md) | Professzionalis review UI, multi-channel ertesitesek | KESZ |
+| [53_FRONTEND_DESIGN_SYSTEM.md](53_FRONTEND_DESIGN_SYSTEM.md) | UI konyvtar, Untitled UI audit, chat UI, user journey, cross-platform | KESZ |
+| [54_LLM_QUALITY_COST_OPTIMIZATION.md](54_LLM_QUALITY_COST_OPTIMIZATION.md) | Promptfoo CI/CD, LLM rubric scoring, koltseg optimalizalas, Gotenberg | KESZ |
 
 ---
 
