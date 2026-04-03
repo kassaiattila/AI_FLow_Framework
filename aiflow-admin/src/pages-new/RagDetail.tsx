@@ -7,7 +7,7 @@ import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
-import { uploadFile } from "../lib/api-client";
+import { uploadFile, fetchApi } from "../lib/api-client";
 import { PageLayout } from "../layout/PageLayout";
 import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
@@ -74,6 +74,80 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
   const { data: docsData, refetch: refetchDocs } = useApi<CollectionDocsResponse>(
     `/api/v1/rag/collections/${collectionId}/documents`,
   );
+  const [selectedDocNames, setSelectedDocNames] = useState<string[]>([]);
+  const [showDocBulkDelete, setShowDocBulkDelete] = useState(false);
+  const [docBulkDeleting, setDocBulkDeleting] = useState(false);
+  const [clearDocSel, setClearDocSel] = useState(0);
+
+  const handleDocDelete = async (docName: string) => {
+    try {
+      await fetchApi<void>("DELETE", `/api/v1/rag/collections/${collectionId}/documents/${encodeURIComponent(docName)}`);
+      refetchDocs();
+      onSuccess();
+    } catch { /* ignore */ }
+  };
+
+  const handleDocBulkDelete = async () => {
+    if (selectedDocNames.length === 0 || docBulkDeleting) return;
+    setDocBulkDeleting(true);
+    try {
+      await fetchApi<{ deleted: number }>("POST", `/api/v1/rag/collections/${collectionId}/documents/delete-bulk`, { document_names: selectedDocNames });
+      setShowDocBulkDelete(false);
+      setClearDocSel(c => c + 1);
+      refetchDocs();
+      onSuccess();
+    } catch { /* keep dialog */ }
+    finally { setDocBulkDeleting(false); }
+  };
+
+  const docColumns: Column<Record<string, unknown>>[] = [
+    {
+      key: "document_name",
+      label: translate("aiflow.rag.chunkSource"),
+      render: (item) => (
+        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {String((item as unknown as CollectionDocItem).document_name)}
+        </span>
+      ),
+    },
+    {
+      key: "chunk_count",
+      label: translate("aiflow.rag.statChunks"),
+      getValue: (item) => (item as unknown as CollectionDocItem).chunk_count,
+      render: (item) => (
+        <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+          {(item as unknown as CollectionDocItem).chunk_count} chunks
+        </span>
+      ),
+    },
+    {
+      key: "first_ingested",
+      label: translate("aiflow.rag.chunkCreated"),
+      render: (item) => {
+        const d = (item as unknown as CollectionDocItem).first_ingested;
+        return <span className="text-xs text-gray-500">{d ? new Date(d).toLocaleDateString() : "—"}</span>;
+      },
+    },
+    {
+      key: "actions",
+      label: "",
+      sortable: false,
+      render: (item) => {
+        const name = (item as unknown as CollectionDocItem).document_name;
+        return (
+          <button
+            onClick={(e) => { e.stopPropagation(); void handleDocDelete(name); }}
+            className="inline-flex items-center rounded-lg border border-red-200 p-1 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+            title={translate("aiflow.common.delete")}
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        );
+      },
+    },
+  ];
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -261,33 +335,55 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
         </div>
       )}
 
-      {/* Ingested documents list */}
+      {/* Ingested documents — DataTable with delete */}
       {docsData && docsData.documents.length > 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
+        <div>
+          <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
             {translate("aiflow.rag.ingestedDocs")} ({docsData.total})
           </h3>
-          <div className="divide-y divide-gray-100 dark:divide-gray-800">
-            {docsData.documents.map((doc) => (
-              <div key={doc.document_name} className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-2">
-                  <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{doc.document_name}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
-                    {doc.chunk_count} chunks
-                  </span>
-                  {doc.first_ingested && (
-                    <span className="text-xs text-gray-400">
-                      {new Date(doc.first_ingested).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+          {selectedDocNames.length > 0 && (
+            <div className="mb-2 flex items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 p-2 dark:border-brand-800 dark:bg-brand-900/20">
+              <span className="text-sm font-medium text-brand-700 dark:text-brand-300">
+                {selectedDocNames.length} {translate("aiflow.common.selected")}
+              </span>
+              <button onClick={() => setShowDocBulkDelete(true)} className="rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700">
+                {translate("aiflow.common.bulkDelete")}
+              </button>
+              <button onClick={() => setClearDocSel(c => c + 1)} className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600 dark:border-gray-600 dark:text-gray-400">
+                {translate("aiflow.common.cancel")}
+              </button>
+            </div>
+          )}
+          <DataTable
+            data={docsData.documents as unknown as Record<string, unknown>[]}
+            columns={docColumns}
+            selectable
+            onSelectionChange={(items) => setSelectedDocNames(items.map(i => String((i as unknown as CollectionDocItem).document_name)))}
+            clearSelection={clearDocSel}
+            searchKeys={["document_name"]}
+            pageSize={10}
+          />
+        </div>
+      )}
+
+      {/* Doc bulk delete dialog */}
+      {showDocBulkDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {translate("aiflow.common.bulkDelete")}
+            </h3>
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+              {translate("aiflow.common.bulkDeleteConfirm")} ({selectedDocNames.length})
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowDocBulkDelete(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300">
+                {translate("common.action.cancel")}
+              </button>
+              <button onClick={() => void handleDocBulkDelete()} disabled={docBulkDeleting} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
+                {docBulkDeleting ? translate("aiflow.common.loading") : translate("aiflow.common.bulkDelete")}
+              </button>
+            </div>
           </div>
         </div>
       )}

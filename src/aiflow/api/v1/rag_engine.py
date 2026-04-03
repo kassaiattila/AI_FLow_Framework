@@ -438,3 +438,55 @@ async def list_collection_documents(collection_id: str):
         ],
         total=len(rows),
     )
+
+
+@router.delete("/collections/{collection_id}/documents/{doc_name:path}", status_code=204)
+async def delete_collection_document(collection_id: str, doc_name: str):
+    """Delete all chunks belonging to a specific document in a collection."""
+    svc = await _get_service()
+    coll = await svc.get_collection(collection_id)
+    if not coll:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "DELETE FROM rag_chunks WHERE collection = $1 AND document_name = $2",
+            coll.name, doc_name,
+        )
+        if "DELETE 0" in result:
+            raise HTTPException(status_code=404, detail="Document not found in collection")
+    logger.info("collection_document_deleted", collection_id=collection_id, document_name=doc_name)
+
+
+class BulkDeleteDocsRequest(BaseModel):
+    document_names: list[str]
+
+
+class BulkDeleteDocsResponse(BaseModel):
+    deleted: int = 0
+    chunks_removed: int = 0
+    source: str = "backend"
+
+
+@router.post("/collections/{collection_id}/documents/delete-bulk", response_model=BulkDeleteDocsResponse)
+async def delete_collection_documents_bulk(collection_id: str, request: BulkDeleteDocsRequest):
+    """Delete multiple documents (and their chunks) from a collection."""
+    svc = await _get_service()
+    coll = await svc.get_collection(collection_id)
+    if not coll:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    pool = await get_pool()
+    total_chunks = 0
+    async with pool.acquire() as conn:
+        for doc_name in request.document_names:
+            result = await conn.execute(
+                "DELETE FROM rag_chunks WHERE collection = $1 AND document_name = $2",
+                coll.name, doc_name,
+            )
+            count = int(result.split()[-1]) if result else 0
+            total_chunks += count
+
+    logger.info("collection_documents_bulk_deleted", collection_id=collection_id, count=len(request.document_names), chunks=total_chunks)
+    return BulkDeleteDocsResponse(deleted=len(request.document_names), chunks_removed=total_chunks)
