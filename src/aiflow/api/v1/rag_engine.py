@@ -286,11 +286,13 @@ async def ingest_documents_stream(
         raise HTTPException(status_code=404, detail="Collection not found")
 
     async def event_stream():
-        steps = ["upload", "parse", "chunk", "embed", "store"]
         run_start = _time.perf_counter()
+        errors: list[str] = []
+        total_chunks = 0
+        files_ok = 0
 
         try:
-            # Step 0: Upload
+            # Step 0: Upload files to disk
             yield f"data: {_json.dumps({'event': 'step_start', 'step': 0, 'name': 'upload'})}\n\n"
             project_root = Path(__file__).parent.parent.parent.parent.parent
             upload_dir = project_root / "data" / "uploads" / "rag" / collection_id
@@ -303,22 +305,91 @@ async def ingest_documents_stream(
                 saved_paths.append(dest)
             yield f"data: {_json.dumps({'event': 'step_done', 'step': 0, 'name': 'upload', 'files': len(saved_paths)})}\n\n"
 
-            # Steps 1-4: Parse, Chunk, Embed, Store (delegated to service)
-            for i, step_name in enumerate(steps[1:], start=1):
-                yield f"data: {_json.dumps({'event': 'step_start', 'step': i, 'name': step_name})}\n\n"
+            # Step 1: Parse documents
+            yield f"data: {_json.dumps({'event': 'step_start', 'step': 1, 'name': 'parse'})}\n\n"
+            from aiflow.ingestion.parsers.docling_parser import DoclingParser
+            from aiflow.ingestion.chunkers.recursive_chunker import RecursiveChunker, ChunkingConfig
+            parser = DoclingParser()
+            parsed_docs = []
+            for fp in saved_paths:
+                try:
+                    doc = parser.parse(fp)
+                    doc_text = doc.markdown or doc.text
+                    if doc_text.strip():
+                        parsed_docs.append((fp, doc, doc_text))
+                    else:
+                        errors.append(f"{fp.name}: empty document")
+                except Exception as e:
+                    errors.append(f"{fp.name}: parse error: {e}")
+            yield f"data: {_json.dumps({'event': 'step_done', 'step': 1, 'name': 'parse', 'parsed': len(parsed_docs)})}\n\n"
 
-            result = await svc.ingest_documents(
-                collection_id=collection_id,
-                file_paths=saved_paths,
-                language=language,
-            )
+            # Step 2: Chunk
+            yield f"data: {_json.dumps({'event': 'step_start', 'step': 2, 'name': 'chunk'})}\n\n"
+            chunker = RecursiveChunker(ChunkingConfig(
+                chunk_size=svc._ext_config.default_chunk_size,
+                chunk_overlap=svc._ext_config.default_chunk_overlap,
+            ))
+            all_chunks_data: list[tuple[Path, list]] = []
+            for fp, doc, doc_text in parsed_docs:
+                chunks = chunker.chunk_text(doc_text, metadata={
+                    "document_name": doc.file_name or fp.name,
+                    "file_type": doc.file_type,
+                    "language": language or coll.language,
+                })
+                if chunks:
+                    all_chunks_data.append((fp, chunks))
+                else:
+                    errors.append(f"{fp.name}: no chunks")
+            total_chunk_count = sum(len(c) for _, c in all_chunks_data)
+            yield f"data: {_json.dumps({'event': 'step_done', 'step': 2, 'name': 'chunk', 'chunks': total_chunk_count})}\n\n"
 
-            # Mark all remaining steps as done
-            for i, step_name in enumerate(steps[1:], start=1):
-                yield f"data: {_json.dumps({'event': 'step_done', 'step': i, 'name': step_name})}\n\n"
+            # Step 3: Embed
+            yield f"data: {_json.dumps({'event': 'step_start', 'step': 3, 'name': 'embed'})}\n\n"
+            all_embeddings: list[tuple[Path, list, list]] = []
+            for fp, chunks in all_chunks_data:
+                chunk_texts = [c.text for c in chunks]
+                embeddings = await svc._embedder.embed_texts(chunk_texts)
+                all_embeddings.append((fp, chunks, embeddings))
+            yield f"data: {_json.dumps({'event': 'step_done', 'step': 3, 'name': 'embed'})}\n\n"
+
+            # Step 4: Store
+            yield f"data: {_json.dumps({'event': 'step_start', 'step': 4, 'name': 'store'})}\n\n"
+            import uuid as _uuid
+            for fp, chunks, embeddings in all_embeddings:
+                chunk_dicts = [
+                    {
+                        "id": str(_uuid.uuid4()),
+                        "content": c.text,
+                        "metadata": {**c.metadata, "chunk_index": c.index},
+                        "document_name": c.metadata.get("document_name", fp.name),
+                    }
+                    for c in chunks
+                ]
+                stored = await svc._vector_store.upsert_chunks(
+                    collection=coll.name,
+                    skill_name="rag_engine",
+                    chunks=chunk_dicts,
+                    embeddings=embeddings,
+                )
+                total_chunks += stored
+                files_ok += 1
+
+            # Update collection stats
+            from sqlalchemy import text as sa_text
+            async with svc._session_factory() as session:
+                await session.execute(
+                    sa_text("""UPDATE rag_collections
+                        SET document_count = document_count + :docs,
+                            chunk_count = chunk_count + :chunks,
+                            last_ingest_at = NOW(), updated_at = NOW()
+                        WHERE id = :id"""),
+                    {"docs": files_ok, "chunks": total_chunks, "id": collection_id},
+                )
+                await session.commit()
+            yield f"data: {_json.dumps({'event': 'step_done', 'step': 4, 'name': 'store', 'stored': total_chunks})}\n\n"
 
             total_ms = int((_time.perf_counter() - run_start) * 1000)
-            yield f"data: {_json.dumps({'event': 'complete', 'files_processed': result.files_processed, 'chunks_created': result.chunks_created, 'duration_ms': total_ms, 'errors': [str(e) for e in result.errors]})}\n\n"
+            yield f"data: {_json.dumps({'event': 'complete', 'files_processed': files_ok, 'chunks_created': total_chunks, 'duration_ms': total_ms, 'errors': errors})}\n\n"
 
         except Exception as e:
             yield f"data: {_json.dumps({'event': 'error', 'error': str(e)})}\n\n"
