@@ -220,9 +220,11 @@ async def ingest_documents(
     if not coll:
         raise HTTPException(status_code=404, detail="Collection not found")
 
-    # Save uploaded files to temp directory
+    # Save uploaded files to persistent directory (not temp!)
     saved_paths: list[Path] = []
-    upload_dir = Path(tempfile.mkdtemp(prefix="rag_ingest_"))
+    project_root = Path(__file__).parent.parent.parent.parent.parent
+    upload_dir = project_root / "data" / "uploads" / "rag" / collection_id
+    upload_dir.mkdir(parents=True, exist_ok=True)
     try:
         for f in files:
             dest = upload_dir / (f.filename or "unnamed.pdf")

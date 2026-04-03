@@ -114,7 +114,7 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="flex h-[500px] flex-col rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+    <div className="flex min-h-[400px] flex-col rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900" style={{ height: "calc(100vh - 320px)" }}>
       {/* Collection selector — hidden when collectionId prop is provided */}
       {!collectionId && (
         <div className="border-b border-gray-200 px-4 py-2 dark:border-gray-700">
@@ -160,29 +160,31 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
               {/* Message content */}
               <p className="whitespace-pre-wrap">{msg.content}</p>
 
-              {/* Sources (assistant only) */}
+              {/* Sources (assistant only) — always visible */}
               {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
-                <details className="mt-2 border-t border-gray-200 pt-2 dark:border-gray-700">
-                  <summary className="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400">
-                    {msg.sources.length} {translate("aiflow.ragChat.sources")}
-                  </summary>
-                  <ul className="mt-1 space-y-1">
+                <div className="mt-2 border-t border-gray-200 pt-2 dark:border-gray-700">
+                  <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    {msg.sources.length} {translate("aiflow.ragChat.sources")}:
+                  </p>
+                  <div className="space-y-1">
                     {msg.sources.map((src, sIdx) => (
-                      <li
+                      <div
                         key={sIdx}
-                        className="rounded bg-gray-50 p-2 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                        className="rounded bg-gray-50 px-2 py-1.5 text-xs dark:bg-gray-700"
                       >
-                        {src.document_title && (
-                          <span className="mb-0.5 block font-semibold">{src.document_title}</span>
-                        )}
-                        <span className="line-clamp-3">{src.text}</span>
-                        <span className="mt-0.5 block text-gray-400 dark:text-gray-500">
-                          {Math.round(src.score * 100)}%
-                        </span>
-                      </li>
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">
+                            {src.document_title || `Source ${sIdx + 1}`}
+                          </span>
+                          <span className="rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
+                            {Math.round(src.score * 100)}%
+                          </span>
+                        </div>
+                        <p className="mt-0.5 line-clamp-2 text-gray-500 dark:text-gray-400">{src.text}</p>
+                      </div>
                     ))}
-                  </ul>
-                </details>
+                  </div>
+                </div>
               )}
 
               {/* Response time (assistant only) */}

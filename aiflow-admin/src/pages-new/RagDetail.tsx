@@ -37,10 +37,10 @@ interface IngestResponse {
 }
 
 interface ChunkItem {
-  id: string;
+  chunk_id: string;
   content: string;
-  metadata: Record<string, unknown>;
-  score?: number;
+  document_name: string | null;
+  created_at: string | null;
 }
 
 interface ChunksResponse {
@@ -263,40 +263,35 @@ function ChunksTab({ collectionId }: { collectionId: string }) {
       key: "content",
       label: translate("aiflow.rag.chunkContent"),
       render: (item) => {
-        const content = String((item as unknown as ChunkItem).content ?? "");
+        const c = item as unknown as ChunkItem;
+        const text = c.content ?? "";
         return (
-          <span className="text-sm text-gray-700 dark:text-gray-300" title={content}>
-            {content.length > 200 ? content.substring(0, 200) + "..." : content}
+          <span className="text-sm text-gray-700 dark:text-gray-300" title={text}>
+            {text.length > 200 ? text.substring(0, 200) + "..." : text}
           </span>
         );
       },
     },
     {
-      key: "metadata.document_name",
+      key: "document_name",
       label: translate("aiflow.rag.chunkSource"),
-      getValue: (item) => {
-        const meta = (item as unknown as ChunkItem).metadata;
-        return String(meta?.document_name ?? meta?.source ?? "");
-      },
       render: (item) => {
-        const meta = (item as unknown as ChunkItem).metadata;
-        const name = String(meta?.document_name ?? meta?.source ?? "---");
-        return <span className="text-xs text-gray-500 dark:text-gray-400">{name}</span>;
+        const c = item as unknown as ChunkItem;
+        return (
+          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+            {c.document_name || "---"}
+          </span>
+        );
       },
     },
     {
-      key: "metadata.chunk_index",
-      label: translate("aiflow.rag.chunkIndex"),
-      getValue: (item) => {
-        const meta = (item as unknown as ChunkItem).metadata;
-        return Number(meta?.chunk_index ?? 0);
-      },
+      key: "created_at",
+      label: translate("aiflow.rag.chunkCreated"),
       render: (item) => {
-        const meta = (item as unknown as ChunkItem).metadata;
-        const idx = meta?.chunk_index;
+        const c = item as unknown as ChunkItem;
         return (
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            {idx != null ? String(idx) : "---"}
+            {c.created_at ? new Date(c.created_at).toLocaleDateString() : "---"}
           </span>
         );
       },
@@ -312,7 +307,7 @@ function ChunksTab({ collectionId }: { collectionId: string }) {
       data={(data?.chunks ?? []) as unknown as Record<string, unknown>[]}
       columns={columns}
       loading={loading}
-      searchKeys={["content", "metadata.document_name"]}
+      searchKeys={["content", "document_name"]}
       pageSize={10}
       emptyMessageKey="aiflow.rag.noChunks"
     />
