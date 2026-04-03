@@ -7,7 +7,7 @@ import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
-import { uploadFile, fetchApi } from "../lib/api-client";
+import { uploadFile, fetchApi, streamApi } from "../lib/api-client";
 import { PageLayout } from "../layout/PageLayout";
 import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
@@ -71,6 +71,9 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<IngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  interface IngestStep { name: string; status: "pending" | "running" | "done" | "error"; }
+  const [steps, setSteps] = useState<IngestStep[]>([]);
   const { data: docsData, refetch: refetchDocs } = useApi<CollectionDocsResponse>(
     `/api/v1/rag/collections/${collectionId}/documents`,
   );
@@ -178,18 +181,89 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
     setUploading(true);
     setError(null);
     setResult(null);
+    setSteps([
+      { name: "Upload", status: "pending" },
+      { name: "Parse", status: "pending" },
+      { name: "Chunk", status: "pending" },
+      { name: "Embed", status: "pending" },
+      { name: "Store", status: "pending" },
+    ]);
+
     try {
       const formData = new FormData();
       files.forEach((f) => formData.append("files", f));
-      const res = await uploadFile<IngestResponse>(
-        `/api/v1/rag/collections/${collectionId}/ingest`,
-        formData,
-      );
-      setResult(res);
-      if (res.errors.length === 0) {
-        setFiles([]);
-        onSuccess();
-        refetchDocs();
+
+      // Try SSE stream first, fallback to regular upload
+      const token = localStorage.getItem("aiflow_token");
+      const resp = await fetch(`/api/v1/rag/collections/${collectionId}/ingest-stream`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      if (!resp.ok || !resp.body) {
+        // Fallback: regular ingest (no streaming)
+        const res = await uploadFile<IngestResponse>(
+          `/api/v1/rag/collections/${collectionId}/ingest`,
+          formData,
+        );
+        setResult(res);
+        setSteps(s => s.map(st => ({ ...st, status: "done" as const })));
+        if (res.errors.length === 0) {
+          setFiles([]);
+          onSuccess();
+          refetchDocs();
+        }
+        return;
+      }
+
+      // SSE stream
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const msg = JSON.parse(line.slice(6));
+            if (msg.event === "step_start" && msg.step !== undefined) {
+              setSteps(s => s.map((st, i) => ({
+                ...st,
+                status: i < msg.step ? "done" : i === msg.step ? "running" : st.status,
+              })));
+            }
+            if (msg.event === "step_done" && msg.step !== undefined) {
+              setSteps(s => s.map((st, i) => ({
+                ...st,
+                status: i <= msg.step ? "done" : st.status,
+              })));
+            }
+            if (msg.event === "complete") {
+              setResult({
+                files_processed: msg.files_processed ?? 0,
+                chunks_created: msg.chunks_created ?? 0,
+                duration_ms: msg.duration_ms ?? 0,
+                errors: msg.errors ?? [],
+                source: "backend",
+              });
+              setSteps(s => s.map(st => ({ ...st, status: "done" as const })));
+              setFiles([]);
+              onSuccess();
+              refetchDocs();
+            }
+            if (msg.event === "error") {
+              setError(msg.error ?? "Ingest failed");
+              setSteps(s => s.map(st => st.status === "running" ? { ...st, status: "error" as const } : st));
+            }
+          } catch { /* skip non-json */ }
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ingest failed");
@@ -290,13 +364,25 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
         </div>
       )}
 
-      {/* Uploading state */}
-      {uploading && (
-        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-200 border-t-brand-500" />
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {translate("aiflow.common.loading")}
-          </span>
+      {/* Pipeline progress bar */}
+      {steps.length > 0 && (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            {translate("aiflow.pipeline.title")}
+          </p>
+          <div className="flex gap-2">
+            {steps.map((step, i) => (
+              <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                <div className={`h-2 w-full rounded-full ${
+                  step.status === "done" ? "bg-green-500" :
+                  step.status === "running" ? "bg-brand-500 animate-pulse" :
+                  step.status === "error" ? "bg-red-500" :
+                  "bg-gray-200 dark:bg-gray-700"
+                }`} />
+                <span className="text-[10px] text-gray-500">{step.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

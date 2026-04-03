@@ -338,17 +338,27 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
         if run_status == "running":
             run_status = "completed"
 
-        # Calculate LLM cost from token usage
+        # Calculate LLM cost from token usage and persist to cost_records
         total_cost_usd = 0.0
         try:
             from aiflow.models.cost import ModelCostCalculator
+            from aiflow.api.cost_recorder import record_cost
             calc = ModelCostCalculator()
             for f in data.get("files", []):
                 inp = f.get("_llm_total_input_tokens", 0)
                 out = f.get("_llm_total_output_tokens", 0)
                 model = f.get("_llm_model", "openai/gpt-4o")
                 if inp or out:
-                    total_cost_usd += calc.calculate(model, inp, out)
+                    file_cost = calc.calculate(model, inp, out)
+                    total_cost_usd += file_cost
+                    await record_cost(
+                        workflow_run_id=run_id,
+                        step_name="extract",
+                        model=model,
+                        input_tokens=inp,
+                        output_tokens=out,
+                        cost_usd=file_cost,
+                    )
         except Exception:
             pass  # cost calculation is best-effort
 

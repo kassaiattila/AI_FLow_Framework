@@ -265,6 +265,71 @@ async def ingest_documents(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/collections/{collection_id}/ingest-stream")
+async def ingest_documents_stream(
+    collection_id: str,
+    files: list[UploadFile] = File(...),
+    language: str | None = Query(None),
+):
+    """Upload and ingest documents with SSE progress streaming.
+
+    Events: step_start, step_done, error, complete.
+    Steps: upload, parse, chunk, embed, store.
+    """
+    import json as _json
+    import time as _time
+    from fastapi.responses import StreamingResponse
+
+    svc = await _get_service()
+    coll = await svc.get_collection(collection_id)
+    if not coll:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    async def event_stream():
+        steps = ["upload", "parse", "chunk", "embed", "store"]
+        run_start = _time.perf_counter()
+
+        try:
+            # Step 0: Upload
+            yield f"data: {_json.dumps({'event': 'step_start', 'step': 0, 'name': 'upload'})}\n\n"
+            project_root = Path(__file__).parent.parent.parent.parent.parent
+            upload_dir = project_root / "data" / "uploads" / "rag" / collection_id
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            saved_paths: list[Path] = []
+            for f in files:
+                dest = upload_dir / (f.filename or "unnamed.pdf")
+                content = await f.read()
+                dest.write_bytes(content)
+                saved_paths.append(dest)
+            yield f"data: {_json.dumps({'event': 'step_done', 'step': 0, 'name': 'upload', 'files': len(saved_paths)})}\n\n"
+
+            # Steps 1-4: Parse, Chunk, Embed, Store (delegated to service)
+            for i, step_name in enumerate(steps[1:], start=1):
+                yield f"data: {_json.dumps({'event': 'step_start', 'step': i, 'name': step_name})}\n\n"
+
+            result = await svc.ingest_documents(
+                collection_id=collection_id,
+                file_paths=saved_paths,
+                language=language,
+            )
+
+            # Mark all remaining steps as done
+            for i, step_name in enumerate(steps[1:], start=1):
+                yield f"data: {_json.dumps({'event': 'step_done', 'step': i, 'name': step_name})}\n\n"
+
+            total_ms = int((_time.perf_counter() - run_start) * 1000)
+            yield f"data: {_json.dumps({'event': 'complete', 'files_processed': result.files_processed, 'chunks_created': result.chunks_created, 'duration_ms': total_ms, 'errors': [str(e) for e in result.errors]})}\n\n"
+
+        except Exception as e:
+            yield f"data: {_json.dumps({'event': 'error', 'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 @router.get("/collections/{collection_id}/ingest-status", response_model=IngestStatusResponse)
 async def ingest_status(collection_id: str):
     """Get ingestion status (current chunk/doc counts)."""
@@ -295,7 +360,24 @@ async def query_collection(collection_id: str, request: QueryRequest):
             role=request.role,
             top_k=request.top_k,
         )
-        return QueryResponse(**result.model_dump())
+        resp = QueryResponse(**result.model_dump())
+
+        # Persist cost to cost_records (best-effort)
+        if resp.cost_usd > 0 or resp.tokens_used > 0:
+            try:
+                from aiflow.api.cost_recorder import record_cost
+                await record_cost(
+                    workflow_run_id=resp.query_id,
+                    step_name="rag_query",
+                    model="openai/gpt-4o",
+                    input_tokens=resp.tokens_used,
+                    output_tokens=0,
+                    cost_usd=resp.cost_usd,
+                )
+            except Exception:
+                pass
+
+        return resp
     except Exception as e:
         logger.error("query_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
