@@ -88,7 +88,11 @@
       "parser": "Parser",
       "filterAll": "Mind",
       "filterProcessed": "Csak feldolgozott",
-      "unprocessed": "Feldolgozatlan"
+      "unprocessed": "Feldolgozatlan",
+      "deleteTitle": "Dokumentum torlese?",
+      "deleteConfirm": "Biztosan torli ezt a dokumentumot es minden hozza tartozo tetelt?",
+      "deleteSuccess": "Dokumentum torolve",
+      "deleteFailed": "Torles sikertelen"
     },
     "emails": {
       "title": "Emailek",

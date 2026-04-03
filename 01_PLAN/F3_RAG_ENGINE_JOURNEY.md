@@ -20,12 +20,12 @@ Barmilyen dokumentumgyujtemenyt tudasbazissa alakitani: kollekcio letrehozas →
 
 ## Preconditions
 
-- FastAPI backend fut (`localhost:8100`), PostgreSQL + pgvector + Redis Docker-ben
+- FastAPI backend fut (`localhost:8101`), PostgreSQL + pgvector + Redis Docker-ben
 - Alembic migraciok lefutottak (001-017 + uj F3 migraciok: `collections`, `chunks`)
 - HybridSearchEngine mukodik (pgvector HNSW + BM25 tsvector + RRF)
 - Embedder konfiguralt (default: OpenAI `text-embedding-3-small`)
 - LLM elerheto (default: `openai/gpt-4o`)
-- Vite frontend fut (`localhost:5174`)
+- Vite frontend fut (`localhost:5173`)
 
 ---
 

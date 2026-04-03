@@ -325,7 +325,7 @@ grep -c "## Page.*{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md || echo "GAT
 # Ha FAIL → TILOS TOVABBLEPNI. Futtasd /ui-design ELOSZOR.
 
 # 3. API valos adatot ad?
-curl -sf http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend'" || echo "GATE 2-3 FAIL"
+curl -sf http://localhost:8101/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend'" || echo "GATE 2-3 FAIL"
 ```
 **Ha BARMELYIK check FAIL → NEM IRUNK UI KODOT. Eloszor az elofeltetelt teljesitjuk.**
 **A felhasznalot ERTESITJUK melyik gate FAIL es mi a megoldas.**
@@ -529,7 +529,7 @@ regression_diff.json. Stored in tests/artifacts/{date}/{run_id}/
 | **F3** (RAG Engine) | Collection + ingest + query + feedback — TELJES szelet | `curl` + Playwright chat UI | Create → ingest → query → feedback → stats |
 | **F4** (RPA+Media+Diagram) | 3 mini-szelet: Diagram → Media → RPA → Human Review | Playwright E2E + subprocess | Valos render, valos STT, valos scrape |
 | **F5** (Monitoring+Gov) | Health, audit, admin, scheduling, RLS | `curl` + L4 regresszio | 90%+ API, ≥80% coverage, L4 atment |
-| **F6** (UI Migracio) | Minden oldal Untitled UI-val, i18n, dark mode, responsive | Playwright E2E | 14 oldal E2E PASS, 0 console error, bundle <500KB |
+| **F6** (UI Migracio) | Minden oldal Untitled UI-val, i18n, dark mode, responsive | Playwright E2E | 16 oldal E2E PASS, 0 console error, bundle <500KB |
 
 ## Plan Reference (All docs in 01_PLAN/)
 Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview

@@ -18,10 +18,10 @@ Papir vagy digitalis PDF dokumentumbol strukturalt, ellenorzott adatot kinyerni 
 
 ## Preconditions
 
-- FastAPI backend fut (`localhost:8100`), PostgreSQL + Redis Docker-ben
+- FastAPI backend fut (`localhost:8101`), PostgreSQL + Redis Docker-ben
 - Alembic migraciok lefutottak (015 `document_type_configs` + 016 `invoices` tabla)
 - Legalabb 1 document type config letezik (default: `invoice-hu`, 14 mezo)
-- Vite frontend fut (`localhost:5174`)
+- Vite frontend fut (`localhost:5173`)
 
 ---
 

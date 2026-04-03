@@ -12,7 +12,7 @@
 Az AIFlow v1.0.0 kiadasa utan (F0-F5 COMPLETE, 15 service, 87 API endpoint, 21 UI oldal)
 a kovetkezo fazis celja:
 
-1. **UI racionalizalas** — 21 oldal → ~14 oldal konszolidalas, 16 menu item → 11
+1. **UI racionalizalas** — 21 oldal → 16 oldal konszolidalas, 16 menu item → 11
 2. **Professzionalis megjelenes** — React Admin + MUI → Untitled UI + Tailwind v4 + React Aria
 3. **Service korszerusites** — dinamikus Dashboard, chart-ok, hianyzó endpointok
 
@@ -54,7 +54,7 @@ TypeScript 5.1          — strict mode (mar hasznalatban)
 Vite 7                  — build (mar hasznalatban)
 ```
 
-### 1.3 Oldal Konszolidacio (21 → 14 oldal)
+### 1.3 Oldal Konszolidacio (21 → 16 oldal)
 
 | Jelenleg | Uj | Strategia |
 |----------|-----|-----------|
@@ -207,7 +207,7 @@ Vite 7                  — build (mar hasznalatban)
 
 **Cel:** React Admin + MUI eltavolitas, teljes regresszio, accessibility audit.
 
-**Gate:** MINDEN 14 oldal E2E PASS, bundle < 500KB, Lighthouse Accessibility > 90
+**Gate:** MINDEN 16 oldal E2E PASS, bundle < 500KB, Lighthouse Accessibility > 90
 
 ---
 
@@ -283,7 +283,7 @@ aiflow-admin/src/
 
 Minden fazisban: `tsc --noEmit` + `npm run build` + Playwright E2E + i18n HU/EN + light/dark + source badge
 
-Vegso regresszio (F6.6): 14 oldal E2E, bundle < 500KB, Lighthouse Accessibility > 90
+Vegso regresszio (F6.6): 16 oldal E2E, bundle < 500KB, Lighthouse Accessibility > 90
 
 ---
 

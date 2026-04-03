@@ -88,7 +88,11 @@
       "parser": "Parser",
       "filterAll": "All",
       "filterProcessed": "Processed only",
-      "unprocessed": "Unprocessed"
+      "unprocessed": "Unprocessed",
+      "deleteTitle": "Delete Document?",
+      "deleteConfirm": "Are you sure you want to delete this document and all its line items?",
+      "deleteSuccess": "Document deleted",
+      "deleteFailed": "Delete failed"
     },
     "emails": {
       "title": "Emails",

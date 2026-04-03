@@ -266,7 +266,7 @@ function UploadTab() {
 
 // --- Document Table Columns (factory — needs translate) ---
 
-function makeDocColumns(translate: (key: string) => string): Column<Record<string, unknown>>[] { return [
+function makeDocColumns(translate: (key: string) => string, onDelete?: (id: string) => void): Column<Record<string, unknown>>[] { return [
   {
     key: "source_file",
     label: translate("aiflow.documents.file"),
@@ -345,16 +345,29 @@ function makeDocColumns(translate: (key: string) => string): Column<Record<strin
       const docId = (item as unknown as DocItem).id;
       if (!docId) return null;
       return (
-        <a
-          href={`#/documents/${encodeURIComponent(docId)}/verify`}
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-1 rounded-lg border border-brand-300 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-900/20"
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Verify
-        </a>
+        <div className="flex items-center gap-1">
+          <a
+            href={`#/documents/${encodeURIComponent(docId)}/verify`}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 rounded-lg border border-brand-300 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-900/20"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Verify
+          </a>
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(docId); }}
+              className="inline-flex items-center rounded-lg border border-red-200 p-1 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+              title={translate("aiflow.documents.deleteTitle")}
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
       );
     },
   },
@@ -372,11 +385,27 @@ export function Documents() {
   const [selectedConfig, setSelectedConfig] = useState<string>("all");
   const { data, loading, error, refetch } = useApi<DocsResponse>("/api/v1/documents");
   const { data: configsData } = useApi<ConfigsResponse>("/api/v1/documents/extractor/configs");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const docs = data?.documents ?? [];
   const total = data?.total ?? 0;
   const processed = docs.filter(d => d.extraction_confidence && d.extraction_confidence > 0).length;
   const pending = docs.filter(d => !d.extraction_confidence || d.extraction_confidence === 0).length;
+
+  const handleDelete = async () => {
+    if (!deleteId || deleting) return;
+    setDeleting(true);
+    try {
+      await fetchApi<void>("DELETE", `/api/v1/documents/delete/${deleteId}`);
+      setDeleteId(null);
+      refetch();
+    } catch {
+      // keep dialog open on error
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <PageLayout
@@ -478,7 +507,7 @@ export function Documents() {
               loading={loading}
               searchKeys={["source_file", "vendor.name", "header.invoice_number"]}
               pageSize={10}
-              columns={makeDocColumns(translate)}
+              columns={makeDocColumns(translate, setDeleteId)}
               onRowClick={(item) => {
                 const docId = (item as unknown as DocItem).id;
                 if (docId) navigate(`/documents/${encodeURIComponent(docId)}/verify`);
@@ -486,6 +515,34 @@ export function Documents() {
             />
           )}
         </>
+      )}
+      {/* Delete confirmation dialog */}
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {translate("aiflow.documents.deleteTitle")}
+            </h3>
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+              {translate("aiflow.documents.deleteConfirm")}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteId(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                {translate("common.action.cancel")}
+              </button>
+              <button
+                onClick={() => void handleDelete()}
+                disabled={deleting}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? translate("aiflow.common.loading") : translate("aiflow.documents.deleteTitle")}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </PageLayout>
   );
