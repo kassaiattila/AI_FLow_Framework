@@ -221,6 +221,8 @@ async def delete_collections_bulk(request: BulkDeleteCollectionsRequest):
         if ok:
             total += 1
     logger.info("collections_bulk_deleted", count=total, ids=request.ids)
+    from aiflow.api.audit_helper import audit_log
+    await audit_log("bulk_delete", "rag_collection", details={"count": total})
     return BulkDeleteCollectionsResponse(deleted=total)
 
 
@@ -631,6 +633,8 @@ async def delete_collection_document(collection_id: str, doc_name: str):
         if "DELETE 0" in result:
             raise HTTPException(status_code=404, detail="Document not found in collection")
     logger.info("collection_document_deleted", collection_id=collection_id, document_name=doc_name)
+    from aiflow.api.audit_helper import audit_log
+    await audit_log("delete", "rag_document", doc_name, {"collection_id": collection_id})
 
 
 class BulkDeleteDocsRequest(BaseModel):

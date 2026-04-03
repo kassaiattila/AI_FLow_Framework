@@ -833,6 +833,8 @@ async def delete_document(invoice_id: str):
         if result.rowcount == 0:
             raise HTTPException(status_code=404, detail="Document not found")
     logger.info("document_deleted", invoice_id=invoice_id)
+    from aiflow.api.audit_helper import audit_log
+    await audit_log("delete", "document", invoice_id)
 
 
 class BulkDeleteRequest(BaseModel):
@@ -862,6 +864,8 @@ async def delete_documents_bulk(request: BulkDeleteRequest):
             total_deleted += result.rowcount
 
     logger.info("documents_bulk_deleted", count=total_deleted, ids=request.ids)
+    from aiflow.api.audit_helper import audit_log
+    await audit_log("bulk_delete", "document", details={"count": total_deleted, "ids": request.ids})
     return BulkDeleteResponse(deleted=total_deleted)
 
 

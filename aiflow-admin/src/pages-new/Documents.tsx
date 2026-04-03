@@ -554,7 +554,7 @@ export function Documents() {
               clearSelection={clearSel}
               onRowClick={(item) => {
                 const docId = (item as unknown as DocItem).id;
-                if (docId) navigate(`/documents/${encodeURIComponent(docId)}/verify`);
+                if (docId) navigate(`/documents/${encodeURIComponent(docId)}/show`);
               }}
             />
           )}
