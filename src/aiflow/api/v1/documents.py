@@ -649,7 +649,8 @@ async def get_document_by_id(invoice_id: str) -> DocumentDetailResponse:
         result = await svc.get_invoice(invoice_id)
         if not result:
             raise HTTPException(status_code=404, detail=f"Invoice not found: {invoice_id}")
-        return DocumentDetailResponse(**result, source="backend")
+        result["source"] = "backend"
+        return DocumentDetailResponse(**result)
     finally:
         await svc.stop()
 
