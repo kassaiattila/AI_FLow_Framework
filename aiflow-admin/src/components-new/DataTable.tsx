@@ -3,7 +3,7 @@
  * Headless table with Tailwind styling: sort, filter, pagination, multi-select.
  */
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -106,13 +106,16 @@ export function DataTable<T extends Record<string, unknown>>({
     if (clearSelection !== undefined) setRowSelection({});
   }, [clearSelection]);
 
-  // Notify parent of selection changes
+  // Notify parent of selection changes — use ref to avoid re-render loops
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  onSelectionChangeRef.current = onSelectionChange;
+
   useEffect(() => {
-    if (!onSelectionChange || !selectable) return;
+    if (!onSelectionChangeRef.current || !selectable) return;
     const selectedIndices = Object.keys(rowSelection).filter((k) => rowSelection[k]);
     const selectedItems = selectedIndices.map((idx) => data[parseInt(idx)]).filter(Boolean);
-    onSelectionChange(selectedItems);
-  }, [rowSelection, selectable, onSelectionChange, data]);
+    onSelectionChangeRef.current(selectedItems);
+  }, [rowSelection, selectable, data]);
 
   // Build columns with optional checkbox column
   const tanstackColumns = useMemo<ColumnDef<T, unknown>[]>(() => {

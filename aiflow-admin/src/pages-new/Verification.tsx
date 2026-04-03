@@ -121,21 +121,28 @@ function DocumentCanvas({
   // Extract just the filename (strip directory path with / or \)
   const fileName = sourceFile.split(/[/\\]/).pop() || sourceFile;
 
-  // Try to load the real rendered PNG image from FastAPI
+  // Try to load the real rendered PNG image from FastAPI (with auth)
   useEffect(() => {
     if (!fileName) return;
+    let revoked = false;
     const imgPath = `/api/v1/documents/images/${encodeURIComponent(fileName)}/page_1.png`;
-    const img = new Image();
-    img.onload = () => {
-      setImageUrl(imgPath);
-      setHasRealImage(true);
-      setViewMode("real");
-    };
-    img.onerror = () => {
-      setHasRealImage(false);
-      setViewMode("mock");
-    };
-    img.src = imgPath;
+
+    fetchApi<Response>("GET", imgPath, undefined, { rawResponse: true })
+      .then(async (res) => {
+        const blob = await (res as unknown as Response).blob();
+        if (revoked) return;
+        const url = URL.createObjectURL(blob);
+        setImageUrl(url);
+        setHasRealImage(true);
+        setViewMode("real");
+      })
+      .catch(() => {
+        if (revoked) return;
+        setHasRealImage(false);
+        setViewMode("mock");
+      });
+
+    return () => { revoked = true; };
   }, [fileName]);
 
   const filteredPoints = dataPoints.filter((dp) => {
