@@ -238,7 +238,7 @@ curl -X POST http://localhost:3000/forms/libreoffice/convert \
 
 | Fazis | Feladat | Prioritas |
 |-------|---------|-----------|
-| **1** | Promptfoo CI/CD (pre-commit + GitHub Actions) | MAGAS |
+| **1** | Promptfoo CI/CD (GitHub Actions only) | MAGAS |
 | **2** | LLM rubric scoring implementacio (6 rubric) | MAGAS |
 | **3** | Pre-execution cost estimation + budget alerts | KOZEP |
 | **4** | Langfuse valos integracio (tracing + prompt A/B) | KOZEP |

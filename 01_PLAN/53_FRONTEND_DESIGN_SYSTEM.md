@@ -154,7 +154,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 - Kozos TypeScript konyvtarak a web es mobil kozott: API client, i18n, types
 - A jelenlegi Tailwind → NativeWind (Tailwind for React Native)
 
-**Most NEM epitunk mobil appot** — de a technologiai valasztasaink (React + TypeScript + fetchApi abstraction) biztositjak a kesobbi portolhatosagot.
+PWA setup a C20 ciklusban (Tier 4 Polish): vite-plugin-pwa + manifest.json + service worker. React Native kesobbi fazisban ha mobil kell.
 
 ---
 

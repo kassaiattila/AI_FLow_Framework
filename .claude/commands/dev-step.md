@@ -8,16 +8,24 @@ Arguments: $ARGUMENTS
 > Minden teszt valos adatokkal, valos backend-del, valos bongeszioben tortenik.
 > Egy feature CSAK AKKOR "KESZ" ha Playwright E2E teszten atment.
 
+## L0 SMOKE TEST (KOTELEZO — futasd ELOSZOR!)
+```bash
+./scripts/smoke_test.sh  # <30s — meglevo rendszer OK?
+```
+Ha FAIL → NEM kezdunk fejleszteni, eloszor a meglevo rendszert javitjuk!
+
 ## PRE-IMPLEMENTATION CHECKS (before writing any code!):
 
 1. **Read the relevant plan document** in `01_PLAN/`:
-   - `43_UI_RATIONALIZATION_PLAN.md` - AKTUALIS: UI migracio (F6.0-F6.6)
-   - `42_SERVICE_GENERALIZATION_PLAN.md` - KESZ: service generalizalas (F0-F5)
-   - `30_RAG_PRODUCTION_PLAN.md` - for RAG features
+   - `48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` - AKTUALIS: v1.2.0 orchestracio
+   - `49_STABILITY_REGRESSION.md` - Stabilitasi szabalyok
+   - `50-54` - Reszletes service tervek (RAG, Doc, HITL, Frontend, LLM Quality)
+   - `56_EXECUTION_PLAN.md` - Hanyadik ciklusban vagyunk?
 2. **Check reference materials** - `skills/*/reference/` if relevant
 3. **Check existing code** - never reinvent what already works
-4. **If DB change needed**: create Alembic migration FIRST
-5. **If new service**: check `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 3-4
+4. **If DB change needed**: create Alembic migration FIRST (nullable=True vagy server_default!)
+5. **If new service**: adapter reteg WRAPPER, NEM modositja az eredeti service-t
+6. **If pipeline change**: MINDEN step adapter registry-ben LETEZIK, retry KOTELEZO kulso hivasokra
 6. **If UI change — HARD GATE ELLENORZES (KIHAGYNI TILOS! FIZIKAI FAJL CHECK!):**
    ```bash
    # GATE A: Journey fajl FIZIKAILAG LETEZIK? (ls, NEM grep!)
@@ -66,6 +74,11 @@ Arguments: $ARGUMENTS
     - Toggle-ok, szurok, rendezesek mukodnek?
     - Error esetek kezelve vannak?
 11. **Ha a teszt SIKERTELEN**: ALLJ MEG, javitsd a hibat, futtasd ujra!
+
+### 4. L0 Smoke Test UJRA (regresszio ellenorzes):
+12. `./scripts/smoke_test.sh` — meglevo rendszer NEM romlott?
+13. `ruff check src/ skills/` — lint CLEAN?
+    Ha BARMELYIK FAIL → javitas ELOTT nem commitolunk!
     - NE commitolj sikertelen teszttel
     - NE lepj tovabb a kovetkezo feladatra
 

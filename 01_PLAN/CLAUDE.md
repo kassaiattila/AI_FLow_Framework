@@ -8,14 +8,25 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 > A ket fazis-rendszer FUGGETLEN. Phase 1-7 a framework magot epitette, Fazis 0-5 a service reteget.
 
 ## Structure
-- **00-05**: Core architecture, DB schema (36 tables, 13 views), implementation phases (22 weeks), tech stack
+- **00-05**: Core architecture, DB schema, implementation phases (22 weeks), tech stack
 - **06-10**: Operations (Claude Code, versioning, errors, middleware, audit)
 - **11-13**: Examples (3+3 skill walkthroughs, skill integration, GitHub research)
 - **14-16**: Technical deep-dives (frontend, ML models, RAG/vectorstore)
 - **17-19**: Dev rules (git, testing, RPA)
 - **20-27**: Security, deployment, API spec, config, testing/regression, test structure, Claude Code setup, dev environment
 - **28**: Modular Deployment (Skill Instance architecture, multi-customer deployment)
-- **42**: Service Generalization Plan (7 domain service + 9 infra epitokocka + Fazis 0-5 vertikalis szeletek)
+- **42**: Service Generalization Plan (F0-F5 KESZ, v1.0.0)
+- **43**: UI Rationalization Plan (F6.0-F6.6, v1.1.0)
+- **48-56**: **v1.2.0 Orchestrable Service Architecture** (AKTUALIS):
+  - **48**: Fo terv (Pipeline as Code, Tier 1-3, 8 fazis)
+  - **49**: Stability & Regression (API compat, DB safety, L0-L4 tesztek)
+  - **50**: RAG & Context-as-a-Service (OCR, chunking, reranking, VectorOps, GraphRAG)
+  - **51**: Document Extraction & Intent (param. doc tipusok, szamla use case)
+  - **52**: Human-in-the-Loop & Notification (review, email/Slack/webhook)
+  - **53**: Frontend Design System (Untitled UI, chat UI, user journey, PWA)
+  - **54**: LLM Quality & Cost (Promptfoo CI/CD, rubric scoring)
+  - **55**: Claude Code Configuration (CLAUDE.md, commands, MCP)
+  - **56**: Execution Plan (20 ciklus, session sablon, progress)
 - **AIFLOW_MASTER_PLAN.md**: Integrated overview of everything
 - **IMPLEMENTATION_PLAN.md**: Step-by-step execution guide (Phase 1-7 KESZ, Fazis 0-5 → ld. 42_)
 - **SKILL_DEVELOPMENT.md**: How to create new skills
@@ -30,10 +41,15 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - 6 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, invoice_processor, qbpp_test_automation (cfpb_complaint_router merged into email_intent_processor)
 
 ## Key numbers to keep consistent
-- 41 DB tables, 6 views, 25 Alembic migracio (001-025, mind letezik), 60+ indexes
+- 41 DB tables, 6 views, 26 Alembic migracio (001-026, mind letezik) + 3 tervezett (027-029), 60+ indexes
 - Framework: 22 weeks, 7 phases (Phase 1-7 KESZ)
-- Service Generalization: Fazis 0-5 vertikalis szelet (F0=infra, F1=Document Extractor, F2=Email+Classifier, F3=RAG Engine, F4=RPA+Media+Diagram, F5=Monitoring+Governance)
-- 6 skills, src/aiflow/ 18 alkonyvtar (core, engine, models, prompts, services[tervezett], execution, evaluation, skill_system, tools, vectorstore, documents, ingestion, state, security, api, observability, cli, skills, contrib)
+- Service Generalization: Fazis 0-5 KESZ (v1.0.0, 2026-04-02)
+- UI Modernization: F6 KESZ (v1.1.4, 2026-04-03)
+- **v1.2.0 Orchestration: Tier 1 (P1-5) → Tier 2 (P6) → Tier 3 (P7) → Phase 8 (templates)**
+- 15 service + 10 uj tervezett (25 total v1.2.0 utan)
+- 112+ endpoint + 18 uj tervezett (130+ total v1.2.0 utan)
+- 21 slash command (18 meglevo + 3 uj: /new-pipeline, /pipeline-test, /quality-check)
+- 6 skills, src/aiflow/ 19 alkonyvtar (+pipeline/ az uj modul)
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/
 - Step + SkillRunner architecture (agents/ module removed, llm/ → models/ atnevezve)

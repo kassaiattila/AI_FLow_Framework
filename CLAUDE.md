@@ -15,19 +15,25 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - **Skill Instance** = configured deployment of a Skill template per customer
 - **VectorStore** = pgvector hybrid search (vector HNSW + BM25 tsvector + RRF)
 
-## Current Phase: UI Modernization (v1.0.0 → v1.1.0)
-**Terv:** `01_PLAN/43_UI_RATIONALIZATION_PLAN.md`
+## Current Phase: Orchestrable Service Architecture (v1.1.4 → v1.2.0)
+**Fo terv:** `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` + reszletes tervek (49-56)
 
-> **Elozmeny:** Service Generalization (F0-F5) KESZ (v1.0.0, 2026-04-02).
-> 15 service, 112+ API endpoint (19 router), 17 UI oldal, 41 DB tabla.
-> Ez a fazis (F6.0-F6.6) a frontend TELJES ujrairasát vegzi:
-> React Admin + MUI → Untitled UI + Tailwind v4 + React Aria.
+> **Elozmeny:** v1.0.0 Service Generalization KESZ, v1.1.4 UI Modernization KESZ.
+> 15 service, 112+ API endpoint (19 router), 17 UI oldal, 41 DB tabla, 26 Alembic migracio.
 
-Fo celok:
-- **UI racionalizalas** — 21 oldal → 14, menu 16 → 11 item
-- **Untitled UI migracio** — React Admin + MUI eltavolitasa
-- **Professzionalis megjelenes** — Tailwind v4 token theming, React Aria accessibility
-- **Backend bovites** — uj endpointok (skills/summary, runs/stats, costs/daily)
+**v1.2.0 fo celok:**
+- **Pipeline Orchestrator** — YAML-defined service chaining (Pipeline as Code, NEM drag-and-drop)
+- **Uj szolgaltatasok** — notification, data_router, advanced RAG (7 service)
+- **LLM quality** — Promptfoo CI/CD, cost optimization, rubric scoring
+- **Frontend** — Untitled UI 80+ komponens, chat UI modernizacio, PWA (C20)
+
+**Tier-ek:**
+- Tier 1 (Core): P1 Adapter → P2 Schema → P3 Runner+DB → P4 API → P5 UI
+- Tier 2 (Support): P6A Notification │ P6C Service Mgr │ P6D Data Router
+- Tier 3 (RAG): P7A-7F (independent)
+- Phase 8: Pipeline Templates │ P6B Kafka (HALASZTVA post-v1.2.0)
+
+**Reszletes tervek:** `01_PLAN/` mappaban: 49 (stability), 50 (RAG), 51 (doc extraction), 52 (HITL+notification), 53 (frontend), 54 (LLM quality), 55 (Claude config), 56 (execution)
 
 **Fazisok:**
 F6.0 (Foundation) → F6.1 (Dashboard) → F6.2 (Documents) → F6.3 (Emails)
@@ -199,6 +205,11 @@ make lock                                   # Regenerate uv.lock from pyproject.
 > **TILOS** `/ui-page`-et vagy `/ui-component`-et futtatni `/ui-design` NELKUL!
 > **TILOS** `/ui-design`-t futtatni `/ui-journey` NELKUL!
 
+### Pipeline Orchestracio (v1.2.0)
+- `/new-pipeline` - **PIPELINE YAML GENERATOR**: Elerheto adapterek alapjan general YAML definiciot
+- `/pipeline-test` - **PIPELINE E2E TESZT**: Valos futatas, WorkflowRunner, cost check, DB sorok ellenorzes
+- `/quality-check` - **LLM MINOSEG + KOLTSEG**: Promptfoo eval + cost_records + regresszio detektalas
+
 ### Tervek + Audit
 - `/phase-status` - Check implementation progress for a phase (F0-F5)
 - `/validate-plan` - Validate plan document consistency
@@ -223,6 +234,7 @@ src/aiflow/
     security/      # JWT+API key auth, RBAC, audit
     api/v1/        # FastAPI endpoints (19 route files: health, workflows, chat_completions, feedback, runs, costs, skills_api, emails, auth, documents, process_docs, cubix, rag_engine, media_processor, rpa_browser, human_review, admin, services, diagram_generator)
     observability/ # Tracing, cost_tracker (partial)
+    pipeline/      # v1.2.0: Pipeline orchestrator (adapter_base, adapters/, schema, compiler, runner, repository, triggers, templates)
     cli/           # typer CLI
     skills/        # Backward compat re-exports -> skill_system/
     contrib/       # Backward compat re-exports -> tools/
@@ -531,6 +543,79 @@ regression_diff.json. Stored in tests/artifacts/{date}/{run_id}/
 | **F5** (Monitoring+Gov) | Health, audit, admin, scheduling, RLS | `curl` + L4 regresszio | 90%+ API, ≥80% coverage, L4 atment |
 | **F6** (UI Migracio) | Minden oldal Untitled UI-val, i18n, dark mode, responsive | Playwright E2E | 16 oldal E2E PASS, 0 console error, bundle <500KB |
 
+## MANDATORY v1.2.0 Orchestration Development Rules
+
+### API Compatibility (SOHA ne torj meg meglevo API-t!)
+- Uj mezok: MINDIG optional (default ertekkel)
+- Mezo torles: TILOS — deprecation + 2 minor version utan optional-la
+- Endpoint atnevezes: TILOS — uj endpoint + redirect a regirol
+- Response format valtozas: TILOS — uj mezo OK, tipus valtozas NEM
+- `/api/v1/*` meglevo endpointok FROZEN — KIZAROLAG bugfix
+
+### DB Migration Safety
+- Uj oszlop meglevo tablaban: KOTELEZO `nullable=True` vagy `server_default`
+- Oszlop torles: TILOS egybol — eloszor `nullable=True`, kovetkezo release-ben torlod
+- Index: `CREATE INDEX CONCURRENTLY`
+- FK: `ON DELETE SET NULL` (nem cascadol varatlanul)
+- Teszt: `alembic upgrade head && alembic downgrade -1 && alembic upgrade head` HIBA NELKUL
+
+### Service Isolation (v1.2.0 fejlesztes alatt)
+- **Meglevo service-ek:** KIZAROLAG bugfix. Feature bovites TILOS.
+- **Adapter reteg:** WRAPPER-eket ir, NEM modositja az eredeti service-t.
+- **Uj service-ek:** Kulon mappa, kulon adapter, kulon migracio.
+- **Meglevo API router-ek:** CSAK bugfix. Uj feature → uj router fajl.
+
+### Frontend Stability (v1.2.0 fejlesztes alatt)
+- Meglevo `pages-new/*.tsx`: KIZAROLAG bugfix
+- Kozos komponensek (DataTable, PageLayout): modositas CSAK ha 100% backward-compatible
+- `router.tsx`: uj route hozzaadhato, meglevo NEM modosul
+- `locales/*.json`: uj kulcs hozzaadhato, meglevo NEM modosul
+
+### Pipeline Development Rules
+- MINDEN pipeline YAML: `src/aiflow/pipeline/builtin_templates/`
+- MINDEN step: `service` + `method` (adapter registry-ben LETEZIK)
+- `for_each`: CSAK Jinja2 expression ami list-et ad vissza
+- `condition`: CSAK `output.field op value` formatum
+- `retry`: KOTELEZO minden kulso service hivasra (LLM, email, HTTP)
+- Jinja2: NEM hasznalhato `__dunder__`, `callable`, `import`
+- MINDEN pipeline YAML-hoz KOTELEZO teszt: `tests/pipeline/test_{name}.py`
+- Cost tracking: MINDEN pipeline futtas cost_records-ba logolva
+
+### Adapter Development Rules
+- Adapter = thin wrapper, NEM modositja az eredeti service-t
+- File: `src/aiflow/pipeline/adapters/{service}_adapter.py`
+- KOTELEZO: `input_schema`, `output_schema` (Pydantic), `execute()` method
+- `for_each`: adapter belul kezeli `asyncio.Semaphore`-ral (concurrency limit)
+- MINDEN adapter-hez unit test: `tests/unit/pipeline/test_{service}_adapter.py`
+
+### L0 Smoke Test (MINDEN fejlesztes ELOTT es UTAN)
+```bash
+./scripts/smoke_test.sh  # 30s, health + 4 core endpoint + source=backend
+```
+
+### Notification & HITL Rules
+- Notification templates: `prompts/notifications/` YAML Jinja2
+- Channel credentials: MINDIG encrypted DB-ben
+- Notification log: MINDEN kuldes kiserlet logolva
+- HITL create_and_wait: Checkpoint+Resume pattern (NEM blokkolo)
+- SLA config: KOTELEZO minden review queue-ra
+- Review dontes: MINDIG logolva (reviewer + timestamp + comment)
+
+### Document Extraction & Intent Rules
+- Document type configs: KOTELEZO `auto_approve_threshold`, `review_threshold`, `reject_threshold`
+- Intent schemas: YAML-loadable + DB-storable
+- Extraction history: MINDEN extraction attempt logolva (confidence score-ral)
+- Parser fallback lanc: Docling → Unstructured → Tesseract → Azure DI (LlamaParse KIHAGYVA)
+
+### Technology Decisions (v1.2.0 VEGLEGES)
+- **Reranker:** bge-reranker-v2-m3 (primary), FlashRank (CPU fallback), Cohere (optional premium)
+- **Chunking:** Sajat implementacio (6 strategia) + Chonkie (gyorsasag). LangChain/LlamaIndex KIHAGYVA.
+- **GraphRAG:** Microsoft GraphRAG + LazyGraphRAG. Neo4j KIHAGYVA egyelore.
+- **UI komponensek:** Untitled UI (80+ free React, copy-paste CLI). MUI/Storybook KIHAGYVA.
+- **Chat UI:** react-markdown + Shiki. PWA → C20 ciklus.
+- **Kafka:** HALASZTVA post-v1.2.0 (in-memory MessageBroker elegseges).
+- **LlamaParse:** KIHAGYVA (cloud-only, privacy kockazat).
+
 ## Plan Reference (All docs in 01_PLAN/)
 Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
 
@@ -565,6 +650,17 @@ Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
 
 **Service Generalization:**
 - **42_SERVICE_GENERALIZATION_PLAN** - Teljes atalakitasi terv: 7 domain service + 9 infra epitokocka + 5 fazis
+
+**v1.2.0 Orchestrable Service Architecture (AKTUALIS):**
+- **48_ORCHESTRABLE_SERVICE_ARCHITECTURE** - FO TERV: Pipeline as Code, Tier 1-3, 8 fazis
+- **49_STABILITY_REGRESSION** - API compat, DB safety, L0-L4 tesztek
+- **50_RAG_VECTOR_CONTEXT_SERVICE** - Advanced RAG: OCR, chunking, reranking, VectorOps, GraphRAG
+- **51_DOCUMENT_EXTRACTION_INTENT** - Param. doc tipusok, intent routing, szamla use case
+- **52_HUMAN_IN_THE_LOOP_NOTIFICATION** - Review workflow, multi-channel ertesites
+- **53_FRONTEND_DESIGN_SYSTEM** - Untitled UI 80+ komponens, chat UI, user journey, PWA
+- **54_LLM_QUALITY_COST_OPTIMIZATION** - Promptfoo CI/CD, rubric scoring, koltseg
+- **55_CLAUDE_CODE_CONFIGURATION** - Claude iranyitas: CLAUDE.md, commands, MCP
+- **56_EXECUTION_PLAN** - 20 ciklus, session sablon, progress tracking
 
 **Dev Artifacts:**
 - IMPLEMENTATION_PLAN.md, SKILL_DEVELOPMENT.md, AIFLOW_MASTER_PLAN.md

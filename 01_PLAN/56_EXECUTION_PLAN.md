@@ -153,6 +153,8 @@ steps:
 **C8 utan:** Invoice pipeline bovitheto fajl renderezessel.
 **C9:** Teljes invoice use case (email → classify → extract → route → notify).
 
+> **P6B (Kafka):** Expliciten HALASZTVA post-v1.2.0-ra. A jelenlegi in-memory MessageBroker elegseges a fejlesztes soran. Kafka integracio kesobbi fazisban, ha production scaling szuksegesse teszi.
+
 ---
 
 ### Tier 3: Advanced RAG (3-4 session, valaszthato sorrend)
@@ -177,7 +179,9 @@ steps:
 | **C17** | LLM quality: Promptfoo CI/CD, rubric scoring, cost dashboard |
 | **C18** | Chat UI modernizacio (markdown, Shiki, keyboard shortcuts) |
 | **C19** | Pipeline templates + /new-pipeline command |
-| **C20** | Frontend komponens konyvtar (Untitled UI integracio) |
+| **C20** | Frontend komponens konyvtar (Untitled UI) + PWA setup (vite-plugin-pwa) |
+
+> **UI ciklusok HARD GATE-tel:** C5, C17 (Quality dashboard), C18 (Chat UI), C20 (komponensek + PWA) — mindegyikre a 7 HARD GATE UI pipeline kotelezoen vonatkozik.
 
 ---
 

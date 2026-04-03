@@ -280,6 +280,16 @@ CREATE TABLE in_app_notifications (
     on_timeout: auto_approve   # vagy: reject, escalate
 ```
 
+**`create_and_wait` implementation (Checkpoint+Resume pattern):**
+1. Pipeline step creates review item via `HumanReviewService.create_review()`
+2. `CheckpointManager.save()` persists pipeline state (completed steps + outputs)
+3. Pipeline PAUSES (WorkflowRunner returns status=PAUSED)
+4. When human approves/rejects → webhook/event triggers `PipelineRunner.resume()`
+5. Resume restores from checkpoint, skips completed steps, continues from next step
+6. Timeout: APScheduler checks SLA deadlines every minute → fires configured action (auto_approve/reject/escalate)
+
+**NEM blokkolo vartatas** — a pipeline CHECKPOINT-ol es SZUNETEL, nem tart aktiv worker-t fogva.
+
 ### 4.2 Notification mint Pipeline Step
 
 ```yaml

@@ -444,7 +444,7 @@ class MetadataEnricherService(BaseService):
 
 **File:** `src/aiflow/services/reranker/service.py`
 
-Cross-encoder reranking after initial hybrid search. Default: local `cross-encoder/ms-marco-MiniLM-L-6-v2` (~5ms/doc). Fallback: Cohere rerank API, GPT-4o-mini as LLM-reranker.
+Cross-encoder reranking after initial hybrid search. Default: local `bge-reranker-v2-m3` (~5ms/doc). Fallback: Cohere rerank API, GPT-4o-mini as LLM-reranker.
 
 ```python
 class RerankerService(BaseService):
@@ -695,5 +695,6 @@ curl /api/v1/pipelines/{id}/runs  # Check status + results
 | 6A | CREATE | `src/aiflow/services/notification/service.py` + adapter |
 | 6B | CREATE | `src/aiflow/execution/kafka_backend.py`, `broker_factory.py` |
 | 6C | CREATE | `src/aiflow/services/service_manager/service.py` |
+| 6 | CREATE | `src/aiflow/pipeline/adapters/human_review_adapter.py` + `data_router_adapter.py` |
 | 7A-G | CREATE | `src/aiflow/services/{name}/service.py` + adapter (7 services) |
 | 8 | CREATE | `src/aiflow/pipeline/templates.py`, `builtin_templates/*.yaml` |
