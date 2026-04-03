@@ -107,28 +107,33 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
     {
       key: "document_name",
       label: translate("aiflow.rag.chunkSource"),
-      render: (item) => (
-        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-          {String((item as unknown as CollectionDocItem).document_name)}
-        </span>
-      ),
+      render: (item) => {
+        const name = String((item as unknown as CollectionDocItem).document_name);
+        return (
+          <span className="block max-w-[300px] truncate text-sm font-medium text-gray-900 dark:text-gray-100" title={name}>
+            {name}
+          </span>
+        );
+      },
     },
     {
       key: "chunk_count",
       label: translate("aiflow.rag.statChunks"),
+      width: "90",
       getValue: (item) => (item as unknown as CollectionDocItem).chunk_count,
       render: (item) => (
-        <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
-          {(item as unknown as CollectionDocItem).chunk_count} chunks
+        <span className="whitespace-nowrap rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+          {(item as unknown as CollectionDocItem).chunk_count}
         </span>
       ),
     },
     {
       key: "first_ingested",
       label: translate("aiflow.rag.chunkCreated"),
+      width: "110",
       render: (item) => {
         const d = (item as unknown as CollectionDocItem).first_ingested;
-        return <span className="text-xs text-gray-500">{d ? new Date(d).toLocaleDateString() : "—"}</span>;
+        return <span className="whitespace-nowrap text-xs text-gray-500">{d ? new Date(d).toLocaleDateString() : "—"}</span>;
       },
     },
     {
