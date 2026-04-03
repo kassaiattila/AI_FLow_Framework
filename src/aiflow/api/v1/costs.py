@@ -161,3 +161,63 @@ async def budget_status() -> list[BudgetStatus]:
     except Exception as e:
         logger.warning("budget_status_failed", error=str(e))
         return []
+
+
+class ModelCostItem(BaseModel):
+    """Cost breakdown per model."""
+    model: str
+    provider: str
+    request_count: int = 0
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_cost_usd: float = 0.0
+
+
+class CostRecordsBreakdown(BaseModel):
+    """Detailed cost breakdown from cost_records table."""
+    per_model: list[ModelCostItem] = []
+    total_records: int = 0
+    total_tokens: int = 0
+    total_cost_usd: float = 0.0
+    source: str = "backend"
+
+
+@router.get("/breakdown", response_model=CostRecordsBreakdown)
+async def cost_breakdown() -> CostRecordsBreakdown:
+    """Get detailed cost breakdown by model from cost_records table."""
+    result = CostRecordsBreakdown()
+    try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT
+                    model,
+                    provider,
+                    COUNT(*) AS request_count,
+                    COALESCE(SUM(input_tokens), 0) AS total_input_tokens,
+                    COALESCE(SUM(output_tokens), 0) AS total_output_tokens,
+                    COALESCE(SUM(cost_usd), 0) AS total_cost_usd
+                FROM cost_records
+                GROUP BY model, provider
+                ORDER BY total_cost_usd DESC
+                """
+            )
+            for r in rows:
+                inp = int(r["total_input_tokens"])
+                out = int(r["total_output_tokens"])
+                cost = float(r["total_cost_usd"])
+                result.per_model.append(ModelCostItem(
+                    model=r["model"],
+                    provider=r["provider"],
+                    request_count=r["request_count"],
+                    total_input_tokens=inp,
+                    total_output_tokens=out,
+                    total_cost_usd=cost,
+                ))
+                result.total_records += r["request_count"]
+                result.total_tokens += inp + out
+                result.total_cost_usd += cost
+    except Exception as e:
+        logger.warning("cost_breakdown_failed", error=str(e))
+    return result
