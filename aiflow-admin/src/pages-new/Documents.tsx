@@ -264,12 +264,12 @@ function UploadTab() {
   );
 }
 
-// --- Document Table Columns ---
+// --- Document Table Columns (factory — needs translate) ---
 
-const docColumns: Column<Record<string, unknown>>[] = [
+function makeDocColumns(translate: (key: string) => string): Column<Record<string, unknown>>[] { return [
   {
     key: "source_file",
-    label: "File",
+    label: translate("aiflow.documents.file"),
     getValue: (item) => fileName(String(item.source_file ?? "")),
     render: (item) => (
       <span className="font-medium text-gray-900 dark:text-gray-100">
@@ -279,7 +279,7 @@ const docColumns: Column<Record<string, unknown>>[] = [
   },
   {
     key: "status",
-    label: "Status",
+    label: translate("aiflow.runs.status"),
     sortable: false,
     render: (item) => {
       const badge = statusBadge(item as unknown as DocItem);
@@ -292,7 +292,7 @@ const docColumns: Column<Record<string, unknown>>[] = [
   },
   {
     key: "vendor.name",
-    label: "Vendor",
+    label: translate("aiflow.documents.vendor"),
     getValue: (item) => (item.vendor as DocVendor | null)?.name ?? "",
     render: (item) => (
       <span className="text-gray-600 dark:text-gray-400">
@@ -302,7 +302,7 @@ const docColumns: Column<Record<string, unknown>>[] = [
   },
   {
     key: "header.invoice_number",
-    label: "Invoice #",
+    label: translate("aiflow.documents.invoiceNumber"),
     getValue: (item) => (item.header as DocHeader | null)?.invoice_number ?? "",
     render: (item) => (
       <span className="text-gray-600 dark:text-gray-400">
@@ -312,7 +312,7 @@ const docColumns: Column<Record<string, unknown>>[] = [
   },
   {
     key: "totals.gross_total",
-    label: "Gross Total",
+    label: translate("aiflow.documents.grossTotal"),
     getValue: (item) => (item.totals as DocTotals | null)?.gross_total ?? 0,
     render: (item) => {
       const total = (item.totals as DocTotals | null)?.gross_total;
@@ -326,7 +326,7 @@ const docColumns: Column<Record<string, unknown>>[] = [
   },
   {
     key: "extraction_confidence",
-    label: "Confidence",
+    label: translate("aiflow.documents.confidence"),
     getValue: (item) => (item.extraction_confidence as number | null) ?? 0,
     render: (item) => {
       const conf = item.extraction_confidence as number | null;
@@ -358,15 +358,20 @@ const docColumns: Column<Record<string, unknown>>[] = [
       );
     },
   },
-];
+]; }
 
 // --- Main Component ---
+
+interface ExtractorConfig { name: string; display_name: string; document_type: string; field_count: number; enabled: boolean; }
+interface ConfigsResponse { configs: ExtractorConfig[]; total: number; source: string; }
 
 export function Documents() {
   const translate = useTranslate();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"list" | "upload">("list");
+  const [selectedConfig, setSelectedConfig] = useState<string>("all");
   const { data, loading, error, refetch } = useApi<DocsResponse>("/api/v1/documents");
+  const { data: configsData } = useApi<ConfigsResponse>("/api/v1/documents/extractor/configs");
 
   const docs = data?.documents ?? [];
   const total = data?.total ?? 0;
@@ -379,7 +384,19 @@ export function Documents() {
       subtitleKey="aiflow.documents.detail"
       source={data?.source}
       actions={
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {configsData && configsData.configs.length > 0 && (
+            <select
+              value={selectedConfig}
+              onChange={(e) => setSelectedConfig(e.target.value)}
+              className="rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400"
+            >
+              <option value="all">{translate("aiflow.documents.filterAll")}</option>
+              {configsData.configs.map(c => (
+                <option key={c.name} value={c.name}>{c.display_name}</option>
+              ))}
+            </select>
+          )}
           <button
             onClick={async () => {
               try {
@@ -461,7 +478,7 @@ export function Documents() {
               loading={loading}
               searchKeys={["source_file", "vendor.name", "header.invoice_number"]}
               pageSize={10}
-              columns={docColumns}
+              columns={makeDocColumns(translate)}
               onRowClick={(item) => {
                 const docId = (item as unknown as DocItem).id;
                 if (docId) navigate(`/documents/${encodeURIComponent(docId)}/verify`);

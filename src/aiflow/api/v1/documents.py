@@ -791,6 +791,26 @@ async def export_documents_json():
 
 
 # ---------------------------------------------------------------------------
+# DELETE /api/v1/documents/delete/{invoice_id} — delete a document
+# ---------------------------------------------------------------------------
+
+@router.delete("/delete/{invoice_id}", status_code=204)
+async def delete_document(invoice_id: str):
+    """Delete a document by UUID."""
+    from aiflow.api.deps import get_engine
+    from sqlalchemy import text
+
+    engine = await get_engine()
+    async with engine.begin() as conn:
+        # Delete line items first (FK cascade might not work with raw SQL)
+        await conn.execute(text("DELETE FROM invoice_line_items WHERE invoice_id = CAST(:id AS uuid)"), {"id": invoice_id})
+        result = await conn.execute(text("DELETE FROM invoices WHERE id = CAST(:id AS uuid)"), {"id": invoice_id})
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Document not found")
+    logger.info("document_deleted", invoice_id=invoice_id)
+
+
+# ---------------------------------------------------------------------------
 # GET /api/v1/documents/{source_file} — single invoice detail (CATCH-ALL, MUST BE LAST!)
 # ---------------------------------------------------------------------------
 
