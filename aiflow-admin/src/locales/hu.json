@@ -283,6 +283,7 @@
       "ingestTitle": "Dokumentum feltoltes",
       "ingestDropzone": "Kattints vagy huzd ide a fajlokat",
       "ingestSuccess": "Feltoltes sikeres",
+      "ingestedDocs": "Feltoltott dokumentumok",
       "statDocs": "Dokumentumok",
       "statChunks": "Chunkak",
       "statQueries": "Lekerdezesek",

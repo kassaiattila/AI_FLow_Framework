@@ -79,6 +79,11 @@ export async function fetchApi<T>(
     return response as unknown as T;
   }
 
+  // 204 No Content — nothing to parse
+  if (response.status === 204) {
+    return undefined as unknown as T;
+  }
+
   const contentType = response.headers.get("content-type");
   if (contentType?.includes("application/json")) {
     return response.json() as Promise<T>;

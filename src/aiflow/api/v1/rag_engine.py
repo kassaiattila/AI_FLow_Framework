@@ -366,3 +366,53 @@ async def delete_chunk(collection_id: str, chunk_id: str):
         )
         if "DELETE 0" in deleted:
             raise HTTPException(status_code=404, detail="Chunk not found")
+
+
+# ---------------------------------------------------------------------------
+# Collection documents (aggregated from chunks)
+# ---------------------------------------------------------------------------
+
+class CollectionDocItem(BaseModel):
+    document_name: str
+    chunk_count: int
+    first_ingested: str | None = None
+
+
+class CollectionDocsResponse(BaseModel):
+    documents: list[CollectionDocItem] = []
+    total: int = 0
+    source: str = "backend"
+
+
+@router.get("/collections/{collection_id}/documents", response_model=CollectionDocsResponse)
+async def list_collection_documents(collection_id: str):
+    """List distinct documents ingested into a collection (aggregated from chunks)."""
+    svc = await _get_service()
+    coll = await svc.get_collection(collection_id)
+    if not coll:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT document_name, COUNT(*) AS chunk_count, MIN(created_at) AS first_ingested
+            FROM rag_chunks
+            WHERE collection = $1 AND document_name IS NOT NULL
+            GROUP BY document_name
+            ORDER BY MIN(created_at) DESC
+            """,
+            coll.name,
+        )
+
+    return CollectionDocsResponse(
+        documents=[
+            CollectionDocItem(
+                document_name=r["document_name"],
+                chunk_count=r["chunk_count"],
+                first_ingested=r["first_ingested"].isoformat() if r["first_ingested"] else None,
+            )
+            for r in rows
+        ],
+        total=len(rows),
+    )

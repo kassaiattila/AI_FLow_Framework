@@ -53,12 +53,27 @@ interface ChunksResponse {
 /*  Ingest Tab                                                         */
 /* ------------------------------------------------------------------ */
 
+interface CollectionDocItem {
+  document_name: string;
+  chunk_count: number;
+  first_ingested: string | null;
+}
+
+interface CollectionDocsResponse {
+  documents: CollectionDocItem[];
+  total: number;
+  source: string;
+}
+
 function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSuccess: () => void }) {
   const translate = useTranslate();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<IngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { data: docsData, refetch: refetchDocs } = useApi<CollectionDocsResponse>(
+    `/api/v1/rag/collections/${collectionId}/documents`,
+  );
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -100,6 +115,7 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
       if (res.errors.length === 0) {
         setFiles([]);
         onSuccess();
+        refetchDocs();
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ingest failed");
@@ -242,6 +258,37 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Ingested documents list */}
+      {docsData && docsData.documents.length > 0 && (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {translate("aiflow.rag.ingestedDocs")} ({docsData.total})
+          </h3>
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            {docsData.documents.map((doc) => (
+              <div key={doc.document_name} className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{doc.document_name}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                    {doc.chunk_count} chunks
+                  </span>
+                  {doc.first_ingested && (
+                    <span className="text-xs text-gray-400">
+                      {new Date(doc.first_ingested).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

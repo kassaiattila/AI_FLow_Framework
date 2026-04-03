@@ -283,6 +283,7 @@
       "ingestTitle": "Document Ingestion",
       "ingestDropzone": "Click to upload or drag and drop",
       "ingestSuccess": "Ingestion complete",
+      "ingestedDocs": "Ingested Documents",
       "statDocs": "Documents",
       "statChunks": "Chunks",
       "statQueries": "Total Queries",
