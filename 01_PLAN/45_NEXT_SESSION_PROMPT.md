@@ -1,35 +1,83 @@
-# AIFlow v1.1.4 — Kovetkezo Session Prompt
+# AIFlow v1.2.0 — Session 6 Prompt (C0 Ciklus Inditas)
 
-> **Datum:** 2026-04-03 (4. session utan)
-> **Elozo session:** ~2600 sor, 20+ fajl, per-file progress, ChatPanel redesign, Outlook COM, email intent pipeline, 16 bugfix
-> **Branch:** main (NEM commitolva meg — ELSO TEENDO!)
+> **Datum:** 2026-04-03 (5. session utan)
+> **Elozo session:** v1.2.0 teljes tervezes — 9 terv dok (48-56), 3x validacio, Claude Code config frissites
+> **Branch:** main
 > **Port:** API 8102, Frontend 5173 (Vite proxy → 8102)
-> **Dokumentacio:** `01_PLAN/47_SESSION4_DOCUMENTATION.md` (reszletes), `01_PLAN/46_RAG_CHAT_REDESIGN_PLAN.md` (chat terv)
-> **Konzisztencia audit:** 10/10 PASS (Section 12 a 47-es dokban)
+> **Utolso commit:** 7 commit a session-ben (session 4 munkak + 6 terv commit)
 
 ---
 
-## ELSO TEENDO: Git Commit
+## ALLAPOT
+
+### v1.2.0 Tervezes: KESZ (3x validalva, 0 HIGH issue)
+
+| Dokumentum | Tartalom | Allapot |
+|------------|----------|---------|
+| `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` | Fo terv — Pipeline as Code, Tier 1-3 | KESZ |
+| `01_PLAN/49_STABILITY_REGRESSION.md` | API compat, DB safety, L0-L4 tesztek | KESZ |
+| `01_PLAN/50_RAG_VECTOR_CONTEXT_SERVICE.md` | RAG: OCR, chunking, reranking, VectorOps | KESZ |
+| `01_PLAN/51_DOCUMENT_EXTRACTION_INTENT.md` | Param. doc tipusok, intent, szamla use case | KESZ |
+| `01_PLAN/52_HUMAN_IN_THE_LOOP_NOTIFICATION.md` | HITL review + notification (email/Slack) | KESZ |
+| `01_PLAN/53_FRONTEND_DESIGN_SYSTEM.md` | Untitled UI 80+ komp., chat UI, journey, PWA | KESZ |
+| `01_PLAN/54_LLM_QUALITY_COST_OPTIMIZATION.md` | Promptfoo CI, rubric, koltseg, Gotenberg | KESZ |
+| `01_PLAN/55_CLAUDE_CODE_CONFIGURATION.md` | Claude iranyitas: CLAUDE.md, commands, MCP | KESZ |
+| `01_PLAN/56_EXECUTION_PLAN.md` | 21 ciklus (C0-C20), session sablon | KESZ |
+
+### Claude Code Config: FRISSITVE v1.2.0-ra
+
+- Root CLAUDE.md: v1.2.0 szabalyok (API compat, DB safety, service isolation, pipeline/adapter rules)
+- 21 slash command (18 meglevo + 3 uj: `/new-pipeline`, `/pipeline-test`, `/quality-check`)
+- `/dev-step` bovitve: L0 smoke test pre+post, v1.2.0 plan references
+- `scripts/smoke_test.sh` letrehozva (L0, <30s)
+
+### Technologiai Dontesek (VEGLEGES)
+
+| Tema | Valasztas | Kihagyva |
+|------|-----------|----------|
+| Reranker | bge-reranker-v2-m3 + FlashRank | — |
+| Chunking | Sajat 6 strategia + Chonkie | LangChain, LlamaIndex |
+| Parser | Docling → Unstructured → Tesseract → Azure DI | LlamaParse |
+| GraphRAG | MS GraphRAG + LazyGraphRAG | Neo4j |
+| UI | Untitled UI (80+ free, copy-paste CLI) | MUI, Storybook |
+| Chat | react-markdown + Shiki | — |
+| PWA | C20 ciklusban | — |
+| Kafka | HALASZTVA post-v1.2.0 | — |
+
+---
+
+## KOVETKEZO FELADAT: C0 Ciklus (Elokeszites)
+
+### Lepesek:
 
 ```bash
-git add -A && git status  # ellenorizd mit commitolsz
-git commit -m "feat: per-file pipeline progress, ChatPanel redesign, Outlook COM connector, email intent pipeline, media STT fixes
+# 1. L0 smoke test — meglevo rendszer OK?
+bash scripts/smoke_test.sh
 
-- Unified FileProgressRow component across all 6 pipeline pages
-- ChatPanel modular architecture (10 files): LLM selector, history, copy, scroll
-- Outlook COM email connector (win32com MAPI)
-- Email intent processing: fetch-and-process-stream, process-batch-stream
-- Media STT fixes: ffmpeg acodec, transcript keys, output_dir
-- Verification overlay toggle, Documents action spacing
-- 16 bug fixes, Alembic migration 026
-- Full consistency audit: 10/10 PASS
+# 2. Untitled UI init
+cd aiflow-admin && npx untitledui@latest add button input select textarea modal tabs badges alerts
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
+# 3. TypeScript + lint check
+cd aiflow-admin && npx tsc --noEmit
+ruff check src/ skills/
+
+# 4. 56_EXECUTION_PLAN.md progress frissites: C0 → DONE
+
+# 5. Commit
+git commit -m "chore: C0 preparation — smoke test verified, Untitled UI components added"
+```
+
+### C0 UTAN → C1 (Adapter Layer):
+
+```
+Cel: src/aiflow/pipeline/ mappa, adapter_base.py + 6 adapter
+Terv: 01_PLAN/48 Phase 1
+Teszt: unit test minden adapterre + L0 smoke PASS
 ```
 
 ---
 
-## Szerver inditas
+## SZERVER INDITAS
 
 ```bash
 .venv\Scripts\python.exe -B -m uvicorn aiflow.api.app:create_app --factory --port 8102
@@ -38,214 +86,49 @@ cd aiflow-admin && npm run dev
 
 ---
 
-## FO FELADAT: Orchestralhato Szolgaltatasi Architektura
-
-### Vizioio
-
-A jelenlegi rendszerben az egyes pipeline-ok (document, email, RAG, media, BPMN) **onalloan mukodnek**, de nincs kozottuk **automatikus lancolas**. A cel: **ujrahasznalhato, promptokkal parameterezhezo, egymasra epulo szolgaltatasi egysegek** amik YAML-bol orchestralhatoak.
-
-### Jelenlegi Allapot (v1.1.4)
+## FEJLESZTESI CIKLUS (MINDEN session-ben kotelezoen)
 
 ```
-[Outlook COM] → .eml fajlok → data/emails/outlook/
-[Document Upload] → PDF fajlok → data/uploads/invoices/
-[Media Upload] → video/audio → data/uploads/media/
-[RAG Ingest] → PDF/DOCX → pgvector chunks
-[BPMN Generate] → szoveg → mermaid diagram
+1. TERVEZES    — 56 → hanyadik ciklus? Terv olvasas.
+2. FEJLESZTES  — kod iras
+3. TESZTELES   — unit + curl + E2E (VALOS, NEM mock!)
+4. DOKUMENTALAS — commit, terv frissites
+5. FINOMHANGOLAS — review, bug fix
+6. SESSION PROMPT — kovetkezo session kontextus
 ```
 
-Ezek **fuggetlenul** mukodnek. Nincs automatikus lancolas.
+**L0 smoke test: MINDIG session elejen ES vegen!**
 
-### Cel Architektura: Service Mesh / Pipeline Orchestrator
+---
 
-```yaml
-# Pelda: Email Intent → Document Processing → Routing
-pipeline: email_to_document
-trigger: email_fetched
-steps:
-  - service: email_intent_classifier
-    config:
-      model: openai/gpt-4o-mini
-      confidence_threshold: 0.7
-    output: intent, entities, priority
+## VEGREHAJTASI TERV
 
-  - service: attachment_router
-    condition: "intent.intent_id in ['invoice', 'contract', 'report']"
-    config:
-      extract_attachments: true
-      filter_mime: ["application/pdf", "image/*"]
-    output: attachment_files[]
-
-  - service: document_extractor
-    for_each: attachment_files
-    config:
-      parser: docling
-      extraction_model: openai/gpt-4o
-      document_type: "{{ intent.intent_id }}"  # prompt parameter
-    output: extracted_data
-
-  - service: data_router
-    config:
-      rules:
-        - intent: invoice → output_dir: data/processed/invoices/
-        - intent: contract → output_dir: data/processed/contracts/
-        - intent: report → notify: admin@bestix.hu
-    output: routed_files[]
-
-  - service: notification
-    config:
-      channel: email
-      template: "{{ intent.intent_display_name }}: {{ extracted_data.summary }}"
 ```
-
-### Tervezesi Feladatok (5. session)
-
-#### 1. Service Registry + Interface
-Minden szolgaltatas egyseges interface-szel:
-```python
-class AIFlowService(ABC):
-    name: str
-    version: str
-    input_schema: BaseModel   # Pydantic
-    output_schema: BaseModel  # Pydantic
-    config_schema: BaseModel  # YAML-bol parameterezhezo
-
-    async def execute(self, input: InputModel, config: ConfigModel) -> OutputModel
-    async def health_check() -> bool
-```
-
-Meglevo szolgaltatasok interface-re huzasa:
-| Szolgaltatas | Jelenlegi hely | Input | Output |
-|-------------|---------------|-------|--------|
-| email_fetcher | services/email_connector | {connector_id, days, limit} | FetchedEmail[] |
-| email_classifier | skills/email_intent_processor | {eml_path} | {intent, entities, priority, routing} |
-| document_extractor | services/document_extractor | {file_path, doc_type} | {fields, line_items, validation} |
-| rag_ingestor | services/rag_engine | {files[], collection_id} | {chunks_created} |
-| rag_query | services/rag_engine | {question, collection, model} | {answer, sources} |
-| media_transcriber | services/media_processor | {file_path} | {transcript, sections} |
-| bpmn_generator | skills/process_documentation | {description} | {mermaid_code, review} |
-| data_router | UJ | {files[], rules} | {routed_files[]} |
-| notifier | UJ | {channel, template, data} | {sent: bool} |
-
-#### 2. Pipeline Orchestrator (YAML-driven)
-```
-01_PLAN/pipelines/
-  email_to_document.yaml     — email → intent → attachment → extract → route
-  rag_knowledge_update.yaml  — email attachment → RAG ingest → notify
-  media_to_docs.yaml         — video → STT → BPMN diagram
-  invoice_audit.yaml         — document → verify → export CSV → notify
-```
-
-#### 3. Prompt Parameterezes (Jinja2 template-ek)
-Minden service config-ja Jinja2 template-eket tamogat:
-```yaml
-extraction_model: "{{ env.DEFAULT_MODEL }}"
-document_type: "{{ trigger.intent.intent_id }}"
-output_dir: "data/processed/{{ trigger.intent.intent_id }}/{{ now().strftime('%Y-%m') }}"
-```
-
-#### 4. Event Bus (Redis Pub/Sub)
-Szolgaltatasok kozott event-alapu kommunikacio:
-```
-email_fetched → email_classifier
-email_classified → attachment_router (ha van csatolmany)
-attachment_extracted → data_router
-document_processed → notifier
-```
-
-#### 5. Admin UI: Pipeline Builder
-- Vizualis pipeline szerkeszto (drag-and-drop)
-- Service catalog (elerheto szolgaltatasok listaja)
-- Pipeline futtatasi naplo (Runs oldalon)
-- Konfiguracio szerkesztes (YAML editor)
-
-### Pelda Uzleti Folyamatok
-
-**1. Szamla Automatizacio:**
-```
-Email bejon → Intent: "invoice" → PDF csatolmany kinyeres →
-Document Extractor (szamla fieldek) → Verify → CSV export → Konyvelo ertesites
-```
-
-**2. RAG Tudasbazis Frissites:**
-```
-Email bejon → Intent: "report" / "documentation" → PDF csatolmany →
-RAG Ingest (kollekcio: "belso_dokumentumok") → Notify: "Uj dokumentum ingesztalva"
-```
-
-**3. Ertekesitesi Ajanlat Feldolgozas:**
-```
-Email bejon → Intent: "sales_inquiry" → Entity extraction (cegnev, osszeg) →
-BPMN diagram (ajanlati folyamat) → Notify: sales@bestix.hu
-```
-
-**4. Media Feldolgozas → Dokumentacio:**
-```
-Video feltoltes → STT transcript → Szekcio kinyeres →
-BPMN diagram (oktatas folyamat) → RAG ingest (tudásbázis) → Notify
+C0:     Elokeszites ── KOVETKEZO
+C1-C5:  Tier 1 Core ── 3-4 session
+C6:     Invoice v1 ─── 1 session ← ITT MAR HASZNALHATO
+C7-C10: Tier 2 ─────── 2-3 session
+C11-16: Tier 3 RAG ─── 3-4 session
+C17-20: Tier 4 Polish── 1-2 session
+                        ~12-15 session
 ```
 
 ---
 
-## Jelenlegi Rendszer Allapot
+## INFRASTRUKTURA
 
-### Infrastruktura
 - PostgreSQL 5433, Redis 6379 (Docker)
-- API: 8102, Frontend: 5173
 - Auth: admin@bestix.hu / admin
-- 26 Alembic migracio, 41 DB tabla, 112+ endpoint, 19 router, 17 UI oldal
-
-### Mukodo Szolgaltatasok
-| Szolgaltatas | Allapot | Teszt |
-|-------------|---------|-------|
-| Document upload + extract | MUKODIK | E2E PASS |
-| RAG ingest + query | MUKODIK | E2E PASS (86% eval) |
-| Email Outlook COM fetch | MUKODIK | 56 email letoltve |
-| Email intent classification | MUKODIK | LLM-based |
-| Media STT (Whisper) | MUKODIK | completed status |
-| BPMN diagram generation | MUKODIK | mermaid output |
-
-### Email Connectorok
-| Nev | Provider | Allapot |
-|-----|----------|---------|
-| BestIx IMAP | imap | FAIL (O365 BasicAuth blocked) |
-| BestIx Outlook | outlook_com | MUKODIK |
+- 26 Alembic migracio, 41 DB tabla, 112+ endpoint, 19 router, 17 UI oldal, 15 service
 
 ---
 
-## Hasznos Parancsok
+## FONTOS SZABALYOK
 
-```bash
-# Login token
-TOKEN=$(curl -s -X POST http://localhost:8102/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin@bestix.hu","password":"admin"}' | python -c "import sys,json; print(json.load(sys.stdin)['token'])")
-
-# Szolgaltatasok listaja
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8102/api/v1/services | python -m json.tool
-
-# Email fetch + process
-curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"config_id":"OUTLOOK_ID","since_days":7,"limit":10}' \
-  http://localhost:8102/api/v1/emails/fetch-and-process-stream
-
-# RAG query + model override
-curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"question":"Mi az ASZF?","model":"openai/gpt-4o-mini"}' \
-  http://localhost:8102/api/v1/rag/collections/COLLECTION_ID/query
-```
-
----
-
-## Fajl Referencia
-
-| Kategoria | Fajlok |
-|-----------|--------|
-| Session 4 doksi | `01_PLAN/47_SESSION4_DOCUMENTATION.md` |
-| Chat terv | `01_PLAN/46_RAG_CHAT_REDESIGN_PLAN.md` |
-| Service terv | `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` |
-| UI terv | `01_PLAN/43_UI_RATIONALIZATION_PLAN.md` |
-| API spec | `01_PLAN/22_API_SPECIFICATION.md` |
-| DB schema | `01_PLAN/03_DATABASE_SCHEMA.md` |
-| Master plan | `01_PLAN/AIFLOW_MASTER_PLAN.md` |
-| Pipeline peldak | Meg nem letezik — 5. session-ben letrehozando |
+- **API Compatibility:** Meglevo endpointok FROZEN, uj mezo MINDIG optional
+- **Service Isolation:** Meglevo service-ek KIZAROLAG bugfix, adapter NEM modositja az eredetit
+- **DB Migration:** nullable=True, ON DELETE SET NULL, CREATE INDEX CONCURRENTLY
+- **Pipeline as Code:** YAML + Claude Code, NEM drag-and-drop
+- **Valos Teszteles:** SOHA NE mock/fake! Playwright E2E KOTELEZO UI-hoz
+- **7 HARD GATE:** Journey → API → Figma → UI → E2E → Regression → Tag
+- **L0 Smoke Test:** `bash scripts/smoke_test.sh` (session elejen + vegen)
