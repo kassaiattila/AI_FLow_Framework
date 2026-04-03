@@ -213,8 +213,9 @@ class DoclingParser:
         """Try parsing with Azure Document Intelligence. Returns None if unavailable."""
         import os
         endpoint = os.environ.get("AZURE_DI_ENDPOINT", "")
-        api_key = os.environ.get("AZURE_DI_KEY", "")
-        if not endpoint or not api_key:
+        api_key = os.environ.get("AZURE_DI_API_KEY", "") or os.environ.get("AZURE_DI_KEY", "")
+        enabled = os.environ.get("AZURE_DI_ENABLED", "false").lower() == "true"
+        if not enabled or not endpoint or not api_key:
             return None
 
         try:
