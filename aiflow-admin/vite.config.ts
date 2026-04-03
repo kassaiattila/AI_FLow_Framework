@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     proxy: {
       // All API traffic goes directly to FastAPI — no Next.js needed
       "/api": {
-        target: "http://localhost:8101",
+        target: "http://localhost:8102",
         changeOrigin: true,
         // Disable buffering for SSE (process-stream) endpoints
         configure: (proxy) => {
@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
         },
       },
       "/health": {
-        target: "http://localhost:8101",
+        target: "http://localhost:8102",
         changeOrigin: true,
       },
     },
