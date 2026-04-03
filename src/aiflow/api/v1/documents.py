@@ -811,6 +811,36 @@ async def delete_document(invoice_id: str):
     logger.info("document_deleted", invoice_id=invoice_id)
 
 
+class BulkDeleteRequest(BaseModel):
+    ids: list[str]
+
+
+class BulkDeleteResponse(BaseModel):
+    deleted: int = 0
+    source: str = "backend"
+
+
+@router.post("/delete-bulk", response_model=BulkDeleteResponse)
+async def delete_documents_bulk(request: BulkDeleteRequest):
+    """Delete multiple documents by UUID list."""
+    from aiflow.api.deps import get_engine
+    from sqlalchemy import text
+
+    if not request.ids:
+        return BulkDeleteResponse(deleted=0)
+
+    engine = await get_engine()
+    total_deleted = 0
+    async with engine.begin() as conn:
+        for doc_id in request.ids:
+            await conn.execute(text("DELETE FROM invoice_line_items WHERE invoice_id = CAST(:id AS uuid)"), {"id": doc_id})
+            result = await conn.execute(text("DELETE FROM invoices WHERE id = CAST(:id AS uuid)"), {"id": doc_id})
+            total_deleted += result.rowcount
+
+    logger.info("documents_bulk_deleted", count=total_deleted, ids=request.ids)
+    return BulkDeleteResponse(deleted=total_deleted)
+
+
 # ---------------------------------------------------------------------------
 # GET /api/v1/documents/{source_file} — single invoice detail (CATCH-ALL, MUST BE LAST!)
 # ---------------------------------------------------------------------------

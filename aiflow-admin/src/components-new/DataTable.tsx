@@ -1,9 +1,9 @@
 /**
  * AIFlow DataTable — powered by TanStack Table (React Table v8).
- * Headless table with Tailwind styling: sort, filter, pagination.
+ * Headless table with Tailwind styling: sort, filter, pagination, multi-select.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -14,10 +14,11 @@ import {
   type ColumnDef,
   type SortingState,
   type ColumnFiltersState,
+  type RowSelectionState,
 } from "@tanstack/react-table";
 import { useTranslate } from "../lib/i18n";
 
-// --- Public API (unchanged for consumers) ---
+// --- Public API ---
 
 export interface Column<T> {
   key: string;
@@ -37,6 +38,12 @@ interface DataTableProps<T> {
   onRowClick?: (item: T) => void;
   emptyMessageKey?: string;
   loading?: boolean;
+  /** Enable row selection checkboxes. Provide a unique key field (default: "id"). */
+  selectable?: boolean;
+  /** Called whenever the set of selected rows changes. */
+  onSelectionChange?: (selectedItems: T[]) => void;
+  /** Externally controlled selection state — cleared when set to 0 (e.g. after bulk action). */
+  clearSelection?: number;
 }
 
 // --- Helpers ---
@@ -46,6 +53,31 @@ function getNestedValue(obj: unknown, path: string): unknown {
     if (curr && typeof curr === "object") return (curr as Record<string, unknown>)[key];
     return undefined;
   }, obj);
+}
+
+// --- Checkbox ---
+
+function IndeterminateCheckbox({
+  indeterminate,
+  checked,
+  onChange,
+  ariaLabel,
+}: {
+  indeterminate?: boolean;
+  checked: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={onChange}
+      ref={(el) => { if (el) el.indeterminate = !!indeterminate; }}
+      aria-label={ariaLabel}
+      className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
+    />
+  );
 }
 
 // --- Component ---
@@ -59,16 +91,58 @@ export function DataTable<T extends Record<string, unknown>>({
   onRowClick,
   emptyMessageKey = "aiflow.common.empty",
   loading = false,
+  selectable = false,
+  onSelectionChange,
+  clearSelection,
 }: DataTableProps<T>) {
   const translate = useTranslate();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-  // Convert our Column API to TanStack ColumnDef
-  const tanstackColumns = useMemo<ColumnDef<T, unknown>[]>(
-    () =>
-      columns.map((col) => ({
+  // Clear selection when clearSelection counter changes
+  useEffect(() => {
+    if (clearSelection !== undefined) setRowSelection({});
+  }, [clearSelection]);
+
+  // Notify parent of selection changes
+  useEffect(() => {
+    if (!onSelectionChange || !selectable) return;
+    const selectedIndices = Object.keys(rowSelection).filter((k) => rowSelection[k]);
+    const selectedItems = selectedIndices.map((idx) => data[parseInt(idx)]).filter(Boolean);
+    onSelectionChange(selectedItems);
+  }, [rowSelection, selectable, onSelectionChange, data]);
+
+  // Build columns with optional checkbox column
+  const tanstackColumns = useMemo<ColumnDef<T, unknown>[]>(() => {
+    const cols: ColumnDef<T, unknown>[] = [];
+
+    if (selectable) {
+      cols.push({
+        id: "_select",
+        header: ({ table }) => (
+          <IndeterminateCheckbox
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={table.getIsSomePageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+            ariaLabel="Select all rows"
+          />
+        ),
+        cell: ({ row }) => (
+          <IndeterminateCheckbox
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            ariaLabel={`Select row ${row.index + 1}`}
+          />
+        ),
+        enableSorting: false,
+        size: 40,
+      });
+    }
+
+    cols.push(
+      ...columns.map((col) => ({
         id: col.key,
         accessorFn: (row: T) => {
           if (col.getValue) return col.getValue(row);
@@ -84,10 +158,12 @@ export function DataTable<T extends Record<string, unknown>>({
         enableSorting: col.sortable !== false,
         size: col.width ? parseInt(col.width) : undefined,
       })),
-    [columns],
-  );
+    );
 
-  // Custom global filter that searches across specified keys
+    return cols;
+  }, [columns, selectable]);
+
+  // Custom global filter
   const effectiveSearchKeys = searchKeys ?? columns.map((c) => c.key);
   const globalFilterFn = useMemo(
     () => (row: { original: T }, _columnId: string, filterValue: string) => {
@@ -106,10 +182,12 @@ export function DataTable<T extends Record<string, unknown>>({
   const table = useReactTable({
     data,
     columns: tanstackColumns,
-    state: { sorting, globalFilter, columnFilters },
+    state: { sorting, globalFilter, columnFilters, rowSelection },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: selectable,
     globalFilterFn,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -117,6 +195,8 @@ export function DataTable<T extends Record<string, unknown>>({
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize } },
   });
+
+  const selectedCount = Object.values(rowSelection).filter(Boolean).length;
 
   if (loading) {
     return (
@@ -134,11 +214,13 @@ export function DataTable<T extends Record<string, unknown>>({
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
-      {/* Search + count */}
+      {/* Search + count + selection info */}
       {searchable && (
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            {table.getFilteredRowModel().rows.length} / {data.length}
+            {selectable && selectedCount > 0
+              ? `${selectedCount} ${translate("aiflow.common.selected")}`
+              : `${table.getFilteredRowModel().rows.length} / ${data.length}`}
           </span>
           <div className="relative">
             <svg className="absolute left-2.5 top-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -176,16 +258,20 @@ export function DataTable<T extends Record<string, unknown>>({
                       className={`px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 ${
                         header.column.getCanSort() ? "cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" : ""
                       }`}
-                      style={header.getSize() ? { width: header.getSize() } : undefined}
+                      style={header.column.id === "_select" ? { width: 40 } : header.getSize() ? { width: header.getSize() } : undefined}
                     >
-                      <span className="inline-flex items-center gap-1">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() && (
-                          <span className="text-brand-500">
-                            {{ asc: "↑", desc: "↓" }[header.column.getIsSorted() as string] ?? "↕"}
-                          </span>
-                        )}
-                      </span>
+                      {header.column.id === "_select" ? (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getCanSort() && (
+                            <span className="text-brand-500">
+                              {{ asc: "↑", desc: "↓" }[header.column.getIsSorted() as string] ?? "↕"}
+                            </span>
+                          )}
+                        </span>
+                      )}
                     </th>
                   ))}
                 </tr>
@@ -197,11 +283,11 @@ export function DataTable<T extends Record<string, unknown>>({
                   key={row.id}
                   onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                   className={`border-b border-gray-50 dark:border-gray-800 ${
-                    onRowClick ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50" : ""
-                  }`}
+                    row.getIsSelected() ? "bg-brand-50/50 dark:bg-brand-900/10" : ""
+                  } ${onRowClick ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50" : ""}`}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3">
+                    <td key={cell.id} className="px-4 py-3" onClick={cell.column.id === "_select" ? (e) => e.stopPropagation() : undefined}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

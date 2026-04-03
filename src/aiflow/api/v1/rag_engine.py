@@ -202,6 +202,28 @@ async def delete_collection(collection_id: str):
         raise HTTPException(status_code=404, detail="Collection not found")
 
 
+class BulkDeleteCollectionsRequest(BaseModel):
+    ids: list[str]
+
+
+class BulkDeleteCollectionsResponse(BaseModel):
+    deleted: int = 0
+    source: str = "backend"
+
+
+@router.post("/collections/delete-bulk", response_model=BulkDeleteCollectionsResponse)
+async def delete_collections_bulk(request: BulkDeleteCollectionsRequest):
+    """Delete multiple collections by UUID list."""
+    svc = await _get_service()
+    total = 0
+    for cid in request.ids:
+        ok = await svc.delete_collection(cid)
+        if ok:
+            total += 1
+    logger.info("collections_bulk_deleted", count=total, ids=request.ids)
+    return BulkDeleteCollectionsResponse(deleted=total)
+
+
 # ---------------------------------------------------------------------------
 # Ingestion
 # ---------------------------------------------------------------------------

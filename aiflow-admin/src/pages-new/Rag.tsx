@@ -42,6 +42,23 @@ export function Rag() {
   const [creating, setCreating] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectedCols, setSelectedCols] = useState<Record<string, unknown>[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [clearSel, setClearSel] = useState(0);
+
+  const handleBulkDelete = async () => {
+    if (selectedCols.length === 0 || bulkDeleting) return;
+    setBulkDeleting(true);
+    try {
+      const ids = selectedCols.map(c => String(c.id)).filter(Boolean);
+      await fetchApi<{ deleted: number }>("POST", "/api/v1/rag/collections/delete-bulk", { ids });
+      setShowBulkDelete(false);
+      setClearSel(c => c + 1);
+      refetch();
+    } catch { /* keep dialog */ }
+    finally { setBulkDeleting(false); }
+  };
 
   const handleDelete = async () => {
     if (!deleteId || deleting) return;
@@ -123,7 +140,22 @@ export function Rag() {
 
       {tab === "collections" ? (
         error ? <ErrorState error={error} onRetry={refetch} /> :
-        <DataTable data={(data?.collections ?? []) as unknown as Record<string, unknown>[]} columns={columns} loading={loading} searchKeys={["name", "description"]} />
+        <>
+          {selectedCols.length > 0 && (
+            <div className="mb-3 flex items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 p-3 dark:border-brand-800 dark:bg-brand-900/20">
+              <span className="text-sm font-medium text-brand-700 dark:text-brand-300">
+                {selectedCols.length} {translate("aiflow.common.selected")}
+              </span>
+              <button onClick={() => setShowBulkDelete(true)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
+                {translate("aiflow.common.bulkDelete")}
+              </button>
+              <button onClick={() => setClearSel(c => c + 1)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400">
+                {translate("aiflow.common.cancel")}
+              </button>
+            </div>
+          )}
+          <DataTable data={(data?.collections ?? []) as unknown as Record<string, unknown>[]} columns={columns} loading={loading} searchKeys={["name", "description"]} selectable onSelectionChange={setSelectedCols} clearSelection={clearSel} />
+        </>
       ) : (
         <ChatPanel collections={data?.collections ?? []} />
       )}
@@ -186,6 +218,27 @@ export function Rag() {
                 className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
               >
                 {creating ? translate("aiflow.common.loading") : translate("common.action.create")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Bulk delete confirmation dialog */}
+      {showBulkDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {translate("aiflow.common.bulkDelete")}
+            </h3>
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+              {translate("aiflow.common.bulkDeleteConfirm")} ({selectedCols.length})
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowBulkDelete(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+                {translate("common.action.cancel")}
+              </button>
+              <button onClick={() => void handleBulkDelete()} disabled={bulkDeleting} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
+                {bulkDeleting ? translate("aiflow.common.loading") : translate("aiflow.common.bulkDelete")}
               </button>
             </div>
           </div>

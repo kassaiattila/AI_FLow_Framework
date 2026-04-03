@@ -483,7 +483,10 @@
       "search": "Search...",
       "confirm": "Are you sure?",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "selected": "selected",
+      "bulkDelete": "Delete selected",
+      "bulkDeleteConfirm": "Are you sure you want to delete the selected items?"
     }
   },
   "common": {
