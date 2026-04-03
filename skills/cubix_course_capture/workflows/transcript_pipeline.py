@@ -136,7 +136,8 @@ async def extract_audio(data: dict[str, Any]) -> dict[str, Any]:
     file_path = data["file_path"]
     path = Path(file_path)
 
-    output_dir = Path(config.output_dir) / "audio"
+    base_dir = Path(data.get("output_dir", config.output_dir))
+    output_dir = base_dir / "audio"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{path.stem}.{config.audio_format}"
 
@@ -177,11 +178,15 @@ async def extract_audio(data: dict[str, Any]) -> dict[str, Any]:
             str(output_path),
         ]
     else:
-        # Input is already audio-only -- just copy
+        # Input is already audio-only — re-encode to target format to avoid
+        # codec/container mismatches (e.g. PCM WAV → M4A needs AAC encoding)
         cmd = [
             config.ffmpeg_path,
             "-i", str(path),
-            "-acodec", "copy",
+            "-acodec", "aac",
+            "-ar", str(data.get("sample_rate", config.sample_rate)),
+            "-ac", str(data.get("channels", config.audio_channels)),
+            "-b:a", config.audio_bitrate,
             "-y",
             str(output_path),
         ]
@@ -245,7 +250,7 @@ async def chunk_audio(data: dict[str, Any]) -> dict[str, Any]:
     chunk_duration = duration / num_chunks
     overlap = config.chunk_overlap_seconds
 
-    output_dir = Path(config.output_dir) / "chunks"
+    output_dir = Path(data.get("output_dir", config.output_dir)) / "chunks"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     chunks: list[ChunkInfo] = []
@@ -371,7 +376,11 @@ async def transcribe(data: dict[str, Any]) -> dict[str, Any]:
             cost=round(cost, 4),
         )
 
-    return {"chunk_transcripts": chunk_transcripts}
+    return {
+        "chunk_transcripts": chunk_transcripts,
+        "chunks": data.get("chunks", []),
+        "output_dir": data.get("output_dir", ""),
+    }
 
 
 # ---------------------------------------------------------------------------

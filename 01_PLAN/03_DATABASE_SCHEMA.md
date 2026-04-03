@@ -2,8 +2,8 @@
 
 ## PostgreSQL Database: `aiflow`
 
-**Teljes schema:** 41 tabla, 6 view, 60+ index, 25 Alembic migracio (001-025)
-**Utolso frissites:** 2026-04-02 (v1.0.0-rc1 audit → v1.0.0 final)
+**Teljes schema:** 41 tabla, 6 view, 60+ index, 26 Alembic migracio (001-026)
+**Utolso frissites:** 2026-04-03 (v1.1.4 — outlook_com provider hozzaadva)
 
 > **Megjegyzes:** Az eredeti terv 36 tablat es 13 view-t tartalmazott.
 > A vegleges schema 41 tabla (5 uj: api_keys, email_fetch_history, generated_diagrams, media_jobs, rpa_configs/rpa_execution_log)
@@ -1237,10 +1237,11 @@ alembic/versions/
 **Osszes tabla:** 41 (v1.0.0 final, introspect alapjan)
 **Osszes view:** 6 (v_daily_team_costs, v_instance_stats, v_model_usage, v_monthly_budget, v_test_trends, v_workflow_metrics)
 **Osszes index:** 60+
-**Osszes migracio:** 25 (001-025, mind fizikailag letezik az `alembic/versions/`-ben)
+**Osszes migracio:** 26 (001-026, mind fizikailag letezik az `alembic/versions/`-ben)
   - 001-013: Framework mag (Phase 1-7)
   - 014-024: Service generalizacio (Fazis 0-5)
   - 025: Security fix (password_hash column)
+  - 026: outlook_com provider hozzaadasa chk_ecc_provider constraint-hez
 
 ---
 

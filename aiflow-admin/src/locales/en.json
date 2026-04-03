@@ -145,10 +145,12 @@
       "filters": "Filters",
       "imap": "IMAP",
       "o365": "Office 365",
+      "outlook_com": "Outlook (local)",
       "gmail": "Gmail",
       "history": "Fetch history",
       "emailCount": "Email count",
-      "status": "Status"
+      "status": "Status",
+      "fetchPeriod": "Fetch period"
     },
     "menu": {
       "skillViewers": "Skill Viewers",
@@ -257,7 +259,14 @@
       "collection": "Collection",
       "send": "Send",
       "sources": "sources",
-      "noAnswer": "No answer found for your question."
+      "noAnswer": "No answer found for your question.",
+      "model": "Model",
+      "clearHistory": "Clear history",
+      "clearHistoryConfirm": "Clear chat history?",
+      "copied": "Copied!",
+      "you": "You",
+      "assistant": "AI Assistant",
+      "scrollToBottom": "Scroll to bottom"
     },
     "rag": {
       "title": "RAG Collections",
@@ -398,7 +407,9 @@
       "noJobs": "No jobs yet. Upload video/audio files to get started.",
       "transcript": "Transcript",
       "processingTime": "Processing time",
-      "noTranscript": "No transcript available."
+      "noTranscript": "No transcript available.",
+      "selectFiles": "Select files",
+      "process": "Upload & Process"
     },
     "cubix": {
       "title": "Cubix Courses",

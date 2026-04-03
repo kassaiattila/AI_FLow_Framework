@@ -13,6 +13,7 @@ import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
 import { EmptyState } from "../components-new/EmptyState";
 import { DataTable, type Column } from "../components-new/DataTable";
+import { FileProgressRow, FileProgressBar, type FileProgress } from "../components-new/FileProgress";
 
 // --- Types ---
 
@@ -80,18 +81,12 @@ function statusBadge(doc: DocItem): { label: string; color: string } {
 
 // --- Upload Tab ---
 
-interface UploadStep {
-  name: string;
-  status: "pending" | "running" | "done" | "error";
-  elapsed_ms?: number;
-}
-
 function UploadTab() {
   const translate = useTranslate();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [steps, setSteps] = useState<UploadStep[]>([]);
+  const [fileProgress, setFileProgress] = useState<FileProgress[]>([]);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,6 +107,7 @@ function UploadTab() {
     setUploading(true);
     setError(null);
     setResult(null);
+    setFileProgress([]);
     try {
       const formData = new FormData();
       files.forEach(f => formData.append("files", f));
@@ -119,45 +115,102 @@ function UploadTab() {
       setUploading(false);
       setProcessing(true);
 
-      // Start SSE processing
-      setSteps([
-        { name: "PDF Parse", status: "pending" },
-        { name: "Classify", status: "pending" },
-        { name: "Extract", status: "pending" },
-        { name: "Validate", status: "pending" },
-        { name: "Store", status: "pending" },
-        { name: "Export", status: "pending" },
-      ]);
+      // Initialize per-file progress immediately so the UI shows the grid
+      const defaultSteps = ["parse", "classify", "extract", "validate", "store"];
+      setFileProgress(files.map(f => ({
+        name: f.name,
+        status: "pending" as const,
+        steps: defaultSteps.map(s => ({ name: s, status: "pending" as const })),
+      })));
 
       streamApi(
         `/api/v1/documents/process-stream`,
         (data) => {
           try {
             const msg = JSON.parse(data);
-            if (msg.event === "step_start" && msg.step !== undefined) {
-              setSteps(prev => prev.map((s, i) => ({
-                ...s,
-                status: i < msg.step ? "done" : i === msg.step ? "running" : s.status,
+
+            // New per-file events (v1.1.4+)
+            if (msg.event === "init") {
+              const stepNames: string[] = msg.steps ?? defaultSteps;
+              setFileProgress(files.map(f => ({
+                name: f.name,
+                status: "pending" as const,
+                steps: stepNames.map(s => ({ name: s, status: "pending" as const })),
               })));
+            }
+
+            if (msg.event === "file_start" && msg.file_index !== undefined) {
+              setFileProgress(prev => prev.map((fp, i) =>
+                i === msg.file_index ? { ...fp, status: "processing" } : fp
+              ));
+            }
+
+            if (msg.event === "file_step" && msg.file_index !== undefined && msg.step_index !== undefined) {
+              setFileProgress(prev => prev.map((fp, i) => {
+                if (i !== msg.file_index) return fp;
+                return {
+                  ...fp,
+                  steps: fp.steps.map((s, si) => {
+                    if (si !== msg.step_index) return s;
+                    return {
+                      ...s,
+                      status: msg.status === "done" ? "done" : msg.status === "running" ? "running" : s.status,
+                      elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms,
+                    };
+                  }),
+                };
+              }));
+            }
+
+            if (msg.event === "file_error" && msg.file_index !== undefined) {
+              setFileProgress(prev => prev.map((fp, i) =>
+                i === msg.file_index ? { ...fp, status: "error", error: msg.error } : fp
+              ));
+            }
+
+            if (msg.event === "file_done" && msg.file_index !== undefined) {
+              setFileProgress(prev => prev.map((fp, i) =>
+                i === msg.file_index
+                  ? { ...fp, status: msg.ok ? "done" : "error" }
+                  : fp
+              ));
+            }
+
+            // Legacy batch events (backward compat with old backend)
+            if (msg.event === "step_start" && msg.step !== undefined) {
+              setFileProgress(prev => {
+                // In batch mode, show all files as processing on the current step
+                return prev.map(fp => ({
+                  ...fp,
+                  status: "processing" as const,
+                  steps: fp.steps.map((s, si) => ({
+                    ...s,
+                    status: si < msg.step ? "done" as const : si === msg.step ? "running" as const : s.status,
+                  })),
+                }));
+              });
             }
             if (msg.event === "step_done" && msg.step !== undefined) {
-              setSteps(prev => prev.map((s, i) => ({
-                ...s,
-                status: i <= msg.step ? "done" : s.status,
-                elapsed_ms: i === msg.step ? msg.elapsed_ms : s.elapsed_ms,
+              setFileProgress(prev => prev.map(fp => ({
+                ...fp,
+                steps: fp.steps.map((s, si) => ({
+                  ...s,
+                  status: si <= msg.step ? "done" as const : s.status,
+                  elapsed_ms: si === msg.step ? msg.elapsed_ms : s.elapsed_ms,
+                })),
               })));
             }
-            if (msg.event === "complete") {
-              const results = msg.results ?? [];
-              const vendor = results[0]?.vendor ?? "";
-              const total = results[0]?.gross_total ?? 0;
-              setResult(`${files.length} file(s) processed — ${vendor}, ${total.toLocaleString()} HUF`);
-              setProcessing(false);
-              setSteps(prev => prev.map(s => ({ ...s, status: "done" })));
-            }
-            if (msg.event === "error") {
+            if (msg.event === "error" && msg.name) {
               setError(`Step ${msg.name} failed: ${msg.error}`);
               setProcessing(false);
+            }
+
+            if (msg.event === "complete") {
+              const results = msg.results ?? [];
+              const ok = results.filter((r: Record<string, unknown>) => !r.error).length;
+              setResult(`${ok}/${files.length} ${translate("aiflow.documentUpload.files")} processed`);
+              setProcessing(false);
+              setFileProgress(prev => prev.map(fp => ({ ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) })));
             }
           } catch { /* ignore non-json */ }
         },
@@ -174,10 +227,13 @@ function UploadTab() {
 
   const handleReset = () => {
     setFiles([]);
-    setSteps([]);
+    setFileProgress([]);
     setResult(null);
     setError(null);
   };
+
+  const doneCount = fileProgress.filter(fp => fp.status === "done").length;
+  const totalCount = fileProgress.length;
 
   return (
     <div className="space-y-4">
@@ -200,8 +256,8 @@ function UploadTab() {
         </label>
       </div>
 
-      {/* File list */}
-      {files.length > 0 && (
+      {/* File list (before processing) */}
+      {files.length > 0 && fileProgress.length === 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -232,32 +288,48 @@ function UploadTab() {
         </div>
       )}
 
-      {/* Pipeline progress */}
-      {steps.length > 0 && (
+      {/* Per-file pipeline progress */}
+      {fileProgress.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            {translate("aiflow.pipeline.title")}
-          </p>
-          <div className="flex gap-2">
-            {steps.map((step, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                <div className={`h-2 w-full rounded-full ${
-                  step.status === "done" ? "bg-green-500" :
-                  step.status === "running" ? "bg-brand-500 animate-pulse" :
-                  step.status === "error" ? "bg-red-500" :
-                  "bg-gray-200 dark:bg-gray-700"
-                }`} />
-                <span className="text-[10px] text-gray-500">{step.name}</span>
-              </div>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {translate("aiflow.pipeline.title")}
+            </p>
+            {processing && (
+              <span className="text-xs text-brand-600 dark:text-brand-400">
+                {doneCount}/{totalCount}
+              </span>
+            )}
+          </div>
+          <FileProgressBar done={doneCount} total={totalCount} />
+          <div>
+            {fileProgress.map((fp, i) => (
+              <FileProgressRow key={i} fp={fp} />
             ))}
           </div>
+          {!processing && !result && (
+            <button
+              onClick={handleReset}
+              className="mt-3 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
+            >
+              {translate("aiflow.documentUpload.newBatch")}
+            </button>
+          )}
         </div>
       )}
 
       {error && <ErrorState error={error} onRetry={handleUpload} />}
       {result && (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
-          {result}
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-green-700 dark:text-green-400">{result}</span>
+            <button
+              onClick={handleReset}
+              className="rounded-lg border border-green-300 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/40"
+            >
+              {translate("aiflow.documentUpload.newBatch")}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -345,11 +417,11 @@ function makeDocColumns(translate: (key: string) => string, onDelete?: (id: stri
       const docId = (item as unknown as DocItem).id;
       if (!docId) return null;
       return (
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-2">
           <a
             href={`#/documents/${encodeURIComponent(docId)}/verify`}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center rounded-md border border-brand-300 p-1 text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-900/20"
+            className="inline-flex items-center rounded-md border border-brand-300 px-1.5 py-1 text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-900/20"
             title="Verify"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -359,7 +431,7 @@ function makeDocColumns(translate: (key: string) => string, onDelete?: (id: stri
           {onDelete && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(docId); }}
-              className="inline-flex items-center rounded-md border border-red-200 p-1 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+              className="inline-flex items-center rounded-md border border-red-200 px-1.5 py-1 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
               title={translate("aiflow.documents.deleteTitle")}
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

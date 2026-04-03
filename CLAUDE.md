@@ -19,7 +19,7 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 **Terv:** `01_PLAN/43_UI_RATIONALIZATION_PLAN.md`
 
 > **Elozmeny:** Service Generalization (F0-F5) KESZ (v1.0.0, 2026-04-02).
-> 15 service, 87 API endpoint, 21 UI oldal, 41 DB tabla.
+> 15 service, 112+ API endpoint (19 router), 17 UI oldal, 41 DB tabla.
 > Ez a fazis (F6.0-F6.6) a frontend TELJES ujrairasát vegzi:
 > React Admin + MUI → Untitled UI + Tailwind v4 + React Aria.
 
@@ -211,7 +211,7 @@ src/aiflow/
     engine/        # Step, SkillRunner, WorkflowRunner, DAG, checkpoint
     models/        # ModelClient, LiteLLM backend, protocols
     prompts/       # PromptManager (YAML + Jinja2 + cache)
-    services/      # TERVEZETT (42_SERVICE_GENERALIZATION_PLAN): email_connector, document_extractor, rag_engine, classifier, rpa_browser, media_processor, diagram_generator, cache, events, monitoring, resilience, human_review, audit, schema_registry
+    services/      # KESZ (F0-F5, v1.0.0): email_connector, document_extractor, rag_engine, classifier, rpa_browser, media_processor, diagram_generator, cache, events, monitoring, resilience, human_review, audit, schema_registry
     execution/     # JobQueue (arq+Redis), Worker, Scheduler, RateLimiter, DLQ, Messaging
     evaluation/    # EvalSuite framework, scorers (BLEU, ROUGE), Promptfoo integration
     skill_system/  # Skill manifest, loader, registry, instance (canonical)
@@ -219,9 +219,9 @@ src/aiflow/
     vectorstore/   # VectorStore ABC, pgvector, HybridSearchEngine, embedder
     documents/     # DocumentRegistry, versioning, freshness
     ingestion/     # Parsers (PDF/DOCX), chunkers (semantic)
-    state/         # SQLAlchemy ORM, repository, 13 Alembic migraciok (001-013)
+    state/         # SQLAlchemy ORM, repository, 26 Alembic migraciok (001-026)
     security/      # JWT+API key auth, RBAC, audit
-    api/v1/        # FastAPI endpoints (12 route files: health, workflows, chat_completions, feedback, runs, costs, skills_api, emails, auth, documents, process_docs, cubix)
+    api/v1/        # FastAPI endpoints (19 route files: health, workflows, chat_completions, feedback, runs, costs, skills_api, emails, auth, documents, process_docs, cubix, rag_engine, media_processor, rpa_browser, human_review, admin, services, diagram_generator)
     observability/ # Tracing, cost_tracker (partial)
     cli/           # typer CLI
     skills/        # Backward compat re-exports -> skill_system/

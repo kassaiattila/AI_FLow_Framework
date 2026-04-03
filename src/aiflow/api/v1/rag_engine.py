@@ -61,6 +61,7 @@ class QueryRequest(BaseModel):
     question: str
     role: str = "expert"
     top_k: int = 5
+    model: str | None = None  # override answer model (e.g. "openai/gpt-4o-mini")
 
 class QueryResponse(BaseModel):
     query_id: str
@@ -71,6 +72,7 @@ class QueryResponse(BaseModel):
     response_time_ms: float = 0
     cost_usd: float = 0
     tokens_used: int = 0
+    model_used: str | None = None
     source: str = "backend"
 
 class FeedbackRequest(BaseModel):
@@ -288,72 +290,121 @@ async def ingest_documents_stream(
         raise HTTPException(status_code=404, detail="Collection not found")
 
     async def event_stream():
+        import asyncio as _asyncio
         run_start = _time.perf_counter()
         errors: list[str] = []
         total_chunks = 0
         files_ok = 0
+        embed_total_tokens = 0
+        step_names = ["upload", "parse", "chunk", "embed", "store"]
+        total_files = len(files)
+
+        def sse(obj: dict) -> str:
+            return f"data: {_json.dumps(obj)}\n\n"
+
+        yield sse({"event": "init", "total_files": total_files, "steps": step_names})
 
         try:
-            # Step 0: Upload files to disk
-            yield f"data: {_json.dumps({'event': 'step_start', 'step': 0, 'name': 'upload'})}\n\n"
             project_root = Path(__file__).parent.parent.parent.parent.parent
             upload_dir = project_root / "data" / "uploads" / "rag" / collection_id
             upload_dir.mkdir(parents=True, exist_ok=True)
-            saved_paths: list[Path] = []
-            for f in files:
-                dest = upload_dir / (f.filename or "unnamed.pdf")
-                content = await f.read()
-                dest.write_bytes(content)
-                saved_paths.append(dest)
-            yield f"data: {_json.dumps({'event': 'step_done', 'step': 0, 'name': 'upload', 'files': len(saved_paths)})}\n\n"
 
-            # Step 1: Parse documents
-            yield f"data: {_json.dumps({'event': 'step_start', 'step': 1, 'name': 'parse'})}\n\n"
             from aiflow.ingestion.parsers.docling_parser import DoclingParser
             from aiflow.ingestion.chunkers.recursive_chunker import RecursiveChunker, ChunkingConfig
+            import uuid as _uuid
             parser = DoclingParser()
-            parsed_docs = []
-            for fp in saved_paths:
-                try:
-                    doc = parser.parse(fp)
-                    doc_text = doc.markdown or doc.text
-                    if doc_text.strip():
-                        parsed_docs.append((fp, doc, doc_text))
-                    else:
-                        errors.append(f"{fp.name}: empty document")
-                except Exception as e:
-                    errors.append(f"{fp.name}: parse error: {e}")
-            yield f"data: {_json.dumps({'event': 'step_done', 'step': 1, 'name': 'parse', 'parsed': len(parsed_docs)})}\n\n"
-
-            # Step 2: Chunk
-            yield f"data: {_json.dumps({'event': 'step_start', 'step': 2, 'name': 'chunk'})}\n\n"
             chunker = RecursiveChunker(ChunkingConfig(
                 chunk_size=svc._ext_config.default_chunk_size,
                 chunk_overlap=svc._ext_config.default_chunk_overlap,
             ))
-            all_chunks_data: list[tuple[Path, list]] = []
-            for fp, doc, doc_text in parsed_docs:
+
+            for fi, f in enumerate(files):
+                fname = f.filename or f"file_{fi}.pdf"
+                yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total_files})
+                await _asyncio.sleep(0)
+
+                # Step 0: Upload (save to disk)
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "upload", "status": "running"})
+                await _asyncio.sleep(0)
+                dest = upload_dir / fname
+                content = await f.read()
+                dest.write_bytes(content)
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "upload", "status": "done"})
+
+                # Step 1: Parse
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 1, "step_name": "parse", "status": "running"})
+                await _asyncio.sleep(0)
+                try:
+                    doc = parser.parse(dest)
+                    doc_text = doc.markdown or doc.text
+                    if not doc_text.strip():
+                        raise ValueError("empty document")
+                except Exception as e:
+                    errors.append(f"{fname}: parse error: {e}")
+                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": "parse", "error": str(e)})
+                    yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": False})
+                    continue
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 1, "step_name": "parse", "status": "done"})
+
+                # Step 2: Chunk
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 2, "step_name": "chunk", "status": "running"})
+                await _asyncio.sleep(0)
                 chunks = chunker.chunk_text(doc_text, metadata={
-                    "document_name": doc.file_name or fp.name,
+                    "document_name": doc.file_name or fname,
                     "file_type": doc.file_type,
                     "language": language or coll.language,
                 })
-                if chunks:
-                    all_chunks_data.append((fp, chunks))
-                else:
-                    errors.append(f"{fp.name}: no chunks")
-            total_chunk_count = sum(len(c) for _, c in all_chunks_data)
-            yield f"data: {_json.dumps({'event': 'step_done', 'step': 2, 'name': 'chunk', 'chunks': total_chunk_count})}\n\n"
+                if not chunks:
+                    errors.append(f"{fname}: no chunks produced")
+                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": "chunk", "error": "no chunks"})
+                    yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": False})
+                    continue
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 2, "step_name": "chunk", "status": "done"})
 
-            # Step 3: Embed + record cost
-            yield f"data: {_json.dumps({'event': 'step_start', 'step': 3, 'name': 'embed'})}\n\n"
-            all_embeddings: list[tuple[Path, list, list]] = []
-            embed_total_tokens = 0
-            for fp, chunks in all_chunks_data:
+                # Step 3: Embed
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 3, "step_name": "embed", "status": "running"})
+                await _asyncio.sleep(0)
                 chunk_texts = [c.text for c in chunks]
                 embeddings = await svc._embedder.embed_texts(chunk_texts)
-                all_embeddings.append((fp, chunks, embeddings))
-                embed_total_tokens += sum(len(t) // 4 for t in chunk_texts)  # ~4 chars/token estimate
+                embed_total_tokens += sum(len(t) // 4 for t in chunk_texts)
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 3, "step_name": "embed", "status": "done"})
+
+                # Step 4: Store
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 4, "step_name": "store", "status": "running"})
+                await _asyncio.sleep(0)
+                chunk_dicts = [
+                    {
+                        "id": str(_uuid.uuid4()),
+                        "content": c.text,
+                        "metadata": {**c.metadata, "chunk_index": c.index},
+                        "document_name": c.metadata.get("document_name", fname),
+                    }
+                    for c in chunks
+                ]
+                stored = await svc._vector_store.upsert_chunks(
+                    collection=coll.name,
+                    skill_name="rag_engine",
+                    chunks=chunk_dicts,
+                    embeddings=embeddings,
+                )
+                total_chunks += stored
+                files_ok += 1
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 4, "step_name": "store", "status": "done"})
+
+                yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": True})
+
+            # Update collection stats
+            from sqlalchemy import text as sa_text
+            async with svc._session_factory() as session:
+                await session.execute(
+                    sa_text("""UPDATE rag_collections
+                        SET document_count = document_count + :docs,
+                            chunk_count = chunk_count + :chunks,
+                            last_ingest_at = NOW(), updated_at = NOW()
+                        WHERE id = :id"""),
+                    {"docs": files_ok, "chunks": total_chunks, "id": collection_id},
+                )
+                await session.commit()
 
             # Record embedding cost
             try:
@@ -373,49 +424,12 @@ async def ingest_documents_stream(
                 )
             except Exception:
                 pass
-            yield f"data: {_json.dumps({'event': 'step_done', 'step': 3, 'name': 'embed', 'tokens': embed_total_tokens})}\n\n"
-
-            # Step 4: Store
-            yield f"data: {_json.dumps({'event': 'step_start', 'step': 4, 'name': 'store'})}\n\n"
-            import uuid as _uuid
-            for fp, chunks, embeddings in all_embeddings:
-                chunk_dicts = [
-                    {
-                        "id": str(_uuid.uuid4()),
-                        "content": c.text,
-                        "metadata": {**c.metadata, "chunk_index": c.index},
-                        "document_name": c.metadata.get("document_name", fp.name),
-                    }
-                    for c in chunks
-                ]
-                stored = await svc._vector_store.upsert_chunks(
-                    collection=coll.name,
-                    skill_name="rag_engine",
-                    chunks=chunk_dicts,
-                    embeddings=embeddings,
-                )
-                total_chunks += stored
-                files_ok += 1
-
-            # Update collection stats
-            from sqlalchemy import text as sa_text
-            async with svc._session_factory() as session:
-                await session.execute(
-                    sa_text("""UPDATE rag_collections
-                        SET document_count = document_count + :docs,
-                            chunk_count = chunk_count + :chunks,
-                            last_ingest_at = NOW(), updated_at = NOW()
-                        WHERE id = :id"""),
-                    {"docs": files_ok, "chunks": total_chunks, "id": collection_id},
-                )
-                await session.commit()
-            yield f"data: {_json.dumps({'event': 'step_done', 'step': 4, 'name': 'store', 'stored': total_chunks})}\n\n"
 
             total_ms = int((_time.perf_counter() - run_start) * 1000)
-            yield f"data: {_json.dumps({'event': 'complete', 'files_processed': files_ok, 'chunks_created': total_chunks, 'duration_ms': total_ms, 'errors': errors})}\n\n"
+            yield sse({"event": "complete", "files_processed": files_ok, "chunks_created": total_chunks, "duration_ms": total_ms, "errors": errors})
 
         except Exception as e:
-            yield f"data: {_json.dumps({'event': 'error', 'error': str(e)})}\n\n"
+            yield sse({"event": "error", "error": str(e)})
 
     return StreamingResponse(
         event_stream(),
@@ -453,6 +467,7 @@ async def query_collection(collection_id: str, request: QueryRequest):
             question=request.question,
             role=request.role,
             top_k=request.top_k,
+            model=request.model,
         )
         resp = QueryResponse(**result.model_dump())
 
@@ -463,7 +478,7 @@ async def query_collection(collection_id: str, request: QueryRequest):
                 await record_cost(
                     workflow_run_id=resp.query_id,
                     step_name="rag_query",
-                    model="openai/gpt-4o",
+                    model=resp.model_used or "openai/gpt-4o",
                     input_tokens=resp.tokens_used,
                     output_tokens=0,
                     cost_usd=resp.cost_usd,

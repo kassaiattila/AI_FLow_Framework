@@ -1,8 +1,11 @@
 """Email processing API — list, detail, upload, process, classify, connector config CRUD, fetch."""
 from __future__ import annotations
 
+import asyncio
+import json as _json
 import os
 import tempfile
+import time as _time
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -11,6 +14,7 @@ import asyncpg
 import structlog
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel, Field
+from starlette.responses import StreamingResponse
 
 from aiflow.api.deps import get_pool, get_engine
 
@@ -268,7 +272,8 @@ async def list_emails(
             )
 
             for row in rows:
-                data = row["output_data"] or {}
+                raw_od = row["output_data"] or {}
+                data = raw_od if isinstance(raw_od, dict) else (_json.loads(raw_od) if isinstance(raw_od, str) else {})
                 intent_data = data.get("intent") or {}
                 priority_data = data.get("priority") or {}
                 routing_data = data.get("routing") or {}
@@ -292,6 +297,63 @@ async def list_emails(
                 ))
     except Exception as e:
         logger.warning("emails_db_failed", error=str(e))
+
+    # Supplement with fetched .eml files that haven't been processed yet
+    try:
+        fetched_dir = Path(os.getenv("AIFLOW_EMAIL_DIR", "./data/emails"))
+        if fetched_dir.exists():
+            # Build set of processed file stems from workflow_runs input_data
+            processed_files: set[str] = set()
+            try:
+                pool2 = await get_pool()
+                async with pool2.acquire() as conn2:
+                    prows = await conn2.fetch(
+                        "SELECT input_data FROM workflow_runs WHERE skill_name='email_intent_processor' AND status='completed'"
+                    )
+                    for pr in prows:
+                        raw_id = pr["input_data"]
+                        if isinstance(raw_id, str):
+                            try:
+                                raw_id = _json.loads(raw_id)
+                            except Exception:
+                                continue
+                        if isinstance(raw_id, dict):
+                            fpath = raw_id.get("file", "")
+                            if fpath:
+                                processed_files.add(Path(fpath).stem)
+            except Exception:
+                pass
+
+            eml_files = sorted(fetched_dir.rglob("*.eml"), key=lambda f: f.stat().st_mtime, reverse=True)
+            for eml_path in eml_files[:200]:
+                if eml_path.stem in processed_files:
+                    continue
+                try:
+                    import email as _email_mod
+                    raw = eml_path.read_bytes()
+                    msg = _email_mod.message_from_bytes(raw)
+                    subj = msg.get("Subject", "")
+                    from email.header import decode_header as _dh
+                    parts = _dh(subj)
+                    subj = "".join(p.decode(enc or "utf-8") if isinstance(p, bytes) else p for p, enc in parts)
+                    sender = msg.get("From", "")
+                    date_str = msg.get("Date", "")
+                    emails.append(EmailResultItem(
+                        email_id=eml_path.stem,
+                        subject=subj,
+                        sender=sender,
+                        received_date=date_str[:25] if date_str else None,
+                        intent_id=None,
+                        intent_display_name="Not processed",
+                        intent_confidence=0.0,
+                        priority_level=None,
+                        attachment_count=sum(1 for p in msg.walk() if p.get_content_disposition() == "attachment"),
+                    ))
+                    total += 1
+                except Exception:
+                    continue
+    except Exception as e:
+        logger.debug("fetched_eml_scan_failed", error=str(e))
 
     return EmailListResponse(emails=emails, total=total, source="backend")
 
@@ -333,12 +395,12 @@ async def process_email(request: EmailProcessRequest) -> EmailProcessResponse:
         raise HTTPException(status_code=404, detail=f"File not found: {request.file}")
 
     try:
-        from skills.email_intent_processor.workflows.pipeline import (
+        from skills.email_intent_processor.workflows.classify import (
             parse_email as _parse,
             classify_intent as _classify,
             extract_entities as _extract,
-            determine_priority as _priority,
-            route_email as _route,
+            score_priority as _priority,
+            decide_routing as _route,
         )
     except ImportError as e:
         logger.error("email_skill_import_failed", error=str(e))
@@ -348,6 +410,7 @@ async def process_email(request: EmailProcessRequest) -> EmailProcessResponse:
     try:
         data: dict[str, Any] = {
             "input_file": str(file_path),
+            "raw_eml_path": str(file_path),
             "output_dir": str(output_dir),
         }
         data = await _parse(data)
@@ -479,7 +542,7 @@ async def create_connector(config: ConnectorConfigCreate) -> ConnectorConfigResp
     """Create a new email connector config."""
     import json as _json
 
-    if config.provider not in ("imap", "o365_graph", "gmail"):
+    if config.provider not in ("imap", "o365_graph", "gmail", "outlook_com"):
         raise HTTPException(status_code=400, detail=f"Invalid provider: {config.provider}")
 
     try:
@@ -623,13 +686,12 @@ async def test_connector(config_id: str) -> TestConnectionResponse:
 
 @router.post("/fetch", response_model=FetchResponse)
 async def fetch_emails(request: FetchRequest) -> FetchResponse:
-    """Trigger email fetch from a configured connector."""
+    """Trigger email fetch (non-streaming fallback)."""
     from sqlalchemy.ext.asyncio import async_sessionmaker as asm
     from aiflow.services.email_connector import EmailConnectorService, EmailConnectorConfig
 
     engine = await get_engine()
     session_factory = asm(engine, expire_on_commit=False)
-
     since_date = None
     if request.since_days:
         from datetime import timedelta
@@ -637,30 +699,172 @@ async def fetch_emails(request: FetchRequest) -> FetchResponse:
 
     service = EmailConnectorService(session_factory=session_factory, config=EmailConnectorConfig())
     await service.start()
-
     try:
-        result = await service.fetch_emails(
-            config_id=request.config_id,
-            limit=request.limit,
-            since_date=since_date,
-        )
-        return FetchResponse(
-            config_id=request.config_id,
-            total_count=result.total_count,
-            new_count=result.new_count,
-            duration_ms=result.duration_ms,
-            error=result.error,
-            source="backend",
-        )
+        result = await service.fetch_emails(config_id=request.config_id, limit=request.limit, since_date=since_date)
+        return FetchResponse(config_id=request.config_id, total_count=result.total_count, new_count=result.new_count, duration_ms=result.duration_ms, error=result.error, source="backend")
     except Exception as e:
-        logger.error("fetch_failed", error=str(e))
-        return FetchResponse(
-            config_id=request.config_id,
-            error=str(e),
-            source="backend",
-        )
+        return FetchResponse(config_id=request.config_id, error=str(e), source="backend")
     finally:
         await service.stop()
+
+
+@router.post("/fetch-and-process-stream")
+async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
+    """Fetch emails + process each through intent pipeline with SSE progress.
+
+    Events: init, file_start, file_step, file_done, file_error, complete.
+    Steps per email: fetch, parse, classify, extract, priority, route.
+    """
+    from sqlalchemy.ext.asyncio import async_sessionmaker as asm
+    from aiflow.services.email_connector import EmailConnectorService, EmailConnectorConfig
+    import uuid
+    import time as _t
+
+    engine = await get_engine()
+    session_factory = asm(engine, expire_on_commit=False)
+    since_date = None
+    if request.since_days:
+        from datetime import timedelta
+        since_date = date.today() - timedelta(days=request.since_days)
+
+    try:
+        from skills.email_intent_processor.workflows.classify import (
+            parse_email as _parse, classify_intent as _classify,
+            extract_entities as _extract, score_priority as _priority,
+            decide_routing as _route,
+        )
+        skill_available = True
+    except ImportError:
+        skill_available = False
+
+    step_names = ["fetch", "parse", "classify", "extract", "priority", "route"]
+
+    async def event_stream():
+        def sse(obj: dict) -> str:
+            return f"data: {_json.dumps(obj)}\n\n"
+
+        service = EmailConnectorService(session_factory=session_factory, config=EmailConnectorConfig())
+        await service.start()
+
+        try:
+            # Step 1: Fetch all emails from connector
+            result = await service.fetch_emails(config_id=request.config_id, limit=request.limit, since_date=since_date)
+
+            if result.error:
+                yield sse({"event": "error", "error": result.error})
+                return
+
+            fetched = result.emails or []
+            total = len(fetched)
+            yield sse({"event": "init", "total_files": total, "steps": step_names})
+
+            processed = 0
+            pool = await get_pool()
+
+            for fi, em in enumerate(fetched):
+                fname = em.subject[:60] or em.sender[:40] or f"email_{fi}"
+                yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total})
+                await asyncio.sleep(0)
+
+                # Step 0: fetch (already done)
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "fetch", "status": "done"})
+
+                eml_path = em.raw_eml_path
+                if not eml_path or not Path(eml_path).exists() or not skill_available:
+                    yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": True})
+                    continue
+
+                # Steps 1-5: process pipeline
+                pipeline = [("parse", _parse), ("classify", _classify), ("extract", _extract), ("priority", _priority), ("route", _route)]
+                data: dict[str, Any] = {"input_file": eml_path, "raw_eml_path": eml_path, "output_dir": str(Path(eml_path).parent)}
+                file_ok = True
+
+                for si, (sname, sfn) in enumerate(pipeline, 1):
+                    yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": sname, "status": "running"})
+                    await asyncio.sleep(0)
+                    t = _t.perf_counter()
+                    try:
+                        data = await sfn(data)
+                        elapsed_ms = int((_t.perf_counter() - t) * 1000)
+                        yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": sname, "status": "done", "elapsed_ms": elapsed_ms})
+                    except Exception as e:
+                        logger.warning("email_process_step_failed", file=fname, step=sname, error=str(e))
+                        yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": sname, "error": str(e)})
+                        file_ok = False
+                        break
+
+                # Store result in workflow_runs
+                if file_ok:
+                    try:
+                        run_id = str(uuid.uuid4())
+                        output_data = {
+                            "email_id": em.message_id or run_id,
+                            "subject": em.subject, "sender": em.sender,
+                            "intent": data.get("intent"), "entities": data.get("entities"),
+                            "priority": data.get("priority"), "routing": data.get("routing"),
+                            "attachment_count": len(em.attachments),
+                        }
+                        async with pool.acquire() as conn:
+                            await conn.execute(
+                                """INSERT INTO workflow_runs
+                                   (id, workflow_name, workflow_version, skill_name, status,
+                                    input_data, output_data, started_at, completed_at, total_duration_ms)
+                                   VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,NOW(),NOW(),$8)
+                                   ON CONFLICT DO NOTHING""",
+                                uuid.UUID(run_id), "email_intent_processing", "1.0",
+                                "email_intent_processor", "completed",
+                                _json.dumps({"file": eml_path, "subject": em.subject[:100]}),
+                                _json.dumps(output_data), 0.0,
+                            )
+                        processed += 1
+                    except Exception:
+                        pass
+
+                yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": file_ok})
+
+            yield sse({"event": "complete", "total_fetched": total, "total_processed": processed})
+
+        except Exception as e:
+            yield sse({"event": "error", "error": str(e)})
+        finally:
+            await service.stop()
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Export (CSV)
+# ---------------------------------------------------------------------------
+
+@router.get("/export/csv")
+async def export_emails_csv():
+    """Export all processed emails as CSV."""
+    import csv
+    import io
+
+    result = await list_emails(limit=500, offset=0)
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";")
+    writer.writerow(["email_id", "sender", "subject", "intent", "intent_display_name",
+                      "confidence", "priority", "department", "queue", "received_date"])
+    for e in result.emails:
+        writer.writerow([
+            e.email_id, e.sender, e.subject, e.intent_id or "",
+            e.intent_display_name or "", e.intent_confidence,
+            e.priority_level or "", e.department_name or "",
+            e.queue_name or "", e.received_date or "",
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=aiflow_emails_export.csv"},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -737,3 +941,215 @@ async def get_email(email_id: str) -> EmailDetailResponse:
 
 
     raise HTTPException(status_code=404, detail=f"Email not found: {email_id}")
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/emails/process-batch-stream — process existing .eml files by ID
+# ---------------------------------------------------------------------------
+
+class ProcessBatchRequest(BaseModel):
+    email_ids: list[str]
+
+
+@router.post("/process-batch-stream")
+async def process_batch_stream(request: ProcessBatchRequest) -> StreamingResponse:
+    """Process existing fetched .eml files with per-email SSE progress.
+
+    Scans data/emails/ for matching .eml files and runs the intent pipeline.
+    """
+    import uuid
+    import time as _t
+
+    try:
+        from skills.email_intent_processor.workflows.classify import (
+            parse_email as _parse, classify_intent as _classify,
+            extract_entities as _extract, score_priority as _priority,
+            decide_routing as _route,
+        )
+    except ImportError as e:
+        err_msg = str(e)
+        async def err():
+            yield f"data: {_json.dumps({'event': 'error', 'error': err_msg})}\n\n"
+        return StreamingResponse(err(), media_type="text/event-stream")
+
+    # Find .eml files matching the email_ids
+    email_dir = Path(os.getenv("AIFLOW_EMAIL_DIR", "./data/emails"))
+    eml_files: list[tuple[str, Path]] = []
+    for eid in request.email_ids:
+        # Search recursively for matching .eml
+        matches = list(email_dir.rglob(f"{eid}*.eml"))
+        if matches:
+            eml_files.append((eid, matches[0]))
+
+    step_names = ["parse", "classify", "extract", "priority", "route"]
+
+    async def event_stream():
+        def sse(obj: dict) -> str:
+            return f"data: {_json.dumps(obj)}\n\n"
+
+        total = len(eml_files)
+        yield sse({"event": "init", "total_files": total, "steps": step_names})
+        processed = 0
+        pool = await get_pool()
+
+        for fi, (eid, eml_path) in enumerate(eml_files):
+            # Use subject from .eml as display name
+            fname = eml_path.stem[:60]
+            yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total})
+            await asyncio.sleep(0)
+
+            data: dict[str, Any] = {"input_file": str(eml_path), "raw_eml_path": str(eml_path), "output_dir": str(eml_path.parent)}
+            pipeline = [("parse", _parse), ("classify", _classify), ("extract", _extract), ("priority", _priority), ("route", _route)]
+            file_ok = True
+
+            for si, (sname, sfn) in enumerate(pipeline):
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": sname, "status": "running"})
+                await asyncio.sleep(0)
+                t = _t.perf_counter()
+                try:
+                    data = await sfn(data)
+                    elapsed_ms = int((_t.perf_counter() - t) * 1000)
+                    yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": sname, "status": "done", "elapsed_ms": elapsed_ms})
+                except Exception as e:
+                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": sname, "error": str(e)})
+                    file_ok = False
+                    break
+
+            # Store to workflow_runs
+            if file_ok:
+                try:
+                    run_id = str(uuid.uuid4())
+                    subject = data.get("subject", fname)
+                    sender = data.get("sender", "")
+                    output_data = {
+                        "email_id": eid, "subject": subject, "sender": sender,
+                        "intent": data.get("intent"), "entities": data.get("entities"),
+                        "priority": data.get("priority"), "routing": data.get("routing"),
+                        "attachment_count": len(data.get("attachments", [])),
+                    }
+                    async with pool.acquire() as conn:
+                        await conn.execute(
+                            """INSERT INTO workflow_runs
+                               (id, workflow_name, workflow_version, skill_name, status,
+                                input_data, output_data, started_at, completed_at, total_duration_ms)
+                               VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,NOW(),NOW(),$8)
+                               ON CONFLICT DO NOTHING""",
+                            uuid.UUID(run_id), "email_intent_processing", "1.0",
+                            "email_intent_processor", "completed",
+                            _json.dumps({"file": str(eml_path), "subject": subject[:100]}),
+                            _json.dumps(output_data), 0.0,
+                        )
+                    processed += 1
+                except Exception:
+                    pass
+
+            yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": file_ok})
+
+        yield sse({"event": "complete", "total_processed": processed})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/emails/upload-and-process-stream — SSE per-file progress
+# ---------------------------------------------------------------------------
+
+@router.post("/upload-and-process-stream")
+async def upload_and_process_stream(files: list[UploadFile] = File(...)) -> StreamingResponse:
+    """Upload + process email files with per-file SSE progress.
+
+    Events: init, file_start, file_step, file_done, file_error, complete.
+    Steps per file: upload, parse, classify, extract, priority, route.
+    """
+    upload_dir = _email_upload_dir()
+
+    try:
+        from skills.email_intent_processor.workflows.classify import (
+            parse_email as _parse,
+            classify_intent as _classify,
+            extract_entities as _extract,
+            score_priority as _priority,
+            decide_routing as _route,
+        )
+    except ImportError as e:
+        err_msg = str(e)
+        logger.error("email_skill_import_failed", error=err_msg)
+        async def err():
+            yield f"data: {_json.dumps({'event': 'error', 'error': err_msg})}\n\n"
+        return StreamingResponse(err(), media_type="text/event-stream")
+
+    per_file_steps = [
+        ("upload", None),
+        ("parse", _parse),
+        ("classify", _classify),
+        ("extract", _extract),
+        ("priority", _priority),
+        ("route", _route),
+    ]
+    step_names = [s[0] for s in per_file_steps]
+
+    async def event_stream():
+        def sse(obj: dict) -> str:
+            return f"data: {_json.dumps(obj)}\n\n"
+
+        total = len(files)
+        yield sse({"event": "init", "total_files": total, "steps": step_names})
+
+        results = []
+        for fi, f in enumerate(files):
+            fname = f.filename or f"email_{fi}"
+            yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total})
+            await asyncio.sleep(0)
+
+            # Step 0: Upload (save to disk)
+            yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "upload", "status": "running"})
+            await asyncio.sleep(0)
+            ext = Path(fname).suffix.lower()
+            if ext not in ALLOWED_EXTENSIONS:
+                yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": "upload", "error": f"Invalid extension: {ext}"})
+                yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": False})
+                continue
+            content = await f.read()
+            dest = upload_dir / Path(fname).name
+            dest.write_bytes(content)
+            yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "upload", "status": "done"})
+
+            # Steps 1-5: Process pipeline
+            output_dir = Path(tempfile.mkdtemp(prefix="aiflow_email_"))
+            data: dict[str, Any] = {"input_file": str(dest), "raw_eml_path": str(dest), "output_dir": str(output_dir)}
+            file_ok = True
+
+            for si in range(1, len(per_file_steps)):
+                step_name, step_fn = per_file_steps[si]
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": step_name, "status": "running"})
+                await asyncio.sleep(0)
+                t = _time.perf_counter()
+                try:
+                    data = await step_fn(data)  # type: ignore[misc]
+                    elapsed_ms = int((_time.perf_counter() - t) * 1000)
+                    yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": step_name, "status": "done", "elapsed_ms": elapsed_ms})
+                except Exception as e:
+                    logger.error("email_stream_step_failed", file=fname, step=step_name, error=str(e))
+                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": step_name, "error": str(e)})
+                    file_ok = False
+                    break
+
+            if file_ok:
+                results.append({
+                    "file": fname,
+                    "intent": data.get("intent", {}).get("intent_id") if isinstance(data.get("intent"), dict) else data.get("intent"),
+                    "priority": data.get("priority", {}).get("priority_name") if isinstance(data.get("priority"), dict) else None,
+                })
+            yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": file_ok})
+
+        yield sse({"event": "complete", "results": results, "total_processed": len(results)})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

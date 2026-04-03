@@ -145,10 +145,12 @@
       "filters": "Szurok",
       "imap": "IMAP",
       "o365": "Office 365",
+      "outlook_com": "Outlook (helyi)",
       "gmail": "Gmail",
       "history": "Lekerdezesi elozmeny",
       "emailCount": "Email szam",
-      "status": "Allapot"
+      "status": "Allapot",
+      "fetchPeriod": "Lekerdezesi idoszak"
     },
     "menu": {
       "skillViewers": "Skill Viewerek",
@@ -257,7 +259,14 @@
       "collection": "Kollekcio",
       "send": "Kuldes",
       "sources": "forras",
-      "noAnswer": "Nem talaltam valaszt a kerdesedre."
+      "noAnswer": "Nem talaltam valaszt a kerdesedre.",
+      "model": "Modell",
+      "clearHistory": "Elozmeny torlese",
+      "clearHistoryConfirm": "Chat elozmeny torlese?",
+      "copied": "Masolva!",
+      "you": "Te",
+      "assistant": "AI Asszisztens",
+      "scrollToBottom": "Gorgetese lefele"
     },
     "rag": {
       "title": "RAG Kollekcok",
@@ -398,7 +407,9 @@
       "noJobs": "Nincs meg feldolgozas. Tolts fel video/audio fajlokat.",
       "transcript": "Atirat",
       "processingTime": "Feldolgozasi ido",
-      "noTranscript": "Nincs atirat."
+      "noTranscript": "Nincs atirat.",
+      "selectFiles": "Fajlok valasztasa",
+      "process": "Feltoltes es feldolgozas"
     },
     "cubix": {
       "title": "Cubix Kurzusok",

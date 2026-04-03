@@ -100,8 +100,11 @@ class MediaProcessorService:
             data = await structure_transcript(data)
 
             elapsed = (time.time() - start) * 1000
-            transcript_raw = data.get("merged_text", "")
-            transcript_structured = data.get("structured_transcript")
+            transcript_raw = data.get("full_text", "") or data.get("merged_text", "")
+            transcript_structured = data.get("structured_transcript") or {
+                k: data[k] for k in ("title", "summary", "key_topics", "sections", "vocabulary", "cleaned_text")
+                if k in data
+            } or None
 
             # Update job record
             async with pool.acquire() as conn:

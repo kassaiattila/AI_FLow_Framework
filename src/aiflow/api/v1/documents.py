@@ -282,57 +282,84 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
             yield f"data: {json.dumps({'event': 'error', 'step': 0, 'name': 'import', 'error': str(e)})}\n\n"
         return StreamingResponse(error_stream(), media_type="text/event-stream")
 
-    pipeline = [
+    # Per-file pipeline (parse through store); export runs once at the end.
+    per_file_steps = [
         ("parse", parse_invoice),
         ("classify", classify_invoice),
         ("extract", extract_invoice_data),
         ("validate", validate_invoice),
         ("store", store_invoice),
-        ("export", export_invoice),
     ]
+    step_names = [s[0] for s in per_file_steps]
 
     async def event_stream():
-        # Pass specific file path if a single file was requested,
-        # otherwise the parse step would process ALL files in the directory.
-        if len(file_list) == 1:
-            source = str(upload_dir / file_list[0])
-        else:
-            source = str(upload_dir)
+        def sse(obj: dict[str, Any]) -> str:
+            return f"data: {json.dumps(obj)}\n\n"
 
-        data: dict[str, Any] = {
-            "source_path": source,
-            "output_dir": str(output_dir),
-            "format": "all",
-        }
+        total_files = len(file_list)
+        yield sse({"event": "init", "total_files": total_files, "steps": step_names})
 
-        # Create workflow_run record for tracking
         run_id = str(uuid.uuid4())
         run_start = _time.perf_counter()
-        step_records: list[dict[str, Any]] = []
+        all_step_records: list[dict[str, Any]] = []
+        all_files_data: list[dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         run_status = "running"
         run_error: str | None = None
 
-        for i, (name, step_fn) in enumerate(pipeline):
-            yield f"data: {json.dumps({'event': 'step_start', 'step': i, 'name': name})}\n\n"
-            # Ensure the step_start event flushes before blocking step runs
+        for fi, fname in enumerate(file_list):
+            source = str(upload_dir / fname)
+            file_data: dict[str, Any] = {
+                "source_path": source,
+                "output_dir": str(output_dir),
+                "format": "all",
+            }
+
+            yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total_files})
             await asyncio.sleep(0)
-            t = _time.perf_counter()
+
+            file_ok = True
+            for si, (name, step_fn) in enumerate(per_file_steps):
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": name, "status": "running"})
+                await asyncio.sleep(0)
+                t = _time.perf_counter()
+                try:
+                    file_data = await step_fn({**file_data} if si == 0 else file_data)
+                    elapsed_ms = int((_time.perf_counter() - t) * 1000)
+                    all_step_records.append({"name": f"{fname}:{name}", "status": "completed", "duration_ms": elapsed_ms})
+                    yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": name, "status": "done", "elapsed_ms": elapsed_ms})
+                except Exception as e:
+                    elapsed_ms = int((_time.perf_counter() - t) * 1000)
+                    all_step_records.append({"name": f"{fname}:{name}", "status": "failed", "duration_ms": elapsed_ms, "error": str(e)})
+                    run_status = "failed"
+                    run_error = str(e)
+                    logger.error("process_stream_file_step_failed", file=fname, step=name, error=str(e))
+                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": name, "error": str(e), "elapsed_ms": elapsed_ms})
+                    file_ok = False
+                    break
+
+            if file_ok:
+                for f in file_data.get("files", []):
+                    all_files_data.append(f)
+                    results.append({
+                        "source_file": f.get("filename", ""),
+                        "vendor": f.get("vendor", {}).get("name", ""),
+                        "gross_total": f.get("totals", {}).get("gross_total", 0),
+                        "is_valid": f.get("validation", {}).get("is_valid", False),
+                        "confidence": f.get("validation", {}).get("confidence_score", 0),
+                    })
+            else:
+                results.append({"source_file": fname, "error": run_error})
+
+            yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": file_ok})
+
+        # Run export on all successfully processed files
+        if all_files_data:
             try:
-                if i == 0:
-                    data = await step_fn({**data})
-                else:
-                    data = await step_fn(data)
-                elapsed_ms = int((_time.perf_counter() - t) * 1000)
-                step_records.append({"name": name, "status": "completed", "duration_ms": elapsed_ms})
-                yield f"data: {json.dumps({'event': 'step_done', 'step': i, 'name': name, 'elapsed_ms': elapsed_ms})}\n\n"
+                export_data: dict[str, Any] = {"files": all_files_data, "output_dir": str(output_dir), "format": "all"}
+                await export_invoice(export_data)
             except Exception as e:
-                elapsed_ms = int((_time.perf_counter() - t) * 1000)
-                step_records.append({"name": name, "status": "failed", "duration_ms": elapsed_ms, "error": str(e)})
-                run_status = "failed"
-                run_error = str(e)
-                logger.error("process_stream_step_failed", step=name, error=str(e))
-                yield f"data: {json.dumps({'event': 'error', 'step': i, 'name': name, 'error': str(e), 'elapsed_ms': elapsed_ms})}\n\n"
-                break
+                logger.warning("export_step_failed", error=str(e))
 
         total_duration_ms = int((_time.perf_counter() - run_start) * 1000)
         if run_status == "running":
@@ -344,7 +371,7 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
             from aiflow.models.cost import ModelCostCalculator
             from aiflow.api.cost_recorder import record_cost
             calc = ModelCostCalculator()
-            for f in data.get("files", []):
+            for f in all_files_data:
                 inp = f.get("_llm_total_input_tokens", 0)
                 out = f.get("_llm_total_output_tokens", 0)
                 model = f.get("_llm_model", "openai/gpt-4o")
@@ -362,18 +389,6 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
         except Exception:
             pass  # cost calculation is best-effort
 
-        # Build final result
-        results = []
-        for f in data.get("files", []):
-            results.append({
-                "source_file": f.get("filename", ""),
-                "vendor": f.get("vendor", {}).get("name", ""),
-                "gross_total": f.get("totals", {}).get("gross_total", 0),
-                "is_valid": f.get("validation", {}).get("is_valid", False),
-                "confidence": f.get("validation", {}).get("confidence_score", 0),
-                "error": f.get("error"),
-            })
-
         # Persist workflow_run + step_runs to DB for Runs/Costs tracking
         try:
             pool = await get_pool()
@@ -389,7 +404,7 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
                     run_status, json.dumps({"files": file_list}),
                     float(total_duration_ms), total_cost_usd, run_error,
                 )
-                for idx, sr in enumerate(step_records):
+                for idx, sr in enumerate(all_step_records):
                     await conn.execute(
                         """INSERT INTO step_runs
                            (id, workflow_run_id, step_name, step_index, status, duration_ms)
@@ -400,7 +415,7 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
         except Exception as e:
             logger.warning("workflow_run_persist_failed", error=str(e), run_id=run_id)
 
-        yield f"data: {json.dumps({'event': 'complete', 'results': results})}\n\n"
+        yield sse({"event": "complete", "results": results})
 
     return StreamingResponse(
         event_stream(),

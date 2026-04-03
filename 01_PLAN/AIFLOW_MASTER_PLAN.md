@@ -2,7 +2,7 @@
 
 **Datum:** 2026-03-28
 **Ceg:** BestIx Kft
-**Status:** Integralt terv (27 reszterv + 4 fejlesztesi artefaktum = 31 dokumentum)
+**Status:** Integralt terv (43 reszterv + 4 fejlesztesi artefaktum = 47 dokumentum)
 
 ---
 
@@ -640,15 +640,22 @@ aiflow/
 
 **A reszletes het-per-het feladatlista: [04_IMPLEMENTATION_PHASES.md](04_IMPLEMENTATION_PHASES.md)**
 
-**Teljes terv (31 dokumentum):**
+**Teljes terv (47 dokumentum):**
 - Core: 01-05 (Architecture, Directory, DB Schema, Phases, Tech Stack)
 - Operations: 06-08 (Claude Code, Version/Lifecycle, Error/Debug)
 - Enterprise: 09-10 (Middleware, Audit/Compliance)
 - Examples: 11-13 (Skills Walkthrough, Skill Integration, GitHub Research)
 - Technical: 14-16 (Frontend, ML Models, RAG/VectorStore)
 - Dev Rules: 17-19 (Git Rules, Testing/Playwright, RPA Automation)
+- Security/Deploy/API: 20-23 (Security, Deployment, API Spec, Config)
+- Testing: 24-25 (Regression Strategy, Test Directory Structure)
+- Environment: 27 (Development Environment)
 - Deployment: 28 (Modular Deployment, Skill Instance architecture, multi-customer)
 - Optimization: 29 (Framework + Skill rationalization), 30 (RAG Production Plan)
 - UI/Design: 31-41 (Invoice Processor, Admin Dashboard, Figma Redesign)
-- **Service Generalization: 42 (Altalanos szolgaltatasok atalakitasi terv — Email, Document, RAG, RPA, Media, Diagram)**
+- **Service Generalization: 42 (F0-F5 KESZ, v1.0.0 — 7 domain service + 9 infra epitokocka)**
+- **UI Modernization: 43 (F6.0-F6.6 — Untitled UI + Tailwind v4 migracio)**
+- **Session Prompts: 45 (Kovetkezo session kontextus)**
+- **RAG Chat Redesign: 46 (Profi chat UX + LLM selector terv)**
+- **Session 4 Documentation: 47 (Per-file progress, ChatPanel, Outlook COM, bugfixek)**
 - Artifacts: CLAUDE.md, SKILL_DEVELOPMENT.md, AIFLOW_MASTER_PLAN.md, 00_EXECUTIVE_SUMMARY.md

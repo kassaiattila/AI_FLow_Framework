@@ -7,12 +7,13 @@ import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
-import { uploadFile, fetchApi, streamApi } from "../lib/api-client";
+import { uploadFile, fetchApi } from "../lib/api-client";
 import { PageLayout } from "../layout/PageLayout";
 import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
 import { ChatPanel } from "../components-new/ChatPanel";
+import { FileProgressRow, FileProgressBar, type FileProgress } from "../components-new/FileProgress";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -71,9 +72,7 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<IngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  interface IngestStep { name: string; status: "pending" | "running" | "done" | "error"; }
-  const [steps, setSteps] = useState<IngestStep[]>([]);
+  const [fileProgress, setFileProgress] = useState<FileProgress[]>([]);
   const { data: docsData, refetch: refetchDocs } = useApi<CollectionDocsResponse>(
     `/api/v1/rag/collections/${collectionId}/documents`,
   );
@@ -186,13 +185,13 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
     setUploading(true);
     setError(null);
     setResult(null);
-    setSteps([
-      { name: "Upload", status: "pending" },
-      { name: "Parse", status: "pending" },
-      { name: "Chunk", status: "pending" },
-      { name: "Embed", status: "pending" },
-      { name: "Store", status: "pending" },
-    ]);
+
+    const defaultSteps = ["upload", "parse", "chunk", "embed", "store"];
+    setFileProgress(files.map(f => ({
+      name: f.name,
+      status: "pending" as const,
+      steps: defaultSteps.map(s => ({ name: s, status: "pending" as const })),
+    })));
 
     try {
       const formData = new FormData();
@@ -213,7 +212,7 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
           formData,
         );
         setResult(res);
-        setSteps(s => s.map(st => ({ ...st, status: "done" as const })));
+        setFileProgress(prev => prev.map(fp => ({ ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) })));
         if (res.errors.length === 0) {
           setFiles([]);
           onSuccess();
@@ -238,18 +237,65 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
           if (!line.startsWith("data: ")) continue;
           try {
             const msg = JSON.parse(line.slice(6));
-            if (msg.event === "step_start" && msg.step !== undefined) {
-              setSteps(s => s.map((st, i) => ({
-                ...st,
-                status: i < msg.step ? "done" : i === msg.step ? "running" : st.status,
+
+            // Per-file events (new backend)
+            if (msg.event === "init") {
+              const stepNames: string[] = msg.steps ?? defaultSteps;
+              setFileProgress(files.map(f => ({
+                name: f.name,
+                status: "pending" as const,
+                steps: stepNames.map(s => ({ name: s, status: "pending" as const })),
               })));
             }
-            if (msg.event === "step_done" && msg.step !== undefined) {
-              setSteps(s => s.map((st, i) => ({
-                ...st,
-                status: i <= msg.step ? "done" : st.status,
+            if (msg.event === "file_start" && msg.file_index !== undefined) {
+              setFileProgress(prev => prev.map((fp, i) =>
+                i === msg.file_index ? { ...fp, status: "processing" } : fp
+              ));
+            }
+            if (msg.event === "file_step" && msg.file_index !== undefined && msg.step_index !== undefined) {
+              setFileProgress(prev => prev.map((fp, i) => {
+                if (i !== msg.file_index) return fp;
+                return {
+                  ...fp,
+                  steps: fp.steps.map((s, si) => {
+                    if (si !== msg.step_index) return s;
+                    return { ...s, status: msg.status === "done" ? "done" as const : "running" as const, elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms };
+                  }),
+                };
+              }));
+            }
+            if (msg.event === "file_error" && msg.file_index !== undefined) {
+              setFileProgress(prev => prev.map((fp, i) =>
+                i === msg.file_index ? { ...fp, status: "error", error: msg.error } : fp
+              ));
+            }
+            if (msg.event === "file_done" && msg.file_index !== undefined) {
+              setFileProgress(prev => prev.map((fp, i) =>
+                i === msg.file_index ? { ...fp, status: msg.ok ? "done" as const : "error" as const } : fp
+              ));
+            }
+
+            // Legacy batch events (backward compat)
+            if (msg.event === "step_start" && msg.step !== undefined && msg.file_index === undefined) {
+              setFileProgress(prev => prev.map(fp => ({
+                ...fp,
+                status: "processing" as const,
+                steps: fp.steps.map((s, si) => ({
+                  ...s,
+                  status: si < msg.step ? "done" as const : si === msg.step ? "running" as const : s.status,
+                })),
               })));
             }
+            if (msg.event === "step_done" && msg.step !== undefined && msg.file_index === undefined) {
+              setFileProgress(prev => prev.map(fp => ({
+                ...fp,
+                steps: fp.steps.map((s, si) => ({
+                  ...s,
+                  status: si <= msg.step ? "done" as const : s.status,
+                })),
+              })));
+            }
+
             if (msg.event === "complete") {
               setResult({
                 files_processed: msg.files_processed ?? 0,
@@ -258,14 +304,14 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
                 errors: msg.errors ?? [],
                 source: "backend",
               });
-              setSteps(s => s.map(st => ({ ...st, status: "done" as const })));
+              setFileProgress(prev => prev.map(fp => ({ ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) })));
               setFiles([]);
               onSuccess();
               refetchDocs();
             }
             if (msg.event === "error") {
               setError(msg.error ?? "Ingest failed");
-              setSteps(s => s.map(st => st.status === "running" ? { ...st, status: "error" as const } : st));
+              setFileProgress(prev => prev.map(fp => fp.status === "processing" ? { ...fp, status: "error" as const } : fp));
             }
           } catch { /* skip non-json */ }
         }
@@ -369,23 +415,23 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
         </div>
       )}
 
-      {/* Pipeline progress bar */}
-      {steps.length > 0 && (
+      {/* Per-file pipeline progress */}
+      {fileProgress.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            {translate("aiflow.pipeline.title")}
-          </p>
-          <div className="flex gap-2">
-            {steps.map((step, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                <div className={`h-2 w-full rounded-full ${
-                  step.status === "done" ? "bg-green-500" :
-                  step.status === "running" ? "bg-brand-500 animate-pulse" :
-                  step.status === "error" ? "bg-red-500" :
-                  "bg-gray-200 dark:bg-gray-700"
-                }`} />
-                <span className="text-[10px] text-gray-500">{step.name}</span>
-              </div>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {translate("aiflow.pipeline.title")}
+            </p>
+            {uploading && (
+              <span className="text-xs text-brand-600 dark:text-brand-400">
+                {fileProgress.filter(fp => fp.status === "done").length}/{fileProgress.length}
+              </span>
+            )}
+          </div>
+          <FileProgressBar done={fileProgress.filter(fp => fp.status === "done").length} total={fileProgress.length} />
+          <div>
+            {fileProgress.map((fp, i) => (
+              <FileProgressRow key={i} fp={fp} />
             ))}
           </div>
         </div>

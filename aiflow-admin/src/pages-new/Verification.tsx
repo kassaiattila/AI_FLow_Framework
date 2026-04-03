@@ -145,7 +145,8 @@ function DocumentCanvas({
     return () => { revoked = true; };
   }, [fileName]);
 
-  const filteredPoints = dataPoints.filter((dp) => {
+  // Hide overlays in real image mode (bounding boxes are inaccurate on the photo)
+  const filteredPoints = viewMode === "real" ? [] : dataPoints.filter((dp) => {
     if (!dp.bounding_box) return false;
     if (overlayMode === "off") return false;
     if (overlayMode === "low") return dp.confidence < 0.9;
@@ -189,23 +190,47 @@ function DocumentCanvas({
     <div className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
       {/* Toolbar */}
       <div className="flex items-center gap-2 border-b border-gray-200 px-3 py-1.5 dark:border-gray-700">
-        {/* Overlay mode toggle */}
-        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700">
-          {overlayModes.map(({ mode, key, icon }) => (
-            <button
-              key={mode}
-              onClick={() => setOverlayMode(mode)}
-              title={translate(key)}
-              className={`px-2 py-1 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md ${
-                overlayMode === mode
-                  ? "bg-brand-500 text-white"
-                  : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
-              }`}
-            >
-              {icon}
-            </button>
-          ))}
-        </div>
+        {/* View mode toggle switch (Real ↔ Mock) */}
+        {hasRealImage && (
+          <label className="flex cursor-pointer items-center gap-1.5" title={viewMode === "real" ? translate("aiflow.verification.realImage") : translate("aiflow.verification.mockImage")}>
+            <svg className={`h-4 w-4 ${viewMode === "real" ? "text-brand-500" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={viewMode === "mock"}
+                onChange={() => setViewMode(viewMode === "real" ? "mock" : "real")}
+                className="peer sr-only"
+              />
+              <div className="h-5 w-9 rounded-full bg-brand-500 transition-colors peer-checked:bg-gray-400 dark:bg-brand-600 dark:peer-checked:bg-gray-600" />
+              <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
+            </div>
+            <svg className={`h-4 w-4 ${viewMode === "mock" ? "text-brand-500" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            </svg>
+          </label>
+        )}
+
+        {/* Overlay mode toggle (only in mock view) */}
+        {viewMode === "mock" && (
+          <div className="flex rounded-lg border border-gray-200 dark:border-gray-700">
+            {overlayModes.map(({ mode, key, icon }) => (
+              <button
+                key={mode}
+                onClick={() => setOverlayMode(mode)}
+                title={translate(key)}
+                className={`px-2 py-1 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md ${
+                  overlayMode === mode
+                    ? "bg-brand-500 text-white"
+                    : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                }`}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Zoom slider */}
         <div className="flex flex-1 items-center gap-2 px-2">
@@ -222,38 +247,6 @@ function DocumentCanvas({
             className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-gray-200 accent-brand-500 dark:bg-gray-700"
           />
           <span className="min-w-[32px] text-right text-xs text-gray-400">{zoom}%</span>
-        </div>
-
-        {/* View mode toggle */}
-        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700">
-          {hasRealImage && (
-            <button
-              onClick={() => setViewMode("real")}
-              title={translate("aiflow.verification.realImage")}
-              className={`rounded-l-md px-2 py-1 text-xs font-medium transition-colors ${
-                viewMode === "real"
-                  ? "bg-brand-500 text-white"
-                  : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
-              }`}
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </button>
-          )}
-          <button
-            onClick={() => setViewMode("mock")}
-            title={translate("aiflow.verification.mockImage")}
-            className={`px-2 py-1 text-xs font-medium transition-colors ${hasRealImage ? "rounded-r-md" : "rounded-md"} ${
-              viewMode === "mock"
-                ? "bg-brand-500 text-white"
-                : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
-            }`}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-            </svg>
-          </button>
         </div>
       </div>
 

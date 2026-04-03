@@ -9,6 +9,7 @@ import { fetchApi } from "../lib/api-client";
 import { PageLayout } from "../layout/PageLayout";
 import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
+import { FileProgressRow, type FileProgress } from "../components-new/FileProgress";
 import mermaid from "mermaid";
 
 mermaid.initialize({ startOnLoad: false, theme: "dark", securityLevel: "loose" });
@@ -49,17 +50,110 @@ export function ProcessDocs() {
   const [input, setInput] = useState("");
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [fileProgress, setFileProgress] = useState<FileProgress[]>([]);
+  const [genError, setGenError] = useState<string | null>(null);
   const { data, loading, error, refetch } = useApi<DiagramsResponse>("/api/v1/diagrams");
 
   const handleGenerate = async () => {
     if (!input.trim()) return;
     setGenerating(true);
+    setResult(null);
+    setGenError(null);
+
+    const defaultSteps = ["classify", "elaborate", "extract", "review", "generate", "export"];
+    setFileProgress([{
+      name: "BPMN Diagram",
+      status: "pending",
+      steps: defaultSteps.map(s => ({ name: s, status: "pending" as const })),
+    }]);
+
     try {
-      const res = await fetchApi<{ mermaid_code: string }>("POST", "/api/v1/diagrams/generate", { user_input: input });
-      setResult(res.mermaid_code);
-      refetch();
-    } catch { setResult(null); }
-    finally { setGenerating(false); }
+      const token = localStorage.getItem("aiflow_token");
+      const resp = await fetch("/api/v1/process-docs/generate-stream", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ user_input: input }),
+      });
+
+      if (!resp.ok || !resp.body) {
+        // Fallback to regular endpoint
+        const res = await fetchApi<{ mermaid_code: string }>("POST", "/api/v1/process-docs/generate", { user_input: input });
+        setResult(res.mermaid_code);
+        setFileProgress(prev => prev.map(fp => ({ ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) })));
+        refetch();
+        return;
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const msg = JSON.parse(line.slice(6));
+
+            if (msg.event === "file_start") {
+              setFileProgress(prev => prev.map((fp, i) =>
+                i === 0 ? { ...fp, status: "processing" } : fp
+              ));
+            }
+
+            if (msg.event === "file_step" && msg.step_index !== undefined) {
+              setFileProgress(prev => prev.map((fp, i) => {
+                if (i !== 0) return fp;
+                return {
+                  ...fp,
+                  steps: fp.steps.map((s, si) => {
+                    if (si !== msg.step_index) return s;
+                    return { ...s, status: msg.status === "done" ? "done" as const : "running" as const, elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms };
+                  }),
+                };
+              }));
+            }
+
+            if (msg.event === "file_error") {
+              setFileProgress(prev => prev.map((fp, i) =>
+                i === 0 ? { ...fp, status: "error", error: msg.error } : fp
+              ));
+              setGenError(msg.error);
+            }
+
+            if (msg.event === "file_done") {
+              setFileProgress(prev => prev.map((fp, i) =>
+                i === 0 ? { ...fp, status: msg.ok ? "done" as const : "error" as const } : fp
+              ));
+            }
+
+            if (msg.event === "complete") {
+              if (msg.mermaid_code) {
+                setResult(msg.mermaid_code);
+                refetch();
+              }
+              if (msg.error) setGenError(msg.error);
+            }
+
+            if (msg.event === "error") {
+              setGenError(msg.error ?? "Generation failed");
+            }
+          } catch { /* skip non-json */ }
+        }
+      }
+    } catch (e) {
+      setGenError(e instanceof Error ? e.message : "Generation failed");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const columns: Column<Record<string, unknown>>[] = [
@@ -96,6 +190,19 @@ export function ProcessDocs() {
           </div>
         </div>
       </div>
+
+      {/* Pipeline progress */}
+      {fileProgress.length > 0 && (
+        <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            {translate("aiflow.pipeline.title")}
+          </p>
+          {fileProgress.map((fp, i) => (
+            <FileProgressRow key={i} fp={fp} />
+          ))}
+        </div>
+      )}
+      {genError && <ErrorState error={genError} onRetry={handleGenerate} />}
 
       <h3 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">{translate("aiflow.processDocs.savedDiagrams")}</h3>
       {error ? <ErrorState error={error} onRetry={refetch} /> :

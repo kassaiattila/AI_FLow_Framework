@@ -2,9 +2,36 @@
 
 > **Version:** 1.0.0 (v1.0.0-rc1 → v1.0.0 final)
 > **Framework:** FastAPI (Python 3.12+)
-> **Utolso frissites:** 2026-04-02
+> **Utolso frissites:** 2026-04-03
 > **Megjegyzes:** Ez a dokumentum az AIFlow framework teljes REST API specifikaciojat tartalmazza.
-> **Statisztika:** 114 endpoint, 19 router, auth middleware minden /api/v1/* endpoint-on.
+> **Statisztika:** 112+ endpoint, 19 router, 6 SSE streaming endpoint, auth middleware minden /api/v1/* endpoint-on.
+
+### SSE Streaming Endpoints (v1.1.4+)
+
+A kovetkezo endpointok Server-Sent Events (SSE) format-ban streamelnek per-file progress-t.
+Egyseges event format: `init`, `file_start`, `file_step`, `file_done`, `file_error`, `complete`.
+
+| Endpoint | Router | Pipeline lepesek |
+|----------|--------|-----------------|
+| `POST /api/v1/documents/process-stream` | documents | parse → classify → extract → validate → store |
+| `POST /api/v1/rag/collections/{id}/ingest-stream` | rag_engine | upload → parse → chunk → embed → store |
+| `POST /api/v1/process-docs/generate-stream` | process_docs | classify → elaborate → extract → review → generate → export |
+| `POST /api/v1/emails/upload-and-process-stream` | emails | upload → parse → classify → extract → priority → route |
+| `POST /api/v1/emails/fetch-and-process-stream` | emails | fetch → parse → classify → extract → priority → route |
+| `POST /api/v1/emails/process-batch-stream` | emails | parse → classify → extract → priority → route |
+
+**Email Export:**
+| Endpoint | Metodus | Leiras |
+|----------|---------|--------|
+| `GET /api/v1/emails/export/csv` | GET | Feldolgozott emailek CSV exportja |
+
+**Email Connector Providers:**
+| Provider | Ertek | Leiras |
+|----------|-------|--------|
+| IMAP | `imap` | Standard IMAP4/SSL (basic auth — O365-on NEM mukodik) |
+| O365 Graph | `o365_graph` | Microsoft Graph API OAuth2 |
+| Gmail | `gmail` | Nem implementalt |
+| Outlook COM | `outlook_com` | Helyi Windows Outlook COM/MAPI (v1.1.4+) |
 
 ---
 
