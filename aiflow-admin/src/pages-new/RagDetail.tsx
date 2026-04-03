@@ -471,6 +471,18 @@ export function RagDetail() {
     id ? `/api/v1/rag/collections/${id}` : null,
   );
 
+  interface CollectionStats {
+    total_queries: number;
+    avg_response_time_ms: number;
+    total_cost_usd: number;
+    feedback_positive: number;
+    feedback_negative: number;
+    source: string;
+  }
+  const { data: stats } = useApi<CollectionStats>(
+    id ? `/api/v1/rag/collections/${id}/stats` : null,
+  );
+
   /* Loading state */
   if (loading) {
     return (
@@ -528,21 +540,47 @@ export function RagDetail() {
       </div>
 
       {/* KPI Cards */}
-      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
             {translate("aiflow.rag.statDocs")}
           </p>
-          <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
             {collection.document_count}
           </p>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
             {translate("aiflow.rag.statChunks")}
           </p>
-          <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
             {collection.chunk_count}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            {translate("aiflow.rag.statQueries")}
+          </p>
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
+            {stats?.total_queries ?? 0}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            {translate("aiflow.rag.statAvgTime")}
+          </p>
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
+            {stats?.avg_response_time_ms ? `${(stats.avg_response_time_ms / 1000).toFixed(1)}s` : "—"}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            Feedback
+          </p>
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
+            <span className="text-green-600">+{stats?.feedback_positive ?? 0}</span>
+            {" / "}
+            <span className="text-red-500">-{stats?.feedback_negative ?? 0}</span>
           </p>
         </div>
       </div>

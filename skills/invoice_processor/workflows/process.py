@@ -271,6 +271,13 @@ async def extract_invoice_data(data: dict) -> dict:
         lines_conf = float(lines_data.get("confidence", 0.5))
         f["extraction_confidence"] = round((header_conf + lines_conf) / 2, 3)
 
+        # Collect LLM token usage for cost tracking
+        h_usage = header_data.pop("_llm_usage", {})
+        l_usage = lines_data.pop("_llm_usage", {})
+        f["_llm_total_input_tokens"] = h_usage.get("input_tokens", 0) + l_usage.get("input_tokens", 0)
+        f["_llm_total_output_tokens"] = h_usage.get("output_tokens", 0) + l_usage.get("output_tokens", 0)
+        f["_llm_model"] = h_usage.get("model", "openai/gpt-4o")
+
         logger.info(
             "extract_invoice.done",
             file=f.get("filename"),
@@ -280,6 +287,8 @@ async def extract_invoice_data(data: dict) -> dict:
             items=len(f["line_items"]),
             gross=f["totals"].get("gross_total", 0),
             confidence=f["extraction_confidence"],
+            input_tokens=f["_llm_total_input_tokens"],
+            output_tokens=f["_llm_total_output_tokens"],
         )
 
     return data
@@ -296,7 +305,13 @@ async def _extract_header(text: str) -> dict[str, Any]:
             temperature=prompt.config.temperature,
             max_tokens=prompt.config.max_tokens,
         )
-        return _parse_json_response(result.output.text, "header")
+        parsed = _parse_json_response(result.output.text, "header")
+        parsed["_llm_usage"] = {
+            "model": prompt.config.model,
+            "input_tokens": getattr(result, "input_tokens", 0),
+            "output_tokens": getattr(result, "output_tokens", 0),
+        }
+        return parsed
     except Exception as exc:
         logger.warning("extract_header_error", error=str(exc))
         return {"vendor": {}, "buyer": {}, "header": {}}
@@ -316,7 +331,13 @@ async def _extract_lines(text: str, tables_md: str) -> dict[str, Any]:
             temperature=prompt.config.temperature,
             max_tokens=prompt.config.max_tokens,
         )
-        return _parse_json_response(result.output.text, "lines")
+        parsed = _parse_json_response(result.output.text, "lines")
+        parsed["_llm_usage"] = {
+            "model": prompt.config.model,
+            "input_tokens": getattr(result, "input_tokens", 0),
+            "output_tokens": getattr(result, "output_tokens", 0),
+        }
+        return parsed
     except Exception as exc:
         logger.warning("extract_lines_error", error=str(exc))
         return {"line_items": [], "totals": {}}
