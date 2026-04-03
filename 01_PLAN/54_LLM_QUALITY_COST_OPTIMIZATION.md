@@ -125,7 +125,7 @@ model_tiers:
     use_for: [document_extraction, rag_answer, bpmn_generation]
     
   premium:                  # Kritikus, magas minoseg
-    model: anthropic/claude-sonnet-4
+    model: anthropic/claude-sonnet-4-20250514
     cost: ~$3.00/1M input
     use_for: [complex_reasoning, contract_analysis, quality_gate_review]
 ```

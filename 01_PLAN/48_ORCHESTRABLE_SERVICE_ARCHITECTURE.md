@@ -28,7 +28,7 @@ The framework already has a mature WorkflowRunner + DAG engine, ServiceRegistry,
 | [53_FRONTEND_DESIGN_SYSTEM.md](53_FRONTEND_DESIGN_SYSTEM.md) | UI konyvtar, Untitled UI audit, chat UI, user journey, cross-platform | KESZ |
 | [54_LLM_QUALITY_COST_OPTIMIZATION.md](54_LLM_QUALITY_COST_OPTIMIZATION.md) | Promptfoo CI/CD, LLM rubric scoring, koltseg optimalizalas, Gotenberg | KESZ |
 | [55_CLAUDE_CODE_CONFIGURATION.md](55_CLAUDE_CODE_CONFIGURATION.md) | Claude Code iranyitas: CLAUDE.md frissites, uj commands, MCP, permissions | KESZ |
-| [56_EXECUTION_PLAN.md](56_EXECUTION_PLAN.md) | Vegrehajtasi terv: 20 ciklus, session sablon, progress tracking | KESZ |
+| [56_EXECUTION_PLAN.md](56_EXECUTION_PLAN.md) | Vegrehajtasi terv: 21 ciklus (C0-C20), session sablon, progress tracking | KESZ |
 
 ---
 
@@ -399,7 +399,7 @@ Exposes: health, metrics (call count, avg duration, error rate, cost), config, r
 | **reranker** | Cross-encoder ujrarangsorolas | (query, candidates[]) → ranked results[] | cross-encoder model (local) |
 | **graph_rag** | Tudasgraf epiteses + kereses | text → entities + relationships (Neo4j) | Neo4j (optional Docker) |
 | **vector_ops** | Vektor index eletciklus | collection_id → stats, optimize, reindex | pgvector |
-| **advanced_parser** | Multi-backend parszolas + OCR | file → parsed text + tables + images | unstructured, llamaparse, tesseract |
+| **advanced_parser** | Multi-backend parszolas + OCR | file → parsed text + tables + images | unstructured, tesseract (DocumentExtractor bovites) |
 
 ### 7A: DataCleanerService
 

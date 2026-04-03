@@ -47,8 +47,9 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - UI Modernization: F6 KESZ (v1.1.4, 2026-04-03)
 - **v1.2.0 Orchestration: Tier 1 (P1-5) → Tier 2 (P6) → Tier 3 (P7) → Phase 8 (templates)**
 - 15 service + 10 uj tervezett (25 total v1.2.0 utan)
-- 112+ endpoint + 18 uj tervezett (130+ total v1.2.0 utan)
+- 112+ endpoint + ~26 uj tervezett (pipeline 13 + notification 5 + quality 5 + service mgr 3)
 - 21 slash command (18 meglevo + 3 uj: /new-pipeline, /pipeline-test, /quality-check)
+- 21 fejlesztesi ciklus (C0-C20), ~12-15 session
 - 6 skills, src/aiflow/ 19 alkonyvtar (+pipeline/ az uj modul)
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/

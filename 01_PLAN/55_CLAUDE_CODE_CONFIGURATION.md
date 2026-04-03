@@ -48,6 +48,8 @@ Phase 8: Pipeline Templates
 - 26 Alembic migracio (001-026, mind letezik) + 3 tervezett (027-029)
 - 112+ endpoints + 13 new pipeline endpoints planned
 - 15 services + 10 new planned (25 total after v1.2.0)
+- 112+ endpoints + ~26 new planned (~138 total after v1.2.0)
+- 21 fejlesztesi ciklus (C0-C20)
 - Plan documents: 48-54 (orchestrable service architecture)
 ```
 

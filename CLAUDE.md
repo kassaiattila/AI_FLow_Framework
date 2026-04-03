@@ -36,8 +36,7 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 **Reszletes tervek:** `01_PLAN/` mappaban: 49 (stability), 50 (RAG), 51 (doc extraction), 52 (HITL+notification), 53 (frontend), 54 (LLM quality), 55 (Claude config), 56 (execution)
 
 **Fazisok:**
-F6.0 (Foundation) → F6.1 (Dashboard) → F6.2 (Documents) → F6.3 (Emails)
-→ F6.4 (RAG+AI Services) → F6.5 (Operations+Admin) → F6.6 (Polish+Cleanup)
+~~F6.0-F6.6 (UI Modernization) → KESZ (v1.1.4, 2026-04-03)~~
 
 ## Skills (6 db)
 
@@ -106,13 +105,14 @@ This enables: new intents/entities without code changes, per-customer customizat
 - **Fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul** (ld. 42_SERVICE_GENERALIZATION_PLAN.md Section 8)
 
 ### Key plan documents:
-- **`01_PLAN/43_UI_RATIONALIZATION_PLAN.md`** - AKTUALIS: UI migracio terv (F6.0-F6.6, Untitled UI + Tailwind v4)
-- `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` - KESZ: Service generalizalas (F0-F5 COMPLETE, v1.0.0)
-- `01_PLAN/IMPLEMENTATION_PLAN.md` - Legacy fazisok (Phase 1-7 KESZ)
-- `01_PLAN/29_OPTIMIZATION_PLAN.md` - O1-O3 (KESZ) + framework audit eredmeny
-- `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist (Cubix tananyag alapjan!)
-- `01_PLAN/28_MODULAR_DEPLOYMENT.md` - Multi-customer instance architecture
-- `01_PLAN/22_API_SPECIFICATION.md` - API specifikacio (114 endpoint, 19 router)
+- **`01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md`** - **AKTUALIS**: v1.2.0 Pipeline as Code fo terv
+- **`01_PLAN/56_EXECUTION_PLAN.md`** - **AKTUALIS**: 21 ciklus (C0-C20), session sablon, progress
+- `01_PLAN/49-54` - Reszletes tervek (stability, RAG, doc extract, HITL, frontend, LLM quality)
+- `01_PLAN/55_CLAUDE_CODE_CONFIGURATION.md` - Claude iranyitas konfiguracio terv
+- `01_PLAN/43_UI_RATIONALIZATION_PLAN.md` - KESZ: UI migracio (F6, v1.1.4)
+- `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` - KESZ: Service generalizalas (F0-F5, v1.0.0)
+- `01_PLAN/22_API_SPECIFICATION.md` - API specifikacio (112+ endpoint, 19 router)
+- `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist
 
 ### Database:
 - PostgreSQL pgvector @ localhost:5433 (Docker: `docker compose up -d db`)
@@ -200,7 +200,7 @@ make lock                                   # Regenerate uv.lock from pyproject.
 - `/ui-api-endpoint` - **GATE 2-3**: API implementacio + curl teszt — `source: "backend"` KELL
 - `/ui-design` - **GATE 4**: Figma MCP design → PAGE_SPECS.md frissites KELL mielott UI kod
 - `/ui-page` - **GATE 5**: React page — CSAK ha PAGE_SPECS.md-ben mar letezik a design!
-- `/ui-component` - **GATE 5**: MUI component — CSAK ha PAGE_SPECS.md-ben mar letezik!
+- `/ui-component` - **GATE 5**: UI component — CSAK ha PAGE_SPECS.md-ben mar letezik!
 - `/ui-viewer` - **GATE 5**: Skill viewer — CSAK ha PAGE_SPECS.md-ben mar letezik!
 > **TILOS** `/ui-page`-et vagy `/ui-component`-et futtatni `/ui-design` NELKUL!
 > **TILOS** `/ui-design`-t futtatni `/ui-journey` NELKUL!
@@ -253,7 +253,7 @@ aiflow-admin/      # Untitled UI + Vite + React 19 + Tailwind v4 (AKTIV producti
   src/locales/       # hu.json, en.json (i18n forditasok)
   src/router.tsx     # React Router v7 config
   tailwind.config.ts # AIFlow design tokenek
-  vite.config.ts     # Vite config + API proxy (localhost:8101)
+  vite.config.ts     # Vite config + API proxy (localhost:8102)
 # aiflow-ui/       # TOROLVE v1.0.0 — archiv: git tag v0.9-nextjs-ui
 deployments/       # Per-customer deployment configs (AZHU, NPRA, BESTIX)
 tests/             # unit/, integration/, e2e/, conftest.py
@@ -337,7 +337,7 @@ grep -c "## Page.*{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md || echo "GAT
 # Ha FAIL → TILOS TOVABBLEPNI. Futtasd /ui-design ELOSZOR.
 
 # 3. API valos adatot ad?
-curl -sf http://localhost:8101/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend'" || echo "GATE 2-3 FAIL"
+curl -sf http://localhost:8102/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend'" || echo "GATE 2-3 FAIL"
 ```
 **Ha BARMELYIK check FAIL → NEM IRUNK UI KODOT. Eloszor az elofeltetelt teljesitjuk.**
 **A felhasznalot ERTESITJUK melyik gate FAIL es mi a megoldas.**
@@ -375,7 +375,7 @@ curl -sf http://localhost:8101/api/v1/{endpoint} | python -c "import sys,json; d
 - Test: click HU/EN toggle → EVERY string on screen must change
 
 ### Vite + Routing Rules (avoid common pitfalls!)
-- **vite.config.ts** tartalmazza az API proxy-t (`/api` → `localhost:8101`) — NEM proxy.ts/middleware.ts
+- **vite.config.ts** tartalmazza az API proxy-t (`/api` → `localhost:8102`) — NEM proxy.ts/middleware.ts
 - **No hardcoded `localhost` URLs** — use relative paths via `/api/` proxy routes
 - **Data fetches:** `fetchApi<T>()` from `src/lib/api-client.ts` → FastAPI `/api/v1/*` endpointok
 - **No `localStorage` in `useState()` initializer** — causes hydration mismatch. Use `useEffect`
