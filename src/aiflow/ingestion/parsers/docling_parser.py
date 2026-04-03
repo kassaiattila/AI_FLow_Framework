@@ -110,7 +110,7 @@ class DoclingParser:
         size_kb = path.stat().st_size // 1024
         logger.info("docling_parse_start", file=path.name, size_kb=size_kb)
 
-        # Check page count for large PDFs
+        # Check page count for large PDFs — route to Azure DI or pypdfium2
         page_count = self._get_pdf_page_count(path)
         if page_count and page_count > self._max_pages:
             logger.warning(
@@ -118,8 +118,12 @@ class DoclingParser:
                 file=path.name,
                 pages=page_count,
                 max_pages=self._max_pages,
-                action="fallback_to_pypdfium2",
             )
+            # Try Azure DI first (better quality), fallback to pypdfium2
+            azure_result = self._try_azure_di(path)
+            if azure_result:
+                return azure_result
+            logger.info("azure_di_unavailable_using_pypdfium2", file=path.name)
             return self._fallback_parse(path, page_count)
 
         try:
@@ -137,7 +141,10 @@ class DoclingParser:
         except (RuntimeError, MemoryError, Exception) as e:
             err_str = str(e)
             if "bad_alloc" in err_str or "memory" in err_str.lower() or "MemoryError" in type(e).__name__:
-                logger.warning("docling_memory_error", file=path.name, error=err_str, action="fallback_to_pypdfium2")
+                logger.warning("docling_memory_error", file=path.name, error=err_str)
+                azure_result = self._try_azure_di(path)
+                if azure_result:
+                    return azure_result
                 return self._fallback_parse(path, page_count or 0)
             raise
 
@@ -201,6 +208,58 @@ class DoclingParser:
         except Exception:
             pass
         return tables
+
+    def _try_azure_di(self, path: Path) -> ParsedDocument | None:
+        """Try parsing with Azure Document Intelligence. Returns None if unavailable."""
+        import os
+        endpoint = os.environ.get("AZURE_DI_ENDPOINT", "")
+        api_key = os.environ.get("AZURE_DI_KEY", "")
+        if not endpoint or not api_key:
+            return None
+
+        try:
+            import asyncio
+            from aiflow.tools.azure_doc_intelligence import AzureDocIntelligence
+
+            client = AzureDocIntelligence(endpoint, api_key)
+            content = path.read_bytes()
+
+            # Run async in sync context
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    result = pool.submit(asyncio.run, client.analyze(content)).result()
+            else:
+                result = asyncio.run(client.analyze(content))
+
+            text = result.get("text", "")
+            tables = [
+                ParsedTable(index=i, markdown=t.get("markdown", ""))
+                for i, t in enumerate(result.get("tables", []))
+            ]
+
+            logger.info("azure_di_parse_done", file=path.name, chars=len(text), tables=len(tables))
+            return ParsedDocument(
+                file_path=str(path),
+                file_name=path.name,
+                file_type=path.suffix.lstrip(".").lower(),
+                text=text,
+                markdown=result.get("markdown", text),
+                tables=tables,
+                metadata={
+                    "source": str(path),
+                    "file_type": path.suffix.lstrip(".").lower(),
+                    "file_size_bytes": path.stat().st_size,
+                    "parser": "azure_document_intelligence",
+                },
+                page_count=self._get_pdf_page_count(path) or 0,
+                word_count=len(text.split()),
+                char_count=len(text),
+            )
+        except Exception as e:
+            logger.warning("azure_di_failed", file=path.name, error=str(e))
+            return None
 
     @staticmethod
     def _get_pdf_page_count(path: Path) -> int | None:
