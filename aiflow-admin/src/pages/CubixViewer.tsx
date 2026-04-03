@@ -24,7 +24,10 @@ export const CubixViewer = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/v1/cubix")
+    const token = localStorage.getItem("aiflow_token");
+    fetch("/api/v1/cubix", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
