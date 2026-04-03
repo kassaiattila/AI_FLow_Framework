@@ -8,9 +8,21 @@ Arguments: $ARGUMENTS
 > Minden teszt valos adatokkal, valos backend-del, valos bongeszioben tortenik.
 > Egy feature CSAK AKKOR "KESZ" ha Playwright E2E teszten atment.
 
+## BRANCH ELLENORZES (v1.2.0 — KOTELEZO!)
+```bash
+git branch --show-current  # NEM main-en kell lenni! Tier branch-en dolgozunk.
+# Ha main → STOP! Hozd letre vagy valtsd at a megfelelo Tier branch-re:
+#   feature/v1.2.0-tier1-pipeline-orchestrator   (C0-C5)
+#   feature/v1.2.0-tier1.5-invoice-usecase       (C6)
+#   feature/v1.2.0-tier2-supporting-services     (C7-C10)
+#   feature/v1.2.0-tier3-advanced-rag            (C11-C16)
+#   feature/v1.2.0-tier4-polish                  (C17-C20)
+```
+**TILOS v1.2.0 fejlesztest kozvetlenul main-re commitolni!**
+
 ## L0 SMOKE TEST (KOTELEZO — futasd ELOSZOR!)
 ```bash
-./scripts/smoke_test.sh  # <30s — meglevo rendszer OK?
+bash scripts/smoke_test.sh  # <30s — meglevo rendszer OK?
 ```
 Ha FAIL → NEM kezdunk fejleszteni, eloszor a meglevo rendszert javitjuk!
 

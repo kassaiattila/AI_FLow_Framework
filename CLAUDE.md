@@ -515,6 +515,35 @@ regression_diff.json. Stored in tests/artifacts/{date}/{run_id}/
 - **Co-Authored-By**: always add when Claude Code assists
 - **CODEOWNERS**: framework-team owns src/aiflow/, skill teams own their skills/
 
+### v1.2.0 Branch Strategy (Tier-enkent branch, merge to main Tier vegen)
+
+```
+main (stabil, v1.1.4 — MINDIG mukodokepesnek kell maradnia)
+  │
+  ├── feature/v1.2.0-tier1-pipeline-orchestrator   ← C0-C5 (adapter, schema, runner, API, UI)
+  │     └── merge to main after: L0 smoke PASS + Tier 1 DONE → tag v1.2.0-alpha
+  │
+  ├── feature/v1.2.0-tier1.5-invoice-usecase       ← C6 (elso valos use case)
+  │     └── merge to main after: invoice pipeline E2E PASS → tag v1.2.0-beta
+  │
+  ├── feature/v1.2.0-tier2-supporting-services     ← C7-C10 (notification, data_router, service mgr)
+  │     └── merge to main after: invoice V2 E2E PASS → tag v1.2.0-rc1
+  │
+  ├── feature/v1.2.0-tier3-advanced-rag            ← C11-C16 (reranker, chunker, metadata, stb.)
+  │     └── merge to main after: advanced RAG pipeline PASS → tag v1.2.0-rc2
+  │
+  └── feature/v1.2.0-tier4-polish                  ← C17-C20 (quality, chat, templates, PWA)
+        └── merge to main → tag v1.2.0
+```
+
+**Szabalyok:**
+- **MINDEN fejlesztes a Tier branch-en** — NEM kozvetlenul main-re
+- **Merge to main:** CSAK ha L0 smoke test PASS + Tier MINDEN ciklusa DONE
+- **Squash merge:** Tier branch → main (clean commit history)
+- **Branch letrehozas:** Tier ciklus elso lepeseben (`git checkout -b feature/v1.2.0-tier{N}-...`)
+- **Ha main-en suurgo hotfix kell:** `hotfix/...` branch main-rol, cherry-pick Tier branch-re
+- **Merge conflict:** Tier branch rendszeresen rebase-eli main-t (`git rebase main`)
+
 ## Testing Rules
 - Unit tests: mock LLM calls, test logic only, <30s total, @test_registry header REQUIRED
 - Integration tests: testcontainers (real PostgreSQL + Redis), 2-5 min

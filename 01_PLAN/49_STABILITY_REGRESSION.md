@@ -18,6 +18,28 @@
 
 ---
 
+## 1.1 Branch Strategy
+
+**Tier-enkent feature branch, merge to main Tier vegen.**
+
+```
+main (stabil, v1.1.4)
+  ├── feature/v1.2.0-tier1-pipeline-orchestrator   ← C0-C5
+  ├── feature/v1.2.0-tier1.5-invoice-usecase       ← C6
+  ├── feature/v1.2.0-tier2-supporting-services     ← C7-C10
+  ├── feature/v1.2.0-tier3-advanced-rag            ← C11-C16
+  └── feature/v1.2.0-tier4-polish                  ← C17-C20
+```
+
+- **main MINDIG stabil** — SOHA ne commitolj kozvetlenul main-re v1.2.0 fejlesztes soran
+- **Merge to main:** CSAK ha L0 smoke PASS + Tier MINDEN ciklusa DONE
+- **Merge tipus:** squash merge (clean history)
+- **Tag-eles:** Tier 1 → v1.2.0-alpha, Tier 1.5 → v1.2.0-beta, Tier 2 → v1.2.0-rc1, Tier 3 → v1.2.0-rc2, Tier 4 → v1.2.0
+- **Hotfix main-re:** `hotfix/...` branch, cherry-pick tier branch-re
+- **Rebase:** Tier branch rendszeresen rebase-eli main-t merge conflict elkerulesere
+
+---
+
 ## 2. Stabilitasi Strategia
 
 ### 2.1 API Compatibility Rules

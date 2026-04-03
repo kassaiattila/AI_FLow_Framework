@@ -58,6 +58,12 @@ Minden ciklus (1-2 session) ugyanazt a 6 lepest koveti:
 
 ### Tier 1: Core Orchestration (3-4 session, 5 ciklus)
 
+**Branch:** `feature/v1.2.0-tier1-pipeline-orchestrator`
+```bash
+git checkout -b feature/v1.2.0-tier1-pipeline-orchestrator  # C0-ban letrehozni!
+```
+**Merge to main:** Tier 1 DONE + L0 smoke PASS → squash merge → tag `v1.2.0-alpha`
+
 | Ciklus | Fazis | Tartalom | Teszt | Output |
 |--------|-------|----------|-------|--------|
 | **C1** | P1 | Adapter base + 6 adapter | Unit: minden adapter | `src/aiflow/pipeline/` mappa, 9 fajl |
@@ -119,6 +125,9 @@ GATE 7: PAGE_SPECS.md ↔ TSX konzisztens
 
 ### Tier 1.5: Elso Valos Use Case (1 session)
 
+**Branch:** `feature/v1.2.0-tier1.5-invoice-usecase`
+**Merge to main:** invoice pipeline E2E PASS → squash merge → tag `v1.2.0-beta`
+
 | Ciklus | Tartalom | Teszt |
 |--------|----------|-------|
 | **C6** | Invoice automation pipeline (meglevo service-ekbol!) | E2E: email → classify → extract → review |
@@ -142,6 +151,9 @@ steps:
 
 ### Tier 2: Supporting Services (2-3 session, 4 ciklus)
 
+**Branch:** `feature/v1.2.0-tier2-supporting-services`
+**Merge to main:** invoice V2 E2E PASS → squash merge → tag `v1.2.0-rc1`
+
 | Ciklus | Fazis | Tartalom | Teszt |
 |--------|-------|----------|-------|
 | **C7** | P6A | NotificationService (email + Slack) | Valos email kuldes |
@@ -159,6 +171,9 @@ steps:
 
 ### Tier 3: Advanced RAG (3-4 session, valaszthato sorrend)
 
+**Branch:** `feature/v1.2.0-tier3-advanced-rag`
+**Merge to main:** advanced RAG pipeline PASS → squash merge → tag `v1.2.0-rc2`
+
 | Ciklus | Fazis | Tartalom | Prioritas |
 |--------|-------|----------|-----------|
 | **C11** | P7D | RerankerService (bge-m3 + FlashRank) | MAGAS — RAG minoseg javitas |
@@ -173,6 +188,9 @@ steps:
 ---
 
 ### Tier 4: Polish (1-2 session)
+
+**Branch:** `feature/v1.2.0-tier4-polish`
+**Merge to main:** MINDEN kész → squash merge → tag `v1.2.0`
 
 | Ciklus | Tartalom |
 |--------|----------|

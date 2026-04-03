@@ -51,28 +51,39 @@
 ### Lepesek:
 
 ```bash
-# 1. L0 smoke test — meglevo rendszer OK?
+# 1. Tier 1 branch letrehozas (ELOSZOR!)
+git checkout -b feature/v1.2.0-tier1-pipeline-orchestrator
+
+# 2. L0 smoke test — meglevo rendszer OK?
 bash scripts/smoke_test.sh
 
-# 2. Untitled UI init
+# 3. Untitled UI komponensek hozzaadasa
 cd aiflow-admin && npx untitledui@latest add button input select textarea modal tabs badges alerts
 
-# 3. TypeScript + lint check
+# 4. TypeScript + lint check
 cd aiflow-admin && npx tsc --noEmit
 ruff check src/ skills/
 
-# 4. 56_EXECUTION_PLAN.md progress frissites: C0 → DONE
+# 5. 56_EXECUTION_PLAN.md progress frissites: C0 → DONE
 
-# 5. Commit
+# 6. Commit (a Tier 1 branch-re!)
 git commit -m "chore: C0 preparation — smoke test verified, Untitled UI components added"
 ```
 
-### C0 UTAN → C1 (Adapter Layer):
+### C0 UTAN → C1 (Adapter Layer, UGYANAZON a branch-en):
 
 ```
+Branch: feature/v1.2.0-tier1-pipeline-orchestrator (mar letezik C0-bol)
 Cel: src/aiflow/pipeline/ mappa, adapter_base.py + 6 adapter
 Terv: 01_PLAN/48 Phase 1
 Teszt: unit test minden adapterre + L0 smoke PASS
+```
+
+### Branch strategia (FONTOS!):
+```
+main (stabil v1.1.4) ← NEM commitolunk ide v1.2.0 fejlesztest!
+  └── feature/v1.2.0-tier1-pipeline-orchestrator ← ITT dolgozunk (C0-C5)
+        Tier 1 DONE → squash merge to main → tag v1.2.0-alpha
 ```
 
 ---
