@@ -59,7 +59,7 @@ SUPPORTED_SKILLS = {
 }
 ```
 
-**CI/CD integracio (GitHub Actions / pre-commit hook):**
+**CI/CD integracio (CSAK GitHub Actions — NEM pre-commit, mert LLM hivasok tul lassuk):**
 ```yaml
 # .github/workflows/prompt-eval.yml
 name: Prompt Evaluation
@@ -71,6 +71,8 @@ jobs:
       - run: python scripts/check_promptfoo_results.py --min-pass-rate 0.90
       # Ha pass rate < 90% → PR BLOCKED
 ```
+> **FONTOS:** Promptfoo NEM pre-commit hook-kent — valos LLM hivasok 30+ masodpercig tartanak.
+> Pre-commit: csak ruff lint + tsc --noEmit (gyors, <5s).
 
 ### 2.3 LLM Rubric Scoring (a stub implementalasa)
 

@@ -27,6 +27,8 @@ The framework already has a mature WorkflowRunner + DAG engine, ServiceRegistry,
 | [52_HUMAN_IN_THE_LOOP_NOTIFICATION.md](52_HUMAN_IN_THE_LOOP_NOTIFICATION.md) | Professzionalis review UI, multi-channel ertesitesek | KESZ |
 | [53_FRONTEND_DESIGN_SYSTEM.md](53_FRONTEND_DESIGN_SYSTEM.md) | UI konyvtar, Untitled UI audit, chat UI, user journey, cross-platform | KESZ |
 | [54_LLM_QUALITY_COST_OPTIMIZATION.md](54_LLM_QUALITY_COST_OPTIMIZATION.md) | Promptfoo CI/CD, LLM rubric scoring, koltseg optimalizalas, Gotenberg | KESZ |
+| [55_CLAUDE_CODE_CONFIGURATION.md](55_CLAUDE_CODE_CONFIGURATION.md) | Claude Code iranyitas: CLAUDE.md frissites, uj commands, MCP, permissions | KESZ |
+| [56_EXECUTION_PLAN.md](56_EXECUTION_PLAN.md) | Vegrehajtasi terv: 20 ciklus, session sablon, progress tracking | KESZ |
 
 ---
 
@@ -61,11 +63,10 @@ The framework already has a mature WorkflowRunner + DAG engine, ServiceRegistry,
 │ ● media_processor    │ Tier 3: ADVANCED RAG (P7)             │
 │ ● diagram_generator  │ ● data_cleaner (LLM cleaning)         │
 │                      │ ● advanced_chunker (6 strategies)      │
-│                      │ ● metadata_enricher (auto-metadata)    │
-│                      │ ● reranker (cross-encoder)             │
-│                      │ ● graph_rag (Neo4j, optional)          │
+│ Tier 2 also:         │ ● metadata_enricher (auto-metadata)    │
+│ ● data_router (P6D)  │ ● reranker (cross-encoder)             │
+│                      │ ● graph_rag (MS GraphRAG, optional)    │
 │                      │ ● vector_ops (index lifecycle)          │
-│                      │ ● advanced_parser (OCR, multi-backend) │
 └──────────────────────┴──────────────────────────────────────┘
 ```
 
@@ -350,6 +351,21 @@ Same `publish/subscribe` interface as existing `MessageBroker`. Pipeline event t
 
 **Dep:** `aiokafka` (optional: `pip install aiflow[kafka]`)
 
+### 6D: DataRouterService
+
+**File:** `src/aiflow/services/data_router/service.py`
+
+```python
+class DataRouterService(BaseService):
+    async def filter(self, items: list[dict], condition: str) -> FilterResult
+    async def route_files(self, files: list[Path], rules: list[RoutingRule]) -> list[RoutedFile]
+    async def move_to_dir(self, file_path: Path, target_dir_template: str, data: dict) -> Path
+```
+
+Condition-based filtering + rule-based file routing. Used by invoice automation pipeline to sort files into folders and trigger downstream actions.
+
+**Adapter:** `src/aiflow/pipeline/adapters/data_router_adapter.py`
+
 ### 6C: API Service Manager
 
 **File:** `src/aiflow/services/service_manager/service.py`
@@ -449,6 +465,7 @@ class GraphRAGService(BaseService):
     async def hybrid_query(self, question: str, collection_id: str, vector_results: list) -> HybridResult
 ```
 
+Uses **Microsoft GraphRAG + LazyGraphRAG** (standalone, NO Neo4j required). LazyGraphRAG defers graph construction to query time, reducing indexing cost from hundreds of dollars to cents per document.
 Entity types: Person, Organization, Document, Concept, Date, Amount. Relationship types: AUTHORED, REFERENCES, SIGNED_BY, CONTAINS, PART_OF.
 
 ### 7F: VectorOpsService
@@ -474,13 +491,14 @@ Extends `DocumentExtractorService` with pluggable parser backends:
 |--------|-------|-------|
 | `docling` (jelenlegi) | PDF, DOCX, XLSX | Gyors, ingyenes |
 | `unstructured` | Komplex tablazatok | Jobb tablazat-felismeres |
-| `llamaparse` | Szkennelt PDF-ek | LLM-alapu, nagyon pontos |
-| `tesseract` | Kepes fajlok | Ingyenes OCR |
+| `tesseract` | Kepes fajlok, OCR | Ingyenes OCR (magyar nyelvcsomaggal) |
 | `azure_di` (jelenlegi) | Kezirasos | Legjobb OCR |
+
+**LlamaParse KIHAGYVA** — cloud-only, privacy kockazat, draga agentic tier.
 
 **Files:** `src/aiflow/services/document_extractor/parsers/{backend}_parser.py` + `parser_factory.py`
 
-Auto-fallback lanc: docling → unstructured → llamaparse → tesseract → azure.
+Auto-fallback lanc: docling → unstructured → tesseract → azure.
 
 ### Example: Complete Advanced RAG Pipeline
 

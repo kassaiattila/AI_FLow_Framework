@@ -11,7 +11,11 @@
 
 | Komponens | Allapot | Korlat |
 |-----------|---------|--------|
-| `HumanReviewService` | Mukodik (basic queue) | Nincs prioritas-alapu SLA, nincs eszkalacio |
+| `HumanReviewService` | Mukodik (basic queue, `human_review_queue` tabla — migration 022) | Nincs prioritas-alapu SLA, nincs eszkalacio |
+
+> **FONTOS:** Ket human review tabla letezik a DB-ben:
+> - `human_reviews` (migration 008) — regi, workflow_run_id + step_name alapu → **DEPRECATED**
+> - `human_review_queue` (migration 022) — uj, entity_type + entity_id alapu → **EZT BOVITJUK**
 | `Reviews.tsx` | Mukodik (lista + approve/reject) | Nincs inline dokumentum megjelentes |
 | `Verification.tsx` | Mukodik (split-screen PDF + editor) | Csak invoice tipusra, nincs altalanos review |
 | API endpoints | 6 endpoint (CRUD + approve/reject) | Nincs bulk approve, nincs assign |
