@@ -591,6 +591,138 @@ async def export_pipeline_yaml(pipeline_id: str) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
+# Cost estimation (S12)
+# ---------------------------------------------------------------------------
+
+
+class PipelineCostStepEstimate(BaseModel):
+    step_name: str
+    service: str
+    method: str
+    estimated_tokens: int = 0
+    estimated_cost_usd: float = 0.0
+
+
+class PipelineCostEstimateResponse(BaseModel):
+    pipeline_id: str
+    pipeline_name: str = ""
+    total_estimated_tokens: int = 0
+    total_estimated_cost_usd: float = 0.0
+    per_step: list[PipelineCostStepEstimate] = Field(default_factory=list)
+    model: str = "openai/gpt-4o-mini"
+    budget_warning: str | None = None
+    source: str = "backend"
+
+
+# LLM token cost per 1M tokens (input+output average)
+_MODEL_COSTS: dict[str, float] = {
+    "openai/gpt-4o": 7.50,
+    "openai/gpt-4o-mini": 0.30,
+    "openai/gpt-4.1-mini": 0.80,
+    "openai/gpt-4.1-nano": 0.20,
+    "anthropic/claude-sonnet-4-6": 9.00,
+    "anthropic/claude-haiku-4-5": 2.00,
+}
+
+# Average tokens per step type (empirical estimates)
+_STEP_TOKEN_ESTIMATES: dict[str, int] = {
+    "classify": 800,
+    "extract": 3000,
+    "extract_free_text": 2000,
+    "generate": 4000,
+    "query": 2500,
+    "evaluate_rubric": 1500,
+    "chunk": 0,  # no LLM
+    "parse": 0,  # no LLM
+    "clean": 0,  # no LLM
+    "ingest": 500,
+    "rerank": 1000,
+    "send": 0,  # no LLM
+    "enrich": 1500,
+}
+
+
+@router.post("/{pipeline_id}/estimate-cost", response_model=PipelineCostEstimateResponse)
+async def estimate_pipeline_cost(
+    pipeline_id: str,
+    model: str | None = None,
+    budget_limit_usd: float | None = None,
+) -> PipelineCostEstimateResponse:
+    """Estimate token usage and cost for a pipeline before execution.
+
+    Uses step-type heuristics and model pricing to produce estimates.
+    If budget_limit_usd is set, returns a warning if estimate exceeds it.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT name, yaml_source FROM pipeline_definitions WHERE id = $1",
+            uuid.UUID(pipeline_id),
+        )
+    if not row:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+
+    pipeline_name = row["name"]
+    yaml_source = row["yaml_source"]
+
+    # Parse pipeline to get steps
+    parser = PipelineParser()
+    try:
+        pipeline_def = parser.parse_yaml(yaml_source)
+    except PipelineParseError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Pipeline YAML invalid: {exc}",
+        ) from exc
+
+    model_name = model or "openai/gpt-4o-mini"
+    cost_per_1m = _MODEL_COSTS.get(model_name, 1.0)
+
+    per_step: list[PipelineCostStepEstimate] = []
+    total_tokens = 0
+
+    for step in pipeline_def.steps:
+        method = step.method or step.name or ""
+        est_tokens = _STEP_TOKEN_ESTIMATES.get(method, 1000)
+        est_cost = est_tokens * cost_per_1m / 1_000_000
+
+        per_step.append(PipelineCostStepEstimate(
+            step_name=step.name,
+            service=step.service,
+            method=method,
+            estimated_tokens=est_tokens,
+            estimated_cost_usd=round(est_cost, 6),
+        ))
+        total_tokens += est_tokens
+
+    total_cost = total_tokens * cost_per_1m / 1_000_000
+
+    budget_warning = None
+    if budget_limit_usd is not None:
+        pct = (total_cost / budget_limit_usd * 100) if budget_limit_usd > 0 else 0
+        if pct >= 100:
+            budget_warning = (
+                f"BLOCKED: Estimated cost ${total_cost:.4f} exceeds "
+                f"budget ${budget_limit_usd:.2f} ({pct:.0f}%)"
+            )
+        elif pct >= 80:
+            budget_warning = (
+                f"WARNING: Estimated cost ${total_cost:.4f} is "
+                f"{pct:.0f}% of budget ${budget_limit_usd:.2f}"
+            )
+
+    return PipelineCostEstimateResponse(
+        pipeline_id=pipeline_id,
+        pipeline_name=pipeline_name,
+        total_estimated_tokens=total_tokens,
+        total_estimated_cost_usd=round(total_cost, 6),
+        per_step=per_step,
+        model=model_name,
+        budget_warning=budget_warning,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Template endpoints (C19)
 # ---------------------------------------------------------------------------
 

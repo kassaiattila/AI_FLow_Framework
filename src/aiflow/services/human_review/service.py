@@ -124,6 +124,128 @@ class HumanReviewService:
             return self._row_to_item(row)
         return None
 
+    # --- SLA Escalation ---
+
+    async def escalate(
+        self,
+        review_id: str,
+        reason: str = "SLA deadline exceeded",
+    ) -> HumanReviewItem | None:
+        """Escalate a pending review — bumps priority and logs escalation."""
+        pool = await self._get_pool()
+        now = datetime.now(timezone.utc)
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """UPDATE human_review_queue
+                   SET priority = CASE
+                       WHEN priority = 'low' THEN 'normal'
+                       WHEN priority = 'normal' THEN 'high'
+                       WHEN priority = 'high' THEN 'critical'
+                       ELSE priority
+                   END,
+                   metadata_json = COALESCE(metadata_json, '{}')::jsonb || $2::jsonb
+                   WHERE id = $1 AND status = 'pending'
+                   RETURNING *""",
+                review_id,
+                json.dumps({
+                    "escalated_at": now.isoformat(),
+                    "escalation_reason": reason,
+                }),
+            )
+        if row:
+            logger.warning(
+                "review_escalated",
+                id=review_id,
+                reason=reason,
+                new_priority=row["priority"],
+            )
+            return self._row_to_item(row)
+        return None
+
+    async def check_sla_deadlines(
+        self,
+        sla_hours: float = 24.0,
+    ) -> list[HumanReviewItem]:
+        """Find pending reviews that have exceeded their SLA deadline.
+
+        Returns reviews older than sla_hours that are still pending.
+        """
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT * FROM human_review_queue
+                   WHERE status = 'pending'
+                     AND created_at < NOW() - MAKE_INTERVAL(hours => $1)
+                   ORDER BY created_at ASC""",
+                sla_hours,
+            )
+        overdue = [self._row_to_item(r) for r in rows]
+        if overdue:
+            logger.warning(
+                "sla_overdue_reviews",
+                count=len(overdue),
+                sla_hours=sla_hours,
+            )
+        return overdue
+
+    async def check_and_escalate(
+        self,
+        sla_hours: float = 24.0,
+    ) -> list[HumanReviewItem]:
+        """Check SLA deadlines and auto-escalate overdue reviews.
+
+        Returns the list of escalated reviews.
+        """
+        overdue = await self.check_sla_deadlines(sla_hours=sla_hours)
+        escalated = []
+        for review in overdue:
+            # Skip already-escalated reviews (check metadata)
+            meta = review.metadata_json or {}
+            if meta.get("escalated_at"):
+                continue
+            result = await self.escalate(
+                review.id,
+                reason=f"SLA exceeded ({sla_hours}h)",
+            )
+            if result:
+                escalated.append(result)
+
+        # Send notifications for escalated reviews (best-effort)
+        if escalated:
+            await self._send_escalation_notifications(escalated)
+
+        return escalated
+
+    async def _send_escalation_notifications(
+        self,
+        reviews: list[HumanReviewItem],
+    ) -> None:
+        """Send in-app notifications for escalated reviews (best-effort)."""
+        try:
+            from aiflow.api.deps import get_pool
+
+            pool = await get_pool()
+            async with pool.acquire() as conn:
+                for review in reviews:
+                    await conn.execute(
+                        """INSERT INTO notifications
+                           (id, user_id, type, title, message, link, read)
+                           VALUES (gen_random_uuid(), 'admin', 'warning',
+                                   $1, $2, $3, false)""",
+                        f"SLA Escalation: {review.title}",
+                        (
+                            f"Review '{review.title}' has exceeded its SLA deadline "
+                            f"and has been escalated to {review.priority} priority."
+                        ),
+                        f"/reviews/{review.id}",
+                    )
+            logger.info(
+                "escalation_notifications_sent",
+                count=len(reviews),
+            )
+        except Exception as exc:
+            logger.warning("escalation_notification_failed", error=str(exc))
+
     @staticmethod
     def _row_to_item(row) -> HumanReviewItem:
         meta = None

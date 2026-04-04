@@ -532,6 +532,29 @@ TESZTELES:
 GATE: valos extrakcio mukodik, CRUD endpointok 200 OK
 ```
 
+#### S12 Output (session 13, 2026-04-04)
+```
+DELIVERABLES:
+  a) human_review/service.py BOVITVE — SLA escalation:
+     - escalate(review_id, reason): priority bump (low→normal→high→critical) + metadata log
+     - check_sla_deadlines(sla_hours): query overdue pending reviews
+     - check_and_escalate(sla_hours): auto-escalate + in-app notification
+     - _send_escalation_notifications(): writes to notifications table
+  b) human_review.py API — 3 uj endpoint:
+     - POST /reviews/{id}/escalate — manual escalation
+     - GET /reviews/sla/overdue — list overdue reviews
+     - POST /reviews/sla/check-and-escalate — auto-check + escalate
+  c) pipelines.py API — 1 uj endpoint:
+     - POST /pipelines/{id}/estimate-cost — token + USD becslés step-enként
+     - Model cost tabla (gpt-4o, gpt-4o-mini, claude-sonnet, claude-haiku)
+     - Step token heurisztika (12 method tipus)
+     - Budget alert: WARNING >= 80%, BLOCKED >= 100%
+  d) execution/sla_checker.py (UJ): standalone SLA check job
+     - check_sla_deadlines() async func, register_sla_job() cron regisztracio
+     - CLI: python -m aiflow.execution.sla_checker
+  TESZTEK: 12 unit test PASS (SLA: 6, cost: 6), ruff clean
+```
+
 #### S12 Reszletes: SLA Eszkalacio + Cost Estimation
 ```
 FEJLESZTES:
@@ -693,7 +716,7 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S9 | E2E Playwright test suite (54 tests) | DONE | 2026-04-04 | 65dfcdf |
 | S10 | CI/CD regresszios pipeline | DONE | 2026-04-04 | b707fe7 |
 | S11 | Free text extraction + intent schema | DONE | 2026-04-04 | b707fe7 |
-| S12 | SLA eszkalacio + cost estimation | TODO | — | — |
+| S12 | SLA eszkalacio + cost estimation | DONE | 2026-04-04 | PENDING |
 | S13 | Integralt E2E teszteles | TODO | — | — |
 | S14 | Vegleges polish + v1.2.1 tag | TODO | — | — |
 
