@@ -35,6 +35,20 @@
   --font-sans: "Inter", "Roboto", "Helvetica", "Arial", sans-serif;
   --text-base: 0.8125rem; /* 13px */
 
+  /* Spacing scale (maps design tokens to Tailwind utilities) */
+  --spacing-aiflow-xs: 4px;
+  --spacing-aiflow-sm: 8px;
+  --spacing-aiflow-md: 16px;
+  --spacing-aiflow-lg: 24px;
+  --spacing-aiflow-xl: 32px;
+  --spacing-aiflow-2xl: 48px;
+
+  /* Border radius (maps design tokens) */
+  --radius-aiflow-sm: 4px;
+  --radius-aiflow-md: 8px;
+  --radius-aiflow-lg: 12px;
+  --radius-aiflow-xl: 16px;
+
   /* Sidebar */
   --sidebar-width: 220px;
   --sidebar-collapsed-width: 48px;

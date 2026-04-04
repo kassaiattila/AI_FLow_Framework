@@ -582,8 +582,8 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S1 | Chat UI integracio | DONE | 2026-04-04 | 1dff737 |
 | S2 | In-app notifications | DONE | 2026-04-04 | 65fc403 |
 | S3 | Quality dashboard UI (7 HARD GATE) | DONE | 2026-04-04 | 788c1e5 |
-| S4 | Service Catalog + Pipeline integracio | DONE | 2026-04-04 | (pending) |
-| S5 | Design system teljeskoruseg | TODO | — | — |
+| S4 | Service Catalog + Pipeline integracio | DONE | 2026-04-04 | 238ee7f |
+| S5 | Design system teljeskoruseg | DONE | 2026-04-04 | (pending) |
 | S6 | Meglevo oldalak UI polish + MUI torles | TODO | — | — |
 | S7 | Langfuse valos integracio | TODO | — | — |
 | S8 | Promptfoo 5 skill config + CI/CD | TODO | — | — |
@@ -593,3 +593,12 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S12 | SLA eszkalacio + cost estimation | TODO | — | — |
 | S13 | Integralt E2E teszteles | TODO | — | — |
 | S14 | Vegleges polish + v1.2.1 tag | TODO | — | — |
+
+---
+
+## 8. Post-Sprint TODO (v1.2.1 utan)
+
+| # | Tartalom | Prioritas | Megjegyzes |
+|---|----------|-----------|------------|
+| P1 | **Pipelines oldal: templates szekció** — A `/pipelines` oldal csak a DB-ből tárolt 2 pipeline-t mutatja. A 6 beépített template (`/templates/list` endpoint) NEM jelenik meg. Fix: Templates szekció hozzáadása a Pipelines.tsx-hez, "Deploy" gombbal. | HIGH | `/api/v1/pipelines/templates/list` működik (6 template, source=backend), de a UI nem hívja. |
+| P2 | **Templates endpoint route conflict** — `GET /api/v1/pipelines/templates` 500-at ad ("badly formed UUID") mert a `/{pipeline_id}` route matchel rá. Fix: route sorrend vagy explicit path. | MEDIUM | Workaround: `/templates/list` endpoint működik. |
