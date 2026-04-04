@@ -135,7 +135,7 @@ SPRINT A: Infrastruktura, Biztonsag & Guardrail Keretrendszer
 SPRINT B: Szolgaltatas Excellence + Guardrail Implementacio
   ┌─────────────────────────────────────────────────────────┐
   │ B0: Hardening keretrendszer + metodologia               │
-  │ B1: P0 skill-ek (aszf_rag, email_intent) + guardrail   │
+  │ B1: P0 skill-ek + LLM guardrail promptok (4 prompt)     │
   │ B2: P1 skill-ek (process_docs, invoice, doc_extractor)  │
   │ B3: Infrastructure service tesztek (130 test)           │
   │ B4: P2/P4 skill-ek (cubix, qbpp)                       │
@@ -149,10 +149,15 @@ SPRINT B: Szolgaltatas Excellence + Guardrail Implementacio
   Becsult: ~10 session
 ```
 
-**Guardrail felosztás logikaja:**
-- **Sprint A (A5):** A KERETRENDSZER — middleware, interface, teszt infrastruktura. Ez BIZTONSAG.
-- **Sprint B (B1-B4):** A PER-SERVICE IMPLEMENTACIO — minden skill sajat guardrail config-ja. Ez SERVICE.
-- Igy a biztonsagi alap Sprint A-ban keszul, de a szolgaltatas-specifikus reszletek Sprint B-ben.
+**Guardrail felosztás logikaja (3 reteg):**
+- **Sprint A (A5):** RULE-BASED KERETRENDSZER — regex/heurisztika (injection 14 pattern, PII 7 tipus HU+US, SequenceMatcher hallucination, keyword scope). KESZ: `src/aiflow/guardrails/`, 76 teszt.
+- **Sprint B (B1):** LLM-BASED GUARDRAIL PROMPTOK — a rule-based reteg FELETT, 4 prompt YAML:
+  1. `hallucination_evaluator` — forras vs. valasz grounding (A5 SequenceMatcher csereje)
+  2. `content_safety_classifier` — safety scoring (A5 4 regex csereje)
+  3. `scope_classifier` — 3-tier scope (A5 keyword matching csereje)
+  4. `freetext_pii_detector` — szabad szoveges PII ("Kiss Janos", "a szomszed") — regex NEM tudja
+- **Sprint B (B1-B4):** PER-SERVICE IMPLEMENTACIO — minden skill sajat guardrails.yaml config-ja.
+- Igy: A5 = gyors, olcso, determinisztikus elso szuro | B1 = LLM precizitas | B1-B4 = skill-specifikus config.
 
 ---
 
@@ -588,6 +593,15 @@ B0.4 — Prompt Guardrail Implementacios Sablon (per skill):
     tests/test_guardrails.py     # UJ: 5+ guardrail teszt per skill
     tests/golden_guardrails.yaml # UJ: known-safe + known-dangerous peldak
 
+  Framework-szintu LLM guardrail promptok (B1.3-ban implementalva):
+  prompts/guardrails/
+    hallucination_evaluator.yaml   # LLM grounding: valasz vs. forrasok
+    content_safety_classifier.yaml # LLM safety scoring (tobb retegu)
+    scope_classifier.yaml          # LLM 3-tier scope doentes
+    freetext_pii_detector.yaml     # LLM szabad szoveges PII felismeres
+  tests/guardrails/
+    promptfooconfig.yaml           # 20+ Promptfoo test case (4 prompt × 5+)
+
 B0.5 — Uj Slash Command-ok letrehozasa:
   .claude/commands/service-hardening.md (UJ):
     - Input: service nev
@@ -632,9 +646,9 @@ GATE: Checklist + toolchain dok + 2 uj command + reference guide vaz + sablon
 
 ---
 
-## B1: P0 Core AI Skill-ek + Guardrail — 2-3 session
+## B1: P0 Core AI Skill-ek + LLM Guardrail Promptok — 2-3 session
 
-> **Gate:** aszf_rag 95%+ promptfoo, email_intent 95%+ promptfoo, mindketto guardrails.yaml KESZ.
+> **Gate:** aszf_rag 95%+ promptfoo, email_intent 95%+ promptfoo, mindketto guardrails.yaml KESZ, 4 LLM guardrail prompt + 20 Promptfoo test case PASS.
 > **Eszkozok:** B0.2 integralt toolchain — Langfuse baseline → Promptfoo eval → /prompt-tuning → /service-hardening
 
 ```
@@ -697,7 +711,82 @@ B1.2 — email_intent_processor (P0):
 
   CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
 
-GATE: aszf_rag 95%+, email_intent 95%+, 2 guardrails.yaml KESZ, 25 unit test PASS
+B1.3 — LLM-based Guardrail Promptok (A5 rule-based reteg FELETT):
+
+  KONTEXTUS:
+    Az A5-ben megepitett rule-based guardrail keretrendszer (regex, heurisztika)
+    gyors es olcso elso szurot biztosit. A B1.3 LLM-alapu promptok PRECIZEBB,
+    masodik reteget adnak — CSAK AKKOR futnak ha a rule-based reteg nem donti el
+    egyertelmuen a kerdest (pl. alacsony confidence, hataresetek).
+
+    Architektura: Rule-based (gyors, $0) → ha bizonytalan → LLM (preciz, $$)
+
+  PROMPT 1 — hallucination_evaluator.yaml:
+    Cserel: A5 SequenceMatcher (naiv szoveg-overlap, ~60% pontossag)
+    Prompt: "Ertekeld, hogy a valasz MINDEN allitasa megalapozott-e a megadott forrasokban.
+             Pontozd 0-1 skalan. Jelold meg a megalapozatlan allitasokat."
+    Input: {response, sources[]}
+    Output: {grounding_score: float, ungrounded_claims: list[str]}
+    Modell: gpt-4o-mini (olcso, gyors, eleg preciz grounding-re)
+    Hasznalja: OutputGuard.check() — ha A5 SequenceMatcher score < 0.5 (bizonytalan zona)
+    Promptfoo: 5+ test case (well-grounded, hallucinated, mixed, empty source, HU+EN)
+
+  PROMPT 2 — content_safety_classifier.yaml:
+    Cserel: A5 4 regex pattern (csak explicit kifejezeseket fog)
+    Prompt: "Osztalyozd a tartalmat: SAFE / UNSAFE / REVIEW_NEEDED.
+             Ha UNSAFE, add meg a kategoriat (violence, self-harm, illegal, harassment)."
+    Input: {text, context: "input"|"output"}
+    Output: {verdict: str, category: str|null, confidence: float}
+    Modell: gpt-4o-mini
+    Hasznalja: InputGuard/OutputGuard — ha nincs regex match DE a szoveg "gyanús"
+               (pl. hosszu, sok felkialto jel, idegen nyelvu beagyazas)
+    Promptfoo: 5+ test case (safe, violent, borderline, coded language, HU context)
+
+  PROMPT 3 — scope_classifier.yaml:
+    Cserel: A5 keyword matching (csak explicit topic szavakat fog)
+    Prompt: "A felhasznalo kerdese a kovetkezo temakba tartozik-e: {allowed_topics}?
+             Osztalyozd: IN_SCOPE / OUT_OF_SCOPE / DANGEROUS.
+             Indokold egy mondatban."
+    Input: {query, allowed_topics[], blocked_topics[], skill_description}
+    Output: {verdict: ScopeVerdict, reason: str, confidence: float}
+    Modell: gpt-4o-mini
+    Hasznalja: ScopeGuard.check() — ha NEM egyertelmu keyword match
+               (pl. "mit fedez a kotveny?" — nincs benne "biztositas" szo, de in-scope)
+    Promptfoo: 5+ test case (clear in-scope, clear out-of-scope, ambiguous, dangerous, HU)
+
+  PROMPT 4 — freetext_pii_detector.yaml:
+    UJ: regex NEM tudja — szabad szoveges PII detektio
+    Prompt: "Azonositsd a szovegben talalhato szemelyes adatokat:
+             nevek, cimek, munkahelyek, rokonsagi kapcsolatok, egyeb azonosito info.
+             Add meg a talalt PII-t tipussal es pozicioval."
+    Input: {text}
+    Output: {pii_items: list[{type, text, start, end}]}
+    Modell: gpt-4o-mini
+    Hasznalja: InputGuard — MINDIG a regex PII detektio UTAN (kiegeszites)
+    Pelda ami regex-et elkerul: "a szomszédom Kiss János az OTP-nél dolgozik"
+    Promptfoo: 5+ test case (nev, cim, munkahely, HU nevek, teves pozitiv kontroll)
+
+  INTEGRACIOS PATTERN (src/aiflow/guardrails/ bovites):
+    - base.py: LLMGuardrailBase ABC (async check_with_llm())
+    - llm_guards.py: 4 LLM guard osztaly (prompt YAML + ModelClient hivas)
+    - config.py bovites: llm_fallback: true/false per guard, confidence_threshold
+    - Dontes logika: rule_result.confidence < threshold → LLM guardrail fut
+
+  FAJLOK:
+    prompts/guardrails/
+      hallucination_evaluator.yaml
+      content_safety_classifier.yaml
+      scope_classifier.yaml
+      freetext_pii_detector.yaml
+    src/aiflow/guardrails/
+      llm_guards.py                  # UJ: 4 LLM guard implementacio
+    tests/guardrails/
+      promptfooconfig.yaml           # 20+ test case
+      test_llm_guards.py             # 10+ unit test (mock LLM + valos eval)
+
+  GATE: 4 prompt YAML + 20 Promptfoo test case (MIND PASS) + llm_guards.py + 10 unit test
+
+FINAL GATE: aszf_rag 95%+, email_intent 95%+, 2 guardrails.yaml KESZ, 4 LLM guardrail prompt PASS, 35+ unit test PASS
 ```
 
 ---
@@ -924,10 +1013,18 @@ B7.2 — Szolgaltatas erettseg POST-audit:
   | qbpp | ?/10 | ?% | ? config | ? |
 
 B7.3 — Guardrail POST-audit:
+  Rule-based reteg (A5):
   - MINDEN skill guardrails.yaml → helyes schema?
   - Golden dataset → MINDEN dangerous query BLOKKOLT?
   - Injection test → MIND DETEKTALT?
-  - PII leak test → 0 leak?
+  - PII leak test (regex) → 0 leak?
+  LLM-based reteg (B1.3):
+  - 4 guardrail prompt Promptfoo eval → 95%+ PASS?
+  - hallucination_evaluator → grounding score kalibralt?
+  - content_safety_classifier → false positive rate < 5%?
+  - scope_classifier → ambiguous query-k helyes osztalyozasa?
+  - freetext_pii_detector → szabad szoveges PII felismeres mukodik?
+  - Fallback architektura: rule-based → LLM lancolt mukodes OK?
 
 B7.4 — Koltseg POST-audit:
   - Langfuse: >= 20% csokkenés teljesult?
@@ -936,7 +1033,8 @@ B7.5 — Audit riport:
   === SPRINT B POST-AUDIT RIPORT ===
   Service tesztek:     130/130 PASS       → [PASS/FAIL]
   Prompt minoseg:      6/6 skill 95%+     → [PASS/FAIL]
-  Guardrail coverage:  6/6 skill config   → [PASS/FAIL]
+  Guardrail rule-based: 6/6 skill config  → [PASS/FAIL]
+  Guardrail LLM-based: 4/4 prompt 95%+   → [PASS/FAIL]
   Guardrail safety:    golden dataset 100% → [PASS/FAIL]
   Koltseg:             X% csokkenés       → [PASS/FAIL]
   E2E (strict):        102+ PASS          → [PASS/FAIL]
@@ -989,8 +1087,8 @@ GATE: v1.3.0 tag pushed, main-en CI ZOLD
 
 ```
 Session 23: B0 (Toolchain + metodologia + 2 uj command + reference guide)
-Session 24: B1 start (aszf_rag baseline + prompt tuning + guardrail)
-Session 25: B1 (aszf_rag kod+teszt) + B1.2 (email_intent prompt+guardrail)
+Session 24: B1 start (aszf_rag baseline + prompt tuning + guardrail) + B1.3 LLM guardrail promptok
+Session 25: B1 (aszf_rag kod+teszt) + B1.2 (email_intent prompt+guardrail) + B1.3 Promptfoo eval
 Session 26: B1.2 (email kod+teszt) + B2.1 (process_docs)
 Session 27: B2.2 (invoice) + B2.3 (doc_extractor)
 Session 28: B3.1 (Core infra tesztek — 65 test)
@@ -1022,8 +1120,8 @@ S22: A7+A8 — Javitasok + v1.2.2 ──── Fix + tag
 
 === SPRINT B: Szolgaltatas Excellence (v1.3.0) ===
 S23: B0 — Toolchain + metodologia + reference guide + 2 command
-S24: B1 — aszf_rag baseline + prompt tuning + guardrail
-S25: B1 — aszf_rag kod + email_intent prompt+guardrail
+S24: B1 — aszf_rag baseline + prompt tuning + guardrail + B1.3 LLM guardrail promptok
+S25: B1 — aszf_rag kod + email_intent prompt+guardrail + B1.3 Promptfoo eval
 S26: B1+B2 — email kod + process_docs
 S27: B2 — invoice + doc_extractor
 S28: B3.1 — Core infra tesztek (65)
@@ -1106,7 +1204,7 @@ S33: B8+B9 — Javitasok + v1.3.0
 | Fazis | Tartalom | Allapot | Datum | Commit |
 |-------|----------|---------|-------|--------|
 | B0 | Keretrendszer + metodologia | TODO | — | — |
-| B1 | P0 skill-ek + guardrail | TODO | — | — |
+| B1 | P0 skill-ek + LLM guardrail promptok | TODO | — | — |
 | B2 | P1 skill-ek + guardrail | TODO | — | — |
 | B3 | Infrastructure tesztek (130) | TODO | — | — |
 | B4 | P2/P4 skill-ek | TODO | — | — |
