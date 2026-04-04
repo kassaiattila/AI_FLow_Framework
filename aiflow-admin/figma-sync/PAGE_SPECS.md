@@ -29,6 +29,8 @@
 | Monitoring | `11659:111466` | `11659:111467` | AIFlow Monitoring Dashboard — Desktop 1440px |
 | Audit Log | `11659:111546` | `11659:111547` | AIFlow Audit Log — Desktop 1440px |
 | Admin | `11659:111584` | `11659:111585` | AIFlow Admin — Desktop 1440px |
+| Pipelines | `11662:113170` | `11693:283232` | 16 — Pipelines |
+| Pipeline Detail | `11662:113170` | `11693:283233` | 17 — Pipeline Detail |
 
 ---
 
@@ -1079,3 +1081,91 @@ Sidebar + Main:
 - `audit.details`: "Details" / "Részletek"
 - `audit.showing`: "Showing %{from}–%{to} of %{total} entries" / "%{from}–%{to} / %{total} bejegyzés"
 - `audit.noEntries`: "No audit entries found" / "Nincs audit bejegyzés"
+
+---
+
+## Page: Pipelines (v1.2.0 — Pipeline Orchestrator)
+
+> **Figma Frame:** `11693:283232` — "16 — Pipelines"
+> **Route:** `/pipelines`
+> **API:** `GET /api/v1/pipelines`
+> **Journey:** `01_PLAN/PIPELINE_UI_JOURNEY.md`
+
+### Layout
+- AppShell: dark sidebar (220px) + top bar (56px)
+- Page header: title "Pipelines" + subtitle + "New Pipeline" button (brand color)
+- DataTable (Untitled UI): Name, Version, Steps, Trigger, Status, Created, Actions
+- Empty state: "No pipelines yet — create your first pipeline"
+
+### Components
+- `DataTable` — sortable columns, pagination
+- `StatusBadge` — Enabled (green) / Disabled (gray)
+- `Button` (brand) — "+ New Pipeline" → opens create modal
+- Create modal: YAML textarea + Validate + Create buttons
+
+### i18n keys
+- `pipelines.title`: "Pipelines" / "Pipeline-ok"
+- `pipelines.subtitle`: "Manage YAML-defined automation pipelines" / "YAML-alapú automatizálási pipeline-ok kezelése"
+- `pipelines.new`: "New Pipeline" / "Új Pipeline"
+- `pipelines.name`: "Name" / "Név"
+- `pipelines.version`: "Version" / "Verzió"
+- `pipelines.steps`: "Steps" / "Lépések"
+- `pipelines.trigger`: "Trigger" / "Indító"
+- `pipelines.status`: "Status" / "Állapot"
+- `pipelines.created`: "Created" / "Létrehozva"
+- `pipelines.actions`: "Actions" / "Műveletek"
+- `pipelines.enabled`: "Enabled" / "Aktív"
+- `pipelines.disabled`: "Disabled" / "Inaktív"
+- `pipelines.empty`: "No pipelines yet" / "Még nincs pipeline"
+- `pipelines.createFirst`: "Create your first pipeline" / "Hozza létre az első pipeline-t"
+
+---
+
+## Page: PipelineDetail (v1.2.0 — Pipeline Orchestrator)
+
+> **Figma Frame:** `11693:283233` — "17 — Pipeline Detail"
+> **Route:** `/pipelines/:id`
+> **API:** `GET /api/v1/pipelines/{id}`, `POST .../validate`, `GET .../runs`
+> **Journey:** `01_PLAN/PIPELINE_UI_JOURNEY.md`
+
+### Layout
+- AppShell: dark sidebar + top bar
+- Breadcrumb: "Pipelines / {name}"
+- Header: pipeline name + version badge + enabled badge + action buttons (Validate, Run, Edit)
+- Tabs: Overview | YAML | Runs
+
+### Tab: Overview
+- Info card: description, trigger type, step count, created/updated timestamps
+- Steps card: numbered list with step name, service.method, depends_on arrows
+
+### Tab: YAML
+- Readonly code block with syntax-highlighted YAML (yaml_source)
+- "Copy" button
+
+### Tab: Runs
+- DataTable: run_id, status, started_at, duration_ms, error
+- Empty state: "No runs yet"
+
+### Components
+- `Tabs` (Untitled UI) — Overview / YAML / Runs
+- `Badge` — version (brand), enabled (green), disabled (gray)
+- `Button` — Validate (secondary), Run (primary/brand), Edit (secondary)
+- `DataTable` — runs list
+
+### i18n keys
+- `pipelineDetail.overview`: "Overview" / "Áttekintés"
+- `pipelineDetail.yaml`: "YAML" / "YAML"
+- `pipelineDetail.runs`: "Runs" / "Futtatások"
+- `pipelineDetail.info`: "Pipeline Info" / "Pipeline információ"
+- `pipelineDetail.stepsTitle`: "Pipeline Steps" / "Pipeline lépések"
+- `pipelineDetail.description`: "Description" / "Leírás"
+- `pipelineDetail.trigger`: "Trigger" / "Indító"
+- `pipelineDetail.stepCount`: "Steps" / "Lépések"
+- `pipelineDetail.createdAt`: "Created" / "Létrehozva"
+- `pipelineDetail.updatedAt`: "Updated" / "Frissítve"
+- `pipelineDetail.validate`: "Validate" / "Validálás"
+- `pipelineDetail.run`: "Run" / "Futtatás"
+- `pipelineDetail.edit`: "Edit" / "Szerkesztés"
+- `pipelineDetail.noRuns`: "No runs yet" / "Még nincs futtatás"
+- `pipelineDetail.dependsOn`: "depends on" / "függ"
+- `pipelineDetail.copyYaml`: "Copy YAML" / "YAML másolás"

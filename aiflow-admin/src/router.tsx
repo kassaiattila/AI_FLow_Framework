@@ -26,6 +26,8 @@ import { Audit as AuditNew } from "./pages-new/Audit";
 import { Admin as AdminNew } from "./pages-new/Admin";
 import { Verification } from "./pages-new/Verification";
 import { DocumentDetail } from "./pages-new/DocumentDetail";
+import { Pipelines } from "./pages-new/Pipelines";
+import { PipelineDetail } from "./pages-new/PipelineDetail";
 
 // --- Legacy MUI (to be migrated in future) ---
 import { CubixViewer } from "./pages/CubixViewer";
@@ -84,6 +86,10 @@ export const router = createHashRouter([
       { path: "rpa", element: <RpaNew /> },
       { path: "reviews", element: <ReviewsNew /> },
       { path: "cubix", element: <LegacyPage><CubixViewer /></LegacyPage> },
+
+      // Orchestration (v1.2.0)
+      { path: "pipelines", element: <Pipelines /> },
+      { path: "pipelines/:id", element: <PipelineDetail /> },
 
       // Admin
       { path: "audit", element: <AuditNew /> },

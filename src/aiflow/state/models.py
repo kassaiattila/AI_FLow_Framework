@@ -14,6 +14,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 __all__ = [
     "Base",
+    "PipelineDefinitionModel",
     "WorkflowRunModel",
     "StepRunModel",
     "SkillInstanceModel",
@@ -66,6 +67,11 @@ class WorkflowRunModel(Base):
         UUID(as_uuid=True), ForeignKey("skill_instances.id", ondelete="SET NULL")
     )
 
+    # Pipeline FK (migration 027)
+    pipeline_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pipeline_definitions.id", ondelete="SET NULL")
+    )
+
     priority: Mapped[int] = mapped_column(Integer, default=3)
     metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, default=dict)
 
@@ -74,6 +80,7 @@ class WorkflowRunModel(Base):
     # Relationships
     step_runs: Mapped[list["StepRunModel"]] = relationship(back_populates="workflow_run", cascade="all, delete-orphan")
     instance: Mapped["SkillInstanceModel | None"] = relationship(back_populates="workflow_runs")
+    pipeline: Mapped["PipelineDefinitionModel | None"] = relationship(back_populates="workflow_runs")
 
     __table_args__ = (
         CheckConstraint(
@@ -88,6 +95,7 @@ class WorkflowRunModel(Base):
         Index("idx_wr_created_at", "created_at"),
         Index("idx_wr_job_id", "job_id"),
         Index("idx_wr_instance_id", "instance_id"),
+        Index("idx_wr_pipeline_id", "pipeline_id"),
     )
 
     def __repr__(self) -> str:
@@ -284,4 +292,49 @@ class EmailFetchHistoryModel(Base):
         Index("idx_efh_config_id", "config_id"),
         Index("idx_efh_fetched_at", "fetched_at"),
         Index("idx_efh_status", "status"),
+    )
+
+
+class PipelineDefinitionModel(Base):
+    """YAML-defined pipeline stored with compiled definition (migration 027)."""
+
+    __tablename__ = "pipeline_definitions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    version: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="1.0.0"
+    )
+    description: Mapped[str | None] = mapped_column(Text)
+
+    yaml_source: Mapped[str] = mapped_column(Text, nullable=False)
+    definition: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    trigger_config: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict
+    )
+    input_schema: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict
+    )
+
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    team_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    created_by: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+    # Relationships
+    workflow_runs: Mapped[list["WorkflowRunModel"]] = relationship(
+        back_populates="pipeline"
+    )
+
+    __table_args__ = (
+        Index("idx_pd_name", "name"),
+        Index("idx_pd_enabled", "enabled"),
+        Index("idx_pd_team_id", "team_id"),
     )

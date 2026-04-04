@@ -1,7 +1,5 @@
-@import "tailwindcss";
-
-/* Class-based dark mode — useTheme() adds/removes .dark on <html> */
-@variant dark (&:where(.dark, .dark *));
+/* Untitled UI globals (imports tailwindcss + theme + typography + plugins) */
+@import "./styles/globals.css";
 
 @theme {
   /* Brand colors (indigo — continuing from MUI theme) */
@@ -40,12 +38,4 @@
   /* Sidebar */
   --sidebar-width: 220px;
   --sidebar-collapsed-width: 48px;
-}
-
-/* Base styles */
-body {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }

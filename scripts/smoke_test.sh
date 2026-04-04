@@ -26,9 +26,9 @@ TOKEN=$(curl -sf -X POST "$BASE/api/v1/auth/login" \
 echo "OK: Auth token acquired"
 PASS=$((PASS+1))
 
-# 2. Health check
-curl -sf "$BASE/api/v1/health" \
-  | python -c "import sys,json; d=json.load(sys.stdin); assert d['status']=='ok', f'Health: {d}'" 2>/dev/null && {
+# 2. Health check (root-level, not under /api/v1/)
+curl -sf "$BASE/health" \
+  | python -c "import sys,json; d=json.load(sys.stdin); assert d['status']=='ready', f'Health: {d}'" 2>/dev/null && {
   echo "OK: Health endpoint"
   PASS=$((PASS+1))
 } || {
@@ -37,7 +37,7 @@ curl -sf "$BASE/api/v1/health" \
 }
 
 # 3. Core endpoints (source: backend check)
-for ep in documents emails/inbox rag/collections services; do
+for ep in documents emails rag/collections services/; do
   curl -sf -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/$ep" \
     | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', f'No source=backend: {list(d.keys())[:5]}'" 2>/dev/null && {
     echo "OK: /api/v1/$ep (source=backend)"

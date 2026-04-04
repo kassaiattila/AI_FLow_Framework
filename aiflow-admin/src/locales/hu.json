@@ -157,7 +157,8 @@
       "admin": "Adminisztracio",
       "operations": "Muveletek",
       "data": "Adatok",
-      "aiServices": "AI Szolgaltatasok"
+      "aiServices": "AI Szolgaltatasok",
+      "orchestration": "Orchestracio"
     },
     "monitoring": {
       "title": "Monitoring",
@@ -499,6 +500,44 @@
       "bulkDelete": "Kivalaszottak torlese",
       "bulkDeleteConfirm": "Biztosan torli a kivalasztott elemeket?"
     }
+  },
+  "pipelines": {
+    "title": "Pipeline-ok",
+    "subtitle": "YAML-alapu automatizalasi pipeline-ok kezelese",
+    "new": "Uj Pipeline",
+    "name": "Nev",
+    "version": "Verzio",
+    "steps": "Lepesek",
+    "trigger": "Indito",
+    "status": "Allapot",
+    "created": "Letrehozva",
+    "actions": "Muveletek",
+    "enabled": "Aktiv",
+    "disabled": "Inaktiv",
+    "empty": "Meg nincs pipeline",
+    "createFirst": "Hozza letre az elso pipeline-t",
+    "cancel": "Megse",
+    "create": "Letrehozas"
+  },
+  "pipelineDetail": {
+    "overview": "Attekintes",
+    "yaml": "YAML",
+    "runs": "Futatasok",
+    "info": "Pipeline informacio",
+    "stepsTitle": "Pipeline lepesek",
+    "description": "Leiras",
+    "trigger": "Indito",
+    "stepCount": "Lepesek",
+    "createdAt": "Letrehozva",
+    "updatedAt": "Frissitve",
+    "duration": "Idotartam",
+    "validate": "Validalas",
+    "run": "Futtatas",
+    "edit": "Szerkesztes",
+    "delete": "Torles",
+    "noRuns": "Meg nincs futtatas",
+    "dependsOn": "fugg",
+    "copyYaml": "YAML masolas"
   },
   "common": {
     "action": {

@@ -298,17 +298,39 @@ C17-C20: Tier 4 Polish ──────────── 1-2 session
 
 Minden ciklus vegén frissitjuk:
 
-```markdown
-## Progress (utolso frissites: [datum])
+## Progress (utolso frissites: 2026-04-03)
 
 | Ciklus | Fazis | Allapot | Datum | Commit |
 |--------|-------|---------|-------|--------|
-| C0 | Elokeszites | ⬜ TODO | — | — |
-| C1 | P1 Adapter | ⬜ TODO | — | — |
-| C2 | P2 Schema | ⬜ TODO | — | — |
-| C3 | P3 Runner+DB | ⬜ TODO | — | — |
-| C4 | P4 API | ⬜ TODO | — | — |
-| C5 | P5 UI | ⬜ TODO | — | — |
-| C6 | Invoice v1 | ⬜ TODO | — | — |
-| ... | ... | ... | ... | ... |
-```
+| C0 | Elokeszites | DONE | 2026-04-03 | (Tier 1 branch) |
+| C1 | P1 Adapter | DONE | 2026-04-04 | (Tier 1 branch) |
+| C2 | P2 Schema | DONE | 2026-04-04 | (Tier 1 branch) |
+| C3 | P3 Runner+DB | DONE | 2026-04-04 | (Tier 1 branch) |
+| C4 | P4 API | DONE | 2026-04-04 | (Tier 1 branch) |
+| C5 | P5 UI | DONE | 2026-04-04 | (Tier 1 branch) |
+| C6 | Invoice v1 | TODO | — | — |
+| C7 | P6A Notification | TODO | — | — |
+| C8 | P6D Data Router | TODO | — | — |
+| C9 | P6A+D Invoice v2 | TODO | — | — |
+| C10 | P6C Service Mgr | TODO | — | — |
+| C11 | P7D Reranker | TODO | — | — |
+| C12 | P7B Chunker | TODO | — | — |
+| C13 | P7A+C DataClean+Meta | TODO | — | — |
+| C14 | P7F VectorOps | TODO | — | — |
+| C15 | P7G Parser Factory | TODO | — | — |
+| C16 | P7E GraphRAG | TODO | — | — |
+| C17 | LLM Quality | TODO | — | — |
+| C18 | Chat UI | TODO | — | — |
+| C19 | Pipeline Templates | TODO | — | — |
+| C20 | UI Components+PWA | TODO | — | — |
+
+### C0 Output (2026-04-03):
+- Branch: `feature/v1.2.0-tier1-pipeline-orchestrator`
+- `scripts/smoke_test.sh` (L0 — created session 5)
+- Root CLAUDE.md v1.2.0 rules (created session 5)
+- Untitled UI init + 7 components (button, input, select, textarea, modal, tabs, badges)
+- CSS integration: `styles/globals.css` imported into `index.css` (Untitled UI theme tokens + plugins)
+- Dark mode variant aligned: `.dark` (consistent with `useTheme()`)
+- `pyproject.toml` ruff config fixed (`line-length` was invalid under `[tool.ruff.format]`)
+- TypeScript: 0 errors
+- **GATE:** L0 smoke test — **PASS** (6/6: auth, health, documents, emails, rag, services)

@@ -157,7 +157,8 @@
       "admin": "Administration",
       "operations": "Operations",
       "data": "Data",
-      "aiServices": "AI Services"
+      "aiServices": "AI Services",
+      "orchestration": "Orchestration"
     },
     "monitoring": {
       "title": "Monitoring",
@@ -499,6 +500,44 @@
       "bulkDelete": "Delete selected",
       "bulkDeleteConfirm": "Are you sure you want to delete the selected items?"
     }
+  },
+  "pipelines": {
+    "title": "Pipelines",
+    "subtitle": "Manage YAML-defined automation pipelines",
+    "new": "New Pipeline",
+    "name": "Name",
+    "version": "Version",
+    "steps": "Steps",
+    "trigger": "Trigger",
+    "status": "Status",
+    "created": "Created",
+    "actions": "Actions",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "empty": "No pipelines yet",
+    "createFirst": "Create your first pipeline",
+    "cancel": "Cancel",
+    "create": "Create"
+  },
+  "pipelineDetail": {
+    "overview": "Overview",
+    "yaml": "YAML",
+    "runs": "Runs",
+    "info": "Pipeline Info",
+    "stepsTitle": "Pipeline Steps",
+    "description": "Description",
+    "trigger": "Trigger",
+    "stepCount": "Steps",
+    "createdAt": "Created",
+    "updatedAt": "Updated",
+    "duration": "Duration",
+    "validate": "Validate",
+    "run": "Run",
+    "edit": "Edit",
+    "delete": "Delete",
+    "noRuns": "No runs yet",
+    "dependsOn": "depends on",
+    "copyYaml": "Copy YAML"
   },
   "common": {
     "action": {

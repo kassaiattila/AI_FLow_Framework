@@ -48,6 +48,13 @@ const MENU_GROUPS: MenuGroup[] = [
     ],
   },
   {
+    labelKey: "aiflow.menu.orchestration",
+    defaultOpen: true,
+    items: [
+      { path: "/pipelines", labelKey: "pipelines.title", icon: "diagram" },
+    ],
+  },
+  {
     labelKey: "aiflow.menu.admin",
     defaultOpen: false,
     items: [
