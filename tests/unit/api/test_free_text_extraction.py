@@ -9,17 +9,19 @@
     requires_services: []
     tags: [free-text, extraction, api]
 """
+
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiflow.services.document_extractor.free_text import (
-    FreeTextExtractorService,
+    FreeTextExtractionResponse,
     FreeTextExtractorConfig,
+    FreeTextExtractorService,
     FreeTextQuery,
     FreeTextResult,
-    FreeTextExtractionResponse,
 )
 
 
@@ -48,7 +50,8 @@ class TestFreeTextExtractorService:
         factory, _ = mock_session_factory
         svc = FreeTextExtractorService(factory)
         assert svc.service_name == "free_text_extractor"
-        assert "free-text" in svc.service_description.lower() or "free" in svc.service_description.lower()
+        desc = svc.service_description.lower()
+        assert "free-text" in desc or "free" in desc
 
     def test_query_model(self):
         """FreeTextQuery model works correctly."""
@@ -96,9 +99,11 @@ class TestFreeTextExtractorService:
         queries = [FreeTextQuery(query=f"Q{i}") for i in range(10)]
 
         # Mock _load_document_text to return None (doc not found)
-        with patch.object(svc, "_load_document_text", new_callable=AsyncMock, return_value=None):
-            with patch.object(svc, "_log_extraction", new_callable=AsyncMock):
-                result = await svc.extract("doc-1", queries)
+        with (
+            patch.object(svc, "_load_document_text", new_callable=AsyncMock, return_value=None),
+            patch.object(svc, "_log_extraction", new_callable=AsyncMock),
+        ):
+            result = await svc.extract("doc-1", queries)
 
         # Should have 3 results (truncated to max_queries)
         assert len(result.results) == 3
@@ -109,12 +114,14 @@ class TestFreeTextExtractorService:
         factory, session = mock_session_factory
         svc = FreeTextExtractorService(factory)
 
-        with patch.object(svc, "_load_document_text", new_callable=AsyncMock, return_value=None):
-            with patch.object(svc, "_log_extraction", new_callable=AsyncMock):
-                result = await svc.extract(
-                    "nonexistent-id",
-                    [FreeTextQuery(query="What is the total?")],
-                )
+        with (
+            patch.object(svc, "_load_document_text", new_callable=AsyncMock, return_value=None),
+            patch.object(svc, "_log_extraction", new_callable=AsyncMock),
+        ):
+            result = await svc.extract(
+                "nonexistent-id",
+                [FreeTextQuery(query="What is the total?")],
+            )
 
         assert len(result.results) == 1
         assert result.results[0].answer == "Document not found"
@@ -127,7 +134,12 @@ class TestFreeTextExtractorService:
         svc = FreeTextExtractorService(factory)
 
         mock_results = [
-            FreeTextResult(query="Who?", answer="Acme Corp", confidence=0.9, source_span="Vendor: Acme Corp"),
+            FreeTextResult(
+                query="Who?",
+                answer="Acme Corp",
+                confidence=0.9,
+                source_span="Vendor: Acme Corp",
+            ),
         ]
         with patch.object(svc, "_call_llm", new_callable=AsyncMock, return_value=mock_results):
             results = await svc.extract_from_text(

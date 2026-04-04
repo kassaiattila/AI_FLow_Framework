@@ -3,18 +3,21 @@
 Unlike structured extraction (which uses predefined field schemas),
 free-text extraction lets users ask ad-hoc questions about document content.
 """
+
 from __future__ import annotations
 
 import json
 import time
-from typing import Any
+from typing import TYPE_CHECKING
 
 import structlog
 from pydantic import BaseModel, Field
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from aiflow.services.base import BaseService, ServiceConfig
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 __all__ = [
     "FreeTextQuery",
@@ -238,18 +241,19 @@ class FreeTextExtractorService(BaseService):
         from aiflow.models.client import ModelClient
 
         queries_block = "\n".join(
-            f"{i+1}. {q.query}" + (f" (hint: {q.hint})" if q.hint else "")
+            f"{i + 1}. {q.query}" + (f" (hint: {q.hint})" if q.hint else "")
             for i, q in enumerate(queries)
         )
 
         system_prompt = (
             "You are a document analysis assistant. "
-            "Given a document and a list of queries, answer each query based ONLY on the document content. "
+            "Given a document and a list of queries, answer each query "
+            "based ONLY on the document content. "
             "Return a JSON array where each element has: "
             '"query" (the original query), '
-            '"answer" (your answer — use "Not found" if the document does not contain the information), '
+            '"answer" (your answer — use "Not found" if not in document), '
             '"confidence" (0.0–1.0 how confident you are), '
-            '"source_span" (the relevant text snippet from the document, max 200 chars).'
+            '"source_span" (relevant text snippet, max 200 chars).'
         )
 
         user_prompt = (
@@ -276,20 +280,22 @@ class FreeTextExtractorService(BaseService):
 
             results = []
             for item in items:
-                results.append(FreeTextResult(
-                    query=item.get("query", ""),
-                    answer=item.get("answer", "Not found"),
-                    confidence=float(item.get("confidence", 0.0)),
-                    source_span=item.get("source_span", "")[:200],
-                ))
+                results.append(
+                    FreeTextResult(
+                        query=item.get("query", ""),
+                        answer=item.get("answer", "Not found"),
+                        confidence=float(item.get("confidence", 0.0)),
+                        source_span=item.get("source_span", "")[:200],
+                    )
+                )
 
             # Ensure we have results for all queries
             answered_queries = {r.query for r in results}
             for q in queries:
                 if q.query not in answered_queries:
-                    results.append(FreeTextResult(
-                        query=q.query, answer="Not found", confidence=0.0
-                    ))
+                    results.append(
+                        FreeTextResult(query=q.query, answer="Not found", confidence=0.0)
+                    )
 
             return results
 
@@ -321,9 +327,7 @@ class FreeTextExtractorService(BaseService):
                     "model": model,
                     "elapsed_ms": round(elapsed_ms),
                     "avg_confidence": (
-                        sum(r.confidence for r in results) / len(results)
-                        if results
-                        else 0.0
+                        sum(r.confidence for r in results) / len(results) if results else 0.0
                     ),
                 },
             )

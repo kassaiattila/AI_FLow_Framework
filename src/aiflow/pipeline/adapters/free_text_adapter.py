@@ -2,21 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
-from aiflow.core.context import ExecutionContext
 from aiflow.pipeline.adapter_base import BaseAdapter, adapter_registry
+
+if TYPE_CHECKING:
+    from aiflow.core.context import ExecutionContext
 
 
 class FreeTextExtractInput(BaseModel):
     """Input schema for free-text extraction."""
 
     document_id: str = Field(..., description="UUID of the document to query")
-    queries: list[dict[str, str]] = Field(
-        ..., description="List of {query, hint?} dicts"
-    )
+    queries: list[dict[str, str]] = Field(..., description="List of {query, hint?} dicts")
     model: str | None = Field(None, description="LLM model override")
 
 
@@ -67,8 +67,7 @@ class FreeTextExtractAdapter(BaseAdapter):
         from aiflow.services.document_extractor.free_text import FreeTextQuery
 
         queries = [
-            FreeTextQuery(query=q.get("query", ""), hint=q.get("hint", ""))
-            for q in data.queries
+            FreeTextQuery(query=q.get("query", ""), hint=q.get("hint", "")) for q in data.queries
         ]
 
         result = await svc.extract(

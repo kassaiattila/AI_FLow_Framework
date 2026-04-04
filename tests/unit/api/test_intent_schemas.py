@@ -9,9 +9,8 @@
     requires_services: []
     tags: [intent, schema, crud, api]
 """
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from aiflow.api.v1.intent_schemas import (
     IntentDefinition,

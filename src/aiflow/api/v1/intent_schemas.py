@@ -3,11 +3,11 @@
 Schemas stored in DB (intent_schemas table) and loadable from YAML/JSON files.
 Each schema defines intents with keywords, examples, routing rules, and ML labels.
 """
+
 from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 import structlog
@@ -161,7 +161,8 @@ async def list_intent_schemas(
                 offset,
             )
             count_row = await conn.fetchrow(
-                "SELECT COUNT(*) AS cnt FROM intent_schemas WHERE customer = $1 OR customer = 'default'",
+                "SELECT COUNT(*) AS cnt FROM intent_schemas"
+                " WHERE customer = $1 OR customer = 'default'",
                 customer,
             )
             total = count_row["cnt"] if count_row else 0
@@ -242,9 +243,12 @@ async def create_intent_schema(request: IntentSchemaCreateRequest) -> IntentSche
         if "unique" in str(e).lower():
             raise HTTPException(
                 status_code=409,
-                detail=f"Intent schema '{request.name}' already exists for customer '{request.customer}'",
-            )
-        raise HTTPException(status_code=500, detail=str(e))
+                detail=(
+                    f"Intent schema '{request.name}' already exists"
+                    f" for customer '{request.customer}'"
+                ),
+            ) from e
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
     logger.info("intent_schema_created", id=str(schema_id), name=request.name)
     return IntentSchemaResponse(schema=_row_to_schema(row))
@@ -361,7 +365,8 @@ async def test_intent_schema(schema_id: str, request: IntentTestRequest) -> Inte
     if not row:
         raise HTTPException(status_code=404, detail=f"Intent schema not found: {schema_id}")
 
-    intents_data = row["intents"] if isinstance(row["intents"], list) else json.loads(row["intents"])
+    intents_raw = row["intents"]
+    intents_data = intents_raw if isinstance(intents_raw, list) else json.loads(intents_raw)
     text_lower = request.text.lower()
 
     # Keyword-based scoring
@@ -411,7 +416,7 @@ def _row_to_schema(row: Any) -> IntentSchemaItem:
         intents_raw = json.loads(intents_raw)
 
     intents = []
-    for i in (intents_raw or []):
+    for i in intents_raw or []:
         routing_data = i.get("routing", {})
         intents.append(
             IntentDefinition(

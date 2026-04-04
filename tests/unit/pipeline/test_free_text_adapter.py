@@ -9,10 +9,12 @@
     requires_services: []
     tags: [pipeline, adapter, free-text]
 """
+
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiflow.pipeline.adapters.free_text_adapter import (
     FreeTextExtractAdapter,
@@ -61,7 +63,12 @@ class TestFreeTextExtractAdapter:
         out = FreeTextExtractOutput(
             document_id="doc-789",
             results=[
-                {"query": "Total?", "answer": "1000", "confidence": 0.9, "source_span": "Total: 1000"},
+                {
+                    "query": "Total?",
+                    "answer": "1000",
+                    "confidence": 0.9,
+                    "source_span": "Total: 1000",
+                },
             ],
             extraction_time_ms=150.5,
             model_used="openai/gpt-4o-mini",
