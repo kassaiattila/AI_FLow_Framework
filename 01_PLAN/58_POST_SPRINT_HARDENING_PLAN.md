@@ -1091,8 +1091,8 @@ S33: B8+B9 — Javitasok + v1.3.0
 
 | Fazis | Tartalom | Allapot | Datum | Commit |
 |-------|----------|---------|-------|--------|
-| A0 | CI/CD Green | TODO | — | — |
-| A1 | Ruff 1,234 → 0 | TODO | — | — |
+| A0 | CI/CD Green | DONE | 2026-04-04 | 27e9c82 |
+| A1 | Ruff 1,234 → 0 | DONE | 2026-04-04 | a32a84d |
 | A2 | Halott kod audit + archivalas | TODO | — | — |
 | A3 | Security + JWT session | TODO | — | — |
 | A4 | Stubs + alapfunkciok | TODO | — | — |
