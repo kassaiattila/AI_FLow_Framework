@@ -54,8 +54,31 @@ def create_app() -> FastAPI:
     async def lifespan(app: FastAPI):
         # Startup: pool/engine created lazily on first use
         logger.info("app_startup")
+
+        # Initialize Langfuse tracer (global singleton)
+        langfuse_tracer = None
+        try:
+            from aiflow.observability.tracing import LangfuseTracer
+            pk = os.getenv("AIFLOW_LANGFUSE__PUBLIC_KEY", "")
+            sk = os.getenv("AIFLOW_LANGFUSE__SECRET_KEY", "")
+            host = os.getenv("AIFLOW_LANGFUSE__HOST", "https://cloud.langfuse.com")
+            enabled = os.getenv("AIFLOW_LANGFUSE__ENABLED", "false").lower() in ("true", "1", "yes")
+            if pk and sk:
+                langfuse_tracer = LangfuseTracer(
+                    public_key=pk,
+                    secret_key=sk,
+                    host=host,
+                    enabled=enabled,
+                )
+                app.state.langfuse_tracer = langfuse_tracer
+        except Exception as exc:
+            logger.warning("langfuse_init_skipped", error=str(exc))
+
         yield
-        # Shutdown: close shared DB connections
+
+        # Shutdown: flush Langfuse and close shared DB connections
+        if langfuse_tracer:
+            langfuse_tracer.shutdown()
         from aiflow.api.deps import close_all
         await close_all()
         logger.info("app_shutdown")

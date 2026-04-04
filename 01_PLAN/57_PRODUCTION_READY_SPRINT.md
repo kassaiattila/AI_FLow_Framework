@@ -260,7 +260,7 @@ GATE: 0 MUI import, 0 console error, 20/20 oldal PASS
 
 | Ciklus | Tartalom | Teszt | Becsult meret |
 |--------|----------|-------|---------------|
-| **S7** | Langfuse valos integracio: tracing decorator, pipeline cost log | Valos Langfuse dashboard | ~300 loc |
+| **S7** | Langfuse valos integracio: tracing decorator, pipeline cost log | Valos Langfuse dashboard | ~300 loc | **DONE** |
 | **S8** | Promptfoo 5 skill config + CI/CD nightly job | npx promptfoo eval → 90%+ | ~500 loc (YAML) |
 | **S9** | E2E Playwright test suite: 10+ oldal, reusable Page Objects | pytest-playwright PASS | ~800 loc |
 | **S10** | Regresszios automatizacio: L2 API + L3 UI + GitHub Actions nightly | CI/CD pipeline PASS | ~400 loc |
@@ -293,6 +293,24 @@ TESZTELES:
 
 GATE: valos trace a Langfuse UI-ban, koltseg lathato, 0 hiba
 MEGJEGYZES: Ha Langfuse account nincs → stub marad de LOGOL structlog-ba
+
+OUTPUT (S7 — 2026-04-04, session 11):
+  - src/aiflow/observability/tracing.py: LangfuseTracer stub → real Langfuse SDK
+    - trace(), span(), flush(), score(), generation() valos Langfuse hivas
+    - Graceful fallback: ha nincs client, structlog-ba logol
+    - check_health() + shutdown() lifecycle management
+  - @trace_llm_call decorator: auto-traces async functions (input/output/duration)
+  - src/aiflow/pipeline/runner.py: Langfuse trace per pipeline run, span per step
+    - Step cost extraction + cost_records persistence via record_cost()
+    - total_cost_usd aggregation per pipeline run
+  - src/aiflow/api/v1/health.py: _check_langfuse() → /health endpoint
+  - src/aiflow/api/app.py: Langfuse init at startup, shutdown at exit
+  - .env: BASE_URL→HOST fix, ENABLED=true
+  - observability/__init__.py: exports updated
+  - 24 uj unit teszt (test_langfuse_tracing.py) — MIND PASS
+  - 74/74 observability teszt PASS, 332/332 pipeline teszt PASS
+  - curl /health → langfuse status: "ok", Langfuse connected
+  Commit: TBD
 ```
 
 #### S8 Reszletes: Promptfoo Skill Configs (5 uj + 1 meglevo = 6/6)
