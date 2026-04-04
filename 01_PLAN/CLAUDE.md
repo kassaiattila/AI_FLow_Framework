@@ -45,7 +45,8 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - Framework: 22 weeks, 7 phases (Phase 1-7 KESZ)
 - Service Generalization: Fazis 0-5 KESZ (v1.0.0, 2026-04-02)
 - UI Modernization: F6 KESZ (v1.1.4, 2026-04-03)
-- **v1.2.0 Orchestration: Tier 1 DONE (v1.2.0-alpha) → Tier 2 DONE (v1.2.0-rc1) → Tier 3 DONE (v1.2.0-rc2) → Tier 4 TODO (C17-C20)**
+- **v1.2.0 Orchestration: COMPLETE (C0-C20, tag v1.2.0)**
+- **v1.2.1 Production Ready Sprint: `01_PLAN/57_PRODUCTION_READY_SPRINT.md` — S1-S12 ciklus (UI integracio, observability, quality, polish)**
 - 26 service (15 eredeti + 11 uj v1.2.0: notification, data_router, service_manager, reranker, advanced_chunker, data_cleaner, metadata_enricher, vector_ops, advanced_parser, graph_rag, quality)
 - ~155 endpoint (112 eredeti + 15 Tier 2 + 7 Tier 3 + pipeline 13 + quality 4 + templates 3)
 - 18 pipeline adapter (7 eredeti + 3 Tier 2 + 7 Tier 3 + 1 Tier 4)

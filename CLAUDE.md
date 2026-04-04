@@ -15,18 +15,20 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - **Skill Instance** = configured deployment of a Skill template per customer
 - **VectorStore** = pgvector hybrid search (vector HNSW + BM25 tsvector + RRF)
 
-## Current Phase: Orchestrable Service Architecture (v1.1.4 → v1.2.0)
-**Fo terv:** `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` + reszletes tervek (49-56)
+## Current Phase: Production Ready Sprint (v1.2.0 → v1.2.1)
+**Fo terv:** `01_PLAN/57_PRODUCTION_READY_SPRINT.md`
+**Elozo terv:** `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` (v1.2.0 COMPLETE)
 
-> **Elozmeny:** v1.0.0 Service Generalization KESZ, v1.1.4 UI Modernization KESZ.
+> **Elozmeny:** v1.2.0 COMPLETE (C0-C20, 2026-04-04) — 26 service, 18 adapter, 6 template, 332 test.
 > 26 service, ~155 API endpoint (24 router), 17 UI oldal, 45 DB tabla, 29 Alembic migracio.
-> 18 pipeline adapter, 6 pipeline template, 332 pipeline unit test. C0-C20 MIND DONE, v1.2.0 COMPLETE.
+> 18 pipeline adapter, 6 pipeline template, 332 pipeline unit test. v1.2.0 tagged.
 
-**v1.2.0 fo celok:**
-- **Pipeline Orchestrator** — YAML-defined service chaining (Pipeline as Code, NEM drag-and-drop)
-- **Uj szolgaltatasok** — notification, data_router, advanced RAG (7 service)
-- **LLM quality** — Promptfoo CI/CD, cost optimization, rubric scoring
-- **Frontend** — Untitled UI 80+ komponens, chat UI modernizacio, PWA (C20)
+**v1.2.1 fo celok:**
+- **UI integracio** — ChatMarkdown bekotes, Quality dashboard, in-app notifications, design tokens
+- **Observability** — Langfuse valos integracio, pipeline cost tracking
+- **Quality assurance** — 6/6 skill Promptfoo config, E2E Playwright suite, CI/CD nightly
+- **Hianyzo funkciok** — free text extraction, SLA eszkalacio, intent schema CRUD, cost estimation
+- **UI polish** — MUI eltavolitas, dark mode, responsive, accessibility, PWA teszteles
 
 **Tier-ek:**
 - Tier 1 (Core): P1 Adapter → P2 Schema → P3 Runner+DB → P4 API → P5 UI
@@ -122,8 +124,9 @@ This enables: new intents/entities without code changes, per-customer customizat
 - **Fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul** (ld. 42_SERVICE_GENERALIZATION_PLAN.md Section 8)
 
 ### Key plan documents:
-- **`01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md`** - **AKTUALIS**: v1.2.0 Pipeline as Code fo terv
-- **`01_PLAN/56_EXECUTION_PLAN.md`** - **AKTUALIS**: 21 ciklus (C0-C20), session sablon, progress
+- **`01_PLAN/57_PRODUCTION_READY_SPRINT.md`** - **AKTUALIS**: v1.2.1 Production Ready (S1-S12), UI+observability+quality+polish
+- **`01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md`** - KESZ: v1.2.0 Pipeline as Code fo terv (C0-C20 DONE)
+- **`01_PLAN/56_EXECUTION_PLAN.md`** - KESZ: 21 ciklus (C0-C20 MIND DONE), v1.2.0 tagged
 - `01_PLAN/49-54` - Reszletes tervek (stability, RAG, doc extract, HITL, frontend, LLM quality)
 - `01_PLAN/55_CLAUDE_CODE_CONFIGURATION.md` - Claude iranyitas konfiguracio terv
 - `01_PLAN/43_UI_RATIONALIZATION_PLAN.md` - KESZ: UI migracio (F6, v1.1.4)
