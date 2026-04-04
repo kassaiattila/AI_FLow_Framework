@@ -16,10 +16,9 @@ Tests the AI services browsing flow.
 """
 from __future__ import annotations
 
-import pytest
 from playwright.sync_api import Page, expect
 
-from tests.e2e.conftest import BASE_URL, navigate_to
+from tests.e2e.conftest import navigate_to
 
 
 class TestRagJourney:

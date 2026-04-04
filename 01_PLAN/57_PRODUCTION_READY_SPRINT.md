@@ -717,8 +717,8 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S10 | CI/CD regresszios pipeline | DONE | 2026-04-04 | b707fe7 |
 | S11 | Free text extraction + intent schema | DONE | 2026-04-04 | b707fe7 |
 | S12 | SLA eszkalacio + cost estimation | DONE | 2026-04-04 | 6318ee0 |
-| S13 | Integralt E2E teszteles | TODO | — | — |
-| S14 | Vegleges polish + v1.2.1 tag | TODO | — | — |
+| S13 | Integralt E2E teszteles (5 journey, 25 teszt) | DONE | 2026-04-04 | 35963cd |
+| S14 | Accessibility audit + v1.2.1 tag (23 a11y teszt) | DONE | 2026-04-04 | — |
 
 ---
 

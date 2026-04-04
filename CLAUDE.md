@@ -15,13 +15,13 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - **Skill Instance** = configured deployment of a Skill template per customer
 - **VectorStore** = pgvector hybrid search (vector HNSW + BM25 tsvector + RRF)
 
-## Current Phase: Production Ready Sprint (v1.2.0 → v1.2.1)
-**Fo terv:** `01_PLAN/57_PRODUCTION_READY_SPRINT.md`
+## Current Phase: v1.2.1 COMPLETE (Production Ready Sprint)
+**Fo terv:** `01_PLAN/57_PRODUCTION_READY_SPRINT.md` — S1-S14 MIND DONE (2026-04-04)
 **Elozo terv:** `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` (v1.2.0 COMPLETE)
 
-> **Elozmeny:** v1.2.0 COMPLETE (C0-C20, 2026-04-04) — 26 service, 18 adapter, 6 template, 332 test.
-> 26 service, ~165 API endpoint (25 router), 17 UI oldal, 45 DB tabla, 29 Alembic migracio.
-> 19 pipeline adapter, 6 pipeline template, 332+25 unit test. v1.2.0 tagged.
+> **v1.2.1 COMPLETE** (S1-S14, 2026-04-04) — UI integracio, Langfuse, Promptfoo, 102 E2E teszt, accessibility.
+> 26 service, ~169 API endpoint (25 router), 17 UI oldal, 45 DB tabla, 29 Alembic migracio.
+> 19 pipeline adapter, 6 pipeline template, 369 unit test, 102 E2E teszt, 51 promptfoo test case.
 
 **v1.2.1 fo celok:**
 - **UI integracio** — ChatMarkdown bekotes, Quality dashboard, in-app notifications, design tokens
@@ -124,7 +124,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 - **Fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul** (ld. 42_SERVICE_GENERALIZATION_PLAN.md Section 8)
 
 ### Key plan documents:
-- **`01_PLAN/57_PRODUCTION_READY_SPRINT.md`** - **AKTUALIS**: v1.2.1 Production Ready (S1-S12), UI+observability+quality+polish
+- **`01_PLAN/57_PRODUCTION_READY_SPRINT.md`** - **COMPLETE**: v1.2.1 Production Ready (S1-S14 DONE), UI+observability+quality+102 E2E+accessibility
 - **`01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md`** - KESZ: v1.2.0 Pipeline as Code fo terv (C0-C20 DONE)
 - **`01_PLAN/56_EXECUTION_PLAN.md`** - KESZ: 21 ciklus (C0-C20 MIND DONE), v1.2.0 tagged
 - `01_PLAN/49-54` - Reszletes tervek (stability, RAG, doc extract, HITL, frontend, LLM quality)

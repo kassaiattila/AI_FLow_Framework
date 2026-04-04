@@ -7,7 +7,7 @@ Tests the full document browsing flow across multiple pages.
 @test_registry:
     suite: e2e-journey
     component: aiflow-admin.documents
-    covers: [aiflow-admin/src/pages-new/Documents.tsx, aiflow-admin/src/pages-new/DocumentDetail.tsx]
+    covers: [aiflow-admin/src/pages-new/Documents.tsx]
     phase: S13
     priority: critical
     estimated_duration_ms: 20000
@@ -16,10 +16,9 @@ Tests the full document browsing flow across multiple pages.
 """
 from __future__ import annotations
 
-import pytest
 from playwright.sync_api import Page, expect
 
-from tests.e2e.conftest import BASE_URL, navigate_to
+from tests.e2e.conftest import navigate_to
 
 
 class TestDocumentJourney:
@@ -63,8 +62,6 @@ class TestDocumentJourney:
         )
         assert has_table or has_content, "Documents page has no table or content"
 
-        # Source indicator should exist (backend or demo badge)
-        has_source = any(s in body.lower() for s in ["backend", "demo", "live"])
         # Page should at minimum not be empty
         assert len(body.strip()) > 20, "Documents page rendered empty"
 
@@ -73,7 +70,6 @@ class TestDocumentJourney:
         page = authenticated_page
         navigate_to(page, "/documents")
 
-        body = page.locator("body").text_content() or ""
         # Should have some actionable UI elements
         buttons = page.locator("button")
         assert buttons.count() >= 1, "Documents page has no buttons"

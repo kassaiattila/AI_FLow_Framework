@@ -7,7 +7,7 @@ Tests the quality/observability browsing flow.
 @test_registry:
     suite: e2e-journey
     component: aiflow-admin.quality
-    covers: [aiflow-admin/src/pages-new/Quality.tsx, aiflow-admin/src/pages-new/Costs.tsx, aiflow-admin/src/pages-new/Monitoring.tsx]
+    covers: [aiflow-admin/src/pages-new/Quality.tsx, aiflow-admin/src/pages-new/Costs.tsx]
     phase: S13
     priority: critical
     estimated_duration_ms: 25000
@@ -16,10 +16,9 @@ Tests the quality/observability browsing flow.
 """
 from __future__ import annotations
 
-import pytest
 from playwright.sync_api import Page, expect
 
-from tests.e2e.conftest import BASE_URL, navigate_to
+from tests.e2e.conftest import navigate_to
 
 
 def _wait_quality_loaded(page: Page) -> None:

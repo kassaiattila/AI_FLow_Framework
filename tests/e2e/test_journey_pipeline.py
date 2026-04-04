@@ -7,7 +7,7 @@ Tests the pipeline orchestration browsing flow.
 @test_registry:
     suite: e2e-journey
     component: aiflow-admin.pipelines
-    covers: [aiflow-admin/src/pages-new/Pipelines.tsx, aiflow-admin/src/pages-new/PipelineDetail.tsx, aiflow-admin/src/pages-new/Services.tsx]
+    covers: [aiflow-admin/src/pages-new/Pipelines.tsx, aiflow-admin/src/pages-new/Services.tsx]
     phase: S13
     priority: critical
     estimated_duration_ms: 20000
@@ -16,10 +16,9 @@ Tests the pipeline orchestration browsing flow.
 """
 from __future__ import annotations
 
-import pytest
 from playwright.sync_api import Page, expect
 
-from tests.e2e.conftest import BASE_URL, navigate_to
+from tests.e2e.conftest import navigate_to
 
 
 class TestPipelineJourney:
@@ -113,7 +112,10 @@ class TestPipelineJourney:
         assert len(body.strip()) > 50, "Services page is empty"
 
         # Check for search input (services page has search capability)
-        search = page.locator('input[type="search"], input[type="text"], input[placeholder*="earch"], input[placeholder*="eres"]')
+        search = page.locator(
+            'input[type="search"], input[type="text"], '
+            'input[placeholder*="earch"], input[placeholder*="eres"]'
+        )
         if search.count() > 0:
             # Type a search term
             search.first.fill("rag")

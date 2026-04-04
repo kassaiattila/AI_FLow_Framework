@@ -7,7 +7,7 @@ Tests the admin/governance browsing flow.
 @test_registry:
     suite: e2e-journey
     component: aiflow-admin.admin
-    covers: [aiflow-admin/src/pages-new/Dashboard.tsx, aiflow-admin/src/pages-new/Admin.tsx, aiflow-admin/src/layout/TopBar.tsx]
+    covers: [aiflow-admin/src/pages-new/Dashboard.tsx, aiflow-admin/src/pages-new/Admin.tsx]
     phase: S13
     priority: critical
     estimated_duration_ms: 25000
@@ -16,10 +16,9 @@ Tests the admin/governance browsing flow.
 """
 from __future__ import annotations
 
-import pytest
 from playwright.sync_api import Page, expect
 
-from tests.e2e.conftest import BASE_URL, navigate_to
+from tests.e2e.conftest import navigate_to
 
 
 class TestAdminJourney:
@@ -86,7 +85,10 @@ class TestAdminJourney:
         admin_body = page.locator("body").text_content() or ""
         assert any(
             w in admin_body
-            for w in ["Admin", "Adminisztrac", "admin", "User", "Felhasznalo", "Settings", "Beallitas"]
+            for w in [
+                "Admin", "Adminisztrac", "admin",
+                "User", "Felhasznalo", "Settings", "Beallitas",
+            ]
         ), f"Admin page missing content: {admin_body[:200]}"
 
         # Navigate to Audit
