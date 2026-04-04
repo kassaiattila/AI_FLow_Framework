@@ -716,7 +716,7 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S9 | E2E Playwright test suite (54 tests) | DONE | 2026-04-04 | 65dfcdf |
 | S10 | CI/CD regresszios pipeline | DONE | 2026-04-04 | b707fe7 |
 | S11 | Free text extraction + intent schema | DONE | 2026-04-04 | b707fe7 |
-| S12 | SLA eszkalacio + cost estimation | DONE | 2026-04-04 | PENDING |
+| S12 | SLA eszkalacio + cost estimation | DONE | 2026-04-04 | 6318ee0 |
 | S13 | Integralt E2E teszteles | TODO | — | — |
 | S14 | Vegleges polish + v1.2.1 tag | TODO | — | — |
 
