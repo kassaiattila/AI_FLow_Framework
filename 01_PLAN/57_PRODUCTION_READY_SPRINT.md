@@ -361,7 +361,7 @@ OUTPUT (S8 — 2026-04-04, session 12):
     - invoice: 100% (10/10) PASS
     - cubix: 100% (6/6) PASS
     - qbpp: 100% (6/6) PASS
-  - Commit: (pending)
+  - Commit: dfbb8e4
 ```
 
 #### S9 Reszletes: E2E Playwright Test Suite
@@ -622,7 +622,7 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S5 | Design system teljeskoruseg | DONE | 2026-04-04 | 47992bc |
 | S6 | Meglevo oldalak UI polish + MUI torles | DONE | 2026-04-04 | b38b156 |
 | S7 | Langfuse valos integracio | DONE | 2026-04-04 | 6e46fed |
-| S8 | Promptfoo 6 skill config + CI/CD nightly | DONE | 2026-04-04 | (pending) |
+| S8 | Promptfoo 6 skill config + CI/CD nightly | DONE | 2026-04-04 | dfbb8e4 |
 | S9 | E2E Playwright test suite | TODO | — | — |
 | S10 | CI/CD regresszios pipeline | TODO | — | — |
 | S11 | Free text extraction + intent schema | TODO | — | — |
