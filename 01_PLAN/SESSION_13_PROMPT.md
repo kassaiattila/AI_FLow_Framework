@@ -213,13 +213,46 @@ S12: SLA + cost estimation ────────── TODO
 
 ---
 
-## SZERVER INDITAS
+## KORNYEZET ELLENORZES (session indulaskor KOTELEZO!)
+
+> **Session 12 utan uj terminal + uj Claude instance indult.**
+> **Az alabbi ellenorzeseket MINDEN session elejen el KELL vegezni!**
 
 ```bash
-docker compose up -d db redis
+# 0. ELSO LEPES: ellenorizd a branch-et
+git branch --show-current   # → feature/v1.2.1-production-ready
+git log --oneline -3        # → utolso commitok stimmelnek?
+
+# 1. Python venv ellenorzes
+.venv\Scripts\python.exe --version   # → Python 3.12.x
+.venv\Scripts\python.exe -c "import fastapi, pydantic, structlog, sqlalchemy; print('Core deps OK')"
+.venv\Scripts\python.exe -c "import pypdfium2; import docling; import aiosmtplib; print('Extra deps OK')"
+.venv\Scripts\python.exe -c "from playwright.sync_api import sync_playwright; print('Playwright OK')"
+
+# 2. Ha BARMELYIK import FAIL → ujratelepites:
+# uv pip install -e ".[dev]" pypdfium2 docling aiosmtplib pytest-playwright
+
+# 3. Node/npm ellenorzes (aiflow-admin)
+cd aiflow-admin && node --version && npm --version   # → Node 20+, npm 10+
+ls node_modules/.package-lock.json > /dev/null 2>&1 || npm ci   # Ha nincs node_modules → install
+
+# 4. Docker services
+docker compose ps   # → db (5433) + redis (6379) KELL futniuk
+docker compose up -d db redis   # Ha nem futnak
+
+# 5. Szerver inditas
 .venv\Scripts\python.exe -B -m uvicorn aiflow.api.app:create_app --factory --port 8102
-cd aiflow-admin && npm run dev
+cd aiflow-admin && npm run dev   # → localhost:5174
+
+# 6. Smoke test (szerver indulas utan)
+./scripts/smoke_test.sh   # → ALL PASS
 ```
+
+### Gyakori hibak uj session-ben:
+- **`ModuleNotFoundError: pypdfium2`** → `.venv` ujraepitesnel elveszett, ld. CLAUDE.md `.venv Dependency Safety`
+- **Port 8102 foglalt** → `PID=$(netstat -aon | grep ':8102' | grep LISTEN | awk '{print $NF}') && taskkill //PID $PID //F`
+- **Stale __pycache__** → `rm -f src/aiflow/**/__pycache__/*.pyc`
+- **aiflow-admin npm hiba** → `cd aiflow-admin && rm -rf node_modules && npm ci`
 
 ---
 
