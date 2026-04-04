@@ -24,7 +24,7 @@ de a kovetkezo tersegek **nem keszek produkciohoz:**
 
 ## 1. Fejlesztesi Ciklus Modell (valtozatlan)
 
-Minden ciklus (S1-S12) ugyanazt a 6 lepest koveti mint v1.2.0:
+Minden ciklus (S1-S14) ugyanazt a 6 lepest koveti mint v1.2.0:
 
 ```
 TERVEZES → FEJLESZTES → TESZTELES → DOKUMENTALAS → FINOMHANGOLAS → SESSION PROMPT
@@ -46,12 +46,12 @@ TERVEZES → FEJLESZTES → TESZTELES → DOKUMENTALAS → FINOMHANGOLAS → SES
 ```
 main (v1.2.0 — stabil)
   │
-  └── feature/v1.2.1-production-ready
-        ├── S1-S4: UI & Integracio
-        ├── S5-S8: Quality & Observability
-        ├── S9-S10: Hianyzo funkciok
-        ├── S11-S12: E2E & Polish
-        └── merge to main → tag v1.2.1
+  └── feature/v1.2.1-production-ready   ← MINDEN S1-S14 ezen a branch-en
+        ├── S1-S6:   Tier A — UI Integracio & Unified Experience
+        ├── S7-S10:  Tier B — Quality & Observability
+        ├── S11-S12: Tier C — Hianyzo Funkciok
+        ├── S13-S14: Tier D — Veglegesites
+        └── squash merge to main → tag v1.2.1
 ```
 
 ---
@@ -295,7 +295,7 @@ GATE: valos trace a Langfuse UI-ban, koltseg lathato, 0 hiba
 MEGJEGYZES: Ha Langfuse account nincs → stub marad de LOGOL structlog-ba
 ```
 
-#### S8 Reszletes: Promptfoo 5 Skill Config
+#### S8 Reszletes: Promptfoo Skill Configs (5 uj + 1 meglevo = 6/6)
 ```
 FEJLESZTES:
   a) skills/email_intent_processor/tests/promptfooconfig.yaml
@@ -463,34 +463,33 @@ GATE: SLA eszkalacio mukodik, cost estimation +-20% pontos
 | **S13** | Integralt E2E teszteles: teljes user journey-k vegig tesztelese | Playwright: 5+ full journey PASS | ~500 loc |
 | **S14** | Vegleges polish: PWA teszt, accessibility audit, dokumentacio, v1.2.1 tag | Teljes L4 regresszio | ~300 loc |
 
-#### S13 Reszletes: Integralt E2E Teszteles
+#### S13 Reszletes: Integralt E2E Teszteles (multi-page user journey-k)
 ```
+CEL: NEM oldalankenti teszt (az S6+S9 feladata), hanem TELJES FELHASZNALOI UTAK
+     tesztelese, tobb oldalon at, valos backend-del.
+
 FEJLESZTES:
-  a) Megmaradt MUI referenciák eltavolitasa:
-     - CubixViewer.tsx: MUI → Untitled UI + Tailwind
-     - Barmely components/ (regi) MUI import → components-new/ vagy Tailwind
-  b) Minden pages-new/*.tsx audit:
-     - Loading skeleton MINDEN oldalon
-     - Error state retry gombbal
-     - Empty state uzenettel
-     - i18n: MINDEN string translate()-vel
-     - Dark mode: MINDEN szin dark: prefix-szel
-  c) Responsive audit:
-     - 375px (mobil), 768px (tablet), 1024px+ (desktop)
-     - Sidebar collapse < 768px
-     - DataTable horizontal scroll < 768px
-  d) Custom komponensek:
-     - JsonViewer.tsx: fa nezetű JSON megjelenitoCollapsible
-     - KeyValueList.tsx: key-value par lista
-     - PipelineYamlEditor.tsx: textarea + syntax highlight
+  a) tests/e2e/test_journey_invoice.py:
+     - Login → Emails → fetch → Documents → upload → process → verify → approve
+     - Pipeline: invoice_v2 deploy → run → check status → notification log
+  b) tests/e2e/test_journey_rag.py:
+     - Login → RAG → create collection → upload docs → ingest → chat query → answer
+     - Service Catalog: "Advanced Ingest" gomb → pipeline → check results
+  c) tests/e2e/test_journey_quality.py:
+     - Login → Quality dashboard → evaluate rubric → check score
+     - Pipeline run → Langfuse trace (ha elerheto) → cost check
+  d) tests/e2e/test_journey_admin.py:
+     - Login → Admin → service health → restart service → notifications → audit log
+  e) tests/e2e/test_journey_notification.py:
+     - Login → create channel → send test → check log → in-app bell → mark read
 
 TESZTELES:
-  - Playwright: MINDEN oldal betolt (20 route), 0 console error
-  - Playwright: dark mode toggle → MINDEN szin valtozik
-  - Playwright: 375px viewport → responsive layout
-  - tsc --noEmit: 0 error
+  - pytest tests/e2e/test_journey_*.py -v (Playwright)
+  - MINDEN journey VALOS adatokkal (nem mock!)
+  - MINDEN journey VEGIG megy (nem szakad felbe)
+  - 0 console error, 0 uncaught exception
 
-GATE: 0 MUI import, 0 console error, dark mode PASS, responsive PASS
+GATE: 5/5 journey PASS, teljes lancok vegig tesztelve
 ```
 
 #### S14 Reszletes: Vegleges Polish + v1.2.1 Tag

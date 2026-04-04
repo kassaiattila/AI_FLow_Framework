@@ -8,17 +8,19 @@ Arguments: $ARGUMENTS
 > Minden teszt valos adatokkal, valos backend-del, valos bongeszioben tortenik.
 > Egy feature CSAK AKKOR "KESZ" ha Playwright E2E teszten atment.
 
-## BRANCH ELLENORZES (v1.2.0 — KOTELEZO!)
+## BRANCH ELLENORZES (KOTELEZO!)
 ```bash
-git branch --show-current  # NEM main-en kell lenni! Tier branch-en dolgozunk.
-# Ha main → STOP! Hozd letre vagy valtsd at a megfelelo Tier branch-re:
-#   feature/v1.2.0-tier1-pipeline-orchestrator   (C0-C5)
-#   feature/v1.2.0-tier1.5-invoice-usecase       (C6)
-#   feature/v1.2.0-tier2-supporting-services     (C7-C10)
-#   feature/v1.2.0-tier3-advanced-rag            (C11-C16)
-#   feature/v1.2.0-tier4-polish                  (C17-C20)
+git branch --show-current  # NEM main-en kell lenni! Feature branch-en dolgozunk.
+# Ha main → STOP! Hozd letre vagy valtsd at a megfelelo branch-re:
+#   feature/v1.2.1-production-ready              (S1-S14, v1.2.1 sprint)
+#
+# REGI (v1.2.0 — LEZARVA, NE HASZNALD):
+#   feature/v1.2.0-tier1-pipeline-orchestrator   (C0-C5, DONE)
+#   feature/v1.2.0-tier2-supporting-services     (C7-C10, DONE)
+#   feature/v1.2.0-tier3-advanced-rag            (C11-C16, DONE)
+#   feature/v1.2.0-tier4-polish                  (C17-C20, DONE)
 ```
-**TILOS v1.2.0 fejlesztest kozvetlenul main-re commitolni!**
+**TILOS fejlesztest kozvetlenul main-re commitolni!**
 
 ## L0 SMOKE TEST (KOTELEZO — futasd ELOSZOR!)
 ```bash
@@ -29,10 +31,10 @@ Ha FAIL → NEM kezdunk fejleszteni, eloszor a meglevo rendszert javitjuk!
 ## PRE-IMPLEMENTATION CHECKS (before writing any code!):
 
 1. **Read the relevant plan document** in `01_PLAN/`:
-   - `48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` - AKTUALIS: v1.2.0 orchestracio
-   - `49_STABILITY_REGRESSION.md` - Stabilitasi szabalyok
-   - `50-54` - Reszletes service tervek (RAG, Doc, HITL, Frontend, LLM Quality)
-   - `56_EXECUTION_PLAN.md` - Hanyadik ciklusban vagyunk?
+   - `57_PRODUCTION_READY_SPRINT.md` - **AKTUALIS**: v1.2.1 Production Ready (S1-S14)
+   - `48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` - v1.2.0 architektura (referencia)
+   - `49-54` - Reszletes tervek (stability, RAG, doc, HITL, frontend, LLM quality)
+   - `56_EXECUTION_PLAN.md` - v1.2.0 ciklusok (C0-C20, MIND DONE)
 2. **Check reference materials** - `skills/*/reference/` if relevant
 3. **Check existing code** - never reinvent what already works
 4. **If DB change needed**: create Alembic migration FIRST (nullable=True vagy server_default!)

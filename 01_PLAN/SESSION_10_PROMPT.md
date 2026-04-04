@@ -10,7 +10,7 @@
 
 ## AKTUALIS TERV
 
-**`01_PLAN/57_PRODUCTION_READY_SPRINT.md`** — 12 ciklus (S1-S12), ~6-8 session.
+**`01_PLAN/57_PRODUCTION_READY_SPRINT.md`** — 14 ciklus (S1-S14), ~7-9 session.
 
 **Cel:** A v1.2.0-ban megepitett 26 service-t, 18 adaptert, 6 template-et **valos hasznalhatova** tenni:
 UI integracio, observability, quality assurance, full polish.
@@ -103,16 +103,18 @@ cd aiflow-admin && npm run dev
 ## VEGREHAJTASI TERV (v1.2.1)
 
 ```
-S1:  Chat UI integracio ────── KOVETKEZO ← ITT VAGYUNK
-S2:  In-app notifications ──── UI + API
-S3:  Quality dashboard ──────── 7 HARD GATE!
-S4:  Design system ──────────── tokens + audit
-S5:  Langfuse integracio ────── valos tracing
-S6:  Promptfoo 6 skill ──────── YAML configs + CI
-S7:  E2E Playwright suite ──── 10+ teszt
-S8:  CI/CD pipeline ─────────── GitHub Actions
-S9:  Free text + intent schema ─ uj funkciok
-S10: SLA + cost estimation ──── APScheduler + tiktoken
-S11: UI teljeskoruseg ────────── MUI torles, responsive
-S12: Vegleges polish ─────────── PWA, a11y, v1.2.1 tag
+S1:  Chat UI integracio ──────── KOVETKEZO ← ITT VAGYUNK
+S2:  In-app notifications ────── UI + API
+S3:  Quality dashboard ────────── 7 HARD GATE!
+S4:  Service Catalog + Pipeline ── egyseges elmeny
+S5:  Design system ────────────── tokens + Tailwind
+S6:  UI polish + MUI torles ───── 20 oldal audit
+S7:  Langfuse integracio ──────── valos tracing
+S8:  Promptfoo 6 skill ────────── YAML configs + CI
+S9:  E2E Playwright suite ──────── 10+ teszt
+S10: CI/CD pipeline ─────────── GitHub Actions
+S11: Free text + intent schema ── uj funkciok
+S12: SLA + cost estimation ────── APScheduler + tiktoken
+S13: Integralt E2E teszteles ──── full journey-k
+S14: Vegleges polish ──────────── PWA, a11y, v1.2.1 tag
 ```
