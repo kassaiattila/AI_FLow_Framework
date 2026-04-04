@@ -7,7 +7,6 @@ Usage:
     aiflow prompt promote --from dev --to staging
 """
 
-from typing import Optional
 
 import structlog
 import typer
@@ -55,7 +54,7 @@ def sync_prompts(
 
 @app.command("diff")
 def diff_prompts(
-    name: Optional[str] = typer.Option(
+    name: str | None = typer.Option(
         None,
         "--name",
         "-n",
@@ -83,7 +82,7 @@ def promote_prompts(
         "--to",
         help="Target label (e.g., staging, production).",
     ),
-    name: Optional[str] = typer.Option(
+    name: str | None = typer.Option(
         None,
         "--name",
         "-n",

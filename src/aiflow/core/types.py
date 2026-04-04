@@ -1,6 +1,7 @@
 """Common type definitions for AIFlow."""
 from enum import StrEnum
 from typing import Any
+
 from pydantic import BaseModel
 
 __all__ = ["Status", "StepStatus", "Priority", "SkillType", "StepResult", "WorkflowResult"]

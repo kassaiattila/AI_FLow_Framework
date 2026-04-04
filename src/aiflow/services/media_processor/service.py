@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -80,14 +80,18 @@ class MediaProcessorService:
                 """INSERT INTO media_jobs (id, filename, media_type, file_size_bytes, stt_provider, status, created_by, created_at, updated_at)
                    VALUES ($1, $2, $3, $4, $5, 'running', $6, $7, $7)""",
                 job_id, filename, _detect_media_type(filename), file_size, provider,
-                created_by, datetime.now(timezone.utc),
+                created_by, datetime.now(UTC),
             )
 
         start = time.time()
         try:
             from skills.cubix_course_capture.workflows.transcript_pipeline import (
-                probe_audio, extract_audio, chunk_audio, transcribe,
-                merge_transcripts, structure_transcript,
+                chunk_audio,
+                extract_audio,
+                merge_transcripts,
+                probe_audio,
+                structure_transcript,
+                transcribe,
             )
 
             data: dict[str, Any] = {"file_path": str(file_path), "output_dir": str(file_path.parent)}
@@ -114,7 +118,7 @@ class MediaProcessorService:
                        processing_time_ms=$5, updated_at=$6
                        WHERE id=$1""",
                     job_id, transcript_raw, _to_json(transcript_structured),
-                    duration, elapsed, datetime.now(timezone.utc),
+                    duration, elapsed, datetime.now(UTC),
                 )
 
             logger.info("media_processed", job_id=job_id, duration_s=duration, elapsed_ms=elapsed)
@@ -124,8 +128,8 @@ class MediaProcessorService:
                 stt_provider=provider, status="completed",
                 transcript_raw=transcript_raw, transcript_structured=transcript_structured,
                 processing_time_ms=elapsed, created_by=created_by,
-                created_at=datetime.now(timezone.utc).isoformat(),
-                updated_at=datetime.now(timezone.utc).isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
+                updated_at=datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             elapsed = (time.time() - start) * 1000
@@ -133,14 +137,14 @@ class MediaProcessorService:
             async with pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE media_jobs SET status='failed', error=$2, processing_time_ms=$3, updated_at=$4 WHERE id=$1",
-                    job_id, error_msg, elapsed, datetime.now(timezone.utc),
+                    job_id, error_msg, elapsed, datetime.now(UTC),
                 )
             logger.error("media_processing_failed", job_id=job_id, error=error_msg)
             return MediaJobRecord(
                 id=job_id, filename=filename, status="failed",
                 error=error_msg, processing_time_ms=elapsed,
-                created_at=datetime.now(timezone.utc).isoformat(),
-                updated_at=datetime.now(timezone.utc).isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
+                updated_at=datetime.now(UTC).isoformat(),
             )
 
     async def list_jobs(self, limit: int = 50, offset: int = 0) -> tuple[list[MediaJobRecord], int]:

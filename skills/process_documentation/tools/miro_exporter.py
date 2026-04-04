@@ -13,7 +13,6 @@ from typing import Any
 import httpx
 import structlog
 from pydantic import BaseModel, Field
-
 from skills.process_documentation.models import ProcessExtraction, StepType
 
 __all__ = ["MiroExporter", "MiroResult"]

@@ -10,7 +10,8 @@
     tags: [execution, dlq, dead-letter-queue]
 """
 import pytest
-from aiflow.execution.dlq import DLQEntry, DeadLetterQueue
+
+from aiflow.execution.dlq import DeadLetterQueue, DLQEntry
 
 
 class TestDLQEntry:

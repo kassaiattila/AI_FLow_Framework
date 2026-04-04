@@ -13,7 +13,7 @@ from pathlib import Path
 import structlog
 import typer
 
-from aiflow.skills.instance_loader import load_instance_config, load_all_instances
+from aiflow.skills.instance_loader import load_all_instances, load_instance_config
 from aiflow.skills.instance_registry import InstanceRegistry
 
 __all__ = ["app"]
@@ -97,29 +97,29 @@ def show_instance(
     typer.echo(f"Version:        {config.version}")
     typer.echo(f"Customer:       {config.customer}")
     typer.echo(f"Enabled:        {config.enabled}")
-    typer.echo(f"")
-    typer.echo(f"Models:")
+    typer.echo("")
+    typer.echo("Models:")
     typer.echo(f"  Default:      {config.models.default}")
     typer.echo(f"  Fallback:     {config.models.fallback}")
     if config.models.per_agent:
         for agent, model in config.models.per_agent.items():
             typer.echo(f"  {agent}: {model}")
-    typer.echo(f"")
-    typer.echo(f"Prompts:")
+    typer.echo("")
+    typer.echo("Prompts:")
     typer.echo(f"  Namespace:    {config.prompts.namespace}")
     typer.echo(f"  Label:        {config.prompts.label}")
-    typer.echo(f"")
-    typer.echo(f"Budget:")
+    typer.echo("")
+    typer.echo("Budget:")
     typer.echo(f"  Monthly:      ${config.budget.monthly_usd:.2f}")
     typer.echo(f"  Per run:      ${config.budget.per_run_usd:.2f}")
     typer.echo(f"  Alert at:     {config.budget.alert_threshold:.0%}")
-    typer.echo(f"")
-    typer.echo(f"SLA:")
+    typer.echo("")
+    typer.echo("SLA:")
     typer.echo(f"  Target:       {config.sla.target_seconds}s")
     typer.echo(f"  P95:          {config.sla.p95_target_seconds}s")
     typer.echo(f"  Availability: {config.sla.availability:.1%}")
-    typer.echo(f"")
-    typer.echo(f"Routing:")
+    typer.echo("")
+    typer.echo("Routing:")
     typer.echo(f"  Input:        {config.routing.input_channel}")
     typer.echo(f"  Output:       {config.routing.output_channel}")
     if config.routing.queue_name:

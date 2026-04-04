@@ -14,8 +14,6 @@ import html
 from pathlib import Path
 from typing import Any
 
-from .colors import COLORS
-
 __all__ = ["DrawioBuilder"]
 
 

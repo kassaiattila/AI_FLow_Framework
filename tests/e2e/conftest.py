@@ -14,7 +14,7 @@ E2E test fixtures for AIFlow admin dashboard.
 from __future__ import annotations
 
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page
 
 # AIFlow admin runs on Vite dev server with hash router
 BASE_URL = "http://localhost:5174"

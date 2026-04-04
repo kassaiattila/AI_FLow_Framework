@@ -11,7 +11,7 @@
 """
 import pytest
 
-from aiflow.observability.sla_monitor import SLADefinition, SLAResult, SLAMonitor
+from aiflow.observability.sla_monitor import SLADefinition, SLAMonitor, SLAResult
 
 
 class TestSLADefinition:

@@ -10,8 +10,8 @@
     tags: [models, protocols, generation, embedding]
 """
 from aiflow.models.protocols.base import ModelCallResult
-from aiflow.models.protocols.generation import GenerationInput, GenerationOutput
 from aiflow.models.protocols.embedding import EmbeddingInput, EmbeddingOutput
+from aiflow.models.protocols.generation import GenerationInput, GenerationOutput
 
 
 class TestModelCallResult:

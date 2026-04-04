@@ -12,16 +12,15 @@ Usage:
         wf.step(review, depends_on=["extract"])
         wf.join(["generate_diagram", "generate_table"], into="assemble_output")
 """
-import functools
-from typing import Any, Callable
-
-from pydantic import BaseModel
+from collections.abc import Callable
+from typing import Any
 
 import structlog
+from pydantic import BaseModel
 
-from aiflow.engine.dag import DAG, DAGValidationError
 from aiflow.engine.conditions import Condition
-from aiflow.engine.step import get_step_definition, is_step
+from aiflow.engine.dag import DAG, DAGValidationError
+from aiflow.engine.step import get_step_definition
 
 __all__ = ["workflow", "WorkflowBuilder", "WorkflowDefinition"]
 

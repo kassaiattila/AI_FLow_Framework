@@ -2,7 +2,7 @@
 
 Thread-safe, supports registration, lookup, and listing.
 """
-from typing import Any, TypeVar, Generic
+from typing import Generic, TypeVar
 
 import structlog
 

@@ -7,9 +7,8 @@ import operator
 import re
 from typing import Any
 
-from pydantic import BaseModel
-
 import structlog
+from pydantic import BaseModel
 
 __all__ = ["Condition", "evaluate_condition"]
 

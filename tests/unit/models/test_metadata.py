@@ -9,7 +9,7 @@
     requires_services: []
     tags: [models, metadata, enums]
 """
-from aiflow.models.metadata import ModelType, ModelLifecycle, ServingMode, ModelMetadata
+from aiflow.models.metadata import ModelLifecycle, ModelMetadata, ModelType, ServingMode
 
 
 class TestModelType:

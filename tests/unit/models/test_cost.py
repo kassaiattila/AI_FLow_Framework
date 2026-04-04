@@ -11,6 +11,7 @@
 """
 from aiflow.models.cost import ModelCostCalculator
 
+
 class TestModelCostCalculator:
     def test_known_model_cost(self):
         calc = ModelCostCalculator()

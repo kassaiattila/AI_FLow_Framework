@@ -20,43 +20,41 @@ Tartalomjegyzek:
 Futtatas: python validacio_metrikak.py
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 from sklearn.datasets import load_breast_cancer, load_diabetes, load_iris
-from sklearn.model_selection import (
-    train_test_split,
-    KFold,
-    StratifiedKFold,
-    cross_val_score,
-    TimeSeriesSplit,
-    learning_curve,
-)
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import MinMaxScaler, label_binarize
 from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    RocCurveDisplay,
+    accuracy_score,
+    auc,
+    average_precision_score,
+    classification_report,
     # Osztalyozas
     confusion_matrix,
-    ConfusionMatrixDisplay,
-    accuracy_score,
-    precision_score,
-    recall_score,
     f1_score,
     fbeta_score,
-    classification_report,
-    roc_curve,
-    roc_auc_score,
-    RocCurveDisplay,
-    precision_recall_curve,
-    average_precision_score,
-    auc,
     # Regresszio
     mean_absolute_error,
-    mean_squared_error,
-    r2_score,
     mean_absolute_percentage_error,
+    mean_squared_error,
+    precision_recall_curve,
+    precision_score,
+    r2_score,
+    recall_score,
+    roc_auc_score,
+    roc_curve,
 )
+from sklearn.model_selection import (
+    KFold,
+    StratifiedKFold,
+    TimeSeriesSplit,
+    cross_val_score,
+    learning_curve,
+    train_test_split,
+)
+from sklearn.preprocessing import label_binarize
 
 
 # ============================================================================
@@ -544,7 +542,7 @@ def demo_regression_metrics():
     print(f"  {'MAPE (%)':<12s} {'':>10s} {mape_test:>10.2f}%")
 
     # Ertelmezesi segitseg
-    print(f"\n  Ertelmezesi tippek:")
+    print("\n  Ertelmezesi tippek:")
     print(f"    - MAE {mae_test:.1f} azt jelenti: atlagosan {mae_test:.1f} egysegnyi a hiba")
     print(f"    - R2 {r2_test:.3f} azt jelenti: a modell a variancia {r2_test*100:.1f}%-at magyarazza")
     if r2_train - r2_test > 0.1:

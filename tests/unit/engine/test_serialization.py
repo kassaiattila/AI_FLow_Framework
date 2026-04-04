@@ -11,8 +11,9 @@
 """
 import pytest
 import yaml
+
 from aiflow.engine.dag import DAG
-from aiflow.engine.serialization import serialize_workflow, deserialize_dag_structure
+from aiflow.engine.serialization import deserialize_dag_structure, serialize_workflow
 
 
 class TestSerializeWorkflow:

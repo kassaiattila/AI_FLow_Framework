@@ -22,10 +22,9 @@ import time
 import uuid
 from typing import Any
 
+import structlog
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-
-import structlog
 
 __all__ = ["router"]
 
@@ -162,8 +161,12 @@ async def _run_aszf_rag(
 ) -> dict[str, Any]:
     """Run the ASZF RAG query pipeline."""
     from skills.aszf_rag_chat.workflows.query import (
-        rewrite_query, search_documents, build_context,
-        generate_answer, extract_citations, detect_hallucination,
+        build_context,
+        detect_hallucination,
+        extract_citations,
+        generate_answer,
+        rewrite_query,
+        search_documents,
     )
 
     data: dict[str, Any] = {
@@ -188,7 +191,11 @@ async def _run_aszf_rag(
 async def _run_process_doc(question: str) -> dict[str, Any]:
     """Run the Process Documentation pipeline."""
     from skills.process_documentation.workflow import (
-        classify_intent, elaborate, extract, review, generate_diagram,
+        classify_intent,
+        elaborate,
+        extract,
+        generate_diagram,
+        review,
     )
 
     data = {"user_input": question}
@@ -214,8 +221,12 @@ async def _run_email_intent(
 ) -> dict[str, Any]:
     """Run the Email Intent Processor pipeline."""
     from skills.email_intent_processor.workflows.classify import (
-        parse_email, process_attachments, classify_intent,
-        extract_entities, score_priority, decide_routing,
+        classify_intent,
+        decide_routing,
+        extract_entities,
+        parse_email,
+        process_attachments,
+        score_priority,
     )
 
     data: dict[str, Any] = {
@@ -241,12 +252,12 @@ async def _run_email_intent(
     queue = r6.get("routed_to", "")
     department = r6.get("department", "")
 
-    answer = f"**Email feldolgozas eredmenye:**\n\n"
+    answer = "**Email feldolgozas eredmenye:**\n\n"
     answer += f"- **Intent:** {intent} (confidence: {confidence:.0%})\n"
     answer += f"- **Prioritas:** {priority}/5\n"
     answer += f"- **Routing:** {department} / {queue}\n"
     if entities:
-        answer += f"\n**Kinyert adatpontok:**\n"
+        answer += "\n**Kinyert adatpontok:**\n"
         for e in entities[:5]:
             answer += f"- {e.get('type', '?')}: {e.get('value', '?')}\n"
 

@@ -9,10 +9,10 @@ from __future__ import annotations
 from typing import Any
 
 import structlog
+from skills.email_intent_processor.models import IntentResult
 
 from aiflow.models.client import ModelClient
 from aiflow.prompts.manager import PromptManager
-from skills.email_intent_processor.models import IntentResult
 
 __all__ = ["LLMClassifier"]
 

@@ -18,29 +18,27 @@ import json
 import re
 import time
 from pathlib import Path
-from typing import Any
 
 import structlog
-
-from aiflow.engine.step import step
-from aiflow.engine.workflow import workflow, WorkflowBuilder
-from aiflow.tools.email_parser import EmailParser
-from aiflow.tools.attachment_processor import AttachmentProcessor, AttachmentConfig
-from aiflow.tools.schema_registry import SchemaRegistry
-
 from skills.email_intent_processor import models_client, prompt_manager
 from skills.email_intent_processor.classifiers import HybridClassifier
-from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
 from skills.email_intent_processor.classifiers.llm_classifier import LLMClassifier
+from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
 from skills.email_intent_processor.models import (
     AttachmentInfo,
-    IntentResult,
+    EmailProcessingResult,
     Entity,
     EntityResult,
+    IntentResult,
     PriorityResult,
     RoutingDecision,
-    EmailProcessingResult,
 )
+
+from aiflow.engine.step import step
+from aiflow.engine.workflow import WorkflowBuilder, workflow
+from aiflow.tools.attachment_processor import AttachmentConfig, AttachmentProcessor
+from aiflow.tools.email_parser import EmailParser
+from aiflow.tools.schema_registry import SchemaRegistry
 
 __all__ = [
     "parse_email",

@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 
 import structlog
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 __all__ = ["RateLimitConfig", "RateLimiter", "InMemoryRateLimiter"]
 

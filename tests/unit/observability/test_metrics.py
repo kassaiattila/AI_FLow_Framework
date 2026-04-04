@@ -11,7 +11,7 @@
 """
 import pytest
 
-from aiflow.observability.metrics import MetricsCollector, InMemoryMetrics
+from aiflow.observability.metrics import InMemoryMetrics, MetricsCollector
 
 
 class TestInMemoryMetrics:

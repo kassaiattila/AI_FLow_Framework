@@ -9,8 +9,8 @@ Configurable via SearchConfig Pydantic model.
 """
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
 from aiflow.vectorstore.base import SearchFilter, SearchResult, VectorStore
 

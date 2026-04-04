@@ -9,12 +9,14 @@
     requires_services: []
     tags: [models, client, facade, llm]
 """
-import pytest
 from unittest.mock import AsyncMock
-from aiflow.models.client import ModelClient, LLMClient
+
+import pytest
+
+from aiflow.models.client import LLMClient, ModelClient
 from aiflow.models.protocols.base import ModelCallResult
-from aiflow.models.protocols.generation import GenerationOutput
 from aiflow.models.protocols.embedding import EmbeddingOutput
+from aiflow.models.protocols.generation import GenerationOutput
 
 
 @pytest.fixture

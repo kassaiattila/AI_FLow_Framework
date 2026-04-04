@@ -16,13 +16,11 @@ Fuggesegek:
     - Opcionalis: langchain-text-splitters, tiktoken
 """
 
-import re
-import math
 import hashlib
-from datetime import datetime
-from typing import Optional
+import math
+import re
 from dataclasses import dataclass, field
-
+from datetime import datetime
 
 # --- 1. MOCK DOKUMENTUMOK ---
 
@@ -183,7 +181,7 @@ def chunk_recursive(
     text: str,
     chunk_size: int = 500,
     overlap: int = 100,
-    separators: Optional[list[str]] = None,
+    separators: list[str] | None = None,
 ) -> list[str]:
     """Rekurziv chunkolás -- a LangChain RecursiveCharacterTextSplitter elven.
 

@@ -1,15 +1,14 @@
 """RAG Engine API — collection CRUD, document ingestion, query, feedback, stats."""
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 
-from aiflow.api.deps import get_pool, get_engine
+from aiflow.api.deps import get_engine, get_pool
 
 __all__ = ["router"]
 
@@ -121,7 +120,8 @@ class ChunkListResponse(BaseModel):
 async def _get_service():
     """Create and start RAG Engine service instance."""
     from sqlalchemy.ext.asyncio import async_sessionmaker
-    from aiflow.services.rag_engine import RAGEngineService, RAGEngineConfig
+
+    from aiflow.services.rag_engine import RAGEngineConfig, RAGEngineService
 
     engine = await get_engine()
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -282,6 +282,7 @@ async def ingest_documents_stream(
     """
     import json as _json
     import time as _time
+
     from fastapi.responses import StreamingResponse
 
     svc = await _get_service()
@@ -309,9 +310,10 @@ async def ingest_documents_stream(
             upload_dir = project_root / "data" / "uploads" / "rag" / collection_id
             upload_dir.mkdir(parents=True, exist_ok=True)
 
-            from aiflow.ingestion.parsers.docling_parser import DoclingParser
-            from aiflow.ingestion.chunkers.recursive_chunker import RecursiveChunker, ChunkingConfig
             import uuid as _uuid
+
+            from aiflow.ingestion.chunkers.recursive_chunker import ChunkingConfig, RecursiveChunker
+            from aiflow.ingestion.parsers.docling_parser import DoclingParser
             parser = DoclingParser()
             chunker = RecursiveChunker(ChunkingConfig(
                 chunk_size=svc._ext_config.default_chunk_size,

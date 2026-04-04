@@ -7,9 +7,8 @@ and comprehensive validation.
 from collections import defaultdict, deque
 from typing import Any
 
-from pydantic import BaseModel
-
 import structlog
+from pydantic import BaseModel
 
 from aiflow.engine.conditions import Condition
 

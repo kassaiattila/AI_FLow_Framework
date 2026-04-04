@@ -10,7 +10,8 @@
     tags: [security, guardrails, input-validation, pii]
 """
 import pytest
-from aiflow.security.guardrails import InputGuardrail, OutputGuardrail, GuardrailResult
+
+from aiflow.security.guardrails import GuardrailResult, InputGuardrail, OutputGuardrail
 
 
 class TestGuardrailResult:

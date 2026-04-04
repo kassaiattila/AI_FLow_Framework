@@ -16,7 +16,6 @@ import pytest
 
 from aiflow.pipeline.parser import PipelineParseError, PipelineParser
 
-
 VALID_YAML = """
 name: test_pipeline
 version: "1.0.0"

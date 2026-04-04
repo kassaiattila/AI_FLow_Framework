@@ -16,12 +16,12 @@
 """
 from __future__ import annotations
 
-import pytest
-import yaml
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+import yaml
 from skills.email_intent_processor.models import (
     AttachmentInfo,
     EmailInput,

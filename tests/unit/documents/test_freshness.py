@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from aiflow.documents.freshness import FreshnessEnforcer, FreshnessReport
+from aiflow.documents.freshness import FreshnessEnforcer
 from aiflow.documents.registry import Document, DocumentRegistry, DocumentStatus
 
 

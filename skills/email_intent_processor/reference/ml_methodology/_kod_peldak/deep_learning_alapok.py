@@ -20,16 +20,15 @@ Fuggosegek: numpy, scikit-learn, matplotlib (pandas opcionalis)
 """
 
 import warnings
-import time
-import numpy as np
-import matplotlib.pyplot as plt
 
-from sklearn.linear_model import Perceptron
-from sklearn.neural_network import MLPClassifier
+import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.datasets import make_classification, make_multilabel_classification
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Perceptron
 from sklearn.metrics import accuracy_score, hamming_loss
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
 
 try:
     import pandas as pd

@@ -297,7 +297,7 @@ class DocumentExtractorService(BaseService):
         # Build dynamic prompt from field definitions
         field_descriptions = "\n".join(
             f"- {f.name} ({f.type}): {f.description}"
-            + (f" [REQUIRED]" if f.required else "")
+            + (" [REQUIRED]" if f.required else "")
             for f in config.fields
         )
 

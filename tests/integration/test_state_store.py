@@ -14,11 +14,9 @@ import uuid
 
 import pytest
 import pytest_asyncio
-
 from sqlalchemy import text as sa_text
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from aiflow.state.models import Base, WorkflowRunModel, StepRunModel
 from aiflow.state.repository import StateRepository
 
 # Use Docker Compose DB (port 5433) or override via env

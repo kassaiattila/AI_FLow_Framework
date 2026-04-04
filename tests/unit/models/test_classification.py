@@ -9,7 +9,12 @@
     requires_services: []
     tags: [models, protocols, classification]
 """
-from aiflow.models.protocols.classification import ClassificationInput, ClassificationOutput, ClassificationResult
+from aiflow.models.protocols.classification import (
+    ClassificationInput,
+    ClassificationOutput,
+    ClassificationResult,
+)
+
 
 class TestClassificationModels:
     def test_input(self):

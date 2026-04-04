@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import os
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -141,11 +140,11 @@ class RAGEngineService(BaseService):
         sync_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
 
         try:
-            from aiflow.vectorstore.pgvector_store import PgVectorStore
-            from aiflow.vectorstore.embedder import Embedder
-            from aiflow.vectorstore.search import HybridSearchEngine, SearchConfig
-            from aiflow.models.client import ModelClient
             from aiflow.models.backends.litellm_backend import LiteLLMBackend
+            from aiflow.models.client import ModelClient
+            from aiflow.vectorstore.embedder import Embedder
+            from aiflow.vectorstore.pgvector_store import PgVectorStore
+            from aiflow.vectorstore.search import HybridSearchEngine, SearchConfig
 
             backend = LiteLLMBackend()
             self._model_client = ModelClient(
@@ -370,8 +369,8 @@ class RAGEngineService(BaseService):
         total_chunks = 0
 
         try:
+            from aiflow.ingestion.chunkers.recursive_chunker import ChunkingConfig, RecursiveChunker
             from aiflow.ingestion.parsers.docling_parser import DoclingParser
-            from aiflow.ingestion.chunkers.recursive_chunker import RecursiveChunker, ChunkingConfig
 
             parser = DoclingParser()
             chunker = RecursiveChunker(ChunkingConfig(

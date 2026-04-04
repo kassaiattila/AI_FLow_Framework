@@ -35,7 +35,7 @@ def main(
 
 
 # Register sub-commands
-from aiflow.cli.commands import workflow, skill, prompt, eval_cmd, dev, instance  # noqa: E402
+from aiflow.cli.commands import dev, eval_cmd, instance, prompt, skill, workflow  # noqa: E402
 
 app.add_typer(workflow.app, name="workflow")
 app.add_typer(skill.app, name="skill")

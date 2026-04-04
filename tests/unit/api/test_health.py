@@ -11,8 +11,9 @@
 """
 import pytest
 from fastapi.testclient import TestClient
-from aiflow.api.app import create_app
+
 from aiflow._version import __version__
+from aiflow.api.app import create_app
 
 
 class TestHealthEndpoints:

@@ -8,8 +8,12 @@ from typing import Any
 import structlog
 
 from aiflow.models.protocols.base import ModelCallResult
-from aiflow.models.protocols.generation import GenerationInput, GenerationOutput, TextGenerationProtocol
 from aiflow.models.protocols.embedding import EmbeddingInput, EmbeddingOutput, EmbeddingProtocol
+from aiflow.models.protocols.generation import (
+    GenerationInput,
+    GenerationOutput,
+    TextGenerationProtocol,
+)
 
 __all__ = ["ModelClient", "LLMClient"]
 

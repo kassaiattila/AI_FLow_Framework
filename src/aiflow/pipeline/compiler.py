@@ -12,7 +12,7 @@ import structlog
 
 from aiflow.core.context import ExecutionContext
 from aiflow.engine.conditions import Condition
-from aiflow.engine.dag import DAG, DAGNode
+from aiflow.engine.dag import DAG
 from aiflow.pipeline.adapter_base import AdapterRegistry, BaseAdapter
 from aiflow.pipeline.schema import PipelineDefinition, PipelineStepDef
 from aiflow.pipeline.template import TemplateResolver

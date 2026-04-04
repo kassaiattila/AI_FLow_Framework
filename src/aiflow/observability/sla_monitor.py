@@ -15,10 +15,8 @@ Usage:
 
 from __future__ import annotations
 
-import statistics
 from collections import defaultdict
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 import structlog
 from pydantic import BaseModel, Field
@@ -52,7 +50,7 @@ class RunRecord(BaseModel):
     workflow_name: str
     duration_ms: float
     success: bool
-    recorded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    recorded_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class SLAResult(BaseModel):

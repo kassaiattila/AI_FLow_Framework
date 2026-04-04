@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
+from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field
@@ -19,7 +20,7 @@ class Message(BaseModel):
     message_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     topic: str
     payload: dict[str, Any] = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class MessageBroker:

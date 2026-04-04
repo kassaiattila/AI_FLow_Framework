@@ -16,7 +16,6 @@ from aiflow.pipeline.adapters import discover_adapters
 from aiflow.pipeline.compiler import PipelineCompileError, PipelineCompiler
 from aiflow.pipeline.parser import PipelineParseError, PipelineParser
 from aiflow.pipeline.runner import PipelineRunner
-from aiflow.pipeline.schema import PipelineDefinition
 
 __all__ = ["router"]
 

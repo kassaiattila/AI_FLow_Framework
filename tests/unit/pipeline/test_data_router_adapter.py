@@ -27,7 +27,6 @@ from aiflow.pipeline.adapters.data_router_adapter import (
     RouteFilesOutput,
 )
 
-
 # --- Fake service ---
 
 

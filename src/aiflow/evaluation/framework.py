@@ -6,11 +6,11 @@ Produces EvalResult objects with scores, timing, and cost tracking.
 from __future__ import annotations
 
 import time
-from typing import Any, Callable
-
-from pydantic import BaseModel, Field
+from collections.abc import Callable
+from typing import Any
 
 import structlog
+from pydantic import BaseModel, Field
 
 __all__ = ["EvalCase", "EvalResult", "EvalSuite", "EvalSummary"]
 

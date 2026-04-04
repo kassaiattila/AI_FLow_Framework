@@ -8,15 +8,13 @@ Train-inference pipeline: panasz szöveg → intent → routing csoport.
 Sklearn Pipeline: TfidfVectorizer → Classifier (LinearSVC / LightGBM)
 """
 
-import os
+import json
 import re
 import sys
-import json
 import warnings
 from pathlib import Path
 
 import joblib
-import numpy as np
 import pandas as pd
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -269,11 +267,11 @@ def train(data_path: str = None, save: bool = True) -> dict:
     weighted_f1 = f1_score(y_test, y_pred, average='weighted')
     accuracy = (y_pred == y_test).mean()
 
-    print(f"\n--- Eredmények ---")
+    print("\n--- Eredmények ---")
     print(f"Accuracy:    {accuracy:.4f}")
     print(f"Macro F1:    {macro_f1:.4f}")
     print(f"Weighted F1: {weighted_f1:.4f}")
-    print(f"\nRészletes jelentés:")
+    print("\nRészletes jelentés:")
     print(classification_report(y_test, y_pred))
 
     # Mentés

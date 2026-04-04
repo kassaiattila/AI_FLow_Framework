@@ -24,13 +24,18 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent.parent.parent.parent / ".env")
 
 
 async def run_evaluation(collection: str, role: str, output_dir: str) -> None:
     from skills.aszf_rag_chat.workflows.query import (
-        rewrite_query, search_documents, build_context,
-        generate_answer, extract_citations, detect_hallucination,
+        build_context,
+        detect_hallucination,
+        extract_citations,
+        generate_answer,
+        rewrite_query,
+        search_documents,
     )
 
     # Load golden queries
@@ -41,11 +46,11 @@ async def run_evaluation(collection: str, role: str, output_dir: str) -> None:
     queries = dataset.get("queries", [])
     eval_config = dataset.get("evaluation", {})
 
-    print(f"RAG Evaluation Runner")
+    print("RAG Evaluation Runner")
     print(f"Collection: {collection}")
     print(f"Role: {role}")
     print(f"Queries: {len(queries)}")
-    print(f"=" * 60)
+    print("=" * 60)
 
     results = []
     total_start = time.monotonic()

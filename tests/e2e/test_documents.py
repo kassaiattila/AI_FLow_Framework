@@ -13,7 +13,7 @@ Documents page E2E tests.
 """
 from __future__ import annotations
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page
 
 from tests.e2e.conftest import navigate_to
 

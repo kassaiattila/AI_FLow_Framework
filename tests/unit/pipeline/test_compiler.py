@@ -15,13 +15,12 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from aiflow.core.context import ExecutionContext
 from aiflow.pipeline.adapter_base import AdapterRegistry, BaseAdapter
 from aiflow.pipeline.compiler import PipelineCompileError, PipelineCompiler
 from aiflow.pipeline.schema import PipelineDefinition
-
 
 # --- Test fixtures ---
 
@@ -256,7 +255,7 @@ class TestStepExecution:
             "fetch": {"output": out1},
         }
         out2 = await result.step_funcs["classify"](ctx, pipeline_ctx)
-        assert "classified:emails_fetched" == out2["result"]
+        assert out2["result"] == "classified:emails_fetched"
 
 
 class TestCompilationResultRepr:

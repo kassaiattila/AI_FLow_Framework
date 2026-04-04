@@ -5,7 +5,7 @@ import json
 import os
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -68,7 +68,7 @@ class RPABrowserService:
     async def create_config(self, name: str, yaml_config: str, description: str | None = None,
                             target_url: str | None = None, schedule_cron: str | None = None) -> RPAConfigRecord:
         config_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         pool = await self._get_pool()
         async with pool.acquire() as conn:
             await conn.execute(
@@ -109,7 +109,7 @@ class RPABrowserService:
 
         exec_id = str(uuid.uuid4())
         start = time.time()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         pool = await self._get_pool()
 
         # Parse YAML to count steps
@@ -138,7 +138,7 @@ class RPABrowserService:
                 results["steps"].append({"name": step_name, "action": action, "status": "completed"})
 
             elapsed = (time.time() - start) * 1000
-            completed_at = datetime.now(timezone.utc)
+            completed_at = datetime.now(UTC)
 
             async with pool.acquire() as conn:
                 await conn.execute(
@@ -159,7 +159,7 @@ class RPABrowserService:
             async with pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE rpa_execution_log SET status='failed', error=$2, duration_ms=$3, completed_at=$4 WHERE id=$1",
-                    exec_id, str(e), elapsed, datetime.now(timezone.utc),
+                    exec_id, str(e), elapsed, datetime.now(UTC),
                 )
             return RPAExecutionRecord(id=exec_id, config_id=config_id, status="failed",
                                       error=str(e), duration_ms=elapsed, started_at=now.isoformat())

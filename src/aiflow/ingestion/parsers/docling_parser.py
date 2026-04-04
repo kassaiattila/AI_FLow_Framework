@@ -21,9 +21,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
-
 import structlog
+from pydantic import BaseModel, Field
 
 __all__ = ["DoclingParser", "ParsedDocument", "ParsedPage", "ParsedTable"]
 
@@ -220,6 +219,7 @@ class DoclingParser:
 
         try:
             import asyncio
+
             from aiflow.tools.azure_doc_intelligence import AzureDocIntelligence
 
             client = AzureDocIntelligence(endpoint, api_key)

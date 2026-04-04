@@ -19,11 +19,9 @@ import asyncio
 import sys
 import time
 from pathlib import Path
-from typing import Any
-
-from pydantic import BaseModel, Field
 
 import structlog
+from pydantic import BaseModel
 
 from aiflow.core.errors import AIFlowError
 
@@ -224,7 +222,7 @@ class RobotFrameworkRunner:
 
             return result
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             duration = (time.monotonic() - start) * 1000
             logger.error(
                 "robot_task_timeout", task=task_name, timeout=effective_timeout

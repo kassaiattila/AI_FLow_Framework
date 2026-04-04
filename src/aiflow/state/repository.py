@@ -6,12 +6,11 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-
 import structlog
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from aiflow.state.models import Base, WorkflowRunModel, StepRunModel
+from aiflow.state.models import StepRunModel, WorkflowRunModel
 
 __all__ = ["StateRepository", "create_session_factory"]
 

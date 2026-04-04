@@ -10,7 +10,8 @@
     tags: [types, enums, models]
 """
 import pytest
-from aiflow.core.types import Status, StepStatus, Priority, SkillType, StepResult, WorkflowResult
+
+from aiflow.core.types import Priority, SkillType, Status, StepResult, StepStatus, WorkflowResult
 
 
 class TestStatusEnum:

@@ -12,11 +12,11 @@ from typing import Any
 
 import asyncpg
 import structlog
-from fastapi import APIRouter, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 from starlette.responses import StreamingResponse
 
-from aiflow.api.deps import get_pool, get_engine
+from aiflow.api.deps import get_engine, get_pool
 
 __all__ = ["router"]
 
@@ -209,8 +209,8 @@ def _email_upload_dir() -> Path:
 
 def _row_to_dict(row: asyncpg.Record) -> dict[str, Any]:
     """Convert asyncpg Record to dict, serializing datetimes and UUIDs."""
-    import uuid as _uuid
     import json as _json
+    import uuid as _uuid
     d: dict[str, Any] = {}
     for key, val in dict(row).items():
         if isinstance(val, (datetime, date)):
@@ -396,11 +396,19 @@ async def process_email(request: EmailProcessRequest) -> EmailProcessResponse:
 
     try:
         from skills.email_intent_processor.workflows.classify import (
-            parse_email as _parse,
             classify_intent as _classify,
-            extract_entities as _extract,
-            score_priority as _priority,
+        )
+        from skills.email_intent_processor.workflows.classify import (
             decide_routing as _route,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            extract_entities as _extract,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            parse_email as _parse,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            score_priority as _priority,
         )
     except ImportError as e:
         logger.error("email_skill_import_failed", error=str(e))
@@ -439,7 +447,7 @@ async def process_email(request: EmailProcessRequest) -> EmailProcessResponse:
 @router.post("/classify", response_model=ClassifyResponse)
 async def classify_text(request: ClassifyRequest) -> ClassifyResponse:
     """Classify text using the Classifier service with schema-driven labels."""
-    from aiflow.services.classifier import ClassifierService, ClassifierConfig
+    from aiflow.services.classifier import ClassifierConfig, ClassifierService
 
     try:
         # Load intent schema for labels
@@ -607,7 +615,7 @@ async def update_connector(config_id: str, update: ConnectorConfigUpdate) -> Con
                     params.append(v)
                 idx += 1
 
-            set_parts.append(f"updated_at = NOW()")
+            set_parts.append("updated_at = NOW()")
             set_clause = ", ".join(set_parts)
 
             row = await conn.fetchrow(
@@ -658,7 +666,8 @@ async def delete_connector(config_id: str) -> None:
 async def test_connector(config_id: str) -> TestConnectionResponse:
     """Test connectivity for a connector config."""
     from sqlalchemy.ext.asyncio import async_sessionmaker as asm
-    from aiflow.services.email_connector import EmailConnectorService, EmailConnectorConfig
+
+    from aiflow.services.email_connector import EmailConnectorConfig, EmailConnectorService
 
     engine = await get_engine()
     session_factory = asm(engine, expire_on_commit=False)
@@ -688,7 +697,8 @@ async def test_connector(config_id: str) -> TestConnectionResponse:
 async def fetch_emails(request: FetchRequest) -> FetchResponse:
     """Trigger email fetch (non-streaming fallback)."""
     from sqlalchemy.ext.asyncio import async_sessionmaker as asm
-    from aiflow.services.email_connector import EmailConnectorService, EmailConnectorConfig
+
+    from aiflow.services.email_connector import EmailConnectorConfig, EmailConnectorService
 
     engine = await get_engine()
     session_factory = asm(engine, expire_on_commit=False)
@@ -715,10 +725,12 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
     Events: init, file_start, file_step, file_done, file_error, complete.
     Steps per email: fetch, parse, classify, extract, priority, route.
     """
-    from sqlalchemy.ext.asyncio import async_sessionmaker as asm
-    from aiflow.services.email_connector import EmailConnectorService, EmailConnectorConfig
-    import uuid
     import time as _t
+    import uuid
+
+    from sqlalchemy.ext.asyncio import async_sessionmaker as asm
+
+    from aiflow.services.email_connector import EmailConnectorConfig, EmailConnectorService
 
     engine = await get_engine()
     session_factory = asm(engine, expire_on_commit=False)
@@ -729,9 +741,19 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
 
     try:
         from skills.email_intent_processor.workflows.classify import (
-            parse_email as _parse, classify_intent as _classify,
-            extract_entities as _extract, score_priority as _priority,
+            classify_intent as _classify,
+        )
+        from skills.email_intent_processor.workflows.classify import (
             decide_routing as _route,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            extract_entities as _extract,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            parse_email as _parse,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            score_priority as _priority,
         )
         skill_available = True
     except ImportError:
@@ -957,14 +979,24 @@ async def process_batch_stream(request: ProcessBatchRequest) -> StreamingRespons
 
     Scans data/emails/ for matching .eml files and runs the intent pipeline.
     """
-    import uuid
     import time as _t
+    import uuid
 
     try:
         from skills.email_intent_processor.workflows.classify import (
-            parse_email as _parse, classify_intent as _classify,
-            extract_entities as _extract, score_priority as _priority,
+            classify_intent as _classify,
+        )
+        from skills.email_intent_processor.workflows.classify import (
             decide_routing as _route,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            extract_entities as _extract,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            parse_email as _parse,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            score_priority as _priority,
         )
     except ImportError as e:
         err_msg = str(e)
@@ -1069,11 +1101,19 @@ async def upload_and_process_stream(files: list[UploadFile] = File(...)) -> Stre
 
     try:
         from skills.email_intent_processor.workflows.classify import (
-            parse_email as _parse,
             classify_intent as _classify,
-            extract_entities as _extract,
-            score_priority as _priority,
+        )
+        from skills.email_intent_processor.workflows.classify import (
             decide_routing as _route,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            extract_entities as _extract,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            parse_email as _parse,
+        )
+        from skills.email_intent_processor.workflows.classify import (
+            score_priority as _priority,
         )
     except ImportError as e:
         err_msg = str(e)

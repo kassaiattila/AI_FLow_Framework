@@ -11,21 +11,15 @@
 """
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, mock_open, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from skills.cubix_course_capture.models import (
-    AudioProbeResult,
-    ChunkInfo,
-    ChunkOutput,
     ChunkTranscript,
-    MergedTranscript,
     StructuredTranscript,
     TopicSection,
     TranscriptSegment,

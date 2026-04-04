@@ -10,8 +10,9 @@
     tags: [models, registry, lookup]
 """
 import pytest
+
+from aiflow.models.metadata import ModelMetadata, ModelType
 from aiflow.models.registry import ModelRegistry
-from aiflow.models.metadata import ModelMetadata, ModelType, ModelLifecycle
 
 
 @pytest.fixture

@@ -1,12 +1,12 @@
 """RPA Browser API — config CRUD + execute + logs."""
 from __future__ import annotations
 
+from functools import cache
 from typing import Any
 
 import structlog
 from fastapi import APIRouter, HTTPException
-from functools import cache
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 __all__ = ["router"]
 

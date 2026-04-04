@@ -22,7 +22,6 @@ from aiflow.pipeline.schema import (
     TriggerType,
 )
 
-
 MINIMAL_PIPELINE = {
     "name": "test_pipeline",
     "steps": [

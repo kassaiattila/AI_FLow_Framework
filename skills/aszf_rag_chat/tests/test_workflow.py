@@ -15,12 +15,10 @@
 from __future__ import annotations
 
 import uuid
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from skills.aszf_rag_chat.models import (
     Citation,
     ConversationMessage,
@@ -31,7 +29,6 @@ from skills.aszf_rag_chat.models import (
     RoleType,
     SearchResult,
 )
-
 
 # ── Fixtures ────────────────────────────────────────────────────────────────
 

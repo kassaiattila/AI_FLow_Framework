@@ -1,13 +1,20 @@
 """SQLAlchemy ORM models for AIFlow state persistence."""
 import uuid
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
-from decimal import Decimal
-
 from sqlalchemy import (
-    Boolean, DateTime, Float, Integer, Numeric, String, Text, Index,
-    ForeignKey, CheckConstraint,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship

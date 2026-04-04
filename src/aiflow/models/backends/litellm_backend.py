@@ -3,16 +3,19 @@
 Wraps litellm.acompletion and litellm.aembedding with retry, cost tracking, and structured output.
 """
 import time
-from typing import Any
 
 import structlog
 
 from aiflow.models.protocols.base import ModelCallResult
-from aiflow.models.protocols.generation import (
-    GenerationInput, GenerationOutput, TextGenerationProtocol,
-)
 from aiflow.models.protocols.embedding import (
-    EmbeddingInput, EmbeddingOutput, EmbeddingProtocol,
+    EmbeddingInput,
+    EmbeddingOutput,
+    EmbeddingProtocol,
+)
+from aiflow.models.protocols.generation import (
+    GenerationInput,
+    GenerationOutput,
+    TextGenerationProtocol,
 )
 
 __all__ = ["LiteLLMBackend"]

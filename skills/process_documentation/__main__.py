@@ -15,22 +15,28 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 
 async def main(input_text: str, output_dir: str) -> None:
-    from aiflow.engine.skill_runner import SkillRunner
     from skills.process_documentation.workflow import (
-        classify_intent, elaborate, extract, review,
-        generate_diagram, export_all,
+        classify_intent,
+        elaborate,
+        export_all,
+        extract,
+        generate_diagram,
+        review,
     )
+
+    from aiflow.engine.skill_runner import SkillRunner
 
     runner = SkillRunner.from_env(
         default_model="openai/gpt-4o-mini",
         prompt_dirs=[Path(__file__).parent / "prompts"],
     )
 
-    print(f"Process Documentation Skill")
+    print("Process Documentation Skill")
     print(f"Input: {input_text[:80]}...")
     print(f"Output: {output_dir}")
     print()
@@ -44,7 +50,7 @@ async def main(input_text: str, output_dir: str) -> None:
         print(f"Elutasitva: {result.get('reason')}")
         return
 
-    print(f"Kész!")
+    print("Kész!")
     print(f"Folyamat: {result.get('title', '?')}")
     for f in result.get("saved_files", []):
         print(f"  -> {f}")

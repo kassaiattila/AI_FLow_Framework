@@ -15,8 +15,6 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-
-from aiflow.engine.step import step
 from skills.invoice_processor import models_client, prompt_manager
 from skills.invoice_processor.models import (
     InvoiceHeader,
@@ -27,6 +25,8 @@ from skills.invoice_processor.models import (
     ProcessedInvoice,
     VatSummaryLine,
 )
+
+from aiflow.engine.step import step
 
 __all__ = [
     "parse_invoice",

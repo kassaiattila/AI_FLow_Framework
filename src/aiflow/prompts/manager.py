@@ -14,7 +14,7 @@ import structlog
 import yaml
 from pydantic import BaseModel
 
-from aiflow.prompts.schema import PromptDefinition, PromptConfig
+from aiflow.prompts.schema import PromptConfig, PromptDefinition
 
 __all__ = ["PromptManager"]
 

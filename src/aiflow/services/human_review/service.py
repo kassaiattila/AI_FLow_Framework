@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -110,7 +110,7 @@ class HumanReviewService:
 
     async def _decide(self, review_id: str, status: str, reviewer: str, comment: str | None) -> HumanReviewItem | None:
         pool = await self._get_pool()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """UPDATE human_review_queue
@@ -133,7 +133,7 @@ class HumanReviewService:
     ) -> HumanReviewItem | None:
         """Escalate a pending review — bumps priority and logs escalation."""
         pool = await self._get_pool()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """UPDATE human_review_queue

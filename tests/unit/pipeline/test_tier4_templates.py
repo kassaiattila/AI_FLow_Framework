@@ -24,7 +24,6 @@ import pytest
 
 from aiflow.pipeline.templates import TemplateInfo, TemplateRegistry
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -112,7 +111,7 @@ class TestTemplateRegistry:
     def test_template_has_metadata(self, registry: TemplateRegistry) -> None:
         """Each template has required metadata fields."""
         for tmpl in registry.list_all():
-            assert tmpl.name, f"Template missing name"
+            assert tmpl.name, "Template missing name"
             assert tmpl.version, f"Template {tmpl.name} missing version"
             assert tmpl.step_count > 0, (
                 f"Template {tmpl.name} has 0 steps"

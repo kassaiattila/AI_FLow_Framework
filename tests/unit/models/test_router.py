@@ -10,9 +10,11 @@
     tags: [models, router, routing, fallback]
 """
 import pytest
-from aiflow.models.router import ModelRouter, RoutingStrategy
-from aiflow.models.registry import ModelRegistry
+
 from aiflow.models.metadata import ModelMetadata, ModelType
+from aiflow.models.registry import ModelRegistry
+from aiflow.models.router import ModelRouter, RoutingStrategy
+
 
 @pytest.fixture
 def registry():

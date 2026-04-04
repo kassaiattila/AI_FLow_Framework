@@ -12,10 +12,10 @@
 import pytest
 
 from aiflow.observability.cost_tracker import (
+    BudgetAlert,
+    BudgetStatus,
     CostRecord,
     CostTracker,
-    BudgetStatus,
-    BudgetAlert,
 )
 
 

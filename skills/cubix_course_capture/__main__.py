@@ -17,16 +17,23 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 
 async def run_transcript(input_path: str, output_dir: str, course_name: str) -> None:
     """Process a single video/audio file through the transcript pipeline."""
-    from skills.cubix_course_capture.workflows.transcript_pipeline import (
-        probe_audio, extract_audio, chunk_audio, transcribe,
-        merge_transcripts, structure_transcript, config,
-    )
     import json
+
+    from skills.cubix_course_capture.workflows.transcript_pipeline import (
+        chunk_audio,
+        config,
+        extract_audio,
+        merge_transcripts,
+        probe_audio,
+        structure_transcript,
+        transcribe,
+    )
 
     file_path = Path(input_path)
     if not file_path.exists():
@@ -37,7 +44,7 @@ async def run_transcript(input_path: str, output_dir: str, course_name: str) -> 
     config.output_dir = str(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Cubix Transcript Pipeline")
+    print("Cubix Transcript Pipeline")
     print(f"Input: {file_path.name} ({file_path.stat().st_size / 1024 / 1024:.1f} MB)")
     print(f"Output: {out_dir}")
     print()
@@ -84,8 +91,8 @@ async def run_transcript(input_path: str, output_dir: str, course_name: str) -> 
 
 async def run_capture(url: str, course_name: str, output_dir: str) -> None:
     """Run full course capture (RPA + transcript)."""
-    from skills.cubix_course_capture.workflows.course_capture import process_course
     from skills.cubix_course_capture.models import CourseConfig
+    from skills.cubix_course_capture.workflows.course_capture import process_course
 
     config = CourseConfig(
         course_name=course_name,
@@ -93,7 +100,7 @@ async def run_capture(url: str, course_name: str, output_dir: str) -> None:
         output_base_dir=output_dir,
     )
 
-    print(f"Cubix Course Capture")
+    print("Cubix Course Capture")
     print(f"URL: {url}")
     print(f"Course: {course_name}")
     print(f"Output: {output_dir}/{course_name}")

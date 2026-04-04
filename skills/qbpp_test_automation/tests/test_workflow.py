@@ -9,7 +9,6 @@
     requires_services: []
     tags: [qbpp, workflow, rpa, playwright, insurance]
 """
-import pytest
 
 
 class TestQbppTestAutomationWorkflow:

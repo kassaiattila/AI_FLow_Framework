@@ -5,14 +5,13 @@ import hashlib
 import secrets
 import uuid
 from datetime import UTC, datetime
+from functools import cache
 from typing import Any
 
 import bcrypt
 import structlog
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-
-from functools import cache
 
 from aiflow.api.deps import get_engine
 

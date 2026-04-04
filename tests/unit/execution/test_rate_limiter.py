@@ -10,7 +10,8 @@
     tags: [execution, rate-limiter, token-bucket]
 """
 import pytest
-from aiflow.execution.rate_limiter import RateLimitConfig, InMemoryRateLimiter
+
+from aiflow.execution.rate_limiter import InMemoryRateLimiter, RateLimitConfig
 
 
 class TestRateLimitConfig:

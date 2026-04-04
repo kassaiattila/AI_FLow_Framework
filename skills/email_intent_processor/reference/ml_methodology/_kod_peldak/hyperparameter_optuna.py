@@ -16,35 +16,35 @@ Forrás: Cubix EDU - ML Engineering, 5. hét
         Hyperparaméter optimalizálás és Optuna előadás
 """
 
-import warnings
 import os
 import sys
+import warnings
 from contextlib import contextmanager
 
 import numpy as np
 import pandas as pd
 from sklearn.datasets import make_classification, make_regression
-from sklearn.model_selection import (
-    GridSearchCV,
-    RandomizedSearchCV,
-    KFold,
-    cross_val_score,
-    train_test_split,
-)
-from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     accuracy_score,
     mean_absolute_percentage_error,
     mean_squared_error,
 )
+from sklearn.model_selection import (
+    GridSearchCV,
+    KFold,
+    RandomizedSearchCV,
+    cross_val_score,
+    train_test_split,
+)
+from sklearn.svm import SVC
 
 # --- Optuna importálása try/except-tel ---
 # Az optuna nem része az alap sklearn csomagnak, ezért
 # külön kell telepíteni: pip install optuna
 try:
     import optuna
-    from optuna.samplers import TPESampler, NSGAIISampler, RandomSampler
+    from optuna.samplers import NSGAIISampler, RandomSampler, TPESampler
 
     OPTUNA_AVAILABLE = True
 except ImportError:
@@ -263,7 +263,7 @@ def demo_randomizedsearch_rf():
     X_train, X_test, y_train, y_test, kf = create_classification_data()
 
     # --- Paraméter-eloszlások definiálása ---
-    from scipy.stats import randint, uniform
+    from scipy.stats import randint
 
     param_distributions = {
         "n_estimators": randint(50, 500),  # Egyenletes eloszlás 50-500 között
@@ -308,7 +308,7 @@ def demo_randomizedsearch_rf():
     best_idx = random_search.best_index_
     train_score = results_df.loc[best_idx, "mean_train_score"]
     test_score = results_df.loc[best_idx, "mean_test_score"]
-    print(f"\nOverfitting ellenőrzés (legjobb modell):")
+    print("\nOverfitting ellenőrzés (legjobb modell):")
     print(f"  Train CV score: {train_score:.4f}")
     print(f"  Valid CV score: {test_score:.4f}")
     print(f"  Különbség:      {train_score - test_score:.4f}")
@@ -401,7 +401,7 @@ def demo_optuna_basics():
     # --- Eredmények ---
     print(f"\nLegjobb trial száma: {study.best_trial.number}")
     print(f"Legjobb CV accuracy: {study.best_value:.4f}")
-    print(f"Legjobb paraméterek:")
+    print("Legjobb paraméterek:")
     for key, value in study.best_params.items():
         print(f"  {key}: {value}")
 
@@ -537,7 +537,7 @@ def demo_optuna_lightgbm():
 
     print(f"Optuna legjobb MAPE: {study.best_value * 100:.2f}%")
     print(f"Optuna futási idő:   {optuna_time:.1f} mp")
-    print(f"Legjobb paraméterek:")
+    print("Legjobb paraméterek:")
     for key, value in study.best_params.items():
         if isinstance(value, float):
             print(f"  {key}: {value:.6f}")
@@ -707,7 +707,7 @@ def demo_optuna_xgboost():
 
     # --- Eredmények ---
     print(f"\nLegjobb MAPE: {study.best_value * 100:.2f}%")
-    print(f"Legjobb paraméterek:")
+    print("Legjobb paraméterek:")
     for key, value in study.best_params.items():
         if isinstance(value, float):
             print(f"  {key}: {value:.6f}")
@@ -1054,7 +1054,7 @@ def demo_results_summary():
     test_mape = mean_absolute_percentage_error(y_test, y_pred_test) * 100
     test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_test))
 
-    print(f"\nVégső modell értékelése:")
+    print("\nVégső modell értékelése:")
     print(f"  Train MAPE: {train_mape:.2f}%")
     print(f"  Test MAPE:  {test_mape:.2f}%")
     print(f"  Test RMSE:  {test_rmse:.2f}")

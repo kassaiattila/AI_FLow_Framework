@@ -12,13 +12,11 @@ from collections import deque
 from pathlib import Path
 
 import structlog
-
-from skills.process_documentation.drawio.builder import DrawioBuilder
 from skills.process_documentation.drawio.bpmn import BPMNDiagram
+from skills.process_documentation.drawio.builder import DrawioBuilder
 from skills.process_documentation.drawio.colors import COLORS, LANE_COLORS
 from skills.process_documentation.models import (
     ProcessExtraction,
-    ProcessStep,
     StepType,
 )
 

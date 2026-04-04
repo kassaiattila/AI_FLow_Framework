@@ -7,11 +7,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
-
-from pydantic import BaseModel, Field
 
 import structlog
+from pydantic import BaseModel, Field
 
 from aiflow.core.registry import Registry
 from aiflow.skill_system.manifest import (

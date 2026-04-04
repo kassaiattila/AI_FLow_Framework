@@ -17,14 +17,15 @@ from __future__ import annotations
 
 import inspect
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import structlog
 
 from aiflow.core.context import ExecutionContext
-from aiflow.models.client import ModelClient
 from aiflow.models.backends.litellm_backend import LiteLLMBackend
+from aiflow.models.client import ModelClient
 from aiflow.prompts.manager import PromptManager
 
 __all__ = ["SkillRunner"]

@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from aiflow.skills.registry import SkillRegistry, InstalledSkillRecord
+from aiflow.skills.registry import InstalledSkillRecord, SkillRegistry
 
 
 def _write_skill(tmp_path: Path, name: str, **extra: object) -> Path:

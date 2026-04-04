@@ -9,7 +9,7 @@ from pathlib import Path
 
 import structlog
 
-from aiflow.skills.manifest import SkillManifest, load_manifest, check_framework_compatibility
+from aiflow.skills.manifest import SkillManifest, check_framework_compatibility, load_manifest
 
 __all__ = ["SkillLoader"]
 

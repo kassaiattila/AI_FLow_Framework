@@ -42,7 +42,7 @@ class ABTest(BaseModel):
     active: bool = True
 
     @model_validator(mode="after")
-    def _validate_traffic_split(self) -> "ABTest":
+    def _validate_traffic_split(self) -> ABTest:
         """Ensure traffic_split keys match variants and percentages sum to 100."""
         if not self.variants or not self.traffic_split:
             return self
@@ -223,7 +223,7 @@ class ABTestManager:
         Returns:
             A float in the range [0, 100).
         """
-        raw = f"{test_name}:{user_id}".encode("utf-8")
+        raw = f"{test_name}:{user_id}".encode()
         digest = hashlib.sha256(raw).hexdigest()
         # Take first 8 hex chars (32 bits) -> int -> scale to [0, 100)
         int_val = int(digest[:8], 16)

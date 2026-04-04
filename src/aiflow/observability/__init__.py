@@ -14,8 +14,8 @@ from aiflow.observability.tracing import (
     LangfuseTracer,
     SpanRecord,
     TraceManager,
-    TraceRecord,
     TracerBackend,
+    TraceRecord,
     get_langfuse_client,
     trace_llm_call,
 )

@@ -10,7 +10,8 @@
     tags: [security, rbac, roles, permissions]
 """
 import pytest
-from aiflow.security.rbac import Role, Permission, RBACManager
+
+from aiflow.security.rbac import Permission, RBACManager, Role
 
 
 class TestRole:

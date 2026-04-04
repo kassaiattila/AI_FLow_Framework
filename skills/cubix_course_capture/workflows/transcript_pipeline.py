@@ -20,13 +20,6 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-
-from aiflow.engine.step import step
-from aiflow.engine.workflow import WorkflowBuilder, workflow
-from aiflow.models.backends.litellm_backend import LiteLLMBackend
-from aiflow.models.client import ModelClient
-from aiflow.prompts.manager import PromptManager
-
 from skills.cubix_course_capture.config import TranscriptPipelineConfig
 from skills.cubix_course_capture.models import (
     AudioProbeResult,
@@ -38,6 +31,12 @@ from skills.cubix_course_capture.models import (
     StructuredTranscript,
     TranscriptSegment,
 )
+
+from aiflow.engine.step import step
+from aiflow.engine.workflow import WorkflowBuilder, workflow
+from aiflow.models.backends.litellm_backend import LiteLLMBackend
+from aiflow.models.client import ModelClient
+from aiflow.prompts.manager import PromptManager
 
 __all__ = [
     "probe_audio",

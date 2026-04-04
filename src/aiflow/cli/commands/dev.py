@@ -7,8 +7,6 @@ Usage:
 """
 
 import subprocess
-import sys
-from typing import Optional
 
 import structlog
 import typer
@@ -95,7 +93,7 @@ def dev_down(
 
 @app.command("logs")
 def dev_logs(
-    service: Optional[str] = typer.Argument(
+    service: str | None = typer.Argument(
         None,
         help="Specific service name (e.g., postgres, redis). Default: all.",
     ),

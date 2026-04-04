@@ -1,13 +1,15 @@
 """FastAPI application factory."""
 import os
+import traceback
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import traceback
-import uuid
-import structlog
+
 from aiflow._version import __version__
 
 __all__ = ["create_app"]
@@ -102,31 +104,31 @@ def create_app() -> FastAPI:
     from aiflow.api.middleware import AuthMiddleware
     app.add_middleware(AuthMiddleware)
     # Include routers
-    from aiflow.api.v1.health import router as health_router
-    from aiflow.api.v1.workflows import router as workflows_router
-    from aiflow.api.v1.chat_completions import router as chat_router
-    from aiflow.api.v1.feedback import router as feedback_router
-    from aiflow.api.v1.runs import router as runs_router
-    from aiflow.api.v1.costs import router as costs_router
-    from aiflow.api.v1.skills_api import router as skills_router
-    from aiflow.api.v1.emails import router as emails_router
-    from aiflow.api.v1.auth import router as auth_router
-    from aiflow.api.v1.documents import router as documents_router
-    from aiflow.api.v1.process_docs import router as process_docs_router
-    from aiflow.api.v1.cubix import router as cubix_router
-    from aiflow.api.v1.services import router as services_router
-    from aiflow.api.v1.rag_engine import router as rag_router
-    from aiflow.api.v1.diagram_generator import router as diagram_router
-    from aiflow.api.v1.media_processor import router as media_router
-    from aiflow.api.v1.rpa_browser import router as rpa_router
-    from aiflow.api.v1.human_review import router as review_router
     from aiflow.api.v1.admin import router as admin_router
-    from aiflow.api.v1.pipelines import router as pipelines_router
-    from aiflow.api.v1.notifications import router as notifications_router
+    from aiflow.api.v1.auth import router as auth_router
+    from aiflow.api.v1.chat_completions import router as chat_router
+    from aiflow.api.v1.costs import router as costs_router
+    from aiflow.api.v1.cubix import router as cubix_router
     from aiflow.api.v1.data_router import router as data_router_router
-    from aiflow.api.v1.rag_advanced import router as rag_advanced_router
-    from aiflow.api.v1.quality import router as quality_router
+    from aiflow.api.v1.diagram_generator import router as diagram_router
+    from aiflow.api.v1.documents import router as documents_router
+    from aiflow.api.v1.emails import router as emails_router
+    from aiflow.api.v1.feedback import router as feedback_router
+    from aiflow.api.v1.health import router as health_router
+    from aiflow.api.v1.human_review import router as review_router
     from aiflow.api.v1.intent_schemas import router as intent_schemas_router
+    from aiflow.api.v1.media_processor import router as media_router
+    from aiflow.api.v1.notifications import router as notifications_router
+    from aiflow.api.v1.pipelines import router as pipelines_router
+    from aiflow.api.v1.process_docs import router as process_docs_router
+    from aiflow.api.v1.quality import router as quality_router
+    from aiflow.api.v1.rag_advanced import router as rag_advanced_router
+    from aiflow.api.v1.rag_engine import router as rag_router
+    from aiflow.api.v1.rpa_browser import router as rpa_router
+    from aiflow.api.v1.runs import router as runs_router
+    from aiflow.api.v1.services import router as services_router
+    from aiflow.api.v1.skills_api import router as skills_router
+    from aiflow.api.v1.workflows import router as workflows_router
     app.include_router(health_router)
     app.include_router(workflows_router)
     app.include_router(chat_router)

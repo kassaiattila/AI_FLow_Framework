@@ -13,13 +13,13 @@ Usage:
 """
 import functools
 import time
-from typing import Any, Callable, TypeVar, ParamSpec, get_type_hints
-
-from pydantic import BaseModel
+from collections.abc import Callable
+from typing import ParamSpec, TypeVar
 
 import structlog
+from pydantic import BaseModel
 
-from aiflow.engine.policies import RetryPolicy, TimeoutPolicy
+from aiflow.engine.policies import RetryPolicy
 
 __all__ = ["step", "StepDefinition"]
 

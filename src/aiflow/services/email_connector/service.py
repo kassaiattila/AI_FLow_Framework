@@ -12,7 +12,7 @@ import email as email_stdlib
 import imaplib
 import json
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from email.header import decode_header
 from email.utils import parseaddr, parsedate_to_datetime
 from enum import Enum
@@ -1128,11 +1128,12 @@ async def _fetch_outlook_com_impl(
             pythoncom.CoInitialize()
         except Exception:
             pass
-        import win32com.client
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.base import MIMEBase
         from email import encoders
+        from email.mime.base import MIMEBase
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
+        import win32com.client
 
         outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
 
@@ -1159,7 +1160,8 @@ async def _fetch_outlook_com_impl(
             target_folder = outlook.GetDefaultFolder(6)  # 6 = Inbox
 
         # Date filter
-        from datetime import datetime as dt, timedelta
+        from datetime import datetime as dt
+        from datetime import timedelta
         if since_date:
             cutoff = since_date
         else:

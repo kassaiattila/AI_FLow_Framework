@@ -22,10 +22,6 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-
-from aiflow.engine.step import step
-from aiflow.engine.workflow import WorkflowBuilder, workflow
-
 from skills.cubix_course_capture.models import (
     CourseConfig,
     CourseStructure,
@@ -37,6 +33,9 @@ from skills.cubix_course_capture.models import (
 )
 from skills.cubix_course_capture.platforms import get_platform_config
 from skills.cubix_course_capture.state import FileStateManager
+
+from aiflow.engine.step import step
+from aiflow.engine.workflow import WorkflowBuilder, workflow
 
 # Robot Framework runner (optional - for RF-based RPA)
 try:
@@ -1095,26 +1094,26 @@ async def generate_course_report(data: dict[str, Any]) -> dict[str, Any]:
     # --- Generate batch_report.md ---
     report_lines: list[str] = [
         f"# Course Capture Report: {course_title}",
-        f"",
+        "",
         f"**Generated:** {now}",
         f"**Course:** {course_title}",
         f"**URL:** {structure_data.get('url', 'N/A')}",
         f"**Platform:** {structure_data.get('platform', 'N/A')}",
-        f"",
-        f"## Summary",
-        f"",
-        f"| Metric | Value |",
-        f"|--------|-------|",
+        "",
+        "## Summary",
+        "",
+        "| Metric | Value |",
+        "|--------|-------|",
         f"| Total lessons | {len(results)} |",
         f"| Completed | {completed} |",
         f"| Failed | {failed} |",
         f"| Skipped | {len(results) - completed - failed} |",
         f"| Total cost (USD) | ${total_cost:.4f} |",
-        f"",
-        f"## Lesson Details",
-        f"",
-        f"| Week | Lesson | Title | Status | Cost | Error |",
-        f"|------|--------|-------|--------|------|-------|",
+        "",
+        "## Lesson Details",
+        "",
+        "| Week | Lesson | Title | Status | Cost | Error |",
+        "|------|--------|-------|--------|------|-------|",
     ]
 
     for r in results:

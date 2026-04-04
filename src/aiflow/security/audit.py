@@ -4,7 +4,7 @@ from __future__ import annotations
 import enum
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -43,7 +43,7 @@ class AuditEntry(BaseModel):
     """Single audit log entry."""
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     user_id: str | None = None
     team_id: str | None = None
     action: AuditAction

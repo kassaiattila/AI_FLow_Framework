@@ -14,13 +14,13 @@ from pathlib import Path
 import pytest
 import yaml
 
-from aiflow.skills.instance_loader import (
-    load_instance_config,
-    load_deployment_profile,
-    load_all_instances,
-    DeploymentProfile,
-)
 from aiflow.skills.instance import InstanceConfig
+from aiflow.skills.instance_loader import (
+    DeploymentProfile,
+    load_all_instances,
+    load_deployment_profile,
+    load_instance_config,
+)
 
 
 @pytest.fixture

@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import enum
-import re
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -107,7 +106,7 @@ class CronTrigger:
     def should_fire(self, now: datetime | None = None) -> bool:
         """Return True when *now* matches the cron expression."""
         if now is None:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
         actuals = (
             now.minute,
@@ -216,7 +215,7 @@ class Scheduler:
     ) -> list[ScheduleDefinition]:
         """Return all cron schedules that should fire at *now*."""
         if now is None:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
         due: list[ScheduleDefinition] = []
         with self._lock:

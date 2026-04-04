@@ -1,10 +1,11 @@
 """Global test fixtures for AIFlow."""
 import pytest
+
 from aiflow.core.config import AIFlowSettings
-from aiflow.core.context import ExecutionContext, TraceContext
+from aiflow.core.context import ExecutionContext
+from aiflow.core.di import Container
 from aiflow.core.events import EventBus
 from aiflow.core.registry import Registry
-from aiflow.core.di import Container
 
 
 @pytest.fixture

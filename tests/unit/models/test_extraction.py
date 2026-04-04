@@ -11,6 +11,7 @@
 """
 from aiflow.models.protocols.extraction import ExtractionEntity, ExtractionInput, ExtractionOutput
 
+
 class TestExtractionModels:
     def test_entity(self):
         e = ExtractionEntity(text="Budapest", label="LOCATION")

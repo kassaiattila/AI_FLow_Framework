@@ -15,20 +15,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 
 async def cmd_ingest(args: argparse.Namespace) -> None:
     """Process invoices from source path."""
-    from aiflow.engine.skill_runner import SkillRunner
     from skills.invoice_processor.workflows.process import (
-        parse_invoice,
         classify_invoice,
-        extract_invoice_data,
-        validate_invoice,
-        store_invoice,
         export_invoice,
+        extract_invoice_data,
+        parse_invoice,
+        store_invoice,
+        validate_invoice,
     )
+
+    from aiflow.engine.skill_runner import SkillRunner
 
     runner = SkillRunner.from_env(
         default_model="openai/gpt-4o",
@@ -103,7 +105,7 @@ async def cmd_ingest(args: argparse.Namespace) -> None:
 
     exported = result.get("exported_files", [])
     if exported:
-        print(f"\n  Export:")
+        print("\n  Export:")
         for ep in exported:
             print(f"    -> {ep}")
 

@@ -7,7 +7,6 @@ Usage:
     aiflow workflow docs <name> --format mermaid
 """
 
-from typing import Optional
 
 import structlog
 import typer
@@ -30,7 +29,7 @@ def list_workflows() -> None:
 @app.command("run")
 def run_workflow(
     name: str = typer.Argument(..., help="Workflow name to execute."),
-    input_data: Optional[str] = typer.Option(
+    input_data: str | None = typer.Option(
         None,
         "--input",
         "-i",

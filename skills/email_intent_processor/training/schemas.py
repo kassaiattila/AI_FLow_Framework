@@ -7,9 +7,8 @@ from __future__ import annotations
 
 import csv
 import random
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field
@@ -47,7 +46,7 @@ class TrainingDataset(BaseModel):
     name: str = "unnamed"
     intent_schema_version: str = "v1"
     created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     samples: list[TrainingExample] = []
 

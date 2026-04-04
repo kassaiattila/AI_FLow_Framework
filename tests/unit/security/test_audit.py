@@ -9,9 +9,11 @@
     requires_services: []
     tags: [security, audit, logging, compliance]
 """
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timezone, timedelta
-from aiflow.security.audit import AuditEntry, AuditAction, AuditLogger
+
+from aiflow.security.audit import AuditAction, AuditEntry, AuditLogger
 
 
 class TestAuditAction:
@@ -126,7 +128,7 @@ class TestAuditLogger:
         assert all(e.user_id == "alice" for e in results)
 
     def test_query_by_date_range(self, audit_logger):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         old_entry = AuditEntry(
             user_id="u1",
             action=AuditAction.user_login,

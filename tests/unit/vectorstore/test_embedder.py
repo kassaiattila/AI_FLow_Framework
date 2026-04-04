@@ -9,11 +9,14 @@
     requires_services: []
     tags: [vectorstore, embedder, embedding]
 """
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
+
 from aiflow.models.protocols.base import ModelCallResult
 from aiflow.models.protocols.embedding import EmbeddingOutput
 from aiflow.vectorstore.embedder import Embedder
+
 
 @pytest.fixture
 def mock_client():

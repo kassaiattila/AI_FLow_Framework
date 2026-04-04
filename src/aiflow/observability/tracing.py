@@ -22,8 +22,9 @@ import functools
 import time
 import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field
@@ -52,7 +53,7 @@ class SpanRecord(BaseModel):
     span_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     trace_id: str
     name: str
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     ended_at: datetime | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     status: str = "running"
@@ -63,7 +64,7 @@ class TraceRecord(BaseModel):
 
     trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     ended_at: datetime | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     spans: dict[str, SpanRecord] = Field(default_factory=dict)
@@ -130,7 +131,7 @@ class InMemoryTracer(TracerBackend):
         span = trace.spans.get(span_id)
         if span is None:
             raise ValueError(f"Span '{span_id}' not found in trace '{trace_id}'")
-        span.ended_at = datetime.now(timezone.utc)
+        span.ended_at = datetime.now(UTC)
         span.status = "completed"
         if metadata:
             span.metadata.update(metadata)
@@ -140,7 +141,7 @@ class InMemoryTracer(TracerBackend):
         trace = self._traces.get(trace_id)
         if trace is None:
             raise ValueError(f"Trace '{trace_id}' not found")
-        trace.ended_at = datetime.now(timezone.utc)
+        trace.ended_at = datetime.now(UTC)
         trace.status = "completed"
         if metadata:
             trace.metadata.update(metadata)

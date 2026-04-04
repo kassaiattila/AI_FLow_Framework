@@ -2,6 +2,11 @@
 
 Backward-compat re-export. Canonical location: ``aiflow.tools.shell``
 """
-from aiflow.tools.shell import ShellExecutor, ShellResult, ShellCommandDeniedError, ShellTimeoutError
+from aiflow.tools.shell import (
+    ShellCommandDeniedError,
+    ShellExecutor,
+    ShellResult,
+    ShellTimeoutError,
+)
 
 __all__ = ["ShellExecutor", "ShellResult", "ShellCommandDeniedError", "ShellTimeoutError"]

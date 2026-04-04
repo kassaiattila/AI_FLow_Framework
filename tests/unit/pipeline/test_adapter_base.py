@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from aiflow.core.context import ExecutionContext
 from aiflow.pipeline.adapter_base import (
@@ -23,7 +23,6 @@ from aiflow.pipeline.adapter_base import (
     BaseAdapter,
     ServiceAdapter,
 )
-
 
 # --- Test fixtures ---
 

@@ -1,6 +1,8 @@
 """Classification protocol for text categorization models."""
 from abc import abstractmethod
+
 from pydantic import BaseModel
+
 from aiflow.models.protocols.base import BaseModelProtocol, ModelCallResult
 
 __all__ = ["ClassificationInput", "ClassificationResult", "ClassificationOutput", "ClassificationProtocol"]

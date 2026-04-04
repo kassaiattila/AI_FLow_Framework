@@ -5,13 +5,13 @@ Upload media → STT → transcript + structured output.
 from __future__ import annotations
 
 import tempfile
+from functools import cache
 from pathlib import Path
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query
-from functools import cache
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from pydantic import BaseModel
 
 __all__ = ["router"]
 

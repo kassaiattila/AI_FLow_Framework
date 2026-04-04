@@ -9,8 +9,7 @@
     requires_services: []
     tags: [contrib, messaging, kafka, integration-point]
 """
-import pytest
-from aiflow.contrib.messaging.kafka import KafkaConfig, KafkaProducer, KafkaConsumer
+from aiflow.contrib.messaging.kafka import KafkaConfig, KafkaConsumer, KafkaProducer
 
 
 class TestKafkaConfig:

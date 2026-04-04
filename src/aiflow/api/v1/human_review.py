@@ -1,11 +1,11 @@
 """Human Review API — pending queue + approve/reject + history."""
 from __future__ import annotations
 
+from functools import cache
 from typing import Any
 
 import structlog
 from fastapi import APIRouter, HTTPException
-from functools import cache
 from pydantic import BaseModel, Field
 
 __all__ = ["router"]

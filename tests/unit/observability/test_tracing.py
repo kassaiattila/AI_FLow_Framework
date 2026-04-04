@@ -11,7 +11,7 @@
 """
 import pytest
 
-from aiflow.observability.tracing import TraceManager, InMemoryTracer
+from aiflow.observability.tracing import InMemoryTracer, TraceManager
 
 
 class TestInMemoryTracer:

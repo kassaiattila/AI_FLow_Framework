@@ -10,6 +10,7 @@
     tags: [events, pubsub, async]
 """
 import pytest
+
 from aiflow.core.events import EventBus
 
 

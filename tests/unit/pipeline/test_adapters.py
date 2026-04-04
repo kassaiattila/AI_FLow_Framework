@@ -20,13 +20,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 import pytest
 
 from aiflow.core.context import ExecutionContext
 from aiflow.pipeline.adapter_base import adapter_registry
-
 
 # --- Fake service stubs (unit test: mock the service, test the adapter logic) ---
 
@@ -373,12 +371,12 @@ class TestGlobalAdapterRegistry:
     def test_registry_has_all_core_adapters(self):
         """After importing all adapter modules, the global registry has them all."""
         # Force imports (normally done by discover_adapters)
-        import aiflow.pipeline.adapters.email_adapter  # noqa: F401
         import aiflow.pipeline.adapters.classifier_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.document_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.rag_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.media_adapter  # noqa: F401
         import aiflow.pipeline.adapters.diagram_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.document_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.email_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.media_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.rag_adapter  # noqa: F401
 
         expected = [
             ("email_connector", "fetch_emails"),

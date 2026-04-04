@@ -29,6 +29,10 @@ from aiflow.services.email_connector import (
     FetchedEmail,
     FetchResult,
 )
+from aiflow.services.rag_engine import (
+    RAGEngineConfig,
+    RAGEngineService,
+)
 from aiflow.services.rate_limiter import (
     RateLimiterConfig,
     RateLimiterService,
@@ -40,10 +44,6 @@ from aiflow.services.resilience import (
     ResilienceConfig,
     ResilienceRule,
     ResilienceService,
-)
-from aiflow.services.rag_engine import (
-    RAGEngineConfig,
-    RAGEngineService,
 )
 from aiflow.services.schema_registry import (
     SchemaRegistryConfig,

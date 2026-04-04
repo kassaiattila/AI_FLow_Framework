@@ -7,22 +7,22 @@ from __future__ import annotations
 
 from skills.process_documentation.drawio.builder import DrawioBuilder
 from skills.process_documentation.drawio.colors import (
-    LANE_COLORS,
-    C_USR,
-    C_SVC,
+    C_END,
+    C_GW,
+    C_INTER,
     C_MAN,
+    C_NOTE,
     C_SND,
     C_START,
-    C_END,
-    C_INTER,
-    C_GW,
-    C_NOTE,
+    C_SVC,
+    C_USR,
     EV_SZ,
-    TASK_W,
-    TASK_H,
     GW_SZ,
-    LANE_HDR,
+    LANE_COLORS,
     LANE_H,
+    LANE_HDR,
+    TASK_H,
+    TASK_W,
     TITLE_H,
 )
 

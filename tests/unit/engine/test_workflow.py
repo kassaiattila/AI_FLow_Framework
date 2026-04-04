@@ -10,9 +10,10 @@
     tags: [engine, workflow, builder, decorator]
 """
 import pytest
-from aiflow.engine.step import step
-from aiflow.engine.workflow import workflow, WorkflowBuilder, WorkflowDefinition, Workflow
+
 from aiflow.engine.dag import DAGValidationError
+from aiflow.engine.step import step
+from aiflow.engine.workflow import Workflow, WorkflowBuilder, WorkflowDefinition, workflow
 
 
 # Sample steps for testing

@@ -11,16 +11,14 @@
 """
 import json
 
-import pytest
-
 from aiflow.evaluation.scorers import (
-    exact_match,
     contains,
-    json_valid,
+    exact_match,
     json_field_equals,
-    threshold_check,
-    regex_match,
+    json_valid,
     llm_rubric_placeholder,
+    regex_match,
+    threshold_check,
 )
 
 

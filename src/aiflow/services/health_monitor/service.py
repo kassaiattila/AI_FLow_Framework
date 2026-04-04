@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -62,7 +62,7 @@ class HealthMonitorService:
                     service_name="unknown",
                     status="unhealthy",
                     details={"error": str(r)},
-                    checked_at=datetime.now(timezone.utc).isoformat(),
+                    checked_at=datetime.now(UTC).isoformat(),
                 ))
             else:
                 health_list.append(r)
@@ -129,7 +129,7 @@ class HealthMonitorService:
                 status="healthy",
                 latency_ms=round(latency, 1),
                 details={"version": "PostgreSQL 16+"},
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             return ServiceHealth(
@@ -137,7 +137,7 @@ class HealthMonitorService:
                 status="unhealthy",
                 latency_ms=round((time.monotonic() - t0) * 1000, 1),
                 details={"error": str(e)},
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
 
     async def _check_redis(self) -> ServiceHealth:
@@ -152,7 +152,7 @@ class HealthMonitorService:
                 service_name="redis",
                 status="healthy",
                 latency_ms=round(latency, 1),
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             return ServiceHealth(
@@ -160,7 +160,7 @@ class HealthMonitorService:
                 status="unhealthy",
                 latency_ms=round((time.monotonic() - t0) * 1000, 1),
                 details={"error": str(e)},
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
 
     _ALLOWED_TABLES: frozenset[str] = frozenset({
@@ -182,7 +182,7 @@ class HealthMonitorService:
                 status="healthy",
                 latency_ms=round(latency, 1),
                 details={"record_count": count},
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             return ServiceHealth(
@@ -190,7 +190,7 @@ class HealthMonitorService:
                 status="unhealthy",
                 latency_ms=round((time.monotonic() - t0) * 1000, 1),
                 details={"error": str(e)},
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
 
     async def _persist_check(self, health: ServiceHealth) -> None:

@@ -3,8 +3,9 @@
 Supports routing strategies: cost_optimized, latency_optimized, capability_match, fallback_chain.
 """
 from enum import StrEnum
-from typing import Any
+
 import structlog
+
 from aiflow.models.metadata import ModelMetadata, ModelType
 from aiflow.models.registry import ModelRegistry
 

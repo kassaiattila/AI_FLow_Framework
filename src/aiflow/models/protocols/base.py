@@ -1,6 +1,7 @@
 """Base protocol and result types for model calls."""
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
+
 from pydantic import BaseModel
 
 __all__ = ["ModelCallResult", "BaseModelProtocol"]

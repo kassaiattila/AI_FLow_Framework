@@ -12,7 +12,7 @@ from enum import StrEnum
 from pathlib import Path
 
 import structlog
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from aiflow.documents.registry import (
     DocumentRegistry,

@@ -11,7 +11,9 @@
 """
 import uuid
 from datetime import date
-from aiflow.vectorstore.base import SearchResult, SearchFilter
+
+from aiflow.vectorstore.base import SearchFilter, SearchResult
+
 
 class TestSearchFilter:
     def test_defaults(self):

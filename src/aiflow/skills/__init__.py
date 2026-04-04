@@ -5,16 +5,16 @@ This module re-exports everything from aiflow.skill_system for backward compat.
 """
 # Re-export from canonical location
 from aiflow.skill_system import (  # noqa: F401
-    SkillManifest,
-    RequiredModel,
-    VectorStoreConfig,
-    SkillLoader,
-    SkillRegistry,
+    DeploymentProfile,
     InstanceConfig,
     InstanceRegistry,
-    DeploymentProfile,
-    load_instance_config,
+    RequiredModel,
+    SkillLoader,
+    SkillManifest,
+    SkillRegistry,
+    VectorStoreConfig,
     load_deployment_profile,
+    load_instance_config,
 )
 
 __all__ = [

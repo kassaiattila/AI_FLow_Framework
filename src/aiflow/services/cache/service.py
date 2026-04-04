@@ -13,7 +13,6 @@ from typing import Any
 
 import redis.asyncio as aioredis
 import structlog
-from pydantic import Field
 
 from aiflow.services.base import BaseService, ServiceConfig
 

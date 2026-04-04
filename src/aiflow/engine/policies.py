@@ -5,11 +5,9 @@ RetryPolicy is modeled after LangGraph's RetryPolicy (validated match).
 import asyncio
 import random
 import time
-from typing import Callable
-
-from pydantic import BaseModel, Field
 
 import structlog
+from pydantic import BaseModel, Field
 
 __all__ = ["RetryPolicy", "CircuitBreakerPolicy", "TimeoutPolicy", "CircuitBreakerState"]
 
@@ -123,7 +121,7 @@ class TimeoutPolicy(BaseModel):
         """Execute a coroutine with timeout."""
         try:
             return await asyncio.wait_for(coro, timeout=self.timeout_seconds)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("step_timeout", timeout=self.timeout_seconds, action=self.on_timeout)
             if self.on_timeout == "skip":
                 return None

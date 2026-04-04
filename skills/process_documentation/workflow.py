@@ -9,10 +9,6 @@ import json
 from pathlib import Path
 
 import structlog
-
-from aiflow.engine.step import step
-from aiflow.engine.workflow import workflow, WorkflowBuilder
-
 from skills.process_documentation import models_client, prompt_manager
 from skills.process_documentation.models import (
     ClassifyOutput,
@@ -21,6 +17,9 @@ from skills.process_documentation.models import (
 )
 from skills.process_documentation.tools.drawio_exporter import DrawioExporter
 from skills.process_documentation.tools.kroki_renderer import KrokiRenderer
+
+from aiflow.engine.step import step
+from aiflow.engine.workflow import WorkflowBuilder, workflow
 
 __all__ = [
     "classify_intent",

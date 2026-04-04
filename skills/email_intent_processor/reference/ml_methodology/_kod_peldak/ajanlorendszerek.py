@@ -408,7 +408,7 @@ def cosine_demo():
     dot = sum(a * b for a, b in zip(x, y))
     nx = np.sqrt(sum(a**2 for a in x))
     ny = np.sqrt(sum(b**2 for b in y))
-    print(f"\n  X vs Y levezetés:")
+    print("\n  X vs Y levezetés:")
     print(f"    Dot product: {' + '.join(f'{a}*{b}' for a, b in zip(x, y))} = {dot}")
     print(f"    ||X|| = sqrt({sum(a**2 for a in x)}) = {nx:.3f}")
     print(f"    ||Y|| = sqrt({sum(b**2 for b in y)}) = {ny:.3f}")

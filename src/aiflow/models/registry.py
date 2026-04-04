@@ -1,5 +1,6 @@
 """In-memory model registry for tracking available models."""
 import structlog
+
 from aiflow.core.registry import Registry
 from aiflow.models.metadata import ModelMetadata, ModelType
 

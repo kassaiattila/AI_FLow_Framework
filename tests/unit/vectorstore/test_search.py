@@ -10,10 +10,13 @@
     tags: [vectorstore, search, hybrid, rrf]
 """
 import uuid
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
+
 from aiflow.vectorstore.base import SearchResult
 from aiflow.vectorstore.search import HybridSearchEngine
+
 
 def _make_result(score: float, vs: float = 0, ks: float = 0) -> SearchResult:
     return SearchResult(chunk_id=uuid.uuid4(), content=f"chunk_{score}",

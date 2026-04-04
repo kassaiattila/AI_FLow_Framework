@@ -9,10 +9,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import structlog
 import yaml
 from pydantic import BaseModel, Field
-
-import structlog
 
 from aiflow.skills.instance import InstanceConfig
 

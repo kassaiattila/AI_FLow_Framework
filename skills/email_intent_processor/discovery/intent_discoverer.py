@@ -13,16 +13,15 @@ from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field
-
-from aiflow.models.client import ModelClient
-from aiflow.models.backends.litellm_backend import LiteLLMBackend
-from aiflow.prompts.manager import PromptManager
-from aiflow.tools.schema_registry import SchemaRegistry
-
 from skills.email_intent_processor.discovery.email_loader import (
     DiscoveryEmail,
     load_emails_from_dir,
 )
+
+from aiflow.models.backends.litellm_backend import LiteLLMBackend
+from aiflow.models.client import ModelClient
+from aiflow.prompts.manager import PromptManager
+from aiflow.tools.schema_registry import SchemaRegistry
 
 __all__ = [
     "IntentDiscoverer",

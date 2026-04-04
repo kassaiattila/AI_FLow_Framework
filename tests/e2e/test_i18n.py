@@ -13,7 +13,7 @@ i18n toggle E2E tests — verify HU/EN switch works across pages.
 """
 from __future__ import annotations
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page
 
 from tests.e2e.conftest import BASE_URL, navigate_to
 

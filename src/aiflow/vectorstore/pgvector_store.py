@@ -247,29 +247,28 @@ class _PgBackend:
         """
 
         upserted = 0
-        async with pool.acquire() as conn:
-            async with conn.transaction():
-                for chunk, embedding in zip(chunks, embeddings):
-                    chunk_id = chunk.get("chunk_id", str(uuid.uuid4()))
-                    if not isinstance(chunk_id, str):
-                        chunk_id = str(chunk_id)
+        async with pool.acquire() as conn, conn.transaction():
+            for chunk, embedding in zip(chunks, embeddings):
+                chunk_id = chunk.get("chunk_id", str(uuid.uuid4()))
+                if not isinstance(chunk_id, str):
+                    chunk_id = str(chunk_id)
 
-                    metadata = chunk.get("metadata", {})
-                    if not isinstance(metadata, str):
-                        metadata = json.dumps(metadata)
+                metadata = chunk.get("metadata", {})
+                if not isinstance(metadata, str):
+                    metadata = json.dumps(metadata)
 
-                    await conn.execute(
-                        sql,
-                        chunk_id,
-                        collection,
-                        chunk.get("content", chunk.get("chunk_text", "")),
-                        _embedding_to_pgvector(embedding),
-                        metadata,
-                        skill_name,
-                        chunk.get("document_name", ""),
-                        chunk.get("chunk_index", 0),
-                    )
-                    upserted += 1
+                await conn.execute(
+                    sql,
+                    chunk_id,
+                    collection,
+                    chunk.get("content", chunk.get("chunk_text", "")),
+                    _embedding_to_pgvector(embedding),
+                    metadata,
+                    skill_name,
+                    chunk.get("document_name", ""),
+                    chunk.get("chunk_index", 0),
+                )
+                upserted += 1
         return upserted
 
     async def search(

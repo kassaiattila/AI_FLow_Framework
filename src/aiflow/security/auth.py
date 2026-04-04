@@ -4,7 +4,6 @@ from __future__ import annotations
 import hashlib
 import secrets
 import time
-from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field
@@ -60,7 +59,6 @@ class AuthProvider:
         In production, use PyJWT for proper JWT.
         """
         import base64
-        import json
 
         now = time.time()
         payload = TokenPayload(
@@ -81,7 +79,6 @@ class AuthProvider:
     def verify_token(self, token: str) -> AuthResult:
         """Verify a token and return auth result."""
         import base64
-        import json
 
         try:
             parts = token.split(".")

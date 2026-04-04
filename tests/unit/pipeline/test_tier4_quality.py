@@ -26,7 +26,6 @@ from aiflow.services.quality.service import (
     RubricResult,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -235,9 +234,8 @@ class TestQualityService:
 class TestQualityAdapterRegistration:
     def test_quality_adapter_registered(self) -> None:
         """Quality adapter is registered in the adapter registry."""
-        from aiflow.pipeline.adapter_base import adapter_registry
-
         import aiflow.pipeline.adapters.quality_adapter  # noqa: F401
+        from aiflow.pipeline.adapter_base import adapter_registry
 
         assert adapter_registry.has("quality", "evaluate_rubric"), (
             "Adapter (quality, evaluate_rubric) not found in registry. "
@@ -248,9 +246,8 @@ class TestQualityAdapterRegistration:
         """Quality adapter has Pydantic input/output schemas."""
         from pydantic import BaseModel as PydanticBaseModel
 
-        from aiflow.pipeline.adapter_base import adapter_registry
-
         import aiflow.pipeline.adapters.quality_adapter  # noqa: F401
+        from aiflow.pipeline.adapter_base import adapter_registry
 
         adapter = adapter_registry.get("quality", "evaluate_rubric")
         assert issubclass(adapter.input_schema, PydanticBaseModel)
@@ -258,9 +255,8 @@ class TestQualityAdapterRegistration:
 
     def test_adapter_service_method_names(self) -> None:
         """Adapter service_name and method_name match expected values."""
-        from aiflow.pipeline.adapter_base import adapter_registry
-
         import aiflow.pipeline.adapters.quality_adapter  # noqa: F401
+        from aiflow.pipeline.adapter_base import adapter_registry
 
         adapter = adapter_registry.get("quality", "evaluate_rubric")
         assert adapter.service_name == "quality"

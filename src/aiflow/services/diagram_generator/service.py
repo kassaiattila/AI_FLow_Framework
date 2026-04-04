@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import tempfile
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -51,8 +51,9 @@ class DiagramGeneratorService:
 
     async def _get_pool(self):
         if self._pool is None:
-            import asyncpg
             import os
+
+            import asyncpg
             url = self._db_url or os.getenv(
                 "AIFLOW_DATABASE__URL",
                 "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
@@ -73,10 +74,10 @@ class DiagramGeneratorService:
             from skills.process_documentation.workflow import (
                 classify_intent,
                 elaborate,
-                extract,
-                review,
-                generate_diagram,
                 export_all,
+                extract,
+                generate_diagram,
+                review,
             )
         except ImportError as e:
             logger.error("skill_import_failed", error=str(e))
@@ -107,7 +108,7 @@ class DiagramGeneratorService:
             drawio_xml = drawio_file.read_text(encoding="utf-8")
 
         review_data = data.get("review")
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         # Persist to DB
         pool = await self._get_pool()
@@ -118,7 +119,7 @@ class DiagramGeneratorService:
                    VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $9)""",
                 diagram_id, user_input, mermaid_code, drawio_xml, svg_content,
                 _to_json(review_data), _to_json(["mermaid", "svg"]),
-                created_by, datetime.now(timezone.utc),
+                created_by, datetime.now(UTC),
             )
 
         logger.info("diagram_generated", diagram_id=diagram_id, mermaid_len=len(mermaid_code))

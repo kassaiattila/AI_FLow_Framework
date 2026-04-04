@@ -14,17 +14,16 @@ from typing import Any
 
 import asyncpg
 import structlog
+from skills.aszf_rag_chat.models import Citation, RoleType
 
 from aiflow.engine.step import step
-from aiflow.engine.workflow import workflow, WorkflowBuilder
-from aiflow.models.client import ModelClient
+from aiflow.engine.workflow import WorkflowBuilder, workflow
 from aiflow.models.backends.litellm_backend import LiteLLMBackend
+from aiflow.models.client import ModelClient
 from aiflow.prompts.manager import PromptManager
-from aiflow.vectorstore.pgvector_store import PgVectorStore
 from aiflow.vectorstore.embedder import Embedder
+from aiflow.vectorstore.pgvector_store import PgVectorStore
 from aiflow.vectorstore.search import HybridSearchEngine, SearchConfig
-
-from skills.aszf_rag_chat.models import Citation, RoleType
 
 __all__ = [
     "rewrite_query",
@@ -49,6 +48,7 @@ _prompt_manager = PromptManager()
 _prompt_manager.register_yaml_dir(Path(__file__).parent.parent / "prompts")
 
 import os as _os
+
 _db_url = _os.getenv("AIFLOW_DATABASE_URL", "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev")
 _vector_store = PgVectorStore(database_url=_db_url, table_name="rag_chunks")
 _embedder = Embedder(

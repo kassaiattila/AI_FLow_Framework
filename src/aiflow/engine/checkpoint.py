@@ -6,9 +6,8 @@ Each checkpoint captures the state after a successful step completion.
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
-
 import structlog
+from pydantic import BaseModel, Field
 
 __all__ = ["Checkpoint", "CheckpointManager"]
 

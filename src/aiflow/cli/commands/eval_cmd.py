@@ -7,7 +7,6 @@ Usage:
     aiflow eval report --skill <name>
 """
 
-from typing import Optional
 
 import structlog
 import typer
@@ -27,7 +26,7 @@ def run_eval(
         "-s",
         help="Skill name to evaluate.",
     ),
-    dataset: Optional[str] = typer.Option(
+    dataset: str | None = typer.Option(
         None,
         "--dataset",
         "-d",
@@ -62,7 +61,7 @@ def eval_report(
         "-s",
         help="Skill name to report on.",
     ),
-    run_id: Optional[str] = typer.Option(
+    run_id: str | None = typer.Option(
         None,
         "--run-id",
         help="Specific evaluation run ID (default: latest).",

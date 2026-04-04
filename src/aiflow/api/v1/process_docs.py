@@ -4,15 +4,14 @@ Runs the process_documentation skill in-process (no subprocess fork).
 """
 from __future__ import annotations
 
+import asyncio
 import json
-import os
 import tempfile
 import time as _time
 import uuid
 from pathlib import Path
 from typing import Any
 
-import asyncio
 import structlog
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -56,10 +55,10 @@ async def generate_process_doc(request: GenerateRequest) -> GenerateResponse:
         from skills.process_documentation.workflow import (
             classify_intent,
             elaborate,
-            extract,
-            review,
-            generate_diagram,
             export_all,
+            extract,
+            generate_diagram,
+            review,
         )
     except ImportError as e:
         logger.error("skill_import_failed", error=str(e))
@@ -178,7 +177,12 @@ async def generate_process_doc_stream(request: GenerateRequest) -> StreamingResp
 
     try:
         from skills.process_documentation.workflow import (
-            classify_intent, elaborate, extract, review, generate_diagram, export_all,
+            classify_intent,
+            elaborate,
+            export_all,
+            extract,
+            generate_diagram,
+            review,
         )
     except ImportError as e:
         err_msg = str(e)
@@ -243,8 +247,8 @@ async def generate_process_doc_stream(request: GenerateRequest) -> StreamingResp
 
         # Persist workflow run + cost (best-effort)
         try:
-            from aiflow.models.cost import ModelCostCalculator
             from aiflow.api.cost_recorder import record_cost
+            from aiflow.models.cost import ModelCostCalculator
             calc = ModelCostCalculator()
             cost = calc.calculate("openai/gpt-4o", 8000, 4000)
             await record_cost(workflow_run_id=run_id, step_name="bpmn_generation", model="openai/gpt-4o", input_tokens=8000, output_tokens=4000, cost_usd=cost)

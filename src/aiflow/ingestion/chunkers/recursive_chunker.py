@@ -14,9 +14,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
-
 import structlog
+from pydantic import BaseModel, Field
 
 __all__ = ["RecursiveChunker", "ChunkingConfig", "Chunk"]
 

@@ -9,18 +9,17 @@ import asyncio
 import json
 import os
 import tempfile
-import shutil
 import time as _time
 import uuid
 from pathlib import Path
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
-from aiflow.api.deps import get_pool, get_engine
+from aiflow.api.deps import get_engine, get_pool
 
 __all__ = ["router"]
 
@@ -269,12 +268,12 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
 
     try:
         from skills.invoice_processor.workflows.process import (
-            parse_invoice,
             classify_invoice,
-            extract_invoice_data,
-            validate_invoice,
-            store_invoice,
             export_invoice,
+            extract_invoice_data,
+            parse_invoice,
+            store_invoice,
+            validate_invoice,
         )
     except ImportError as e:
         logger.error("skill_import_failed", error=str(e))
@@ -368,8 +367,8 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
         # Calculate LLM cost from token usage and persist to cost_records
         total_cost_usd = 0.0
         try:
-            from aiflow.models.cost import ModelCostCalculator
             from aiflow.api.cost_recorder import record_cost
+            from aiflow.models.cost import ModelCostCalculator
             calc = ModelCostCalculator()
             for f in all_files_data:
                 inp = f.get("_llm_total_input_tokens", 0)
@@ -453,8 +452,9 @@ async def render_pdf_page(source_file: str, page: int = 1) -> StreamingResponse:
             raise HTTPException(status_code=404, detail=f"PDF not found: {clean_name}")
 
     try:
-        import pypdfium2 as pdfium
         import io
+
+        import pypdfium2 as pdfium
 
         def _render() -> bytes:
             doc = pdfium.PdfDocument(str(pdf_path))
@@ -534,12 +534,12 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
     # Import skill steps
     try:
         from skills.invoice_processor.workflows.process import (
-            parse_invoice,
             classify_invoice,
-            extract_invoice_data,
-            validate_invoice,
-            store_invoice,
             export_invoice,
+            extract_invoice_data,
+            parse_invoice,
+            store_invoice,
+            validate_invoice,
         )
     except ImportError as e:
         logger.error("skill_import_failed", error=str(e))
@@ -616,7 +616,8 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
 
 async def _get_doc_extractor():
     """Lazy-init Document Extractor service."""
-    from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
     from aiflow.services.document_extractor import DocumentExtractorService
 
     engine = await get_engine()
@@ -837,8 +838,9 @@ async def export_documents_json():
 @router.delete("/delete/{invoice_id}", status_code=204)
 async def delete_document(invoice_id: str):
     """Delete a document by UUID."""
-    from aiflow.api.deps import get_engine
     from sqlalchemy import text
+
+    from aiflow.api.deps import get_engine
 
     engine = await get_engine()
     async with engine.begin() as conn:
@@ -864,8 +866,9 @@ class BulkDeleteResponse(BaseModel):
 @router.post("/delete-bulk", response_model=BulkDeleteResponse)
 async def delete_documents_bulk(request: BulkDeleteRequest):
     """Delete multiple documents by UUID list."""
-    from aiflow.api.deps import get_engine
     from sqlalchemy import text
+
+    from aiflow.api.deps import get_engine
 
     if not request.ids:
         return BulkDeleteResponse(deleted=0)
@@ -917,7 +920,8 @@ class FreeTextExtractResponse(BaseModel):
 @router.post("/{document_id}/extract-free", response_model=FreeTextExtractResponse)
 async def extract_free_text(document_id: str, request: FreeTextExtractRequest) -> FreeTextExtractResponse:
     """Extract answers to arbitrary queries from a stored document using LLM."""
-    from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
     from aiflow.services.document_extractor.free_text import (
         FreeTextExtractorService,
         FreeTextQuery,

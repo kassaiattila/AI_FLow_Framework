@@ -18,30 +18,31 @@ Futtatas:
     python anomalia_detektio.py
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
-import warnings
+
 warnings.filterwarnings("ignore")
 
 # Sklearn - adatgeneralas
-from sklearn.datasets import make_blobs, make_classification
-
-# Sklearn - eloeldolgozas
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+# Scipy - Z-score szamitas
+from scipy.stats import zscore
+from sklearn.datasets import make_blobs
+from sklearn.ensemble import IsolationForest, RandomForestRegressor
 from sklearn.impute import SimpleImputer
-from sklearn.model_selection import train_test_split
 
 # Sklearn - anomalia detektio es regresszio
 from sklearn.mixture import GaussianMixture
-from sklearn.ensemble import IsolationForest, RandomForestRegressor
+from sklearn.model_selection import train_test_split
 
-# Scipy - Z-score szamitas
-from scipy.stats import zscore
+# Sklearn - eloeldolgozas
+from sklearn.preprocessing import MinMaxScaler
 
 # Matplotlib - vizualizacio (opcionalis)
 try:
-    import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
     MATPLOTLIB_ELERHETO = True
 except ImportError:
     MATPLOTLIB_ELERHETO = False
@@ -162,7 +163,7 @@ def gmm_anomalia_detektio(scaled_data, n_components=5, kvantilis=0.05,
     Returns: (labels, scores, threshold, gm_model)
     """
     print(f"\n{'='*60}")
-    print(f"  GMM ANOMALIA DETEKTIO")
+    print("  GMM ANOMALIA DETEKTIO")
     print(f"{'='*60}")
 
     gm = GaussianMixture(n_components=n_components, covariance_type='full',
@@ -197,7 +198,7 @@ def isolation_forest_detektio(scaled_data, contamination=0.05,
     Returns: (labels, scores, iso_model) - -1=anomalia, 1=normalis
     """
     print(f"\n{'='*60}")
-    print(f"  ISOLATION FOREST ANOMALIA DETEKTIO")
+    print("  ISOLATION FOREST ANOMALIA DETEKTIO")
     print(f"{'='*60}")
 
     iso_forest = IsolationForest(
@@ -234,7 +235,7 @@ def modszerek_osszehasonlitasa(gmm_labels, if_labels, y_true=None):
     Ha mindketto -1: eros jelzes. Ha van y_true, precision/recall kiertekeles is.
     """
     print(f"\n{'='*60}")
-    print(f"  GMM + ISOLATION FOREST OSSZEHASONLITAS")
+    print("  GMM + ISOLATION FOREST OSSZEHASONLITAS")
     print(f"{'='*60}")
 
     # DataFrame az osszehasonlitashoz
@@ -268,7 +269,7 @@ def modszerek_osszehasonlitasa(gmm_labels, if_labels, y_true=None):
 
     # Ha van valos cimke, kiertekeles
     if y_true is not None:
-        print(f"\n  --- Kiertekeles valos cimkekhez kepest ---")
+        print("\n  --- Kiertekeles valos cimkekhez kepest ---")
 
         # Konverzio: -1 --> 1 (anomalia), 1 --> 0 (normalis)
         gmm_pred = np.array([1 if x == -1 else 0 for x in gmm_labels])
@@ -310,7 +311,7 @@ def self_supervised_anomalia(df_log, target_column_idx=0, threshold_z=3.0,
     Returns: (anomaly_indices, z_scores_arr, residuals_arr, test_indices)
     """
     print(f"\n{'='*60}")
-    print(f"  SELF-SUPERVISED ANOMALIA DETEKTIO")
+    print("  SELF-SUPERVISED ANOMALIA DETEKTIO")
     print(f"{'='*60}")
 
     # Target feature kivalasztasa
@@ -369,7 +370,7 @@ def anomalia_vizualizacio_2d(scaled_data, gmm_labels, if_labels, y_true=None):
         return
 
     print(f"\n{'='*60}")
-    print(f"  VIZUALIZACIO (t-SNE 2D vetites)")
+    print("  VIZUALIZACIO (t-SNE 2D vetites)")
     print(f"{'='*60}")
     print("  t-SNE szamitas folyamatban...")
 
@@ -482,7 +483,7 @@ def osszefoglalo_tablazat():
     A harom anomalia detekcios modszer osszehasonlito tablazata.
     """
     print(f"\n{'='*80}")
-    print(f"  ANOMALIA DETEKCIOS MODSZEREK OSSZEHASONLITASA")
+    print("  ANOMALIA DETEKCIOS MODSZEREK OSSZEHASONLITASA")
     print(f"{'='*80}")
 
     header = (f"{'Jellemzo':<25} {'GMM':>15} {'Isolation Forest':>18} "

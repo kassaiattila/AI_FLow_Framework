@@ -9,10 +9,8 @@
     requires_services: []
     tags: [ingestion, chunker, semantic]
 """
-import pytest
 
 from aiflow.ingestion.chunkers.semantic_chunker import (
-    Chunk,
     ChunkingConfig,
     ChunkingStrategy,
     SemanticChunker,

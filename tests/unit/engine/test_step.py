@@ -10,11 +10,13 @@
     tags: [engine, step, decorator, retry, async]
 """
 import asyncio
+
 import pytest
 from pydantic import BaseModel
-from aiflow.engine.step import step, get_step_definition, is_step, StepDefinition
-from aiflow.engine.policies import RetryPolicy
+
 from aiflow.core.errors import LLMTimeoutError
+from aiflow.engine.policies import RetryPolicy
+from aiflow.engine.step import get_step_definition, is_step, step
 
 
 class SampleInput(BaseModel):

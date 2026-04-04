@@ -14,15 +14,15 @@ from pathlib import Path
 import pytest
 import yaml
 
-from aiflow.skills.manifest import (
-    SkillManifest,
-    RequiredModel,
-    VectorStoreConfig,
-    load_manifest,
-    check_framework_compatibility,
-    _parse_version,
-)
 from aiflow.core.types import SkillType
+from aiflow.skills.manifest import (
+    RequiredModel,
+    SkillManifest,
+    VectorStoreConfig,
+    _parse_version,
+    check_framework_compatibility,
+    load_manifest,
+)
 
 
 @pytest.fixture

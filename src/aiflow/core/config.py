@@ -3,13 +3,11 @@
 Loads from: environment variables (AIFLOW_ prefix) > aiflow.yaml > defaults.
 """
 from functools import lru_cache
-from pathlib import Path
 from typing import Literal
 
+import structlog
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-import structlog
 
 __all__ = ["AIFlowSettings", "get_settings"]
 

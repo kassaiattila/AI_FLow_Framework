@@ -12,7 +12,6 @@ from aiflow.services import (
     CacheService,
     RateLimiterConfig,
     RateLimiterService,
-    RateLimitRule,
     ResilienceService,
     SchemaRegistryConfig,
     SchemaRegistryService,

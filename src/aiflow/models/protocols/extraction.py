@@ -1,7 +1,9 @@
 """Extraction protocol for NER and entity extraction models."""
 from abc import abstractmethod
 from typing import Any
+
 from pydantic import BaseModel
+
 from aiflow.models.protocols.base import BaseModelProtocol, ModelCallResult
 
 __all__ = ["ExtractionEntity", "ExtractionInput", "ExtractionOutput", "ExtractionProtocol"]

@@ -5,9 +5,8 @@ Allows workflows to be saved, versioned, and shared as config files.
 """
 from typing import Any
 
-import yaml
-
 import structlog
+import yaml
 
 from aiflow.engine.dag import DAG
 

@@ -15,22 +15,18 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from skills.invoice_processor.models import (
+    InvoiceBatchResult,
     InvoiceHeader,
     InvoiceParty,
     InvoiceTotals,
     InvoiceValidation,
     LineItem,
     ProcessedInvoice,
-    InvoiceBatchResult,
     VatSummaryLine,
 )
-
 
 # ── Model Tests ─────────────────────────────────────────────────────────────
 

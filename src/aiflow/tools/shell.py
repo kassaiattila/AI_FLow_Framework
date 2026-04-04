@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from aiflow.core.errors import AIFlowError, PermanentError
 
@@ -155,7 +155,7 @@ class ShellExecutor:
                 proc.communicate(),
                 timeout=timeout,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # Try to kill the process on timeout
             try:
                 proc.kill()  # type: ignore[union-attr]

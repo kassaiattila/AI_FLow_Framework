@@ -18,7 +18,6 @@ import pytest
 from aiflow.observability.tracing import (
     LangfuseTracer,
     TraceManager,
-    get_langfuse_client,
     trace_llm_call,
 )
 

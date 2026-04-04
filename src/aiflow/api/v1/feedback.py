@@ -1,9 +1,9 @@
 """User feedback API for RAG query quality improvement."""
 from __future__ import annotations
 
+import structlog
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
-import structlog
 
 from aiflow.api.deps import get_pool
 

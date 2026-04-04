@@ -5,8 +5,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
 __all__ = ["AttachmentProcessor", "ProcessedAttachment", "AttachmentConfig"]
 logger = structlog.get_logger(__name__)

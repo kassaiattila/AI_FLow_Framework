@@ -10,6 +10,7 @@
     tags: [di, container, injection]
 """
 import pytest
+
 from aiflow.core.di import Container
 
 

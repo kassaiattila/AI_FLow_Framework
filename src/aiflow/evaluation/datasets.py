@@ -7,11 +7,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
-
-from pydantic import BaseModel, Field
 
 import structlog
+from pydantic import BaseModel, Field
 
 from aiflow.evaluation.framework import EvalCase
 

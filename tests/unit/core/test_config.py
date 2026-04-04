@@ -9,8 +9,6 @@
     requires_services: []
     tags: [config, settings, pydantic]
 """
-import os
-import pytest
 from aiflow.core.config import AIFlowSettings, get_settings
 
 

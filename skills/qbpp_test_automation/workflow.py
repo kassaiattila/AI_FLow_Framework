@@ -8,7 +8,7 @@ TODO: Implement full workflow steps:
   5. capture_evidence - Take screenshots and save DOM state
   6. report - Generate test execution report
 """
-from aiflow.engine.workflow import workflow, WorkflowBuilder
+from aiflow.engine.workflow import WorkflowBuilder, workflow
 
 
 @workflow(name="qbpp-test-automation", version="1.0.0", skill="qbpp_test_automation")
