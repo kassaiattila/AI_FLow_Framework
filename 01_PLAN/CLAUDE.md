@@ -48,9 +48,9 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - **v1.2.0 Orchestration: COMPLETE (C0-C20, tag v1.2.0)**
 - **v1.2.1 Production Ready Sprint: `01_PLAN/57_PRODUCTION_READY_SPRINT.md` — S1-S14 ciklus (UI integracio, observability, quality, polish)**
 - 26 service (15 eredeti + 11 uj v1.2.0: notification, data_router, service_manager, reranker, advanced_chunker, data_cleaner, metadata_enricher, vector_ops, advanced_parser, graph_rag, quality)
-- ~155 endpoint (112 eredeti + 15 Tier 2 + 7 Tier 3 + pipeline 13 + quality 4 + templates 3)
-- 18 pipeline adapter (7 eredeti + 3 Tier 2 + 7 Tier 3 + 1 Tier 4)
-- 24 API router (19 eredeti + pipelines + notifications + data_router + rag_advanced + quality)
+- ~165 endpoint (112 eredeti + 15 Tier 2 + 7 Tier 3 + pipeline 13 + quality 4 + templates 3 + intent_schemas 7 + extract-free 1)
+- 19 pipeline adapter (7 eredeti + 3 Tier 2 + 7 Tier 3 + 1 Tier 4 + 1 free_text)
+- 25 API router (19 eredeti + pipelines + notifications + data_router + rag_advanced + quality + intent_schemas)
 - 6 pipeline templates (v1, v2, kb_update, email_triage, advanced_rag, contract)
 - 332 pipeline unit test, 51 promptfoo test case (6 skill), 21 fejlesztesi ciklus (C0-C20, MIND DONE), v1.2.0 COMPLETE
 - 6 skills, src/aiflow/ 19 alkonyvtar (+pipeline/ az uj modul)

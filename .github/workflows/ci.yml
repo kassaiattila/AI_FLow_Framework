@@ -30,23 +30,36 @@ jobs:
           uv run ruff format --check src/ tests/ skills/
 
       - name: Unit tests
-        run: uv run pytest tests/unit/ -q --tb=short --junitxml=test-results.xml
+        run: uv run pytest tests/unit/ -q --tb=short --junitxml=test-results.xml --cov=aiflow --cov-report=xml
         env:
           AIFLOW_DATABASE_URL: "postgresql://localhost/test"
+
+      - name: Coverage gate (80% minimum)
+        run: |
+          uv run python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('coverage.xml')
+          rate = float(tree.getroot().attrib.get('line-rate', 0))
+          pct = round(rate * 100, 1)
+          print(f'Coverage: {pct}%')
+          assert pct >= 80, f'Coverage {pct}% is below 80% gate'
+          "
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: python-test-results
-          path: test-results.xml
+          path: |
+            test-results.xml
+            coverage.xml
 
-  nextjs-build:
-    name: Next.js Build
+  admin-build:
+    name: Admin Dashboard Build (Vite + React)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: aiflow-ui
+        working-directory: aiflow-admin
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +68,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: aiflow-ui/package-lock.json
+          cache-dependency-path: aiflow-admin/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -64,4 +77,4 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Build
-        run: npx next build
+        run: npm run build

@@ -407,6 +407,58 @@ OUTPUT (S9 — 2026-04-04, session 12):
   - Commit: 65dfcdf
 ```
 
+#### S10 Output (session 13, 2026-04-04)
+```
+DELIVERABLES:
+  a) .github/workflows/ci.yml FRISSITVE:
+     - nextjs-build job TOROLVE (aiflow-ui mar nem letezik)
+     - admin-build job HOZZAADVA: npm ci + tsc --noEmit + npm run build
+     - Coverage gate: >=80% minimum (XML parse + assert)
+     - Coverage.xml artifact upload
+  b) .github/workflows/nightly-regression.yml (UJ):
+     - Cron: 03:00 UTC (nightly-eval utan)
+     - Jobs: unit-tests → integration-tests (Docker) → e2e-tests (Playwright) → admin-build
+     - Summary job: JUnit XML parse + GitHub Step Summary tabla
+     - Artifact upload: test-results, coverage (30 nap retention)
+  c) scripts/smoke_test.sh BOVITVE:
+     - Uj endpointok: quality/overview, notifications/in-app, pipelines/templates/list, intent-schemas
+     - /api/v1/health eltavolitva (csak /health letezik)
+     - 10/10 endpoint PASS
+  d) tests/regression_matrix.yaml BOVITVE:
+     - pipeline/, aiflow-admin/, .github/workflows/ mintak hozzaadva
+  TESZTEK: YAML valid (3 workflow), smoke_test.sh ALL PASS (10/10)
+```
+
+#### S11 Output (session 13, 2026-04-04)
+```
+DELIVERABLES:
+  a) src/aiflow/services/document_extractor/free_text.py (UJ):
+     - FreeTextExtractorService: extract(), extract_from_text()
+     - Document text loading from DB (invoices + line items)
+     - LLM call with structured JSON response (query/answer/confidence/source_span)
+     - Audit logging, query truncation, graceful error handling
+  b) prompts/extraction/free_text.yaml (UJ):
+     - Jinja2 template, model: gpt-4o-mini, output: JSON array
+  c) API: POST /api/v1/documents/{id}/extract-free (documents.py bovites):
+     - Request: {queries: [{query, hint?}], model?}
+     - Response: {document_id, results: [{query, answer, confidence, source_span}], source: "backend"}
+     - Validation: empty queries → 400
+  d) src/aiflow/api/v1/intent_schemas.py (UJ router, 7 endpoint):
+     - GET /api/v1/intent-schemas — lista (source=backend)
+     - POST /api/v1/intent-schemas — letrehozas
+     - GET /api/v1/intent-schemas/{id} — reszletek
+     - PUT /api/v1/intent-schemas/{id} — partial frissites
+     - DELETE /api/v1/intent-schemas/{id} — torles (204)
+     - POST /api/v1/intent-schemas/{id}/test — keyword classification (source=backend)
+     - intent_schemas tabla auto-create (CREATE TABLE IF NOT EXISTS)
+  e) src/aiflow/pipeline/adapters/free_text_adapter.py (UJ adapter):
+     - FreeTextExtractAdapter: service_name=document_extractor, method=extract_free_text
+     - Registered in adapter_registry (19 adapter ossz.)
+  f) app.py: intent_schemas_router registered (25 router, ~165 endpoint)
+  TESZTEK: 25 unit test PASS (free_text: 10, intent_schemas: 9, adapter: 6)
+  CURL: Full CRUD lifecycle PASS, classification PASS, extract-free PASS
+```
+
 #### S10 Reszletes: CI/CD Regresszios Pipeline
 ```
 FEJLESZTES:
@@ -639,8 +691,8 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S7 | Langfuse valos integracio | DONE | 2026-04-04 | 6e46fed |
 | S8 | Promptfoo 6 skill config + CI/CD nightly | DONE | 2026-04-04 | dfbb8e4 |
 | S9 | E2E Playwright test suite (54 tests) | DONE | 2026-04-04 | 65dfcdf |
-| S10 | CI/CD regresszios pipeline | TODO | — | — |
-| S11 | Free text extraction + intent schema | TODO | — | — |
+| S10 | CI/CD regresszios pipeline | DONE | 2026-04-04 | PENDING |
+| S11 | Free text extraction + intent schema | DONE | 2026-04-04 | PENDING |
 | S12 | SLA eszkalacio + cost estimation | TODO | — | — |
 | S13 | Integralt E2E teszteles | TODO | — | — |
 | S14 | Vegleges polish + v1.2.1 tag | TODO | — | — |

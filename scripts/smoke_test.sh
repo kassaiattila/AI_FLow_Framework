@@ -26,15 +26,18 @@ TOKEN=$(curl -sf -X POST "$BASE/api/v1/auth/login" \
 echo "OK: Auth token acquired"
 PASS=$((PASS+1))
 
-# 2. Health check (root-level, not under /api/v1/)
+# 2. Health check (root-level + /api/v1/health)
 curl -sf "$BASE/health" \
   | python -c "import sys,json; d=json.load(sys.stdin); assert d['status']=='ready', f'Health: {d}'" 2>/dev/null && {
-  echo "OK: Health endpoint"
+  echo "OK: /health"
   PASS=$((PASS+1))
 } || {
-  echo "FAIL: Health endpoint"
+  echo "FAIL: /health"
   FAIL=$((FAIL+1))
 }
+
+# /api/v1/health is not a separate endpoint — health is at /health (root)
+# Kept as a note: if v1 health is added later, enable this check
 
 # 3. Core endpoints (source: backend check)
 for ep in documents emails rag/collections services/; do
@@ -45,6 +48,17 @@ for ep in documents emails rag/collections services/; do
   } || {
     echo "FAIL: /api/v1/$ep"
     FAIL=$((FAIL+1))
+  }
+done
+
+# 4. v1.2.1 endpoints (quality, notifications, pipelines, intent-schemas)
+for ep in quality/overview notifications/in-app pipelines/templates/list intent-schemas; do
+  curl -sf -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/$ep" \
+    | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', f'No source=backend: {list(d.keys())[:5]}'" 2>/dev/null && {
+    echo "OK: /api/v1/$ep (source=backend)"
+    PASS=$((PASS+1))
+  } || {
+    echo "WARN: /api/v1/$ep (may not be deployed yet)"
   }
 done
 

@@ -88,6 +88,18 @@ rules:
     suites: [core-unit]
     reason: "Contrib module changes affect messaging, connectors, and core integration"
 
+  - pattern: "src/aiflow/pipeline/**"
+    suites: [pipeline-unit, core-unit]
+    reason: "Pipeline orchestrator changes affect adapters, compiler, runner, templates"
+
+  - pattern: "aiflow-admin/**"
+    suites: [e2e-ui]
+    reason: "Admin dashboard changes require E2E Playwright re-test"
+
+  - pattern: ".github/workflows/**"
+    suites: []
+    reason: "CI/CD workflow changes — no test suite, validated by YAML lint"
+
   - pattern: "k8s/**"
     suites: FULL
     reason: "Kubernetes manifests change may affect deployment and all services"

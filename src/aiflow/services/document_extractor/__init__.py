@@ -7,6 +7,13 @@ from aiflow.services.document_extractor.service import (
     ExtractionResult,
     FieldDefinition,
 )
+from aiflow.services.document_extractor.free_text import (
+    FreeTextExtractorConfig,
+    FreeTextExtractorService,
+    FreeTextExtractionResponse,
+    FreeTextQuery,
+    FreeTextResult,
+)
 
 __all__ = [
     "DocumentExtractorConfig",
@@ -14,4 +21,9 @@ __all__ = [
     "DocumentTypeConfig",
     "ExtractionResult",
     "FieldDefinition",
+    "FreeTextExtractorConfig",
+    "FreeTextExtractorService",
+    "FreeTextExtractionResponse",
+    "FreeTextQuery",
+    "FreeTextResult",
 ]

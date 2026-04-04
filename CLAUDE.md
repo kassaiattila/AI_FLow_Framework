@@ -20,8 +20,8 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 **Elozo terv:** `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` (v1.2.0 COMPLETE)
 
 > **Elozmeny:** v1.2.0 COMPLETE (C0-C20, 2026-04-04) — 26 service, 18 adapter, 6 template, 332 test.
-> 26 service, ~155 API endpoint (24 router), 17 UI oldal, 45 DB tabla, 29 Alembic migracio.
-> 18 pipeline adapter, 6 pipeline template, 332 pipeline unit test. v1.2.0 tagged.
+> 26 service, ~165 API endpoint (25 router), 17 UI oldal, 45 DB tabla, 29 Alembic migracio.
+> 19 pipeline adapter, 6 pipeline template, 332+25 unit test. v1.2.0 tagged.
 
 **v1.2.1 fo celok:**
 - **UI integracio** — ChatMarkdown bekotes, Quality dashboard, in-app notifications, design tokens

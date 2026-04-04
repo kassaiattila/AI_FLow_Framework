@@ -885,6 +885,80 @@ async def delete_documents_bulk(request: BulkDeleteRequest):
 
 
 # ---------------------------------------------------------------------------
+# POST /api/v1/documents/{document_id}/extract-free — free-text extraction
+# ---------------------------------------------------------------------------
+
+
+class FreeTextQueryItem(BaseModel):
+    query: str
+    hint: str = ""
+
+
+class FreeTextExtractRequest(BaseModel):
+    queries: list[FreeTextQueryItem]
+    model: str | None = None
+
+
+class FreeTextResultItem(BaseModel):
+    query: str
+    answer: str
+    confidence: float = 0.0
+    source_span: str = ""
+
+
+class FreeTextExtractResponse(BaseModel):
+    document_id: str
+    results: list[FreeTextResultItem]
+    extraction_time_ms: float = 0.0
+    model_used: str = ""
+    source: str = "backend"
+
+
+@router.post("/{document_id}/extract-free", response_model=FreeTextExtractResponse)
+async def extract_free_text(document_id: str, request: FreeTextExtractRequest) -> FreeTextExtractResponse:
+    """Extract answers to arbitrary queries from a stored document using LLM."""
+    from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+    from aiflow.services.document_extractor.free_text import (
+        FreeTextExtractorService,
+        FreeTextQuery,
+    )
+
+    if not request.queries:
+        raise HTTPException(status_code=400, detail="At least one query is required")
+
+    engine = await get_engine()
+    sf = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    svc = FreeTextExtractorService(sf)
+    await svc.start()
+    try:
+        queries = [FreeTextQuery(query=q.query, hint=q.hint) for q in request.queries]
+        response = await svc.extract(
+            document_id=document_id,
+            queries=queries,
+            model=request.model,
+        )
+        return FreeTextExtractResponse(
+            document_id=response.document_id,
+            results=[
+                FreeTextResultItem(
+                    query=r.query,
+                    answer=r.answer,
+                    confidence=r.confidence,
+                    source_span=r.source_span,
+                )
+                for r in response.results
+            ],
+            extraction_time_ms=response.extraction_time_ms,
+            model_used=response.model_used,
+        )
+    except Exception as e:
+        logger.error("extract_free_failed", error=str(e), document_id=document_id)
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await svc.stop()
+
+
+# ---------------------------------------------------------------------------
 # GET /api/v1/documents/{source_file} — single invoice detail (CATCH-ALL, MUST BE LAST!)
 # ---------------------------------------------------------------------------
 
