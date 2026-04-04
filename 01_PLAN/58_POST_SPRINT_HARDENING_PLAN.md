@@ -1096,7 +1096,7 @@ S33: B8+B9 — Javitasok + v1.3.0
 | A2 | Halott kod audit + archivalas | DONE | 2026-04-04 | 2c0e078 |
 | A3 | Security + JWT session | DONE | 2026-04-04 | 176f137 |
 | A4 | Stubs + alapfunkciok | DONE | 2026-04-04 | 87b896e |
-| A5 | Guardrail keretrendszer | TODO | — | — |
+| A5 | Guardrail keretrendszer | DONE | 2026-04-04 | pending |
 | A6 | POST-AUDIT | TODO | — | — |
 | A7 | Audit javitasok | TODO | — | — |
 | A8 | v1.2.2 tag | TODO | — | — |
