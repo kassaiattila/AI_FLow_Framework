@@ -21,7 +21,18 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Check API key
+        id: check
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::OPENAI_API_KEY not configured, skipping prompt evaluation"
+          fi
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
       - name: Run Promptfoo evaluations
+        if: steps.check.outputs.skip != 'true'
         run: |
           npx promptfoo eval \
             -c skills/*/tests/promptfooconfig.yaml \
@@ -30,6 +41,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Check pass rate
+        if: steps.check.outputs.skip != 'true'
         run: |
           python scripts/check_promptfoo_results.py \
             tests/artifacts/promptfoo/results.json \
