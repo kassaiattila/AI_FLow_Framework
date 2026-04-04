@@ -691,8 +691,8 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S7 | Langfuse valos integracio | DONE | 2026-04-04 | 6e46fed |
 | S8 | Promptfoo 6 skill config + CI/CD nightly | DONE | 2026-04-04 | dfbb8e4 |
 | S9 | E2E Playwright test suite (54 tests) | DONE | 2026-04-04 | 65dfcdf |
-| S10 | CI/CD regresszios pipeline | DONE | 2026-04-04 | PENDING |
-| S11 | Free text extraction + intent schema | DONE | 2026-04-04 | PENDING |
+| S10 | CI/CD regresszios pipeline | DONE | 2026-04-04 | b707fe7 |
+| S11 | Free text extraction + intent schema | DONE | 2026-04-04 | b707fe7 |
 | S12 | SLA eszkalacio + cost estimation | TODO | — | — |
 | S13 | Integralt E2E teszteles | TODO | — | — |
 | S14 | Vegleges polish + v1.2.1 tag | TODO | — | — |
