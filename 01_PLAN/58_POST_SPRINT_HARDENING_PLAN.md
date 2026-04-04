@@ -4,6 +4,42 @@
 > **Elozmeny:** v1.2.1 COMPLETE (S1-S14, 2026-04-04) — UI, observability, quality, 102 E2E
 > **Cel:** Ket sprint: (A) infrastruktura+biztonsag+halott kod+guardrail keretrendszer, (B) szolgaltatas excellence+prompt guardrail implementacio
 > **Becsult idotartam:** Sprint A ~8 session, Sprint B ~10 session
+> **Infrastruktura:** 26 service, 165 endpoint (25 router), 45 DB tabla, 29 migracio, 19 adapter
+
+---
+
+## Kotelezo Szabalyok (CLAUDE.md-bol — mindket sprintre ervenyes!)
+
+### Ciklus Lezaras (MINDEN session vegen KOTELEZO — kihagyni TILOS!)
+1. `pytest tests/unit/ -q` → ALL PASS
+2. `ruff check` uj/modositott fajlokon → CLEAN
+3. `cd aiflow-admin && npx tsc --noEmit` → 0 error (ha UI valtozas volt)
+4. **`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`** Progress tabla frissites: fazis DONE, datum, commit
+5. **`01_PLAN/CLAUDE.md`** key numbers frissites (service, endpoint, teszt szamok)
+6. **Root `CLAUDE.md`** infrastruktura szamok frissites
+7. `.venv` dep check: `python -c "import fastapi, pydantic, structlog; print('OK')"`
+
+### Git Commit Konvenciok
+- Conventional commits: `feat(security):`, `fix(api):`, `refactor(guardrails):`, `test(services):`, `docs:`
+- Co-Authored-By header MINDEN commit-ben
+- SOHA ne commit-olj FAIL teszt-tel
+
+### Regresszio Kovetelmeny
+- `tests/regression_matrix.yaml` hatarozza meg mely suite-ok futnak
+- Coverage gate: **>= 80%** globalis minimum (PR BLOCK ha alacsonyabb)
+- Regresszio szintek: L1 (commit), L2 (PR), L3 (merge), L4 (staging), L5 (prod)
+
+### Teszteles (STRICT — SOHA NE MOCK/FAKE!)
+- Unit: valos logika, mock CSAK kulso service-ekre (LLM, HTTP)
+- Integration: valos PostgreSQL + Redis (Docker)
+- E2E: valos bongeszo (Playwright), valos backend
+- Prompt: valos LLM hivas (Promptfoo), NEM hardcoded valasz
+
+### Technologiai Dontes (VEGLEGES)
+- JWT: **PyJWT[crypto]** RS256 (NEM python-jose, NEM HS256)
+- Hashing: **bcrypt** (NEM passlib)
+- Scheduler: **APScheduler 4.x** (NEM 3.x)
+- API key prefix: `"aiflow_sk_"` (NEM "af_sk_")
 
 ---
 
@@ -352,11 +388,10 @@ A5.6 — Guardrail Test Framework:
     - expected_refusals: [...]
 
 A5.7 — Dokumentacio:
-  01_PLAN/59_PROMPT_GUARDRAIL_FRAMEWORK.md
-  - Architektura diagram
-  - Per-service config sablon
-  - Teszt metodologia
-  - Scope boundary definiciok
+  - README.md a src/aiflow/guardrails/ mappaban (architektura, hasznalat)
+  - Per-service config sablon: skills/TEMPLATE/guardrails.yaml
+  - Teszt metodologia: tests/unit/guardrails/README.md
+  - Scope boundary definiciok: guardrails/config.py docstring
 
 GATE: GuardrailBase + 3 guard impl + middleware + 30 test PASS + config sablon
 ```
@@ -368,12 +403,13 @@ GATE: GuardrailBase + 3 guard impl + middleware + 30 test PASS + config sablon
 > **KRITIKUS! Minden A0-A5 javitas VALOS verifikalasa.**
 
 ```
-A6.1 — Teljes regresszio:
-  a) pytest tests/unit/ -q → ALL PASS
+A6.1 — Teljes regresszio (L3 szint, ld. regression_matrix.yaml):
+  a) pytest tests/unit/ -q --cov=aiflow --cov-report=term → ALL PASS, coverage >= 80%
   b) pytest tests/e2e/ -v → ALL PASS (STRICT 0 filter!)
   c) npx tsc --noEmit → 0 error
   d) /lint-check → 0 error
   e) smoke_test.sh → ALL PASS
+  f) Coverage NEM csokkenhet a v1.2.1 szinthez kepest!
 
 A6.2 — Biztonsagi POST-audit:
   | # | Eredeti problema | Javitas | Post-audit |
@@ -478,16 +514,16 @@ Session 22: A7+A8 (Javitasok + tag) ───── Fix + v1.2.2
 > Az elozo 8-pontos bovult 2 guardrail ponttal.
 
 ```
-[ ]  1. UNIT TESZT — >= 5 teszt, >= 70% coverage
-[ ]  2. INTEGRACIOS TESZT — >= 1 valos DB-vel
-[ ]  3. API TESZT — minden endpoint curl, source=backend
-[ ]  4. PROMPT TESZT — promptfoo >= 95% pass
-[ ]  5. ERROR HANDLING — AIFlowError, is_transient flag
-[ ]  6. LOGGING — structlog event+key=value
-[ ]  7. DOKUMENTACIO — docstring fo osztaly + metodus
-[ ]  8. UI — oldal mukodik, source badge, 0 console error
-[ ]  9. INPUT GUARDRAIL — injection vedelem, PII, length limit (A5 keretrendszer)
-[ ] 10. OUTPUT GUARDRAIL — hallucination, scope, PII leak check (A5 keretrendszer)
+[ ]  1. UNIT TESZT      — >= 5 teszt, >= 70% coverage
+[ ]  2. INTEGRACIO       — >= 1 valos DB-vel (ha DB-t hasznal)
+[ ]  3. API TESZT        — minden endpoint curl, source=backend
+[ ]  4. PROMPT TESZT     — promptfoo >= 95% pass (ha LLM-et hasznal)
+[ ]  5. ERROR HANDLING   — AIFlowError leszarmazott, is_transient flag
+[ ]  6. LOGGING          — structlog, NEM print(), event+key=value
+[ ]  7. DOKUMENTACIO     — docstring fo osztaly + publikus metodus
+[ ]  8. UI               — oldal mukodik, source badge, 0 console error
+[ ]  9. INPUT GUARDRAIL  — injection vedelem, PII, length limit (A5 FW)
+[ ] 10. OUTPUT GUARDRAIL — hallucination, scope, PII leak check (A5 FW)
 ```
 
 ### Prompt Finomhangolas Metodologia
@@ -695,11 +731,12 @@ B6.4 — Dark mode + responsive check
 > **Minden B0-B6 ellenorzese — ugyanolyan rigorozus mint A6!**
 
 ```
-B7.1 — Teljes regresszio:
-  a) pytest tests/unit/ → ALL PASS (1083 + 130 = 1213+ teszt)
-  b) pytest tests/e2e/ → ALL PASS (strict 0 filter)
+B7.1 — Teljes regresszio (L3 szint, ld. regression_matrix.yaml):
+  a) pytest tests/unit/ -q --cov=aiflow → ALL PASS, coverage >= 80%
+  b) pytest tests/e2e/ -v → ALL PASS (strict 0 filter)
   c) tsc --noEmit → 0, /lint-check → 0
   d) npx promptfoo eval → 6/6 skill 95%+
+  e) Coverage NEM csokkenhet a v1.2.2 szinthez kepest!
 
 B7.2 — Szolgaltatas erettseg POST-audit:
   | Szolgaltatas | Checklist 10pt | Promptfoo | Guardrail | Status |
