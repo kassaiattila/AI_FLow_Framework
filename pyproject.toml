@@ -99,6 +99,25 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "TCH"]
+ignore = [
+    "E501",    # line-too-long — enforced by ruff format, not check
+    "TC001",   # typing-only-first-party-import — large refactor, low priority
+    "TC002",   # typing-only-third-party-import
+    "TC003",   # typing-only-standard-library-import
+    "SIM105",  # suppressible-exception — contextlib.suppress preference is stylistic
+    "UP042",   # replace-str-enum — requires StrEnum migration
+    "UP046",   # non-pep695-generic-class — Python 3.12+ syntax, opt-in later
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["B017"]     # assert-raises-exception OK in tests
+"skills/**/*.py" = [
+    "N806",  # non-lowercase-variable-in-function (domain naming: TF-IDF, BPMN, etc.)
+    "N803",  # invalid-argument-name (domain params)
+    "E402",  # module-import-not-at-top (conditional imports in skills)
+    "E702",  # multiple-statements-on-one-line (reference/example code)
+    "E741",  # ambiguous-variable-name (l, O in ML code)
+]
 
 [tool.ruff.format]
 quote-style = "double"
