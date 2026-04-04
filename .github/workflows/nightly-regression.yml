@@ -16,15 +16,16 @@ jobs:
         with:
           version: "latest"
 
-      - name: Set up Python
-        run: uv python install 3.12
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv venv && uv pip install -e ".[dev]"
 
       - name: Run unit tests
         run: |
-          uv run pytest tests/unit/ -v \
+          .venv/bin/pytest tests/unit/ -v \
             --cov=aiflow --cov-report=xml --cov-report=term-missing \
             --junitxml=test-results-unit.xml
         env:
@@ -73,19 +74,19 @@ jobs:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.12
+        python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv venv && uv pip install -e ".[dev]"
 
       - name: Run migrations
-        run: uv run alembic upgrade head
+        run: .venv/bin/alembic upgrade head
         env:
           AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
 
       - name: Run integration tests
         run: |
-          uv run pytest tests/integration/ -v \
+          .venv/bin/pytest tests/integration/ -v \
             --junitxml=test-results-integration.xml
         env:
           AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
@@ -131,14 +132,15 @@ jobs:
         with:
           version: "latest"
 
-      - name: Set up Python
-        run: uv python install 3.12
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Install Python dependencies
-        run: uv sync --dev
+        run: uv venv && uv pip install -e ".[dev]"
 
       - name: Install Playwright browsers
-        run: uv run playwright install --with-deps chromium
+        run: .venv/bin/playwright install --with-deps chromium
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -157,7 +159,7 @@ jobs:
 
       - name: Start API server
         run: |
-          uv run python -B -m uvicorn aiflow.api.app:create_app --factory --port 8102 &
+          .venv/bin/python -B -m uvicorn aiflow.api.app:create_app --factory --port 8102 &
           sleep 5
           curl -sf http://localhost:8102/health || exit 1
         env:
@@ -171,7 +173,7 @@ jobs:
 
       - name: Run E2E tests
         run: |
-          uv run pytest tests/e2e/ -v \
+          .venv/bin/pytest tests/e2e/ -v \
             --junitxml=test-results-e2e.xml
         env:
           BASE_URL: http://localhost:5174
