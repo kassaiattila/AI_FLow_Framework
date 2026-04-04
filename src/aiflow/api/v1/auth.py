@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+import time
 from datetime import UTC, datetime
 
 import bcrypt
@@ -18,36 +18,7 @@ __all__ = ["router"]
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-
-def _init_auth() -> AuthProvider:
-    """Initialize AuthProvider with JWT secret validation.
-
-    Production mode requires an explicit AIFLOW_JWT_SECRET (min 32 chars).
-    Dev/test mode falls back to a default secret.
-    """
-    secret = os.getenv("AIFLOW_JWT_SECRET", "")
-    env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
-    is_production = env in ("production", "prod")
-
-    if is_production:
-        if not secret:
-            raise RuntimeError(
-                "AIFLOW_JWT_SECRET is REQUIRED in production mode. "
-                "Set AIFLOW_JWT_SECRET env var (minimum 32 characters)."
-            )
-        if len(secret) < 32:
-            raise RuntimeError(
-                f"AIFLOW_JWT_SECRET is too short ({len(secret)} chars). "
-                "Minimum 32 characters required for production."
-            )
-    elif not secret:
-        secret = "dev-secret-change-in-production"
-        logger.warning("jwt_using_default_secret", env=env)
-
-    return AuthProvider(secret=secret)
-
-
-_auth = _init_auth()
+_auth = AuthProvider.from_env()
 
 
 # --- Models ---
@@ -181,27 +152,21 @@ class RefreshResponse(BaseModel):
 
 @router.post("/refresh", response_model=RefreshResponse)
 async def refresh_token(request: RefreshRequest) -> RefreshResponse:
-    """Refresh a JWT token. Accepts a valid (or recently expired) token."""
+    """Refresh a JWT token. Accepts a valid (or recently expired within 5 min) token."""
     result = _auth.verify_token(request.token)
 
     if not result.authenticated:
         if result.error == "token_expired":
-            import base64
-            import json
-            import time
-
-            parts = request.token.split(".")
-            if len(parts) == 2:
-                payload_json = base64.urlsafe_b64decode(parts[0]).decode()
-                payload = json.loads(payload_json)
-                if time.time() - payload.get("exp", 0) < 300:  # 5-minute grace period
-                    new_token = _auth.create_token(
-                        user_id=payload["sub"],
-                        team_id=payload.get("team_id"),
-                        role=payload.get("role", "viewer"),
-                    )
-                    logger.info("token_refreshed", user_id=payload["sub"], expired=True)
-                    return RefreshResponse(token=new_token)
+            # 5-minute grace period for recently expired tokens
+            payload = _auth.decode_expired_token(request.token)
+            if payload and time.time() - payload.get("exp", 0) < 300:
+                new_token = _auth.create_token(
+                    user_id=payload["sub"],
+                    team_id=payload.get("team_id"),
+                    role=payload.get("role", "viewer"),
+                )
+                logger.info("token_refreshed", user_id=payload["sub"], expired=True)
+                return RefreshResponse(token=new_token)
 
         raise HTTPException(status_code=401, detail=result.error or "Invalid token")
 

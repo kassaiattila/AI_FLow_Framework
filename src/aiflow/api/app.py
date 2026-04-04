@@ -97,17 +97,33 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
         lifespan=lifespan,
     )
+    cors_origins = _get_cors_origins()
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=_get_cors_origins(),
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=cors_origins,
+        allow_credentials=bool(cors_origins),
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "X-Request-ID",
+            "Accept",
+            "Accept-Language",
+        ],
     )
-    # Auth middleware — enforces Bearer/API key auth on /api/v1/* (after CORS)
-    from aiflow.api.middleware import AuthMiddleware
+    # Security middleware stack (outermost runs first)
+    from aiflow.api.middleware import (
+        AuthMiddleware,
+        MaxBodySizeMiddleware,
+        RateLimitMiddleware,
+        SecurityHeadersMiddleware,
+    )
 
+    # Order: SecurityHeaders wraps everything, then MaxBodySize, then RateLimit, then Auth
     app.add_middleware(AuthMiddleware)
+    app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(MaxBodySizeMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
     # Include routers
     from aiflow.api.v1.admin import router as admin_router
     from aiflow.api.v1.auth import router as auth_router

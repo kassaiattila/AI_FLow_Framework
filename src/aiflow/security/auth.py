@@ -1,12 +1,17 @@
-"""Authentication: JWT tokens and API key management."""
+"""Authentication: JWT tokens (RS256) and API key management."""
 
 from __future__ import annotations
 
 import hashlib
+import os
 import secrets
 import time
+from pathlib import Path
 
+import jwt
 import structlog
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from pydantic import BaseModel, Field
 
 __all__ = ["AuthResult", "TokenPayload", "AuthProvider", "APIKeyProvider"]
@@ -15,6 +20,7 @@ logger = structlog.get_logger(__name__)
 
 # Default token expiration: 1 hour
 DEFAULT_TOKEN_TTL = 3600
+ALGORITHM = "RS256"
 
 
 class TokenPayload(BaseModel):
@@ -38,14 +44,72 @@ class AuthResult(BaseModel):
 
 
 class AuthProvider:
-    """JWT-based authentication provider.
+    """JWT-based authentication provider using RS256 asymmetric keys.
 
-    Uses a shared secret for token signing (HMAC-SHA256).
-    In production, use RS256 with public/private key pair.
+    Uses PyJWT with RSA key pair for token signing and verification.
+    In dev mode, auto-generates an ephemeral key pair if none is configured.
+    In production, requires explicit key paths via environment variables.
     """
 
-    def __init__(self, secret: str = "dev-secret-change-in-production") -> None:
-        self._secret = secret
+    def __init__(self, private_key: bytes | None = None, public_key: bytes | None = None) -> None:
+        self._private_key = private_key
+        self._public_key = public_key
+
+    @classmethod
+    def from_env(cls) -> AuthProvider:
+        """Create AuthProvider from environment configuration.
+
+        Reads AIFLOW_JWT_PRIVATE_KEY_PATH and AIFLOW_JWT_PUBLIC_KEY_PATH.
+        Production (AIFLOW_ENVIRONMENT=prod/production): keys are REQUIRED.
+        Dev/test: auto-generates ephemeral key pair with a warning.
+        """
+        env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
+        is_production = env in ("production", "prod")
+
+        priv_path = os.getenv("AIFLOW_JWT_PRIVATE_KEY_PATH", "")
+        pub_path = os.getenv("AIFLOW_JWT_PUBLIC_KEY_PATH", "")
+
+        private_key: bytes | None = None
+        public_key: bytes | None = None
+
+        if priv_path and Path(priv_path).is_file():
+            private_key = Path(priv_path).read_bytes()
+            logger.info("jwt_private_key_loaded", path=priv_path)
+        if pub_path and Path(pub_path).is_file():
+            public_key = Path(pub_path).read_bytes()
+            logger.info("jwt_public_key_loaded", path=pub_path)
+
+        if is_production and (not private_key or not public_key):
+            raise RuntimeError(
+                "JWT RS256 key pair is REQUIRED in production mode. "
+                "Generate keys with: scripts/generate_jwt_keys.sh "
+                "and set AIFLOW_JWT_PRIVATE_KEY_PATH + AIFLOW_JWT_PUBLIC_KEY_PATH."
+            )
+
+        if not private_key or not public_key:
+            logger.warning(
+                "jwt_auto_generating_ephemeral_keys",
+                env=env,
+                hint="Run scripts/generate_jwt_keys.sh for persistent keys",
+            )
+            private_key, public_key = cls._generate_key_pair()
+
+        return cls(private_key=private_key, public_key=public_key)
+
+    @staticmethod
+    def _generate_key_pair() -> tuple[bytes, bytes]:
+        """Generate an RSA-2048 key pair for JWT signing."""
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        private_pem = key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        public_pem = key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        return private_pem, public_pem
 
     def create_token(
         self,
@@ -54,59 +118,44 @@ class AuthProvider:
         role: str = "viewer",
         ttl: int = DEFAULT_TOKEN_TTL,
     ) -> str:
-        """Create a signed token string.
-
-        Returns a simple base64-style token for testing.
-        In production, use PyJWT for proper JWT.
-        """
-        import base64
-
+        """Create a signed JWT token using RS256."""
         now = time.time()
-        payload = TokenPayload(
-            sub=user_id,
-            team_id=team_id,
-            role=role,
-            exp=now + ttl,
-            iat=now,
-        )
-        payload_json = payload.model_dump_json()
-        # Simple HMAC signature for development
-        sig = hashlib.sha256((payload_json + self._secret).encode()).hexdigest()[:16]
-        token_data = base64.urlsafe_b64encode(payload_json.encode()).decode()
-        return f"{token_data}.{sig}"
+        payload = {
+            "sub": user_id,
+            "team_id": team_id,
+            "role": role,
+            "exp": int(now + ttl),
+            "iat": int(now),
+        }
+        return jwt.encode(payload, self._private_key, algorithm=ALGORITHM)
 
     def verify_token(self, token: str) -> AuthResult:
-        """Verify a token and return auth result."""
-        import base64
-
+        """Verify a JWT token and return auth result."""
         try:
-            parts = token.split(".")
-            if len(parts) != 2:
-                return AuthResult(authenticated=False, error="invalid_token_format")
-
-            payload_b64, sig = parts
-            payload_json = base64.urlsafe_b64decode(payload_b64).decode()
-
-            # Verify signature
-            expected_sig = hashlib.sha256((payload_json + self._secret).encode()).hexdigest()[:16]
-            if sig != expected_sig:
-                return AuthResult(authenticated=False, error="invalid_signature")
-
-            payload = TokenPayload.model_validate_json(payload_json)
-
-            # Check expiration
-            if payload.exp < time.time():
-                return AuthResult(authenticated=False, error="token_expired")
-
+            payload = jwt.decode(token, self._public_key, algorithms=[ALGORITHM])
             return AuthResult(
                 authenticated=True,
-                user_id=payload.sub,
-                team_id=payload.team_id,
-                role=payload.role,
+                user_id=payload["sub"],
+                team_id=payload.get("team_id"),
+                role=payload.get("role", "viewer"),
             )
-        except Exception as exc:
+        except jwt.ExpiredSignatureError:
+            return AuthResult(authenticated=False, error="token_expired")
+        except jwt.InvalidTokenError as exc:
             logger.warning("token_verification_failed", error=str(exc))
-            return AuthResult(authenticated=False, error=str(exc))
+            return AuthResult(authenticated=False, error="invalid_token")
+
+    def decode_expired_token(self, token: str) -> dict | None:
+        """Decode a token without verifying expiration (for refresh grace period)."""
+        try:
+            return jwt.decode(
+                token,
+                self._public_key,
+                algorithms=[ALGORITHM],
+                options={"verify_exp": False},
+            )
+        except jwt.InvalidTokenError:
+            return None
 
 
 class APIKeyProvider:
