@@ -87,6 +87,10 @@ This enables: new intents/entities without code changes, per-customer customizat
 5. **Follow the Cubix RAG checklist** at `01_PLAN/30_RAG_PRODUCTION_PLAN.md` for RAG features
 6. **Run `alembic upgrade head`** after any migration file change
 
+### Session prompt location:
+- Session promptok MINDIG `01_PLAN/session_{N}_{topic}.md` fajlba kerulnek
+- SOHA NE `prompts/` vagy `~/.claude/plans/` mappaba!
+
 ### Before committing:
 1. Run `pytest tests/unit/ -q` - all tests must pass
 2. Check `git status` - no untracked files that should be tracked

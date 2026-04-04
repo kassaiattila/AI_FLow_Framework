@@ -12,7 +12,6 @@ from aiflow.tools.attachment_processor import (
 from aiflow.tools.azure_doc_intelligence import AzureDocIntelligence
 from aiflow.tools.email_parser import EmailAttachment, EmailParser, ParsedEmail
 from aiflow.tools.human_loop import ApprovalRequest, HumanLoopManager, HumanLoopResponse
-from aiflow.tools.kafka import KafkaConfig, KafkaConsumer, KafkaProducer
 from aiflow.tools.playwright_browser import BrowserConfig, PlaywrightBrowser
 from aiflow.tools.robotframework_runner import RobotConfig, RobotFrameworkRunner, RobotResult
 from aiflow.tools.schema_registry import SchemaRegistry
@@ -40,10 +39,6 @@ __all__ = [
     "HumanLoopManager",
     "HumanLoopResponse",
     "ApprovalRequest",
-    # Kafka
-    "KafkaConfig",
-    "KafkaProducer",
-    "KafkaConsumer",
     # Email processing
     "EmailParser",
     "ParsedEmail",

@@ -54,8 +54,8 @@ class TestHelpText:
     def test_help_shows_subcommands(self):
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        assert "workflow" in result.output
         assert "skill" in result.output
+        assert "dev" in result.output
 
     def test_no_args_shows_help(self):
         result = runner.invoke(app, [])
@@ -65,11 +65,6 @@ class TestHelpText:
 
 class TestSubcommandInvocation:
     """Verify key subcommands can be invoked without error."""
-
-    def test_workflow_list_runs(self):
-        result = runner.invoke(app, ["workflow", "list"])
-        assert result.exit_code == 0
-        assert "workflow" in result.output.lower() or "No workflows" in result.output
 
     def test_skill_list_runs(self):
         result = runner.invoke(app, ["skill", "list"])
