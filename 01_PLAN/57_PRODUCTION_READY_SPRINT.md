@@ -390,6 +390,21 @@ TESZTELES:
   - MINDEN teszt VALOS backend-del (Docker PostgreSQL + Redis)
 
 GATE: 10+ E2E teszt PASS, 0 console error, osszes fo oldal tesztelve
+
+OUTPUT (S9 — 2026-04-04, session 12):
+  - tests/e2e/ teljes E2E Playwright suite:
+    - conftest.py: authenticated_page fixture, navigate_to(), console error collector
+    - pages/: Page Object Model (BasePage, LoginPage, DashboardPage)
+    - test_smoke.py: 40 teszt — Login (4), SmokeAllPages (34 = 17 page x 2), Sidebar (2)
+    - test_quality.py: 4 teszt — page loads, content/error, external tools, links
+    - test_documents.py: 3 teszt — table, action area, source indicator
+    - test_pipelines.py: 3 teszt — pipelines loads, services catalog, list/empty
+    - test_notifications.py: 2 teszt — bell icon, dropdown toggle
+    - test_i18n.py: 2 teszt — locale toggle, dashboard content
+  - Osszesen: 54 E2E teszt, 17 oldal tesztelve, 0 console error
+  - 54/54 PASS (146s, Chromium)
+  - pytest-playwright installalva (.venv)
+  - Commit: (pending)
 ```
 
 #### S10 Reszletes: CI/CD Regresszios Pipeline
@@ -623,7 +638,7 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S6 | Meglevo oldalak UI polish + MUI torles | DONE | 2026-04-04 | b38b156 |
 | S7 | Langfuse valos integracio | DONE | 2026-04-04 | 6e46fed |
 | S8 | Promptfoo 6 skill config + CI/CD nightly | DONE | 2026-04-04 | dfbb8e4 |
-| S9 | E2E Playwright test suite | TODO | — | — |
+| S9 | E2E Playwright test suite (54 tests) | DONE | 2026-04-04 | (pending) |
 | S10 | CI/CD regresszios pipeline | TODO | — | — |
 | S11 | Free text extraction + intent schema | TODO | — | — |
 | S12 | SLA eszkalacio + cost estimation | TODO | — | — |
