@@ -269,6 +269,17 @@
       "assistant": "AI Asszisztens",
       "scrollToBottom": "Gorgetese lefele"
     },
+    "services": {
+      "catalogTitle": "Szolgaltatasok",
+      "catalogSubtitle": "AIFlow szolgaltatasok es pipeline integracio.",
+      "search": "Kereses...",
+      "allServices": "Osszes",
+      "withAdapter": "Pipeline-kepes",
+      "withoutAdapter": "Adapter nelkul",
+      "pipelineReady": "Pipeline",
+      "runPipeline": "Pipeline inditasa",
+      "noResults": "Nincs talalat"
+    },
     "quality": {
       "title": "Minoseg",
       "subtitle": "LLM minoseg monitorozas, rubric ertekeles es koltseg kovetes.",

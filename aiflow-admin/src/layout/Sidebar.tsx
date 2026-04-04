@@ -52,6 +52,7 @@ const MENU_GROUPS: MenuGroup[] = [
     labelKey: "aiflow.menu.orchestration",
     defaultOpen: true,
     items: [
+      { path: "/services", labelKey: "aiflow.services.catalogTitle", icon: "grid" },
       { path: "/pipelines", labelKey: "pipelines.title", icon: "diagram" },
     ],
   },
@@ -75,6 +76,7 @@ function MenuIcon({ name }: { name: string }) {
     file: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6",
     mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6",
     book: "M4 19.5A2.5 2.5 0 016.5 17H20 M4 19.5A2.5 2.5 0 014 17V5a2 2 0 012-2h14v14H6.5",
+    grid: "M3 3h7v7H3V3zm11 0h7v7h-7V3zm0 11h7v7h-7v-7zM3 14h7v7H3v-7z",
     diagram: "M22 12h-4l-3 9L9 3l-3 9H2",
     audio: "M9 18V5l12-2v13 M9 18a3 3 0 11-6 0 3 3 0 016 0z",
     bot: "M12 8V4l8 4-8 4V8zM4 12h8m-8 4h16",

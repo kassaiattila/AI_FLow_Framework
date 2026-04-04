@@ -269,6 +269,17 @@
       "assistant": "AI Assistant",
       "scrollToBottom": "Scroll to bottom"
     },
+    "services": {
+      "catalogTitle": "Services",
+      "catalogSubtitle": "AIFlow services and pipeline integration.",
+      "search": "Search...",
+      "allServices": "All",
+      "withAdapter": "Pipeline-ready",
+      "withoutAdapter": "No adapter",
+      "pipelineReady": "Pipeline",
+      "runPipeline": "Run Pipeline",
+      "noResults": "No results"
+    },
     "quality": {
       "title": "Quality",
       "subtitle": "LLM quality monitoring, rubric evaluation, and cost tracking.",
