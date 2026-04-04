@@ -404,7 +404,7 @@ OUTPUT (S9 — 2026-04-04, session 12):
   - Osszesen: 54 E2E teszt, 17 oldal tesztelve, 0 console error
   - 54/54 PASS (146s, Chromium)
   - pytest-playwright installalva (.venv)
-  - Commit: (pending)
+  - Commit: 65dfcdf
 ```
 
 #### S10 Reszletes: CI/CD Regresszios Pipeline
@@ -638,7 +638,7 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S6 | Meglevo oldalak UI polish + MUI torles | DONE | 2026-04-04 | b38b156 |
 | S7 | Langfuse valos integracio | DONE | 2026-04-04 | 6e46fed |
 | S8 | Promptfoo 6 skill config + CI/CD nightly | DONE | 2026-04-04 | dfbb8e4 |
-| S9 | E2E Playwright test suite (54 tests) | DONE | 2026-04-04 | (pending) |
+| S9 | E2E Playwright test suite (54 tests) | DONE | 2026-04-04 | 65dfcdf |
 | S10 | CI/CD regresszios pipeline | TODO | — | — |
 | S11 | Free text extraction + intent schema | TODO | — | — |
 | S12 | SLA eszkalacio + cost estimation | TODO | — | — |
