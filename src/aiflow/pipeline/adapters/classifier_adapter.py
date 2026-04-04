@@ -41,13 +41,14 @@ class ClassifierAdapter(BaseAdapter):
     def __init__(self, service: Any = None) -> None:
         self._service = service
 
-    def _get_service(self) -> Any:
+    async def _get_service(self) -> Any:
         if self._service is not None:
             return self._service
-        from aiflow.services.registry import ServiceRegistry
+        from aiflow.services.classifier.service import ClassifierConfig, ClassifierService
 
-        registry = ServiceRegistry()
-        return registry.get("classifier")
+        svc = ClassifierService(config=ClassifierConfig())
+        await svc.start()
+        return svc
 
     async def _run(
         self,
@@ -58,7 +59,7 @@ class ClassifierAdapter(BaseAdapter):
         if not isinstance(input_data, ClassifyInput):
             input_data = ClassifyInput.model_validate(input_data)
         data = input_data
-        svc = self._get_service()
+        svc = await self._get_service()
 
         result = await svc.classify(
             text=data.text,

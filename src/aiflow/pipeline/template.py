@@ -73,17 +73,18 @@ class TemplateResolver:
     ) -> Any:
         """Resolve a Jinja2 expression (for for_each, conditions).
 
-        Wraps expression in {{ }} if not already wrapped, then renders.
+        Uses compile_expression to return the native Python object
+        (list, dict, etc.) instead of rendering to string.
         """
         self._check_blocked(expression)
 
-        if not expression.strip().startswith("{{"):
-            expression = "{{ " + expression + " }}"
+        # Strip {{ }} wrapper if present — compile_expression needs raw expr
+        expr = expression.strip()
+        if expr.startswith("{{") and expr.endswith("}}"):
+            expr = expr[2:-2].strip()
 
-        template = self._env.from_string(expression)
-        rendered = template.render(**context)
-
-        return self._coerce_type(rendered)
+        compiled = self._env.compile_expression(expr)
+        return compiled(**context)
 
     def _check_blocked(self, template_str: str) -> None:
         """Raise SecurityError if template contains blocked patterns."""

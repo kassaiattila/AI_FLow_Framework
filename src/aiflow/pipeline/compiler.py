@@ -142,10 +142,6 @@ class PipelineCompiler:
             pipeline_context: dict[str, Any],
         ) -> dict[str, Any]:
             """Execute one pipeline step with Jinja2 config resolution."""
-            resolved_config = resolver.resolve_config(
-                step_def.config, pipeline_context
-            )
-
             if step_def.for_each and isinstance(adapter, BaseAdapter):
                 items_expr = step_def.for_each
                 items = resolver.resolve_expression(
@@ -153,6 +149,9 @@ class PipelineCompiler:
                 )
                 if not isinstance(items, list):
                     items = [items]
+
+                if not items:
+                    return {"results": [], "count": 0}
 
                 results = await adapter.execute_for_each(
                     items=[
@@ -162,12 +161,15 @@ class PipelineCompiler:
                         )
                         for item in items
                     ],
-                    config=resolved_config,
+                    config={},
                     ctx=ctx,
                     concurrency=step_def.concurrency,
                 )
                 return {"results": results, "count": len(results)}
 
+            resolved_config = resolver.resolve_config(
+                step_def.config, pipeline_context
+            )
             return await adapter.execute(resolved_config, {}, ctx)
 
         step_func.__name__ = f"step_{step_def.name}"

@@ -49,13 +49,19 @@ class EmailFetchAdapter(BaseAdapter):
     def __init__(self, service: Any = None) -> None:
         self._service = service
 
-    def _get_service(self) -> Any:
+    async def _get_service(self) -> Any:
         if self._service is not None:
             return self._service
-        from aiflow.services.registry import ServiceRegistry
+        from aiflow.api.deps import get_session_factory
+        from aiflow.services.email_connector.service import (
+            EmailConnectorConfig,
+            EmailConnectorService,
+        )
 
-        registry = ServiceRegistry()
-        return registry.get("email_connector")
+        sf = await get_session_factory()
+        svc = EmailConnectorService(session_factory=sf, config=EmailConnectorConfig())
+        await svc.start()
+        return svc
 
     async def _run(
         self,
@@ -66,7 +72,7 @@ class EmailFetchAdapter(BaseAdapter):
         if not isinstance(input_data, FetchEmailsInput):
             input_data = FetchEmailsInput.model_validate(input_data)
         data = input_data
-        svc = self._get_service()
+        svc = await self._get_service()
 
         since_date = None
         if data.since_days is not None:

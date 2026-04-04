@@ -298,7 +298,7 @@ C17-C20: Tier 4 Polish ──────────── 1-2 session
 
 Minden ciklus vegén frissitjuk:
 
-## Progress (utolso frissites: 2026-04-03)
+## Progress (utolso frissites: 2026-04-04)
 
 | Ciklus | Fazis | Allapot | Datum | Commit |
 |--------|-------|---------|-------|--------|
@@ -308,7 +308,7 @@ Minden ciklus vegén frissitjuk:
 | C3 | P3 Runner+DB | DONE | 2026-04-04 | (Tier 1 branch) |
 | C4 | P4 API | DONE | 2026-04-04 | (Tier 1 branch) |
 | C5 | P5 UI | DONE | 2026-04-04 | (Tier 1 branch) |
-| C6 | Invoice v1 | TODO | — | — |
+| C6 | Invoice v1 | DONE | 2026-04-04 | v1.2.0-beta (squash merge) |
 | C7 | P6A Notification | TODO | — | — |
 | C8 | P6D Data Router | TODO | — | — |
 | C9 | P6A+D Invoice v2 | TODO | — | — |
@@ -334,3 +334,16 @@ Minden ciklus vegén frissitjuk:
 - `pyproject.toml` ruff config fixed (`line-length` was invalid under `[tool.ruff.format]`)
 - TypeScript: 0 errors
 - **GATE:** L0 smoke test — **PASS** (6/6: auth, health, documents, emails, rag, services)
+
+### C6 Output (2026-04-04):
+- Branch: `feature/v1.2.0-tier1.5-invoice-usecase` → squash merge to main → tag `v1.2.0-beta`
+- `POST /api/v1/pipelines/{id}/run` endpoint (202 Accepted)
+- `src/aiflow/api/deps.py` — `get_session_factory()` cached helper
+- `src/aiflow/pipeline/builtin_templates/invoice_automation_v1.yaml` — 3-step pipeline (fetch → classify → extract)
+- All 7 adapters fixed: real service instantiation (not empty ServiceRegistry)
+- `compiler.py` fix: for_each config resolution deferred to loop body + empty list handling
+- `template.py` fix: `compile_expression` for native Python objects (lists, dicts)
+- **E2E:** Outlook COM → 3 real emails → 3 classified → 3 extracted → status=completed (46s)
+- **DB:** 1 workflow_run + 3 step_runs persisted, pipeline_id FK correct
+- Tests: 147 pipeline unit PASS, 837 full unit PASS
+- **GATE:** L0 smoke test — **PASS** (6/6), tsc --noEmit — **PASS**, ruff — no regression (23=23)

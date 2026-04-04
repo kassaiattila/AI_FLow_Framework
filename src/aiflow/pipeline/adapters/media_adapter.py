@@ -37,13 +37,16 @@ class MediaProcessAdapter(BaseAdapter):
     def __init__(self, service: Any = None) -> None:
         self._service = service
 
-    def _get_service(self) -> Any:
+    async def _get_service(self) -> Any:
         if self._service is not None:
             return self._service
-        from aiflow.services.registry import ServiceRegistry
+        from aiflow.services.media_processor.service import (
+            MediaProcessorConfig,
+            MediaProcessorService,
+        )
 
-        registry = ServiceRegistry()
-        return registry.get("media_processor")
+        svc = MediaProcessorService(config=MediaProcessorConfig())
+        return svc
 
     async def _run(
         self,
@@ -54,7 +57,7 @@ class MediaProcessAdapter(BaseAdapter):
         if not isinstance(input_data, ProcessMediaInput):
             input_data = ProcessMediaInput.model_validate(input_data)
         data = input_data
-        svc = self._get_service()
+        svc = await self._get_service()
 
         from pathlib import Path
 

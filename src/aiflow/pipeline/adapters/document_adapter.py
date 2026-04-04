@@ -40,13 +40,19 @@ class DocumentExtractAdapter(BaseAdapter):
     def __init__(self, service: Any = None) -> None:
         self._service = service
 
-    def _get_service(self) -> Any:
+    async def _get_service(self) -> Any:
         if self._service is not None:
             return self._service
-        from aiflow.services.registry import ServiceRegistry
+        from aiflow.api.deps import get_session_factory
+        from aiflow.services.document_extractor.service import (
+            DocumentExtractorConfig,
+            DocumentExtractorService,
+        )
 
-        registry = ServiceRegistry()
-        return registry.get("document_extractor")
+        sf = await get_session_factory()
+        svc = DocumentExtractorService(session_factory=sf, config=DocumentExtractorConfig())
+        await svc.start()
+        return svc
 
     async def _run(
         self,
@@ -57,7 +63,7 @@ class DocumentExtractAdapter(BaseAdapter):
         if not isinstance(input_data, ExtractDocumentInput):
             input_data = ExtractDocumentInput.model_validate(input_data)
         data = input_data
-        svc = self._get_service()
+        svc = await self._get_service()
 
         result = await svc.extract(
             file_path=data.file_path,

@@ -37,13 +37,16 @@ class DiagramGenerateAdapter(BaseAdapter):
     def __init__(self, service: Any = None) -> None:
         self._service = service
 
-    def _get_service(self) -> Any:
+    async def _get_service(self) -> Any:
         if self._service is not None:
             return self._service
-        from aiflow.services.registry import ServiceRegistry
+        from aiflow.services.diagram_generator.service import (
+            DiagramGeneratorConfig,
+            DiagramGeneratorService,
+        )
 
-        registry = ServiceRegistry()
-        return registry.get("diagram_generator")
+        svc = DiagramGeneratorService(config=DiagramGeneratorConfig())
+        return svc
 
     async def _run(
         self,
@@ -54,7 +57,7 @@ class DiagramGenerateAdapter(BaseAdapter):
         if not isinstance(input_data, GenerateDiagramInput):
             input_data = GenerateDiagramInput.model_validate(input_data)
         data = input_data
-        svc = self._get_service()
+        svc = await self._get_service()
 
         result = await svc.generate(
             user_input=data.description,

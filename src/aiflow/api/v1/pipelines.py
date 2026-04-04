@@ -10,11 +10,12 @@ import structlog
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from aiflow.api.deps import get_pool
+from aiflow.api.deps import get_pool, get_session_factory
 from aiflow.pipeline.adapter_base import adapter_registry
 from aiflow.pipeline.adapters import discover_adapters
 from aiflow.pipeline.compiler import PipelineCompileError, PipelineCompiler
 from aiflow.pipeline.parser import PipelineParseError, PipelineParser
+from aiflow.pipeline.runner import PipelineRunner
 from aiflow.pipeline.schema import PipelineDefinition
 
 __all__ = ["router"]
@@ -436,6 +437,45 @@ async def validate_pipeline(pipeline_id: str) -> ValidateResponse:
         errors=errors,
         step_count=len(pipeline_def.steps),
         adapters_available=adapters_ok,
+    )
+
+
+@router.post("/{pipeline_id}/run", status_code=202)
+async def run_pipeline(
+    pipeline_id: str, req: RunPipelineRequest
+) -> RunPipelineResponse:
+    """Execute a pipeline synchronously and return the run result.
+
+    Returns 202 Accepted with run_id and final status.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id, name, enabled FROM pipeline_definitions WHERE id = $1",
+            uuid.UUID(pipeline_id),
+        )
+    if not row:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+    if not row["enabled"]:
+        raise HTTPException(status_code=400, detail="Pipeline is disabled")
+
+    session_factory = await get_session_factory()
+    runner = PipelineRunner(adapter_registry, session_factory)
+
+    try:
+        result = await runner.run(
+            pipeline_id=uuid.UUID(pipeline_id),
+            input_data=req.input_data,
+        )
+    except Exception as exc:
+        logger.error("pipeline_run_failed", pipeline_id=pipeline_id, error=str(exc))
+        raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {exc}")
+
+    return RunPipelineResponse(
+        run_id=str(result.run_id),
+        pipeline_id=pipeline_id,
+        pipeline_name=result.pipeline_name,
+        status=result.status,
     )
 
 

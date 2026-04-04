@@ -97,12 +97,23 @@ class TestResolveExpression:
         result = resolver.resolve_expression(
             "{{ step1.output.emails }}", ctx
         )
-        assert result == "[1, 2, 3]"
+        # compile_expression returns native Python objects, not strings
+        assert result == [1, 2, 3]
 
     def test_unwrapped_expression(self, resolver):
         ctx = {"input": {"value": "hello"}}
         result = resolver.resolve_expression("input.value", ctx)
         assert result == "hello"
+
+    def test_expression_returns_dict(self, resolver):
+        ctx = {"step1": {"output": {"data": {"key": "val"}}}}
+        result = resolver.resolve_expression("step1.output.data", ctx)
+        assert result == {"key": "val"}
+
+    def test_expression_empty_list(self, resolver):
+        ctx = {"step1": {"output": {"emails": []}}}
+        result = resolver.resolve_expression("step1.output.emails", ctx)
+        assert result == []
 
 
 class TestSecurity:
