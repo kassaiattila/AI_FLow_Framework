@@ -4,7 +4,7 @@
 > **Elozo session:** S16 — A3 Security Hardening + A4 Stubs DONE
 > **Branch:** `feature/v1.2.2-infrastructure`
 > **Port:** API 8102, Frontend 5174 (Vite proxy → 8102)
-> **Utolso commit:** `bbfd4cf` docs: update progress — A4 stubs+alapfunkciok DONE
+> **Utolso commit:** `70735b2` refactor(cleanup): delete stubs + create DEVELOPMENT_ROADMAP
 > **PR:** https://github.com/kassaiattila/AI_FLow_Framework/pull/1
 
 ---
@@ -28,15 +28,19 @@
   - File upload utils — `secure_filename()`, `validate_upload_path()` (`security/upload.py`)
   - Frontend — 401 interceptor → force logout, `startSessionMonitor()` 60s exp check (`api-client.ts`, `auth.ts`)
   - 97 security tests PASS (20 new)
-- **A4 DONE** (`87b896e`): Stubs + alapfunkciok
-  - CLI "planned for v1.3.0" messages (skill, eval, prompt, workflow commands)
-  - pdf_parser, docx_parser → DEPRECATED, docling reference
-  - kafka.py → DEFERRED header
-  - llm_rubric_placeholder → REMOVED (Promptfoo replaces it)
+- **A4 DONE** (`87b896e` + `70735b2`): Stubs + alapfunkciok + TORLES
   - Pipeline templates tab on Pipelines.tsx (i18n HU+EN, deploy button)
   - Route conflict fix — `_parse_pipeline_id()` UUID validation
   - DataTable infinite re-render fix (data ref instead of dep)
-  - STUB_INVENTORY.md created
+  - llm_rubric_placeholder → REMOVED (Promptfoo replaces it)
+  - **Agressziv stub torles** (`70735b2`): 11 fajl, -1149 sor:
+    - `pdf_parser.py`, `docx_parser.py` → DoclingParser a csere
+    - `kafka.py` + test → DEFERRED, in-memory MessageBroker eleg
+    - `workflows.py` router → Pipeline API a production path
+    - `metrics.py` + test → Langfuse az aktiv observability
+    - CLI: `eval_cmd.py`, `workflow.py`, `prompt.py` → Promptfoo/Pipeline API/Langfuse UI
+    - `skills/__init__.py` re-exports cleared → skill_system/ kanonikus
+    - STUB_INVENTORY.md → `01_PLAN/DEVELOPMENT_ROADMAP.md` (eloremutatno fejlesztesi iranyok)
 
 ### Sprint A Allapot
 
@@ -54,8 +58,9 @@
 
 ### Infrastruktura Szamok
 
-- 26 service, 165 API endpoint (25 router), 45 DB tabla, 29 migracio, 19 adapter
-- 1118 unit test (1 pre-existing fail: test_config.py), 157 skill test, 102 E2E, 51 Promptfoo
+- 26 service, 158 API endpoint (24 router — workflows router torolve), 45 DB tabla, 29 migracio, 19 adapter
+- 1087 unit test (1 pre-existing fail: test_config.py), 157 skill test, 102 E2E, 51 Promptfoo
+- **S16 stub cleanup:** 11 fajl torolve (-1149 sor), `01_PLAN/DEVELOPMENT_ROADMAP.md` letrehozva
 - Docker: PostgreSQL 5433, Redis 6379
 - Auth: admin@bestix.hu / admin
 
