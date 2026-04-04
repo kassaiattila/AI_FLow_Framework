@@ -41,15 +41,16 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - 6 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, invoice_processor, qbpp_test_automation (cfpb_complaint_router merged into email_intent_processor)
 
 ## Key numbers to keep consistent
-- 41 DB tables, 6 views, 26 Alembic migracio (001-026, mind letezik) + 3 tervezett (027-029), 60+ indexes
+- 45 DB tables, 6 views, 29 Alembic migracio (001-029, mind letezik), 60+ indexes
 - Framework: 22 weeks, 7 phases (Phase 1-7 KESZ)
 - Service Generalization: Fazis 0-5 KESZ (v1.0.0, 2026-04-02)
 - UI Modernization: F6 KESZ (v1.1.4, 2026-04-03)
-- **v1.2.0 Orchestration: Tier 1 (P1-5) → Tier 2 (P6) → Tier 3 (P7) → Phase 8 (templates)**
-- 15 service + 10 uj tervezett (25 total v1.2.0 utan)
-- 112+ endpoint + ~26 uj tervezett (pipeline 13 + notification 5 + quality 5 + service mgr 3)
-- 21 slash command (18 meglevo + 3 uj: /new-pipeline, /pipeline-test, /quality-check)
-- 21 fejlesztesi ciklus (C0-C20), ~12-15 session
+- **v1.2.0 Orchestration: Tier 1 DONE (v1.2.0-alpha) → Tier 2 DONE (v1.2.0-rc1) → Tier 3 DONE (v1.2.0-rc2) → Tier 4 TODO (C17-C20)**
+- 25 service (15 eredeti + 10 uj v1.2.0: notification, data_router, service_manager, reranker, advanced_chunker, data_cleaner, metadata_enricher, vector_ops, advanced_parser, graph_rag)
+- ~150 endpoint (112 eredeti + 15 Tier 2 + 7 Tier 3 + pipeline 13)
+- 17 pipeline adapter (7 eredeti + 3 Tier 2 + 7 Tier 3)
+- 23 API router (19 eredeti + pipelines + notifications + data_router + rag_advanced)
+- 297 pipeline unit test, 21 fejlesztesi ciklus (C0-C20, C0-C16 DONE), ~12-15 session
 - 6 skills, src/aiflow/ 19 alkonyvtar (+pipeline/ az uj modul)
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/

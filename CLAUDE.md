@@ -19,7 +19,8 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 **Fo terv:** `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` + reszletes tervek (49-56)
 
 > **Elozmeny:** v1.0.0 Service Generalization KESZ, v1.1.4 UI Modernization KESZ.
-> 15 service, 112+ API endpoint (19 router), 17 UI oldal, 41 DB tabla, 26 Alembic migracio.
+> 25 service, ~150 API endpoint (23 router), 17 UI oldal, 45 DB tabla, 29 Alembic migracio.
+> 17 pipeline adapter, 297 pipeline unit test. C0-C16 DONE, C17-C20 TODO.
 
 **v1.2.0 fo celok:**
 - **Pipeline Orchestrator** — YAML-defined service chaining (Pipeline as Code, NEM drag-and-drop)

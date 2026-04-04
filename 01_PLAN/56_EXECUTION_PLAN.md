@@ -298,7 +298,7 @@ C17-C20: Tier 4 Polish ──────────── 1-2 session
 
 Minden ciklus vegén frissitjuk:
 
-## Progress (utolso frissites: 2026-04-04)
+## Progress (utolso frissites: 2026-04-04, session 9)
 
 | Ciklus | Fazis | Allapot | Datum | Commit |
 |--------|-------|---------|-------|--------|
@@ -309,16 +309,16 @@ Minden ciklus vegén frissitjuk:
 | C4 | P4 API | DONE | 2026-04-04 | (Tier 1 branch) |
 | C5 | P5 UI | DONE | 2026-04-04 | (Tier 1 branch) |
 | C6 | Invoice v1 | DONE | 2026-04-04 | v1.2.0-beta (squash merge) |
-| C7 | P6A Notification | TODO | — | — |
-| C8 | P6D Data Router | TODO | — | — |
-| C9 | P6A+D Invoice v2 | TODO | — | — |
-| C10 | P6C Service Mgr | TODO | — | — |
-| C11 | P7D Reranker | TODO | — | — |
-| C12 | P7B Chunker | TODO | — | — |
-| C13 | P7A+C DataClean+Meta | TODO | — | — |
-| C14 | P7F VectorOps | TODO | — | — |
-| C15 | P7G Parser Factory | TODO | — | — |
-| C16 | P7E GraphRAG | TODO | — | — |
+| C7 | P6A Notification | DONE | 2026-04-04 | c256e12 → v1.2.0-rc1 (squash) |
+| C8 | P6D Data Router | DONE | 2026-04-04 | c6fba75 → v1.2.0-rc1 (squash) |
+| C9 | P6A+D Invoice v2 | DONE | 2026-04-04 | ab88589 → v1.2.0-rc1 (squash) |
+| C10 | P6C Service Mgr | DONE | 2026-04-04 | d1c17c1 → v1.2.0-rc1 (squash) |
+| C11 | P7D Reranker | DONE | 2026-04-04 | 1257560 → v1.2.0-rc2 (squash) |
+| C12 | P7B Chunker | DONE | 2026-04-04 | 1257560 → v1.2.0-rc2 (squash) |
+| C13 | P7A+C DataClean+Meta | DONE | 2026-04-04 | 1257560 → v1.2.0-rc2 (squash) |
+| C14 | P7F VectorOps | DONE | 2026-04-04 | 1257560 → v1.2.0-rc2 (squash) |
+| C15 | P7G Parser Factory | DONE | 2026-04-04 | 1257560 → v1.2.0-rc2 (squash) |
+| C16 | P7E GraphRAG | DONE | 2026-04-04 | 1257560 → v1.2.0-rc2 (squash) |
 | C17 | LLM Quality | TODO | — | — |
 | C18 | Chat UI | TODO | — | — |
 | C19 | Pipeline Templates | TODO | — | — |
@@ -347,3 +347,26 @@ Minden ciklus vegén frissitjuk:
 - **DB:** 1 workflow_run + 3 step_runs persisted, pipeline_id FK correct
 - Tests: 147 pipeline unit PASS, 837 full unit PASS
 - **GATE:** L0 smoke test — **PASS** (6/6), tsc --noEmit — **PASS**, ruff — no regression (23=23)
+
+### Tier 2 Output (C7-C10, 2026-04-04, session 9):
+- Branch: `feature/v1.2.0-tier2-supporting-services` → squash merge to main → tag `v1.2.0-rc1`
+- **C7 NotificationService:** 3 DB tables (028), multi-channel (email/Slack/webhook/in-app), 5 API endpoints, 33 tests
+- **C8 DataRouterService:** Jinja2 condition filter + rule-based file routing (real I/O), 3 API endpoints, 35 tests
+- **C9 Invoice V2:** `invoice_automation_v2.yaml` 5-step pipeline (fetch→classify→extract→route→notify), 19 tests
+- **C10 ServiceManagerService:** 1 DB table (029), 4 API endpoints (list/detail/metrics/restart), 23 tests
+- Tier 2 totals: 4 DB tables, 15 endpoints, 3 services, 3 adapters, 110 new tests
+- **E2E:** webhook to httpbin.org (sent=true), channel CRUD, filter 2/3 matched, pipeline registered with 5 steps
+- Tests: 257 pipeline unit PASS
+- **GATE:** ruff clean (new files), Alembic 028+029 upgrade+downgrade+upgrade PASS
+
+### Tier 3 Output (C11-C16, 2026-04-04, session 9):
+- Branch: `feature/v1.2.0-tier3-advanced-rag` → squash merge to main → tag `v1.2.0-rc2`
+- **C11 RerankerService:** bge-m3/FlashRank/Cohere cross-encoder, graceful fallback
+- **C12 AdvancedChunkerService:** 6 strategies (fixed, recursive, semantic, sentence_window, document_aware, parent_child)
+- **C13 DataCleanerService + MetadataEnricherService:** whitespace normalize, keyword extraction, title/summary
+- **C14 VectorOpsService:** HNSW health, optimize, bulk delete (pgvector)
+- **C15 AdvancedParserService:** fallback chain (docling→unstructured→tesseract→raw)
+- **C16 GraphRAGService:** regex NER (dates/amounts/names), graph build, hybrid query
+- Tier 3 totals: 7 services (14 files), 7 adapters, 1 API router (7 endpoints), 40 new tests
+- Tests: 297 pipeline unit PASS
+- **GATE:** ruff clean (new files), no DB migration needed
