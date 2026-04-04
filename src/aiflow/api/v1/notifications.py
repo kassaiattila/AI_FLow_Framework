@@ -101,6 +101,27 @@ class LogListResponse(BaseModel):
     source: str = "backend"
 
 
+class InAppItem(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    body: str | None = None
+    link: str | None = None
+    read: bool = False
+    created_at: str | None = None
+
+
+class InAppListResponse(BaseModel):
+    notifications: list[InAppItem]
+    total: int
+    source: str = "backend"
+
+
+class UnreadCountResponse(BaseModel):
+    count: int
+    source: str = "backend"
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -281,3 +302,110 @@ async def list_notification_log(
         for r in rows
     ]
     return LogListResponse(log=items, total=total)
+
+
+# ---------------------------------------------------------------------------
+# In-app notifications
+# ---------------------------------------------------------------------------
+
+
+@router.get("/in-app", response_model=InAppListResponse)
+async def list_in_app(
+    user_id: str | None = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> InAppListResponse:
+    """List in-app notifications, unread first."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        where = ""
+        args: list[Any] = []
+        idx = 1
+        if user_id:
+            where = f"WHERE user_id = ${idx}::uuid"
+            args.append(user_id)
+            idx += 1
+
+        total = await conn.fetchval(
+            f"SELECT COUNT(*) FROM in_app_notifications {where}", *args
+        )
+
+        args_q = list(args)
+        args_q.append(limit)
+        args_q.append(offset)
+        rows = await conn.fetch(
+            f"SELECT id, user_id, title, body, link, read, created_at "
+            f"FROM in_app_notifications {where} "
+            f"ORDER BY read ASC, created_at DESC "
+            f"LIMIT ${idx} OFFSET ${idx + 1}",
+            *args_q,
+        )
+
+    items = [
+        InAppItem(
+            id=str(r["id"]),
+            user_id=str(r["user_id"]),
+            title=r["title"],
+            body=r["body"],
+            link=r["link"],
+            read=r["read"],
+            created_at=str(r["created_at"]) if r["created_at"] else None,
+        )
+        for r in rows
+    ]
+    return InAppListResponse(notifications=items, total=total or 0)
+
+
+@router.get("/in-app/unread-count", response_model=UnreadCountResponse)
+async def unread_count(
+    user_id: str | None = Query(None),
+) -> UnreadCountResponse:
+    """Get count of unread in-app notifications."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        if user_id:
+            cnt = await conn.fetchval(
+                "SELECT COUNT(*) FROM in_app_notifications "
+                "WHERE user_id = $1::uuid AND read = false",
+                user_id,
+            )
+        else:
+            cnt = await conn.fetchval(
+                "SELECT COUNT(*) FROM in_app_notifications WHERE read = false"
+            )
+    return UnreadCountResponse(count=cnt or 0)
+
+
+@router.post("/in-app/{notification_id}/read")
+async def mark_read(notification_id: str) -> dict[str, Any]:
+    """Mark a single in-app notification as read."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        r = await conn.execute(
+            "UPDATE in_app_notifications SET read = true WHERE id = $1::uuid",
+            notification_id,
+        )
+    if r == "UPDATE 0":
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"read": True, "id": notification_id, "source": "backend"}
+
+
+@router.post("/in-app/read-all")
+async def mark_all_read(
+    user_id: str | None = Query(None),
+) -> dict[str, Any]:
+    """Mark all in-app notifications as read."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        if user_id:
+            r = await conn.execute(
+                "UPDATE in_app_notifications SET read = true "
+                "WHERE user_id = $1::uuid AND read = false",
+                user_id,
+            )
+        else:
+            r = await conn.execute(
+                "UPDATE in_app_notifications SET read = true WHERE read = false"
+            )
+    count = int(r.split()[-1]) if r else 0
+    return {"marked_read": count, "source": "backend"}

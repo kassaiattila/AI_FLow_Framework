@@ -269,6 +269,12 @@
       "assistant": "AI Assistant",
       "scrollToBottom": "Scroll to bottom"
     },
+    "notifications": {
+      "title": "Notifications",
+      "markAllRead": "Mark all read",
+      "empty": "No notifications",
+      "justNow": "just now"
+    },
     "rag": {
       "title": "RAG Collections",
       "subtitle": "Manage document collections for RAG-powered knowledge base chat.",

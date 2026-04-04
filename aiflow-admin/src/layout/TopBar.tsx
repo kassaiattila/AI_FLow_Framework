@@ -6,6 +6,7 @@ import { useTranslate, useLocale, LOCALES } from "../lib/i18n";
 import { useBackendStatus, useTheme } from "../lib/hooks";
 import { getUser, logout } from "../lib/auth";
 import { useNavigate } from "react-router-dom";
+import { NotificationBell } from "./NotificationBell";
 
 export function TopBar() {
   const translate = useTranslate();
@@ -68,6 +69,9 @@ export function TopBar() {
             </button>
           ))}
         </div>
+
+        {/* Notifications */}
+        <NotificationBell />
 
         {/* Theme toggle */}
         <button

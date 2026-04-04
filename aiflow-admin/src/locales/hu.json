@@ -269,6 +269,12 @@
       "assistant": "AI Asszisztens",
       "scrollToBottom": "Gorgetese lefele"
     },
+    "notifications": {
+      "title": "Ertesitesek",
+      "markAllRead": "Osszes olvasott",
+      "empty": "Nincs ertesites",
+      "justNow": "most"
+    },
     "rag": {
       "title": "RAG Kollekcok",
       "subtitle": "Dokumentum kollekcok kezelese RAG-alapu tudasbazis chathez.",
