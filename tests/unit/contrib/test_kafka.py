@@ -10,7 +10,7 @@
     tags: [contrib, messaging, kafka, integration-point]
 """
 
-from aiflow.contrib.messaging.kafka import KafkaConfig, KafkaConsumer, KafkaProducer
+from aiflow.tools.kafka import KafkaConfig, KafkaConsumer, KafkaProducer
 
 
 class TestKafkaConfig:

@@ -262,8 +262,7 @@ async def resolve_and_login(data: dict[str, Any]) -> dict[str, Any]:
 
     # --- Direct Playwright path ---
     try:
-        from aiflow.contrib.playwright import PlaywrightBrowser
-        from aiflow.contrib.playwright.browser import BrowserConfig
+        from aiflow.tools.playwright_browser import BrowserConfig, PlaywrightBrowser
     except ImportError:
         logger.error("no_rpa_backend", rf=_RF_AVAILABLE, playwright=False)
         return {
@@ -433,8 +432,7 @@ async def scan_course_structure(data: dict[str, Any]) -> dict[str, Any]:
         return await _scan_structure_rf(data, robot_dir)
 
     try:
-        from aiflow.contrib.playwright import PlaywrightBrowser
-        from aiflow.contrib.playwright.browser import BrowserConfig
+        from aiflow.tools.playwright_browser import BrowserConfig, PlaywrightBrowser
     except ImportError:
         logger.error("no_rpa_backend")
         return {"structure": {}, "total_lessons": 0, "video_lessons": 0}
@@ -586,13 +584,12 @@ async def process_all_lessons(data: dict[str, Any]) -> dict[str, Any]:
          "total_cost_usd": float}
     """
     try:
-        from aiflow.contrib.playwright import PlaywrightBrowser
-        from aiflow.contrib.playwright.browser import BrowserConfig
+        from aiflow.tools.playwright_browser import BrowserConfig, PlaywrightBrowser
     except ImportError:
         logger.error("playwright_not_available_for_lessons")
         return {"results": [], "completed": 0, "failed": 0, "total_cost_usd": 0.0}
 
-    from aiflow.contrib.human_loop import HumanLoopManager
+    from aiflow.tools.human_loop import HumanLoopManager
 
     # Parse inputs
     structure_data = data.get("structure", {})
@@ -757,8 +754,7 @@ async def _process_video_lesson(
     and cost information.
     """
     try:
-        from aiflow.contrib.playwright import PlaywrightBrowser
-        from aiflow.contrib.playwright.browser import BrowserConfig
+        from aiflow.tools.playwright_browser import BrowserConfig, PlaywrightBrowser
     except ImportError:
         return {"error": "playwright not installed"}
 
@@ -1216,7 +1212,7 @@ async def process_course(config: CourseConfig) -> dict[str, Any]:
     """
     output_dir = Path(config.output_base_dir) / config.course_name
     state_mgr = FileStateManager(output_dir=str(output_dir))
-    state_mgr.load()
+    _state = state_mgr.load()
 
     common_data = {
         "course_name": config.course_name,

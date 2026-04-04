@@ -470,7 +470,6 @@ async def detect_hallucination(data: dict) -> dict:
     """
     answer = data.get("answer", "")
     citations = data.get("citations", [])
-    data.get("sources", [])
     search_results = data.get("search_results", [])
 
     # Reconstruct context from sources for verification

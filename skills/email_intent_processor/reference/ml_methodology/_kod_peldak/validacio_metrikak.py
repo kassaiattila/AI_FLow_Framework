@@ -198,7 +198,7 @@ def demo_timeseries_split():
     np.random.seed(42)
     n_samples = 100
     X_ts = np.arange(n_samples).reshape(-1, 1)
-    np.sin(X_ts.ravel() / 10) + np.random.normal(0, 0.1, n_samples)
+    _y_ts = np.sin(X_ts.ravel() / 10) + np.random.normal(0, 0.1, n_samples)
 
     tscv = TimeSeriesSplit(n_splits=5)
     print(f"\nTimeSeriesSplit foldok ({tscv.get_n_splits()} split):")
@@ -724,7 +724,6 @@ def demo_multiclass_metrics():
     # --- Tobbosztalyos ROC gorbe (One-vs-Rest strategia) ---
     # Minden osztalyra kulon ROC gorbet rajzolunk
     y_test_bin = label_binarize(y_test, classes=[0, 1, 2])
-    y_test_bin.shape[1]
 
     fig, ax = plt.subplots(figsize=(8, 6))
     colors = ["blue", "green", "red"]

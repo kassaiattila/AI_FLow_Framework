@@ -215,7 +215,6 @@ def isolation_forest_detektio(scaled_data, contamination=0.05,
 
     # Statisztikak
     n_anomalia = (labels == -1).sum()
-    (labels == 1).sum()
 
     print(f"  contamination={contamination:.2%}, n_estimators={n_estimators}")
     print(f"  Skor: [{scores.min():.4f}, {scores.max():.4f}] | "
