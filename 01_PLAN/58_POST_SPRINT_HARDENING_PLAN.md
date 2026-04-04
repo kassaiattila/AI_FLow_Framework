@@ -350,22 +350,19 @@ A5.4 — Scope Boundary Enforcement (3-tier):
   2. OUT-OF-SCOPE → "Nem tudok erre valaszolni" + indoklas
   3. DANGEROUS → rendszer megtagadas + log + alert
   
-  Config (YAML per service):
-  ```yaml
-  # skills/aszf_rag_chat/guardrails.yaml
-  scope:
-    allowed_topics: ["jog", "biztositas", "aszf", "szolgaltatas"]
-    blocked_topics: ["politika", "orvosi tanacs", "befektetesi tanacs"]
-    dangerous_patterns: ["hogyan torzek be", "hogyan hackeljem"]
-  input:
-    max_length: 2000
-    injection_patterns: ["ignore previous", "system:", "you are now"]
-    pii_masking: true
-  output:
-    require_citation: true
-    hallucination_threshold: 0.7
-    pii_check: true
-  ```
+  Config YAML pelda (skills/aszf_rag_chat/guardrails.yaml):
+    scope:
+      allowed_topics: ["jog", "biztositas", "aszf", "szolgaltatas"]
+      blocked_topics: ["politika", "orvosi tanacs", "befektetesi tanacs"]
+      dangerous_patterns: ["hogyan torzek be", "hogyan hackeljem"]
+    input:
+      max_length: 2000
+      injection_patterns: ["ignore previous", "system:", "you are now"]
+      pii_masking: true
+    output:
+      require_citation: true
+      hallucination_threshold: 0.7
+      pii_check: true
 
 A5.5 — Guardrail Middleware Integration:
   - src/aiflow/api/middleware.py: GuardrailMiddleware hozzaadasa
