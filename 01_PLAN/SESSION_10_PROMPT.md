@@ -4,7 +4,7 @@
 > **Elozo session:** v1.2.0 COMPLETE (C0-C20), Tier 2-3-4 squash merged, UI regression fix, plan audit
 > **Branch:** main (v1.2.0)
 > **Port:** API 8102, Frontend 5173 (Vite proxy → 8102)
-> **Utolso commit:** `ad1a26b` docs: v1.2.1 Production Ready Sprint plan
+> **Utolso commit:** `e21867a` docs: fix 8 validation issues in v1.2.1 plan + commands
 
 ---
 
@@ -79,14 +79,30 @@ A ChatMarkdown.tsx (C18-ban elkeszult) bekotese a ChatPanel-be. Virtual scroll, 
 
 ---
 
-## EMLEKEZTETOK (session 9 tanulsagai)
+## KOTELEZOEN BETARTANDO SZABALYOK
 
-1. **TERV FRISSITES KOTELEZO** minden ciklus vegen (57_PRODUCTION_READY_SPRINT.md progress tabla)
-2. **CLAUDE.md szamok frissites** minden ciklus vegen
-3. **Dependency check** `.venv` ujraepites utan: `python -c "import pypdfium2; import docling; import aiosmtplib"`
-4. **Documents.tsx** mar javitva (refetch prop), Verification toggle is mukodik (pypdfium2 telepitve)
-5. **7 HARD GATE** UI oldalakhoz (S3 Quality dashboard!) — journey → API → Figma → UI → E2E
+### Session 9 tanulsagai (SOHA NE ISMTELODJENEK!):
+
+1. **TERV FRISSITES KOTELEZO** minden ciklus vegen:
+   - `57_PRODUCTION_READY_SPRINT.md` progress tabla (Allapot, Datum, Commit)
+   - `01_PLAN/CLAUDE.md` + root `CLAUDE.md` szamok frissites
+   - **NEM batched, NEM "kesobb"** — a ciklus commit resze!
+
+2. **DEPENDENCY SAFETY** `.venv` ujraepites utan:
+   ```bash
+   python -c "import pypdfium2; import docling; import aiosmtplib; print('OK')"
+   ```
+   Ha BARMELYIK hianyzik → `uv pip install pypdfium2 docling aiosmtplib`
+
+3. **7 HARD GATE** UI oldalakhoz (S3 Quality, S4 Service Catalog):
+   Journey → API audit → API impl → Figma → UI page → Playwright E2E → Figma sync
+   **TILOS kihagyni!**
+
+4. **Documents.tsx** mar javitva (refetch prop hozzaadva session 9-ben)
+5. **Verification toggle** mukodik (pypdfium2 telepitve session 9-ben)
 6. **Adapter service resolution:** kozvetlenul letrehozni (NEM ServiceRegistry-bol)
+7. **Auth:** Login endpoint `username` mezot var (NEM `email`)
+8. **API response:** MINDEN endpoint `source: "backend"` mezot KELL tartalmazzon
 
 ---
 
