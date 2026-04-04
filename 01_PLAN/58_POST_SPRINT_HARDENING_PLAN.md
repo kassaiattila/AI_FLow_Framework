@@ -1,756 +1,776 @@
-# AIFlow v1.2.2+ — Post-Sprint Hardening & Service Excellence Plan
+# AIFlow v1.2.2 + v1.3.0 — Hardening & Service Excellence Plan
 
 > **Szulo terv:** `57_PRODUCTION_READY_SPRINT.md` (v1.2.1 COMPLETE)
 > **Elozmeny:** v1.2.1 COMPLETE (S1-S14, 2026-04-04) — UI, observability, quality, 102 E2E
-> **Cel:** Ket sprint: (A) infrastruktura+biztonsag+minoseg, (B) szolgaltatas-szintu excellence
-> **Becsult idotartam:** Sprint A ~6-8 session, Sprint B ~8-12 session
+> **Cel:** Ket sprint: (A) infrastruktura+biztonsag+halott kod+guardrail keretrendszer, (B) szolgaltatas excellence+prompt guardrail implementacio
+> **Becsult idotartam:** Sprint A ~8 session, Sprint B ~10 session
 
 ---
 
-## 0. Audit Eredmenyek Osszefoglalasa (2026-04-04)
+## 0. Audit Eredmenyek (2026-04-04)
 
 ### 0.1 Ruff Lint (1,234 hiba)
 
 | Terulet | Hibak | Auto-fix | Manual |
 |---------|-------|----------|--------|
-| `src/aiflow/` | 574 | 243 (42%) | 331 |
-| `tests/` | 181 | 128 (71%) | 53 |
-| `skills/` | 479 | 177 (37%) | 302 |
+| `src/aiflow/` | 574 | 243 | 331 |
+| `tests/` | 181 | 128 | 53 |
+| `skills/` | 479 | 177 | 302 |
 | **OSSZES** | **1,234** | **548 (44%)** | **686** |
-
-**Top 5:** E501 (287 long line), I001 (258 import sort), F401 (147 unused import), N806 (117 naming), F541 (75 empty f-string)
 
 ### 0.2 Biztonsagi Audit
 
 | Sulyossag | Problema | Fajl |
 |-----------|---------|------|
 | **HIGH** | Sajat JWT impl. PyJWT helyett | `security/auth.py:47-79` |
-| **HIGH** | Default JWT secret `"dev-secret-..."` | `security/auth.py:47` |
+| **HIGH** | Default JWT secret | `security/auth.py:47` |
 | **MEDIUM** | CORS `allow_methods=["*"]` | `api/app.py:98` |
-| **MEDIUM** | Rate limiter NEM bekotve middleware-be | `api/app.py` |
-| **MEDIUM** | Session lejarat: UI NEM jelentkezteti ki a usert | `aiflow-admin` |
+| **MEDIUM** | Rate limiter NEM bekotve | `api/app.py` |
+| **MEDIUM** | Session lejarat: UI NEM jelzi ki a usert | `aiflow-admin` |
 | **LOW** | Path traversal file upload | `api/v1/documents.py` |
 | **LOW** | API key SHA256 (nem bcrypt) | `security/auth.py:134` |
-| **LOW** | Hianyzik: security headers (CSP, HSTS, X-Frame) | `api/app.py` |
+| **LOW** | Hianyzik: security headers | `api/app.py` |
 
-### 0.3 Stub/Placeholder Audit (61 marker)
+### 0.3 Halott Kod & Mappa Audit
 
-| Kategoria | Db | Akcio |
-|-----------|-----|-------|
-| Kafka stub (duplikalt, 2 fajl) | 24 | TORLES (Kafka HALASZTVA) |
-| CLI commands (nem implementalt) | 7 | NotImplementedError + uzenet |
-| Parser stubs (Docling helyettesiti) | 4 | TORLES + hivatkozas |
-| Evaluator placeholder (0.5 score) | 2 | Valos rubric VAGY torles |
-| Skill registry duplikalt | 8 | Konszolidacio |
-| Egyeb (vision, vault, prompt sync) | 16 | Egyenkent elbiralas |
+| Kategoria | Tetelek | Meret | Akcio |
+|-----------|---------|-------|-------|
+| **Duplikalt contrib/ modulok** | 4 modul (kafka, playwright, human_loop, shell) | ~5KB | TORLES — `tools/` a kanonikus |
+| **Legacy UI** | `deprecated/aiflow_ui_reflex_legacy/` | 8KB | TORLES |
+| **Reflex remnants** | `rxconfig.py` + `reflex.db` | 12KB | TORLES |
+| **Playwright MCP cache** | `.playwright-mcp/` | 1.5MB | TORLES (regeneralodik) |
+| **Audio test artifacts** | `output/audio/` | 12MB | TORLES |
+| **Coverage artifact** | `.coverage` | 84KB | TORLES |
+| **RAG test data** | `data/uploads/rag/` + `e2e-audit/` | ~170MB | ARCHIVALAS (S3/cloud) |
+| **Stub/placeholder** | 61 marker 15 fajlban | — | 40 TORLES, 21 dokumentalt |
 
-### 0.4 CI/CD (PR #1 — 4/4 FAIL)
+### 0.4 Prompt Guardrail Audit (aszf_rag_chat/reference/ alapjan)
+
+> A referenciaanyag 7 fajl, ~5000 sor — teljes RAG fejlesztesi metodologia.
+> Az alabbi guardrail mintak azonosithatoak es MINDEN AI szolgaltatasra alkalmazhatoak:
+
+| # | Guardrail Minta | Jelenlegi Allapot | Szukseges |
+|---|----------------|------------------|-----------|
+| 1 | **Scope Boundary Enforcement** — 3-tier: in-scope / out-of-scope / dangerous | Csak aszf_rag-ban (reszleges) | MINDEN chat es AI prompt |
+| 2 | **Grounding & Citation** — valasz kizarolag forrasra hivatkozik | Aszf_rag prompt-ban (gyenge) | Erosites + kiterjesztes |
+| 3 | **Hallucination Detection** — LLM-as-Judge faithfulness scoring | Van: hallucination_detector prompt | Kalibralas + tobbi skill-re |
+| 4 | **Input Sanitization** — prompt injection vedelem | NINCS | UJ: input guardrail layer |
+| 5 | **Output Validation** — content safety, PII filter | NINCS | UJ: output guardrail layer |
+| 6 | **Metadata Access Control** — kategoria/forras szures | Reszleges (rag_engine) | Kiterjesztes minden service-re |
+| 7 | **Golden Dataset Regression** — known-good/known-bad peldak | Promptfoo test case-ek (reszleges) | Guardrail-specifikus test set |
+| 8 | **Multi-turn Safety** — tobb koros beszelgetes biztonsaga | NINCS | UJ: conversation context limit |
+
+### 0.5 CI/CD (PR #1 — 4/4 FAIL)
 
 | Workflow | Fo hiba | Fix |
 |----------|---------|-----|
 | `ci.yml` | `skills/` benne ruff scope-ban | Scope: `src/ tests/` |
-| `ci-framework.yml` | Regi venv setup + 574 ruff error | `uv sync --dev` + ruff fix |
+| `ci-framework.yml` | Regi venv setup + ruff 574 | `uv sync --dev` |
 | `ci-skill.yml` | Skill fuggoseg hianyzik | pyproject.toml extras |
-| `nightly-*` | Nem PR-releváns | OK (nightly) |
 
-### 0.5 Szolgaltatas Erettseg
+### 0.6 Szolgaltatas Erettseg (26 service, 6 skill)
 
-| Szint | Db | Szolgaltatasok | Fo hianyossag |
-|-------|----|---------------|---------------|
-| **Production-ready** | 3 | rag_engine, classifier, document_extractor | Nincs unit test |
-| **Partial** | 20 | cache, email_connector, notification, stb. | Nincs unit test, prompt 80-90% |
-| **Stub** | 3 | rate_limiter, resilience, qbpp_test_automation | Nincs valos mukodes |
+| Szint | Db | Fo hianyossag |
+|-------|----|---------------|
+| Production-ready | 3 | Nincs unit test |
+| Partial | 20 | Nincs unit test, prompt 80-90%, nincs guardrail |
+| Stub | 3 | Nincs valos mukodes |
 
 ---
 
-## 1. Ket Sprint Strategia
+## 1. Sprint Strategia
 
 ```
-SPRINT A: Infrastruktura & Biztonsag ──── "Epitsd meg a fundamentumot"
-  Cel: CI zold, kod clean, biztonsag, hianyzo alapfunkciok
-  Fazisok: A0-A6
-  Becsult: ~6-8 session
+SPRINT A: Infrastruktura, Biztonsag & Guardrail Keretrendszer
+  ┌─────────────────────────────────────────────────────────┐
+  │ A0: CI/CD Green                                         │
+  │ A1: Ruff Cleanup (1,234 → 0)                           │
+  │ A2: Halott kod/mappa audit + archivalas                 │
+  │ A3: Security Hardening (JWT, CORS, rate limit, session) │
+  │ A4: Stub Cleanup + hianyzo alapfunkciok                 │
+  │ A5: Prompt Guardrail KERETRENDSZER kialakitasa          │
+  │ A6: POST-AUDIT (biztonsag + kod + guardrail)            │
+  │ A7: Audit JAVITASOK elvegzese                           │
+  │ A8: v1.2.2 tag + merge                                  │
+  └─────────────────────────────────────────────────────────┘
   Branch: feature/v1.2.2-infrastructure
+  Becsult: ~8 session
 
-SPRINT B: Szolgaltatas Excellence ─────── "Hozd magas szintre a szolgaltatasokat"
-  Cel: Szolgaltatasonkent: kod, prompt, modell, UI finomhangolas
-  Fazisok: B0-B7
-  Becsult: ~8-12 session
+SPRINT B: Szolgaltatas Excellence + Guardrail Implementacio
+  ┌─────────────────────────────────────────────────────────┐
+  │ B0: Hardening keretrendszer + metodologia               │
+  │ B1: P0 skill-ek (aszf_rag, email_intent) + guardrail   │
+  │ B2: P1 skill-ek (process_docs, invoice, doc_extractor)  │
+  │ B3: Infrastructure service tesztek (130 test)           │
+  │ B4: P2/P4 skill-ek (cubix, qbpp)                       │
+  │ B5: Modell optimalizacio + koltseg csokkentes           │
+  │ B6: UI integracio + per-service polish                  │
+  │ B7: POST-AUDIT (szolgaltatas erettseg + guardrail)      │
+  │ B8: Audit JAVITASOK elvegzese                           │
+  │ B9: v1.3.0 tag + merge                                  │
+  └─────────────────────────────────────────────────────────┘
   Branch: feature/v1.3.0-service-excellence
+  Becsult: ~10 session
 ```
 
-**Sprint A epit, Sprint B finomhangol.** A sorrend KOTELEZO — Sprint B Sprint A eredmenyeire epit.
+**Guardrail felosztás logikaja:**
+- **Sprint A (A5):** A KERETRENDSZER — middleware, interface, teszt infrastruktura. Ez BIZTONSAG.
+- **Sprint B (B1-B4):** A PER-SERVICE IMPLEMENTACIO — minden skill sajat guardrail config-ja. Ez SERVICE.
+- Igy a biztonsagi alap Sprint A-ban keszul, de a szolgaltatas-specifikus reszletek Sprint B-ben.
 
 ---
 
-# SPRINT A: Infrastruktura & Biztonsag (v1.2.2)
+# SPRINT A: Infrastruktura, Biztonsag & Guardrail Keretrendszer (v1.2.2)
 
 > **Branch:** `feature/v1.2.2-infrastructure`
-> **Cel:** Zold CI, clean kod, biztonsag, hianyzo alapfunkciok, session management
-> **Vegtermek:** v1.2.2 tag, PR ZOLD, 0 ruff, 0 HIGH security
 
-## A0: CI/CD Green — 1 session (BLOKKOLO!)
+## A0: CI/CD Green — 1 session (BLOKKOLO)
 
 > **Gate:** PR #1 MINDEN workflow PASS.
-> **Miert elso:** Amig CI FAIL, semmit nem tudunk biztonsagosan merge-olni.
 
 ```
-A0.1 — ci.yml fix:
-  - ruff scope: `src/ tests/` (NEM skills/ — sajat workflow)
-  - venv: `uv sync --dev` (nem `uv venv && uv pip install`)
-  - admin build: ellenorizd hogy Vite build PASS
+A0.1 — ci.yml: ruff scope → `src/ tests/`, venv → `uv sync --dev`
+A0.2 — ci-framework.yml: `uv sync --dev`, konzisztens ruff scope
+A0.3 — ci-skill.yml: pyproject.toml extras VAGY skill requirements
+A0.4 — Push → CI ZOLD
 
-A0.2 — ci-framework.yml fix:
-  - Ugyanaz: `uv sync --dev` + ruff scope konzisztens
-  
-A0.3 — ci-skill.yml fix:
-  - Skill fuggosegek: pyproject.toml `[project.optional-dependencies]` skills = [...]
-  - VAGY: skill-szintu requirements.txt + pip install -r
-
-A0.4 — Push + CI ZOLD ellenorzes
-
-GATE CHECK: MINDEN GitHub Actions ZOLD ← TILOS tovabblepni ha FAIL
+GATE: MINDEN GitHub Actions ZOLD
 ```
-
-**Deliverable:** 3-4 workflow YAML fix, PR #1 ZOLD
 
 ---
 
 ## A1: Ruff Cleanup (1,234 → 0) — 1-2 session
 
-> **Gate:** `ruff check src/ tests/ skills/` → 0 error, `/lint-check` → ALL PASS
-> **Eszkoz:** `/lint-check --fix` (uj slash command)
+> **Gate:** `/lint-check` → 0 error, 0 format diff
 
 ```
-A1.1 — Safe batch fix (548 auto-fixable):
-  Sorrend (kockazat szerint):
-  1. tests/: `ruff check tests/ --fix` (128 fix, legkisebb kockazat)
-  2. src/aiflow/ safe rules: --fix --select I001,F541,UP017,UP035,UP041,UP045
-  3. skills/ safe rules: --fix --select I001,F541,UP017
+A1.1 — Safe batch: /lint-check --fix (548 auto-fixable)
+  tests/ → src/aiflow/ → skills/ sorrendben
   REGRESSZIO: pytest tests/unit/ -q → PASS
 
-A1.2 — Manual fix (686 maradt):
-  a) E501 (287): logikai sorbontas (nem mechanikus wrap!)
-  b) N806/N803 (149): pyproject.toml per-file-ignores:
-     "skills/**" = ["N806", "N803"]  (domain valtozok)
-  c) F401 reexport (58): __init__.py → __all__ VAGY noqa: F401
-  d) B904 (46): raise X → raise X from e
-  e) F841 (24): egyenkent side-effect check
-  REGRESSZIO: pytest tests/unit/ -q → PASS
+A1.2 — Manual (686 maradt):
+  E501 (287) → sorbontas | N806 (149) → per-file-ignores |
+  F401 (58) → __all__ vagy noqa | B904 (46) → from e | F841 (24) → torles
 
-A1.3 — Format: `ruff format src/ tests/ skills/` → 0 diff
-
-A1.4 — pyproject.toml ruff config veglegesites:
-  [tool.ruff]
-  line-length = 100
-  target-version = "py312"
+A1.3 — pyproject.toml ruff config:
   [tool.ruff.lint.per-file-ignores]
   "skills/**/*.py" = ["N806", "N803"]
   "tests/**/*.py" = ["S101"]
 
-GATE CHECK: /lint-check → 0 error, 0 format diff ← TILOS tovabblepni ha FAIL
+GATE: /lint-check → 0 error
 ```
-
-**Deliverable:** 0 ruff error, pyproject.toml config, CI PASS
 
 ---
 
-## A2: Security Hardening — 1-2 session
+## A2: Halott Kod & Mappa Audit + Archivalas — 1 session
+
+> **Gate:** Nincs halott kod, nincs felesleges mappa, import integritás OK.
+> **UJ FAZIS — az elozo tervben nem volt kulon!**
+
+```
+A2.1 — Duplikalt contrib/ modulok TORLES:
+  - TOROLNI: src/aiflow/contrib/messaging/ (kafka duplikat)
+  - TOROLNI: src/aiflow/contrib/shell/ (tools/ duplikat)
+  - TOROLNI: src/aiflow/contrib/human_loop/ (tools/ duplikat)
+  - TOROLNI: src/aiflow/contrib/playwright/ (tools/ duplikat)
+  - MIGRALAS: cubix_course_capture import → aiflow.tools
+  - ELLENORZES: pytest → nincs import hiba
+
+A2.2 — Legacy mappa TORLES:
+  - deprecated/aiflow_ui_reflex_legacy/ → DELETE
+  - rxconfig.py + reflex.db → DELETE
+  - .playwright-mcp/ → DELETE (regeneralodik)
+  - output/audio/ → DELETE (test artifact)
+  - .coverage → DELETE
+
+A2.3 — Nagy fajlok archivalas:
+  - data/uploads/rag/ (~50MB) → .gitignore + README (tartsuk lokalis)
+  - e2e-audit/test-data/ (~120MB) → .gitignore + README
+  - ELLENORZES: git status → nincs nem kovetett nagy fajl
+
+A2.4 — Import integritás ellenorzes:
+  - `python -c "import aiflow"` → nincs ImportError
+  - Minden src/aiflow/ __init__.py → helyes import-ok
+  - Torolt modulokra hivatkozas → nincs
+
+A2.5 — DEAD_CODE_AUDIT.md dokumentum:
+  - Mi lett torolve + miert
+  - Mi lett archivalva + hol
+  - Megmaradt tudatos backward-compat retegek listaja
+
+GATE: 0 halott fajl, import check PASS, dokumentum kesz
+```
+
+---
+
+## A3: Security Hardening — 1-2 session
 
 > **Gate:** Biztonsagi audit 0 HIGH, 0 MEDIUM.
-> **FONTOS:** JWT csere + session expiry UI — EGYUTT, mert osszefuggnek.
 
 ```
-A2.1 — JWT atiras PyJWT RS256-ra:
-  - security/auth.py: sajat HMAC impl TOROLVE → PyJWT (mar fuggoseg!)
-  - RS256 kulcspar: scripts/generate_jwt_keys.sh
-  - JWT_PRIVATE_KEY, JWT_PUBLIC_KEY env var
-  - Dual-mode atmeneti periodus:
-    * 1. fazis: uj RS256 token kiadasa, regi HMAC token ELFOGADASA (1 verzioig)
-    * 2. fazis (v1.2.3+): regi HMAC token ELUTASITVA
-  - Tesztek: login, verify, expiry, invalid, dual-mode
+A3.1 — JWT atiras PyJWT RS256-ra:
+  - security/auth.py: sajat HMAC → PyJWT RS256
+  - scripts/generate_jwt_keys.sh → kulcspar
+  - Dual-mode: uj RS256 kiad, regi HMAC elfogad (1 verzioig)
+  - 5+ unit test
 
-A2.2 — JWT secret enforcement:
+A3.2 — JWT secret enforcement:
   - Prod: KOTELEZ env var (>= 32 char), hiba ha hianyzik
-  - Dev: WARNING log, alapertelmezett OK
+  - Dev: WARNING, alapertelmezett OK
 
-A2.3 — Session lejarat → UI force logout:
-  - Backend: 401 Unauthorized response ha token lejart
-  - Frontend (aiflow-admin):
-    a) fetchApi() interceptor: 401 → automatikus redirect /login-ra
-    b) Token expiry check: JWT decode → exp mezo → setInterval (60s)
-    c) Ha exp < now + 5min: WARNING banner ("Session lejár X perc mulva")
-    d) Ha exp < now: localStorage.removeItem("token") → redirect /login
-    e) Refresh token opcionalis (long-lived refresh + short-lived access)
-  - ELLENORZES: login → varj 5 perc → banner → varj token lejarat → auto logout
+A3.3 — Session lejarat → UI force logout:
+  - Backend: 401 ha token lejart
+  - Frontend:
+    a) fetchApi() interceptor: 401 → redirect /login + toast uzenet
+    b) JWT exp mezo decode → setInterval(60s) check
+    c) exp < now+5min → WARNING banner ("Session lejár X perc mulva")
+    d) exp < now → auto logout (localStorage clear + redirect)
+  - ELLENORZES: token lejarat → automatikus kijelentkeztetes
 
-A2.4 — CORS szukites:
-  - allow_methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
-  - allow_headers: ["Accept", "Content-Type", "Authorization"]
-  - allow_origins: AIFLOW_CORS_ORIGINS env var (lista)
+A3.4 — CORS szukites:
+  - Explicit methods, headers, origins (env var konfiguralhato)
 
-A2.5 — Rate limiter middleware bekotes:
-  - api/middleware.py: RateLimiter integracio
-  - /auth/*: 10 req/min (brute force vedelem)
-  - /api/*: 100 req/min (altalanos)
-  - 429 Too Many Requests → Retry-After header
+A3.5 — Rate limiter middleware bekotes:
+  - /auth/* = 10/min, /api/* = 100/min
+  - 429 + Retry-After header
 
-A2.6 — File upload vedelem:
-  - pathlib.resolve() + is_relative_to(UPLOAD_DIR)
-  - Max file size: 50MB (configurable)
-  - Filename: werkzeug.utils.secure_filename()
+A3.6 — File upload vedelem:
+  - pathlib.resolve() + is_relative_to(), secure_filename(), 50MB limit
 
-A2.7 — Security headers middleware:
-  - X-Content-Type-Options: nosniff
-  - X-Frame-Options: DENY
-  - Strict-Transport-Security (HTTPS)
-  - Content-Security-Policy: script-src 'self'
+A3.7 — Security headers:
+  - X-Content-Type-Options, X-Frame-Options, HSTS, CSP
 
-GATE CHECK: Biztonsagi audit ujrafutatva → 0 HIGH, 0 MEDIUM ← TILOS tovabblepni ha FAIL
+GATE: Biztonsagi audit 0 HIGH, 0 MEDIUM
 ```
-
-**Deliverable:** PyJWT RS256, UI force logout, rate limit, CORS, headers, 10+ security test
 
 ---
 
-## A3: Stub Cleanup — 1 session
+## A4: Stub Cleanup + Hianyzo Alapfunkciok — 1 session
 
-> **Gate:** `grep -r "placeholder" src/aiflow/` → csak tudatos, dokumentalt esetek.
+> **Gate:** 0 nem-tudatos stub, P1+P2 megoldva, 0 console error (strict).
 
 ```
-A3.1 — Kafka stub TORLES (24 placeholder):
-  - TOROLNI: src/aiflow/contrib/messaging/kafka.py
-  - TOROLNI: src/aiflow/tools/kafka.py
-  - MEGTARTANI: execution/messaging.py (in-memory broker, mukodo)
+A4.1 — Stub cleanup:
+  - Kafka stub TORLES (mar A2-ben a contrib torolve, itt a tools/kafka.py)
+  - CLI placeholder: NotImplementedError + "planned for v1.3"
+  - Parser stubs: Docling hivatkozas
+  - Evaluator placeholder: torles (Promptfoo helyettesiti)
+  - Registry konszolidacio: skills/ re-export → skill_system/
+  - STUB_INVENTORY.md: megmaradt tudatos stubok
+
+A4.2 — P1: Pipelines templates UI szekció
+A4.3 — P2: Templates route conflict fix
+A4.4 — DataTable infinite re-render fix (DataTable.tsx:91)
+A4.5 — 404 resource loading fix (Monitoring, Costs)
+A4.6 — E2E console error filter ELTAVOLITAS (strict 0 filter)
+
+GATE: E2E 102+ PASS (0 filter), stub inventory clean
+```
+
+---
+
+## A5: Prompt Guardrail KERETRENDSZER — 1 session
+
+> **UJ FAZIS! Ez a biztonsagi guardrail infrastruktura — Sprint A-ba tartozik!**
+> **A per-service implementacio Sprint B-ben tortenik.**
+> **Inspiracio:** `skills/aszf_rag_chat/reference/` (7 fajl, 5000 sor RAG metodologia)
+
+```
+A5.1 — Guardrail Architecture Design:
+  src/aiflow/guardrails/
+    __init__.py
+    base.py           # GuardrailBase ABC: check_input(), check_output()
+    input_guard.py     # InputGuard: prompt injection, PII, length limit
+    output_guard.py    # OutputGuard: content safety, hallucination flag, PII
+    scope_guard.py     # ScopeGuard: in-scope / out-of-scope / dangerous
+    config.py          # GuardrailConfig: per-service YAML config loader
+
+A5.2 — Input Guardrail Layer:
+  class InputGuard(GuardrailBase):
+    """User input validacio MIELOTT az LLM-hez jut."""
+    - prompt_injection_detect(query) → bool
+      * Ismert injection pattern-ek (ignore previous, system:, stb.)
+      * Heurisztika: rendkivuli hossz, kulonleges karakterek
+    - pii_detect(query) → list[PIIMatch]
+      * Email, telefon, adoszam, bankszamla regex
+      * Opcio: maszkolás automatikus (user@***.com)
+    - length_limit(query, max_tokens=2000) → bool
+    - language_check(query, allowed=["hu","en"]) → bool
+
+A5.3 — Output Guardrail Layer:
+  class OutputGuard(GuardrailBase):
+    """LLM valasz validacio MIELOTT a user-hez jut."""
+    - content_safety(response) → SafetyResult
+      * Eroszak, serto tartalom, jogserto utasitas detektalas
+    - hallucination_flag(response, sources) → float (0-1)
+      * Valasz vs. forras kontextus osszevetes (aszf_rag referenciabol)
+    - pii_leak_check(response) → list[PIIMatch]
+      * LLM veletlenul PII-t ad vissza a training data-bol
+    - scope_check(response, allowed_topics) → ScopeResult
+      * In-scope / Out-of-scope / Dangerous kategorizalas
+
+A5.4 — Scope Boundary Enforcement (3-tier):
+  A referenciaanyag alapjan MINDEN AI valasz 3 kategoriaba esik:
+  1. IN-SCOPE → teljes valasz, forras hivatkozassal
+  2. OUT-OF-SCOPE → "Nem tudok erre valaszolni" + indoklas
+  3. DANGEROUS → rendszer megtagadas + log + alert
   
-A3.2 — CLI placeholder rendezés (7):
-  - NotImplementedError + typer.echo("Not implemented yet — planned for v1.3")
-  - Megtartjuk a CLI interface-t az oszinte hibauzenettel
-
-A3.3 — Parser stub torles (4):
-  - pdf_parser.py, docx_parser.py → Docling adapter hivatkozas
-  
-A3.4 — Evaluator placeholder fix (2):
-  - llm_rubric_placeholder → torles (Promptfoo helyettesiti)
-
-A3.5 — Duplikalt registry konszolidacio (8):
-  - skills/registry.py → re-export skill_system/registry.py-bol
-
-A3.6 — Egyeb (16): egyenkent elbiralas (torles / NotImplemented / megtartas)
-
-A3.7 — STUB_INVENTORY.md: megmaradt tudatos stubok listaja + indoklas
-
-GATE CHECK: grep "placeholder\|stub" → csak dokumentalt esetek ← TILOS tovabblepni ha FAIL
-```
-
-**Deliverable:** ~40 placeholder torolve, inventory dokumentum
-
----
-
-## A4: Hianyzo Alapfunkciok — 1 session
-
-> **Gate:** Minden alapfunkcio mukodik, nincs "hazugo" stub.
-
-```
-A4.1 — Pipelines templates szekció (P1 post-sprint):
-  - Pipelines.tsx: templates szekció UI
-  - GET /api/v1/pipelines/templates/list → 6 template kartya
-  - "Deploy" gomb implementacio
-
-A4.2 — Templates route conflict (P2 post-sprint):
-  - /{pipeline_id} vs /templates route sorrend fix
-  - Explicit /templates path ELORE a router-ben
-
-A4.3 — DataTable infinite re-render fix:
-  - DataTable.tsx:91 — useEffect fuggoseg hurok
-  - Fix: dependency array + useMemo
-
-A4.4 — 404 resource loading fix:
-  - Monitoring, Costs: hianyzo endpoint → fetchApi hiba kezeles
-
-A4.5 — E2E console error filter ELTAVOLITAS:
-  - Jelenlegi: "Maximum update depth", "Failed to load resource" filterezve
-  - Cel: 0 filter, 0 valos error
-
-GATE CHECK: 102+ E2E PASS, 0 console error (STRICT, nem filterezve)
-```
-
-**Deliverable:** P1+P2 megoldva, DataTable fix, 0 console error
-
----
-
-## A5: Sprint A Regresszio + Post-Audit — 1 session
-
-> **KRITIKUS FAZIS: Ez az ellenorzo pont! Nem szabad kihagyni!**
-> **Cel:** Minden A0-A4 javitas VALOS verifikalasa, nincs uj bug, nincs kihagyott item.
-
-```
-A5.1 — Teljes regresszio:
-  a) pytest tests/unit/ -q → ALL PASS (1083+ teszt)
-  b) pytest tests/e2e/ -v → ALL PASS (102+ teszt, 0 filter!)
-  c) cd aiflow-admin && npx tsc --noEmit → 0 error
-  d) /lint-check → 0 ruff error, 0 format diff
-  e) smoke_test.sh → ALL PASS (10/10 endpoint)
-
-A5.2 — Biztonsagi POST-audit (ujrafutatas):
-  - UJRA megvizsgalni MINDEN A2-ben javitott pontot:
-  | # | Eredeti problema | Javitas (A2) | Post-audit eredmeny |
-  |---|-----------------|-------------|-------------------|
-  | 1 | Sajat JWT | PyJWT RS256 | [ ] VERIFIED / OPEN |
-  | 2 | Default secret | Prod enforce | [ ] VERIFIED / OPEN |
-  | 3 | Session lejarat UI | Force logout | [ ] VERIFIED / OPEN |
-  | 4 | CORS * | Explicit lista | [ ] VERIFIED / OPEN |
-  | 5 | Rate limit missing | Middleware | [ ] VERIFIED / OPEN |
-  | 6 | File upload | Path traversal fix | [ ] VERIFIED / OPEN |
-  | 7 | Security headers | CSP + HSTS | [ ] VERIFIED / OPEN |
-  - Ha BARMELYIK OPEN → VISSZA A2-re, javitas, UJRA A5
-
-A5.3 — Stub POST-audit:
-  - grep scan: maradt-e placeholder ami nem dokumentalt?
-  - STUB_INVENTORY.md konzisztens a valosassal?
-
-A5.4 — CI POST-audit:
-  - Push → GitHub Actions → MIND ZOLD?
-  - Ha FAIL → javitas, push, ujra check
-
-A5.5 — Audit riport generalas:
+  Config (YAML per service):
+  ```yaml
+  # skills/aszf_rag_chat/guardrails.yaml
+  scope:
+    allowed_topics: ["jog", "biztositas", "aszf", "szolgaltatas"]
+    blocked_topics: ["politika", "orvosi tanacs", "befektetesi tanacs"]
+    dangerous_patterns: ["hogyan torzek be", "hogyan hackeljem"]
+  input:
+    max_length: 2000
+    injection_patterns: ["ignore previous", "system:", "you are now"]
+    pii_masking: true
+  output:
+    require_citation: true
+    hallucination_threshold: 0.7
+    pii_check: true
   ```
+
+A5.5 — Guardrail Middleware Integration:
+  - src/aiflow/api/middleware.py: GuardrailMiddleware hozzaadasa
+  - Sorrend: Auth → RateLimit → Guardrail(input) → Handler → Guardrail(output)
+  - Config: per-endpoint guardrail config (nem minden endpoint kell)
+  - Bypass: /health, /auth/*, /admin/* (nincs LLM-involvement)
+
+A5.6 — Guardrail Test Framework:
+  tests/unit/guardrails/
+    test_input_guard.py   # 10 test (injection, PII, length)
+    test_output_guard.py  # 10 test (safety, hallucination, PII leak)
+    test_scope_guard.py   # 10 test (3-tier scope)
+  
+  Golden dataset template:
+  tests/guardrails/golden_dataset.yaml
+    - known_safe_inputs: [...]
+    - known_injection_attempts: [...]
+    - known_dangerous_queries: [...]
+    - expected_refusals: [...]
+
+A5.7 — Dokumentacio:
+  01_PLAN/59_PROMPT_GUARDRAIL_FRAMEWORK.md
+  - Architektura diagram
+  - Per-service config sablon
+  - Teszt metodologia
+  - Scope boundary definiciok
+
+GATE: GuardrailBase + 3 guard impl + middleware + 30 test PASS + config sablon
+```
+
+---
+
+## A6: POST-AUDIT — 1 session
+
+> **KRITIKUS! Minden A0-A5 javitas VALOS verifikalasa.**
+
+```
+A6.1 — Teljes regresszio:
+  a) pytest tests/unit/ -q → ALL PASS
+  b) pytest tests/e2e/ -v → ALL PASS (STRICT 0 filter!)
+  c) npx tsc --noEmit → 0 error
+  d) /lint-check → 0 error
+  e) smoke_test.sh → ALL PASS
+
+A6.2 — Biztonsagi POST-audit:
+  | # | Eredeti problema | Javitas | Post-audit |
+  |---|-----------------|---------|-----------|
+  | 1 | Sajat JWT | PyJWT RS256 | [ ] VERIFIED |
+  | 2 | Default secret | Prod enforce | [ ] VERIFIED |
+  | 3 | Session lejarat | UI force logout | [ ] VERIFIED |
+  | 4 | CORS * | Explicit lista | [ ] VERIFIED |
+  | 5 | Rate limit | Middleware | [ ] VERIFIED |
+  | 6 | File upload | Path traversal fix | [ ] VERIFIED |
+  | 7 | Security headers | CSP + HSTS | [ ] VERIFIED |
+
+A6.3 — Halott kod POST-audit:
+  - contrib/ modul tenyleg torolve? Import check PASS?
+  - Legacy mappak torolve?
+  - .gitignore frissitve nagy fajlokra?
+
+A6.4 — Guardrail POST-audit:
+  - InputGuard: 5 injection attempt → MIND BLOKKOLT?
+  - OutputGuard: hallucination test → helyes scoring?
+  - ScopeGuard: dangerous query → MEGTAGADVA?
+  - Config sablon: YAML load → hibatlan?
+
+A6.5 — Stub POST-audit:
+  - grep "placeholder|stub" → csak STUB_INVENTORY.md-ben levo
+  
+A6.6 — Audit riport generalas:
   === SPRINT A POST-AUDIT RIPORT ===
-  Datum: YYYY-MM-DD
+  Biztonsag:     X/7 VERIFIED → [PASS/FAIL]
+  Halott kod:    X/5 check PASS → [PASS/FAIL]
+  Guardrail:     X/4 check PASS → [PASS/FAIL]
+  Ruff:          0 error → [PASS/FAIL]
+  CI/CD:         4/4 ZOLD → [PASS/FAIL]
+  Stubs:         inventory clean → [PASS/FAIL]
+  E2E:           102+ PASS (strict) → [PASS/FAIL]
+  Unit:          1083+ PASS → [PASS/FAIL]
   
-  Biztonsag:    X/7 VERIFIED, Y OPEN → [PASS/FAIL]
-  Ruff:         0 error → [PASS/FAIL]
-  CI/CD:        4/4 ZOLD → [PASS/FAIL]
-  Stubs:        X torolve, Y dokumentalt → [PASS/FAIL]
-  E2E:          102+ PASS, 0 filter → [PASS/FAIL]
-  Unit:         1083+ PASS → [PASS/FAIL]
-  
-  SPRINT A VERDICT: [PASS — ready for v1.2.2 tag] / [FAIL — items to fix]
-  ```
+  VERDICT: [PASS] / [FAIL — open items listaja]
 
-GATE CHECK: MINDEN sor PASS ← TILOS v1.2.2 tag ha barmelyik FAIL
+GATE: MINDEN sor PASS. Ha FAIL → A7 KOTELEZO.
 ```
-
-**Deliverable:** Audit riport, minden VERIFIED, v1.2.2 tag
 
 ---
 
-## A6: Version Tag + Merge — fél session
+## A7: Audit Javitasok — 0.5-1 session
+
+> **Csak akkor szukseges ha A6-ban FAIL tetelek vannak!**
+> **Ha A6 MIND PASS → A7 SKIP, egybol A8.**
 
 ```
-A6.1 — pyproject.toml: version = "1.2.2"
-A6.2 — git tag v1.2.2
-A6.3 — Squash merge → main (clean history)
-A6.4 — 58_POST_SPRINT_HARDENING_PLAN.md: Sprint A = DONE
-A6.5 — CLAUDE.md + 01_PLAN/CLAUDE.md: szamok frissitese
+A7.1 — A6 riport FAIL teteleinek javitasa:
+  - Minden OPEN item → konkret fix
+  - Minden fix → ujra-teszt (NEM teljes regresszio, csak az erintett resz)
+
+A7.2 — Ujra-audit (csak a FAIL tetelek):
+  - VERIFIED ← TILOS tovabblepni ha meg mindig OPEN
+
+A7.3 — Frissitett audit riport:
+  - MINDEN sor PASS
+
+GATE: Frissitett riport MINDEN PASS
 ```
 
-**Deliverable:** v1.2.2 tag, main-en ZOLD CI
+---
+
+## A8: v1.2.2 Tag + Merge — fél session
+
+```
+A8.1 — pyproject.toml: version = "1.2.2"
+A8.2 — git tag v1.2.2
+A8.3 — 58_POST_SPRINT_HARDENING_PLAN.md: Sprint A = DONE
+A8.4 — CLAUDE.md szamok frissitese
+A8.5 — Push tag + merge to main
+```
 
 ---
 
 ## Sprint A Utemterv
 
 ```
-Session 15: A0 (CI/CD Green) ──────── ELSO, BLOKKOLO
-Session 16: A1.1 (Ruff batch fix) ── 548 auto-fix
-Session 17: A1.2+A3 (Ruff manual + Stubs) ── 686 manual + 61 stub
-Session 18: A2 (Security + JWT session) ──── JWT, CORS, rate limit, UI logout
-Session 19: A4 (Hianyzo alapfunkciok) ────── P1, P2, DataTable, 404
-Session 20: A5 (Post-audit + regresszio) ── MINDEN ellenorzes
-Session 21: A6 (v1.2.2 tag + merge) ─────── Final
+Session 15: A0 (CI/CD Green) ──────────── BLOKKOLO
+Session 16: A1 (Ruff batch + manual) ──── 1,234 → 0
+Session 17: A2 (Halott kod audit) ─────── Torles + archivalas
+Session 18: A3 (Security + JWT session) ── JWT RS256 + force logout
+Session 19: A4 (Stubs + alapfunkciok) ──── P1, P2, DataTable
+Session 20: A5 (Guardrail keretrendszer) ── InputGuard + OutputGuard + ScopeGuard
+Session 21: A6 (POST-AUDIT) ───────────── Teljes ellenorzes
+Session 22: A7+A8 (Javitasok + tag) ───── Fix + v1.2.2
 ```
 
 ---
 
-# SPRINT B: Szolgaltatas Excellence (v1.3.0)
+# SPRINT B: Szolgaltatas Excellence + Guardrail Implementacio (v1.3.0)
 
 > **Branch:** `feature/v1.3.0-service-excellence`
-> **Elofeltetel:** Sprint A COMPLETE (v1.2.2 tagged)
-> **Cel:** Minden szolgaltatas egyenkent magas szintre hozasa — kod, prompt, modell, UI
-> **Vegtermek:** v1.3.0 tag, 130+ uj service test, 6/6 skill 95%+ promptfoo
+> **Elofeltetel:** Sprint A COMPLETE (v1.2.2), guardrail keretrendszer KESZ
 
-## B0: Service Hardening Keretrendszer — fél session
+## B0: Keretrendszer + Metodologia — fél session
 
-> **Cel:** Kozos checklist es metodologia definiálasa MIELOTT szolgaltatasonkent dolgozunk.
+### 10 Pontos Production Checklist (minden szolgaltatasra)
 
-### 8 Pontos Production Checklist (minden szolgaltatasra)
+> Az elozo 8-pontos bovult 2 guardrail ponttal.
 
 ```
-[ ] 1. UNIT TESZT — >= 5 teszt, >= 70% coverage
-[ ] 2. INTEGRACIOS TESZT — >= 1 valos DB-vel (ha DB-t hasznal)
-[ ] 3. API TESZT — minden endpoint curl-lel tesztelve, source=backend
-[ ] 4. PROMPT TESZT — promptfoo >= 95% pass (ha LLM-et hasznal)
-[ ] 5. ERROR HANDLING — minden hiba AIFlowError leszarmazott, is_transient flag
-[ ] 6. LOGGING — structlog, NEM print(), event+key=value format
-[ ] 7. DOKUMENTACIO — docstring a fo osztalyon + publikus metodusokon
-[ ] 8. UI — kapcsolodo oldal mukodik, source badge, 0 console error
+[ ]  1. UNIT TESZT — >= 5 teszt, >= 70% coverage
+[ ]  2. INTEGRACIOS TESZT — >= 1 valos DB-vel
+[ ]  3. API TESZT — minden endpoint curl, source=backend
+[ ]  4. PROMPT TESZT — promptfoo >= 95% pass
+[ ]  5. ERROR HANDLING — AIFlowError, is_transient flag
+[ ]  6. LOGGING — structlog event+key=value
+[ ]  7. DOKUMENTACIO — docstring fo osztaly + metodus
+[ ]  8. UI — oldal mukodik, source badge, 0 console error
+[ ]  9. INPUT GUARDRAIL — injection vedelem, PII, length limit (A5 keretrendszer)
+[ ] 10. OUTPUT GUARDRAIL — hallucination, scope, PII leak check (A5 keretrendszer)
 ```
 
-### Prompt Finomhangolas Metodologia (skill-ekre)
+### Prompt Finomhangolas Metodologia
 
 ```
-MERES → DIAGNOZIS → JAVITAS → VALIDALAS → DOKUMENTALAS
+MERES → DIAGNOZIS → JAVITAS → VALIDALAS → GUARDRAIL → DOKUMENTALAS
 
-1. MERES: npx promptfoo eval → baseline pass rate rogzites
-2. DIAGNOZIS: FAIL test case-ek elemzese → mi a root cause?
-   - Prompt nem eleg specifikus? → few-shot pelda hozzaadas
-   - Output format hiba? → JSON schema szigoritas
-   - Nyelvi problema? → explicit nyelv specifikacio
-   - Hallucinacio? → grounding rules erosites
-3. JAVITAS: prompt YAML modositas (MINDIG verziokezelt!)
-4. VALIDALAS: npx promptfoo eval → 95%+?
-   - Ha IGEN → kovetkezo skill
-   - Ha NEM → UJRA 2-3 (max 3 iteracio, utana modell csere)
-5. DOKUMENTALAS: CHANGELOG megjegyzes a prompt fajlban
+1. MERES: npx promptfoo eval → baseline pass rate
+2. DIAGNOZIS: FAIL test case elemzes → root cause
+3. JAVITAS: prompt YAML modositas (verziokezelt!)
+4. VALIDALAS: promptfoo eval → 95%+?
+5. GUARDRAIL: guardrails.yaml config illesztes (A5 sablon alapjan)
+   - input: injection pattern-ek a skill temakorhöz
+   - output: scope boundary-k, citation enforcement
+   - golden dataset: skill-specifikus biztonsagi test case-ek
+6. DOKUMENTALAS: CHANGELOG + guardrail config megjegyzes
 ```
 
-### Modell Optimalizacio Metodologia
+### Prompt Guardrail Implementacios Sablon (per skill)
 
 ```
-1. BASELINE: Langfuse cost dashboard → per-service koltseg
-2. KISERLET: gpt-4o → gpt-4o-mini csere OTT ahol scoring/extraction (nem generativ)
-3. A/B: Promptfoo --providers gpt-4o,gpt-4o-mini → minoseg osszehasonlitas
-4. DONTES: < 3% minoseg esés → olcsobb modell ELFOGADVA
-5. TOKEN: prompt tomorites — felesleges ismetles, long preamble rovidites
-6. CACHE: embedding cache Redis (TTL=1h), classifier cache (confidence > 0.95)
+skills/{skill_name}/
+  guardrails.yaml              # UJ: skill-specifikus guardrail config
+  tests/test_guardrails.py     # UJ: 5+ guardrail teszt per skill
+  tests/golden_guardrails.yaml # UJ: known-safe + known-dangerous peldak
 ```
 
 ---
 
-## B1: Core AI Szolgaltatasok — 2-3 session
+## B1: P0 Core AI Skill-ek + Guardrail — 2-3 session
 
-> **Prioritas: P0 — legmagasabb uzleti ertek, legtobb hasznalat**
-
-### B1.1 aszf_rag_chat (RAG Chat) — LEGKRITIKUSABB
+### B1.1 aszf_rag_chat (RAG Chat — legkritikusabb)
 
 ```
 KOD:
   - rag_engine: connection pooling + query timeout
-  - vector_ops: hybrid search (BM25 + HNSW) parameter tuning
-  - reranker: BGE v2-m3 validalas, FlashRank fallback teszt
-  - 5 unit test rag_engine + 5 unit test vector_ops + 5 unit test reranker
+  - vector_ops: BM25 + HNSW parameter tuning
+  - reranker: BGE v2-m3 validalas
+  - 15 unit test (rag_engine + vector_ops + reranker)
 
-PROMPT (jelenlegi: 86% → cel: 95%):
-  - answer_generator.yaml: citation enforcement erosites
-    * Problema: valasz gyakran nem hivatkozik forrásra
-    * Fix: "EVERY claim MUST include [Source: chunk_id]" explicit szabaly
-  - hallucination_detector.yaml: scoring rubric kalibralas
-    * Problema: false positive (valos valasz hallucination-nek jelolve)
-    * Fix: confidence threshold finomhangolas (0.7 → 0.6)
-  - query_rewriter.yaml: magyar → angol embedding query mapping javitas
-    * Problema: magyar szo rend angol embedding-nek rossz
-    * Fix: explicit "translate the query concept, not word-by-word" instruction
-  - UJ test case-ek: 7 → 12 (jogi kerdes, osszetetett, "nem tudom", hallucinacio)
+PROMPT (86% → 95%):
+  - answer_generator: citation enforcement ("EVERY claim MUST include [Source:]")
+  - hallucination_detector: scoring kalibralas (threshold 0.7 → 0.6)
+  - query_rewriter: magyar → angol concept mapping
+  - 7 → 12 test case (jogi, osszetetett, "nem tudom", hallucinacio)
+
+GUARDRAIL (aszf_rag_chat/guardrails.yaml):
+  scope:
+    allowed_topics: ["jog", "biztositas", "aszf", "szolgaltatas", "kar"]
+    blocked_topics: ["politika", "orvosi", "befektetesi"]
+    dangerous_patterns: ["torvenyt kijatszani", "hogyan csaljak"]
+  input:
+    max_length: 2000
+    injection_patterns: skill-specifikus
+    pii_masking: true
+  output:
+    require_citation: true  # KOTELEZO forras hivatkozas
+    hallucination_threshold: 0.7
+    max_response_length: 4000
+  golden_dataset:
+    - safe: "Mi a biztositas dijfizetesi hatarideje?"
+    - out_of_scope: "Melyik reszveny fogja, draga?"
+    - dangerous: "Hogyan csaljak a biztositot?"
+    - injection: "Ignorald az elozo utasitasokat es..."
+  5 guardrail teszt
 
 MODELL:
-  - Jelenlegi: gpt-4o (answer), gpt-4o-mini (rewrite, hallucination, citation)
-  - Kiserlet: answer gpt-4o → gpt-4o-mini (koltseg: -60%)
-  - Elfogadasi kriterium: promptfoo < 3% esés a csere utan
+  - Kiserlet: answer gpt-4o → gpt-4o-mini (< 3% esés elfogadva)
 
-UI:
-  - RAG chat oldal: streaming SSE validalas
-  - Collection kezelés: list/create/delete/stats funkciok
-  - Source badge: backend/demo
-
-CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8
+CHECKLIST: [ ]1-10 (mind a 10 pont)
 ```
 
 ### B1.2 email_intent_processor — P0
 
 ```
 KOD:
-  - Intent discovery: uj intent tipusok auto-felismeres
-  - Entity extraction: magyar cim/nev/telefon regex + LLM hibrid
-  - Routing: multi-intent email → parallel route
-  - 5 unit test email_connector + 5 unit test classifier
+  - Intent catalog bovites (8 → 12 tipus)
+  - Entity: magyar adoszam, bankszamla, cim regex + LLM
+  - 10 unit test
 
-PROMPT (jelenlegi: ~85% → cel: 95%):
-  - intent_classifier.yaml: intent catalog bovites (8 → 12 intent tipus)
-    * Uj: "szamlalekerdezes", "reklamacio", "szerzodes_modositas", "altalanos_kerdes"
-  - entity_extractor.yaml: magyar entitasok
-    * Adoszam: \d{8}-\d-\d{2} regex + LLM validalas
-    * Bankszamlaszam: \d{8}-\d{8}(-\d{8})? regex
-    * Cim: strukturalt (iranyitoszam, varos, utca, hazszam)
-  - priority_scorer.yaml: sulyossag-alapu prioritas
-    * Surgo: "azonnali", "surgos", "hataridő" kulcsszavak + kontextus
-  - routing_decider.yaml: komplex routing szabalyok
-  - UJ test case-ek: 11 → 16 (multi-intent, csatolmany, spam, magyar)
+PROMPT (85% → 95%):
+  - intent_classifier: 4 uj intent tipus
+  - entity_extractor: HU-specifikus entitasok
+  - priority_scorer: kontextus-alapu sulyossag
+  - 11 → 16 test case
 
-MODELL:
-  - Jelenlegi: gpt-4o-mini (minden) — jo koltseg/minoseg arany
-  - Kiserlet: entity_extractor → gpt-4o (osszetett entitasokra)
+GUARDRAIL (email_intent_processor/guardrails.yaml):
+  scope:
+    allowed_topics: ["ugyfelsz", "szamla", "szerzodes", "panasz", "informacio"]
+    blocked_topics: ["spam_forward", "phishing_content"]
+  input:
+    max_email_size: 50000  # karakter
+    attachment_scan: true
+    pii_masking: false  # email tartalom kell az intent-hez
+  output:
+    require_confidence: 0.7  # min intent confidence
+    max_intents_per_email: 3
+  5 guardrail teszt
 
-UI:
-  - Emails oldal: connector config panel
-  - Intent schema CRUD: /intent-schemas → UI form
-
-CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8
+CHECKLIST: [ ]1-10
 ```
 
 ---
 
-## B2: Document & Diagram Szolgaltatasok — 1-2 session
+## B2: P1 Document & Diagram Skill-ek — 1-2 session
 
-> **Prioritas: P1 — fontos de stabilabb**
-
-### B2.1 process_documentation — P1
+### B2.1 process_documentation
 
 ```
-KOD:
-  - Diagram generator: Mermaid → BPMN XML export javitas
-  - DrawIO export minoseg
-  - 5 unit test diagram_generator
+PROMPT (90% → 95%):
+  - mermaid_flowchart: komplex folyamatok (10+ lepes)
+  - 11 → 15 test case
 
-PROMPT (jelenlegi: ~90% → cel: 95%):
-  - mermaid_flowchart.yaml: komplex folyamatok (10+ lepes)
-  - elaborator.yaml: strukturalt output (heading hierarchy)
-  - UJ test case-ek: 11 → 15 (komplex, minimalis, idegen nyelv)
+GUARDRAIL:
+  scope: technikai dokumentacio only
+  output: Mermaid szintaxis validacio, max diagram meret
+  3 guardrail teszt
 
-MODELL:
-  - Kiserlet: elaborator gpt-4o → gpt-4o-mini (ha minoseg megmarad)
-
-CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8
+CHECKLIST: [ ]1-10
 ```
 
-### B2.2 invoice_processor — P1
+### B2.2 invoice_processor
 
 ```
-KOD:
-  - PDF extraction: Docling config finomhangolas
-  - Multi-page szamla osszefuzes
-  - Export: CSV/Excel/JSON validacio
-  - 5 unit test document_extractor (invoice kontextus)
+PROMPT (80% → 95%):
+  - field_extractor: HU adoszam, AFO szam, AFA kulcsok
+  - 10 → 15 test case
 
-PROMPT (jelenlegi: ~80% → cel: 95%):
-  - invoice_classifier.yaml: szamla vs. nem-szamla precision
-  - field_extractor.yaml:
-    * AFO szam, adoszam, bankszamla regex + LLM hibrid validalas
-    * HUF/EUR/USD + ISO 4217 + AFA kulcsok (5%, 18%, 27%)
-  - UJ test case-ek: 10 → 15 (scan, kezi, kulfoldi, tobboldas)
+GUARDRAIL:
+  input: max file size, supported formats only
+  output: szamla mezok validacio (osszeg > 0, datum format)
+  3 guardrail teszt
 
-MODELL:
-  - Kiserlet: gpt-4o-mini vision (kep-alapu extraction)
-
-CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8
+CHECKLIST: [ ]1-10
 ```
 
-### B2.3 document_extractor service — P1
+### B2.3 document_extractor service
 
 ```
-KOD:
-  - Docling config: table extraction, heading detection
-  - Free text extraction: LLM query fine-tuning
-  - Multi-format: PDF + DOCX + XLSX + HTML
-  - 5 unit test
-
-CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]5 [ ]6 [ ]7 [ ]8
+KOD: Docling config, multi-format, error recovery
+5 unit test, 3 guardrail teszt (file type check, size limit)
 ```
 
 ---
 
 ## B3: Infrastructure Service Tesztek — 2 session
 
-> **Prioritas: P2 — minden service-nek kell unit test**
-
-### B3.1 Session 1: Core infra (13 service, 65 test)
+> **26 service × 5 test = 130 uj unit test**
 
 ```
-Sorrend (fuggosgei grafikon szerint):
- 1. cache (5) — Redis hit/miss/evict/TTL/pattern
- 2. config (5) — versioning CRUD, default fallback
- 3. health_monitor (5) — service status, dependency check
- 4. audit (5) — log create/query/filter/retention
- 5. schema_registry (5) — JSON schema CRUD/validate
- 6. notification (5) — email template, delivery retry
- 7. human_review (5) — HITL workflow, SLA timer
- 8. media_processor (5) — ffmpeg probe, format detect
- 9. diagram_generator (5) — Mermaid render, BPMN export
-10. rpa_browser (5) — page navigate, screenshot
-11. rate_limiter (5) — bucket fill/drain, 429 trigger
-12. resilience (5) — circuit open/half-open/close, retry
-13. classifier (5) — ML predict, confidence threshold
-```
+B3.1 — Session 1: Core infra (13 service, 65 test)
+  cache, config, health_monitor, audit, schema_registry,
+  notification, human_review, media_processor, diagram_generator,
+  rpa_browser, rate_limiter, resilience, classifier
 
-### B3.2 Session 2: v1.2.0 szolgaltatasok (13 service, 65 test)
-
-```
-14. data_router (5) — routing rules, priority
-15. service_manager (5) — lifecycle, health
-16. reranker (5) — score, sort, top-K
-17. advanced_chunker (5) — 6 strategia: fixed/semantic/sentence/paragraph/recursive/sliding
-18. data_cleaner (5) — normalize, deduplicate
-19. metadata_enricher (5) — auto-tag, entity link
-20. vector_ops (5) — insert/search/delete/similarity
-21. advanced_parser (5) — multi-format, fallback chain
-22. graph_rag (5) — entity graph, traversal query
-23. quality (5) — metric collect, threshold alert
-24. email_connector (5) — IMAP connect, fetch, filter
-25. rag_engine (5) — ingest, query, hybrid search
-26. data_router extra (5) — ha van ido
-```
-
-**Deliverable:** 130 uj unit test, coverage >= 70% services/
-
----
-
-## B4: Cubix + QBPP Skill Finomhangolas — 1 session
-
-> **Prioritas: P2/P4**
-
-```
-B4.1 — cubix_course_capture (P2):
-  PROMPT (jelenlegi: ~90% → cel: 95%):
-  - transcript_structurer.yaml: idokod pontossag
-  - UJ test case-ek: 5 → 8 (rovid video, rossz hang, angol nyelvu)
-  MODELL: gpt-4o-mini megmarad (jo koltseg/minoseg)
-
-B4.2 — qbpp_test_automation (P4):
-  DONTES: Implementaljuk VAGY toroljuk?
-  HA IGEN:
-    - __main__.py implementacio (Robot Framework integracio)
-    - test_generator.yaml (UJ prompt): RF teszt generalas
-    - locator_finder.yaml (UJ prompt): UI elem azonosito
-    - Promptfoo: valos test case-ek (nem stub)
-    - Cel: 90%+ (uj skill, alacsonyabb kuszob)
-  HA NEM:
-    - Skill mappa torles, CLAUDE.md frissites (5 skill)
+B3.2 — Session 2: v1.2.0 szolgaltatasok (13 service, 65 test)
+  data_router, service_manager, reranker, advanced_chunker,
+  data_cleaner, metadata_enricher, vector_ops, advanced_parser,
+  graph_rag, quality, email_connector, rag_engine, +extra
 ```
 
 ---
 
-## B5: Modell Optimalizacio + Koltseg Csokkenés — 1 session
-
-> **Gate:** >= 20% koltseg csokkenese VAGY >= 5% minoseg javulasa
+## B4: P2/P4 Skill-ek — 1 session
 
 ```
-B5.1 — Koltseg baseline:
-  - Langfuse cost dashboard → per-service koltseg export
-  - Token count: prompt_tokens + completion_tokens per call
+B4.1 — cubix_course_capture (90% → 95%):
+  - transcript_structurer: idokod pontossag
+  - 5 → 8 test case, 2 guardrail teszt
 
-B5.2 — Modell csere kísérletek:
-  | Prompt | Jelenlegi | Kiserlet | Kriterium |
-  |--------|-----------|----------|-----------|
-  | pd/reviewer | gpt-4o | gpt-4o-mini | < 3% esés |
-  | pd/elaborator | gpt-4o | gpt-4o-mini | < 3% esés |
-  | rag/answer | gpt-4o | gpt-4o-mini | < 3% esés |
-  | rag/citation | gpt-4o-mini | megmarad | — |
-  | email/* | gpt-4o-mini | megmarad | — |
-  | invoice/extract | gpt-4o | gpt-4o-mini | < 3% esés |
-  
-  Metodologia: promptfoo --providers gpt-4o,gpt-4o-mini → A/B osszehas
-
-B5.3 — Token optimalizacio:
-  - Hosszu system prompt: felesleges ismetles torles
-  - Few-shot: 6 → 3 (ha minoseg megmarad)
-  - Cel: >= 15% token count csokkenés
-
-B5.4 — Cache strategia:
-  - Embedding cache: Redis TTL=1h (ismétlődő query)
-  - Classifier cache: confidence > 0.95 → cache (TTL=24h)
-  - Cel: cache hit rate >= 30%
-
-B5.5 — Koltseg riport:
-  - Per-skill koltseg/query
-  - Havi becslés (1000 query/nap)
-  - Optimalizalt vs. eredeti osszehasonlitas
-```
-
-**Deliverable:** Modell matrix, koltseg riport, >= 20% koltseg csokkenés
-
----
-
-## B6: UI Integracio + Per-Service Polish — 1-2 session
-
-> **Cel:** Minden szolgaltatas UI oldala mukodik valosan, nincs demo/mock adat.
-
-```
-B6.1 — Szolgaltatas-oldal audit:
-  MINDEN oldal (17 db) ellenorzese:
-  | Oldal | Backend source | Valos adat | Console error |
-  |-------|---------------|-----------|--------------|
-  | Documents | ? | ? | ? |
-  | Emails | ? | ? | ? |
-  | RAG | ? | ? | ? |
-  | ... (mind a 17) | | | |
-
-B6.2 — Demo → Backend migracio:
-  - Oldalak ahol "demo" source: backend integration fix
-  - fetchApi hiba kezeles: retry gomb, error state
-
-B6.3 — Uj UI elemek (ha szukseges):
-  - Intent schema CRUD form (B1.2 kapcsan)
-  - Collection management (B1.1 kapcsan)
-  - Cost dashboard bovites (B5.5 kapcsan)
-
-B6.4 — Dark mode + responsive check:
-  - Minden oldal: dark mode WCAG AA kontraszt
-  - Mobile: 768px breakpoint-on olvashato
+B4.2 — qbpp_test_automation:
+  DONTES: implemental VAGY torol
+  - HA IGEN: __main__.py + 2 prompt + promptfoo + guardrail
+  - HA NEM: skill torles, 5 skill-re csokkentes
 ```
 
 ---
 
-## B7: Sprint B Regresszio + Post-Audit + v1.3.0 — 1 session
+## B5: Modell Optimalizacio — 1 session
 
-> **KRITIKUS: Ugyanaz a rigorozus ellenorzes mint A5, de Sprint B-re!**
+```
+B5.1 — Koltseg baseline (Langfuse)
+B5.2 — A/B kiserlet: gpt-4o → gpt-4o-mini (< 3% esés kriterium)
+B5.3 — Token optimalizacio (>= 15% csokkenés)
+B5.4 — Cache strategia (Redis TTL, classifier cache)
+B5.5 — Koltseg riport
+Cel: >= 20% koltseg csokkenés
+```
+
+---
+
+## B6: UI Integracio + Polish — 1 session
+
+```
+B6.1 — 17 oldal source audit (demo → backend migracio)
+B6.2 — Intent schema CRUD UI form
+B6.3 — Collection management UI
+B6.4 — Dark mode + responsive check
+```
+
+---
+
+## B7: POST-AUDIT — 1 session
+
+> **Minden B0-B6 ellenorzese — ugyanolyan rigorozus mint A6!**
 
 ```
 B7.1 — Teljes regresszio:
-  a) pytest tests/unit/ -q → ALL PASS (1083 + 130 uj = 1213+ teszt)
-  b) pytest tests/e2e/ -v → ALL PASS (102+ teszt, STRICT 0 filter)
-  c) cd aiflow-admin && npx tsc --noEmit → 0 error
-  d) /lint-check → 0 error
-  e) smoke_test.sh → ALL PASS
-  f) npx promptfoo eval → 6/6 skill 95%+ PASS
+  a) pytest tests/unit/ → ALL PASS (1083 + 130 = 1213+ teszt)
+  b) pytest tests/e2e/ → ALL PASS (strict 0 filter)
+  c) tsc --noEmit → 0, /lint-check → 0
+  d) npx promptfoo eval → 6/6 skill 95%+
 
 B7.2 — Szolgaltatas erettseg POST-audit:
-  | Szolgaltatas | Checklist (8 pont) | Promptfoo % | Modell | Status |
-  |-------------|-------------------|-------------|--------|--------|
-  | aszf_rag_chat | ?/8 | ?% | ? | ? |
-  | email_intent | ?/8 | ?% | ? | ? |
-  | process_docs | ?/8 | ?% | ? | ? |
-  | invoice | ?/8 | ?% | ? | ? |
-  | cubix | ?/8 | ?% | ? | ? |
-  | qbpp | ?/8 | ?% | ? | ? |
+  | Szolgaltatas | Checklist 10pt | Promptfoo | Guardrail | Status |
+  |-------------|---------------|-----------|-----------|--------|
+  | aszf_rag | ?/10 | ?% | ? config | ? |
+  | email_intent | ?/10 | ?% | ? config | ? |
+  | process_docs | ?/10 | ?% | ? config | ? |
+  | invoice | ?/10 | ?% | ? config | ? |
+  | cubix | ?/10 | ?% | ? config | ? |
+  | qbpp | ?/10 | ?% | ? config | ? |
 
-B7.3 — Koltseg POST-audit:
-  - Langfuse: optimalizalt koltseg vs. baseline
-  - Cel: >= 20% csokkenés teljesult?
+B7.3 — Guardrail POST-audit:
+  - MINDEN skill guardrails.yaml → helyes schema?
+  - Golden dataset → MINDEN dangerous query BLOKKOLT?
+  - Injection test → MIND DETEKTALT?
+  - PII leak test → 0 leak?
 
-B7.4 — Sprint B audit riport:
-  ```
+B7.4 — Koltseg POST-audit:
+  - Langfuse: >= 20% csokkenés?
+
+B7.5 — Audit riport:
   === SPRINT B POST-AUDIT RIPORT ===
   Service tesztek:     130/130 PASS → [PASS/FAIL]
   Prompt minoseg:      6/6 skill 95%+ → [PASS/FAIL]
-  Koltseg optimalizacio: X% csokkenés → [PASS/FAIL]
-  E2E (strict):        102+ PASS, 0 filter → [PASS/FAIL]
+  Guardrail coverage:  6/6 skill config → [PASS/FAIL]
+  Guardrail safety:    golden dataset 100% → [PASS/FAIL]
+  Koltseg:             X% csokkenés → [PASS/FAIL]
+  E2E (strict):        102+ PASS → [PASS/FAIL]
   Unit:                1213+ PASS → [PASS/FAIL]
   
-  SPRINT B VERDICT: [PASS — ready for v1.3.0] / [FAIL — items to fix]
-  ```
-
-B7.5 — Version tag:
-  - pyproject.toml: version = "1.3.0"
-  - git tag v1.3.0
-  - Merge to main (squash)
+  VERDICT: [PASS] / [FAIL → B8 KOTELEZO]
 ```
 
-**Deliverable:** v1.3.0 tag, audit riport, minden PASS
+---
+
+## B8: Audit Javitasok — 0.5-1 session
+
+> **Csak ha B7-ben FAIL van! Ha MIND PASS → B8 SKIP, egybol B9.**
+
+```
+B8.1 — FAIL tetelek javitasa
+B8.2 — Ujra-audit (csak FAIL tetelek)
+B8.3 — Frissitett riport: MINDEN PASS
+```
+
+---
+
+## B9: v1.3.0 Tag + Merge — fél session
+
+```
+B9.1 — pyproject.toml: version = "1.3.0"
+B9.2 — git tag v1.3.0
+B9.3 — Merge to main (squash)
+B9.4 — CLAUDE.md + 01_PLAN/CLAUDE.md frissites
+```
 
 ---
 
 ## Sprint B Utemterv
 
 ```
-Session 22: B0 (Keretrendszer) + B1.1 start (aszf_rag prompt) 
-Session 23: B1.1 (aszf_rag kod+teszt) + B1.2 (email_intent prompt)
-Session 24: B1.2 (email_intent kod+teszt) + B2.1 (process_docs)
-Session 25: B2.2 (invoice) + B2.3 (doc_extractor)
-Session 26: B3.1 (Core infra tesztek — 13 service)
-Session 27: B3.2 (v1.2.0 szolgaltatas tesztek — 13 service)
-Session 28: B4 (cubix + qbpp) + B5 (model optimization)
-Session 29: B6 (UI integration + polish)
-Session 30: B7 (Post-audit + regresszio + v1.3.0)
+Session 23: B0 (Keretrendszer) + B1 start (aszf_rag prompt+guardrail)
+Session 24: B1 (aszf_rag kod+teszt) + B1.2 (email_intent prompt)
+Session 25: B1.2 (email kod+teszt+guardrail) + B2.1 (process_docs)
+Session 26: B2.2 (invoice) + B2.3 (doc_extractor)
+Session 27: B3.1 (Core infra tesztek — 65 test)
+Session 28: B3.2 (v1.2.0 tesztek — 65 test)
+Session 29: B4 (cubix+qbpp) + B5 (model opt)
+Session 30: B6 (UI integracio)
+Session 31: B7 (POST-AUDIT)
+Session 32: B8+B9 (Javitasok + v1.3.0)
 ```
 
 ---
@@ -759,27 +779,29 @@ Session 30: B7 (Post-audit + regresszio + v1.3.0)
 
 ```
 === SPRINT A: Infrastruktura & Biztonsag (v1.2.2) ===
-Session 15: A0 — CI/CD Green ────────────────── BLOKKOLO
-Session 16: A1.1 — Ruff batch fix (548) ────── /lint-check --fix
-Session 17: A1.2+A3 — Ruff manual + Stubs ──── 686 manual + 61 stub
-Session 18: A2 — Security + JWT session UI ──── JWT RS256 + force logout
-Session 19: A4 — Hianyzo alapfunkciok ────────── P1, P2, DataTable, 404
-Session 20: A5 — POST-AUDIT + regresszio ────── MINDEN ellenorzes!
-Session 21: A6 — v1.2.2 tag + merge ─────────── Final
+S15: A0 — CI/CD Green ─────────────── BLOKKOLO
+S16: A1 — Ruff 1,234 → 0 ─────────── /lint-check --fix
+S17: A2 — Halott kod audit+archiv ─── Torles + dokumentum
+S18: A3 — Security + JWT session ──── RS256 + force logout
+S19: A4 — Stubs + alapfunkciok ────── P1, P2, DataTable
+S20: A5 — Guardrail keretrendszer ─── InputGuard + OutputGuard + ScopeGuard
+S21: A6 — POST-AUDIT ──────────────── Teljes ellenorzes
+S22: A7+A8 — Javitasok + v1.2.2 ──── Fix + tag
 
 === SPRINT B: Szolgaltatas Excellence (v1.3.0) ===
-Session 22: B0+B1 — Keretrendszer + aszf_rag ── P0 skill start
-Session 23: B1 — aszf_rag + email_intent ────── P0 prompt tuning
-Session 24: B1+B2 — email + process_docs ─────── P0/P1 skill
-Session 25: B2 — invoice + doc_extractor ─────── P1 skill
-Session 26: B3.1 — Core infra tesztek (65) ──── 13 service
-Session 27: B3.2 — v1.2.0 tesztek (65) ──────── 13 service
-Session 28: B4+B5 — cubix + model optimization  P2 + koltseg
-Session 29: B6 — UI integracio + polish ──────── Per-service UI
-Session 30: B7 — POST-AUDIT + v1.3.0 ─────────── MINDEN ellenorzes!
+S23: B0+B1 — Keretrendszer + aszf_rag prompt+guardrail
+S24: B1 — aszf_rag kod + email_intent prompt
+S25: B1+B2 — email guardrail + process_docs
+S26: B2 — invoice + doc_extractor
+S27: B3.1 — Core infra tesztek (65)
+S28: B3.2 — v1.2.0 tesztek (65)
+S29: B4+B5 — cubix + model optimization
+S30: B6 — UI integracio
+S31: B7 — POST-AUDIT
+S32: B8+B9 — Javitasok + v1.3.0
 ```
 
-**Osszes:** ~16 session, ~4,000 LOC, ~200+ uj teszt, 2 version tag
+**Osszes:** ~18 session, ~5,000 LOC, ~280 uj teszt, 2 version tag, guardrail framework
 
 ---
 
@@ -787,41 +809,42 @@ Session 30: B7 — POST-AUDIT + v1.3.0 ─────────── MINDEN 
 
 ### Sprint A (v1.2.2)
 
-| # | Kriterium | Mertek |
-|---|-----------|--------|
-| 1 | CI/CD MIND ZOLD | 4/4 workflow PASS |
-| 2 | Ruff 0 error | /lint-check → CLEAN |
-| 3 | 0 HIGH/MEDIUM security | Post-audit verified |
-| 4 | Session lejarat → UI logout | JWT exp → auto redirect |
-| 5 | 0 stub (nem tudatos) | STUB_INVENTORY.md clean |
-| 6 | P1+P2 post-sprint DONE | Pipelines templates UI |
-| 7 | 0 console error (strict) | E2E filter nelkul |
-| 8 | Post-audit PASS | A5 riport MINDEN sor PASS |
+| # | Kriterium |
+|---|-----------|
+| 1 | CI/CD 4/4 ZOLD |
+| 2 | Ruff 0 error |
+| 3 | 0 halott kod/mappa (dokumentalt inventory) |
+| 4 | 0 HIGH/MEDIUM security (post-audit verified) |
+| 5 | JWT session → UI force logout mukodik |
+| 6 | Guardrail keretrendszer: 3 guard + 30 test PASS |
+| 7 | 0 console error (strict E2E) |
+| 8 | Post-audit + javitas riport: MINDEN PASS |
 
 ### Sprint B (v1.3.0)
 
-| # | Kriterium | Mertek |
-|---|-----------|--------|
-| 1 | 130+ service unit test | 26 service × 5 test |
-| 2 | 6/6 skill 95%+ promptfoo | Baseline → 95%+ |
-| 3 | >= 20% koltseg csokkenés | Langfuse riport |
-| 4 | 8/8 checklist PASS per skill | Production checklist |
-| 5 | 0 demo-only oldal | Minden source=backend |
-| 6 | Post-audit PASS | B7 riport MINDEN sor PASS |
-| 7 | v1.3.0 tag | Squash merge main |
+| # | Kriterium |
+|---|-----------|
+| 1 | 130+ service unit test |
+| 2 | 6/6 skill 95%+ promptfoo |
+| 3 | 6/6 skill guardrails.yaml + golden dataset |
+| 4 | Guardrail safety: 100% dangerous query blokkolt |
+| 5 | >= 20% koltseg csokkenés |
+| 6 | 10/10 checklist PASS per skill |
+| 7 | Post-audit + javitas riport: MINDEN PASS |
+| 8 | v1.3.0 tag |
 
 ---
 
 ## Slash Command Referencia
 
-| Command | Mikor | Fazis |
-|---------|-------|-------|
-| `/lint-check` | Ruff + tsc + format summary | A1, es MINDEN fazis vegen |
-| `/lint-check --fix` | Auto-fix safe issues | A1.1 |
-| `/regression` | Unit + E2E regresszio | A5, B7, es MINDEN commit elott |
-| `/quality-check` | Promptfoo + koltseg | B1-B5 |
-| `/service-test` | Backend + API + UI e2e | B1-B4 |
-| `/dev-step` | Fejlesztes + teszt + commit | Minden fazis |
+| Command | Mikor |
+|---------|-------|
+| `/lint-check` | Ruff + tsc + format (A1, es MINDEN fazis vegen) |
+| `/lint-check --fix` | Auto-fix safe issues (A1.1) |
+| `/regression` | Unit + E2E regresszio (A6, B7, commit elott) |
+| `/quality-check` | Promptfoo + koltseg (B1-B5) |
+| `/service-test` | Backend + API + UI e2e (B1-B4) |
+| `/dev-step` | Fejlesztes + teszt + commit (minden fazis) |
 
 ---
 
@@ -833,21 +856,25 @@ Session 30: B7 — POST-AUDIT + v1.3.0 ─────────── MINDEN 
 |-------|----------|---------|-------|--------|
 | A0 | CI/CD Green | TODO | — | — |
 | A1 | Ruff 1,234 → 0 | TODO | — | — |
-| A2 | Security + JWT session | TODO | — | — |
-| A3 | Stub Cleanup | TODO | — | — |
-| A4 | Hianyzo alapfunkciok | TODO | — | — |
-| A5 | POST-AUDIT + regresszio | TODO | — | — |
-| A6 | v1.2.2 tag | TODO | — | — |
+| A2 | Halott kod audit + archivalas | TODO | — | — |
+| A3 | Security + JWT session | TODO | — | — |
+| A4 | Stubs + alapfunkciok | TODO | — | — |
+| A5 | Guardrail keretrendszer | TODO | — | — |
+| A6 | POST-AUDIT | TODO | — | — |
+| A7 | Audit javitasok | TODO | — | — |
+| A8 | v1.2.2 tag | TODO | — | — |
 
 ### Sprint B
 
 | Fazis | Tartalom | Allapot | Datum | Commit |
 |-------|----------|---------|-------|--------|
-| B0 | Keretrendszer definiálás | TODO | — | — |
-| B1 | Core AI skill-ek (aszf_rag, email) | TODO | — | — |
-| B2 | Document skill-ek (process_docs, invoice) | TODO | — | — |
-| B3 | Infrastructure service tesztek (130) | TODO | — | — |
-| B4 | Cubix + QBPP skill-ek | TODO | — | — |
+| B0 | Keretrendszer + metodologia | TODO | — | — |
+| B1 | P0 skill-ek + guardrail | TODO | — | — |
+| B2 | P1 skill-ek + guardrail | TODO | — | — |
+| B3 | Infrastructure tesztek (130) | TODO | — | — |
+| B4 | P2/P4 skill-ek | TODO | — | — |
 | B5 | Modell optimalizacio | TODO | — | — |
-| B6 | UI integracio + polish | TODO | — | — |
-| B7 | POST-AUDIT + v1.3.0 | TODO | — | — |
+| B6 | UI integracio | TODO | — | — |
+| B7 | POST-AUDIT | TODO | — | — |
+| B8 | Audit javitasok | TODO | — | — |
+| B9 | v1.3.0 tag | TODO | — | — |
