@@ -310,7 +310,7 @@ OUTPUT (S7 — 2026-04-04, session 11):
   - 24 uj unit teszt (test_langfuse_tracing.py) — MIND PASS
   - 74/74 observability teszt PASS, 332/332 pipeline teszt PASS
   - curl /health → langfuse status: "ok", Langfuse connected
-  Commit: TBD
+  Commit: 43ed4c3
 ```
 
 #### S8 Reszletes: Promptfoo Skill Configs (5 uj + 1 meglevo = 6/6)
