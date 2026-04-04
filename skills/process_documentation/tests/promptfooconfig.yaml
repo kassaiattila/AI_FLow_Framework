@@ -1,0 +1,130 @@
+# Promptfoo evaluation config for Process Documentation
+# Run: npx promptfoo eval -c skills/process_documentation/tests/promptfooconfig.yaml
+# View: npx promptfoo view
+
+description: "Process Documentation - natural language to BPMN/Mermaid diagram"
+
+providers:
+  - id: openai:gpt-4o-mini
+    label: "gpt-4o-mini (process extractor)"
+    config:
+      temperature: 0
+
+prompts:
+  - label: "process_extractor_and_mermaid"
+    raw: |
+      You are a business process analyst. Convert the following process description
+      into a Mermaid flowchart diagram.
+
+      Rules:
+      1. Use "flowchart TD" (top-down) syntax.
+      2. Use appropriate shapes: ([...]) for start/end, [...] for tasks, {...} for decisions.
+      3. Label all edges, especially from decision nodes (Yes/No or Igen/Nem).
+      4. Include ALL steps from the description — do not skip any.
+      5. Output ONLY the Mermaid code, no markdown fences, no explanations.
+
+      Process description:
+      {{process_description}}
+
+tests:
+  # --- Simple linear process ---
+  - vars:
+      process_description: "A vevő leadja a rendelést, az ügyfélszolgálat rögzíti a rendszerben, a raktáros összeállítja a csomagot, a futár kiszállítja, és a vevő átveszi."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: contains-any
+        value: ["rendel", "rögzít", "csomag", "kiszállít", "átvesz"]
+      - type: not-contains
+        value: "```"
+
+  # --- Process with decision ---
+  - vars:
+      process_description: "Az ügyfél benyújtja a kártérítési igényt. A kárszakértő megvizsgálja. Ha a kár fedezett, a biztosító kifizeti. Ha nem fedezett, a biztosító elutasítja és értesíti az ügyfelet."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: contains-any
+        value: ["fedezett", "kifizet", "elutasít", "igen", "nem", "Igen", "Nem", "Yes", "No"]
+      - type: javascript
+        value: "output.includes('{') || output.includes('diamond') || output.includes('?')"
+
+  # --- Parallel / multi-actor ---
+  - vars:
+      process_description: "A HR előkészíti az álláshirdetést. A vezető jóváhagyja. Ezt követően a HR közzéteszi az állást. A jelentkezők beadják a pályázatot. A HR szűri a jelentkezőket, majd a vezető interjúztat. Ha alkalmas, ajánlatot tesz. Ha nem, elutasító levelet küld."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: contains-any
+        value: ["HR", "vezető", "jelentkez", "interjú", "ajánlat"]
+      - type: llm-rubric
+        value: "The diagram should have at least 6 nodes and include a decision point about candidate suitability"
+
+  # --- IT/DevOps process ---
+  - vars:
+      process_description: "A fejlesztő commitol a Git-be. A CI pipeline lefut. Ha sikeres, a build artifact feltöltődik. A staging deploy automatikusan elindul. A tesztelő elfogadja vagy elutasítja. Ha elfogadta, production deploy indul."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: contains-any
+        value: ["commit", "CI", "pipeline", "staging", "production", "deploy"]
+
+  # --- Simple approval workflow ---
+  - vars:
+      process_description: "Az alkalmazott beadja a szabadságkérelmet. A közvetlen felettes jóváhagyja vagy elutasítja. Ha jóváhagyta, a HR rögzíti. Ha elutasította, az alkalmazott értesítést kap."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: contains-any
+        value: ["szabadság", "jóváhagy", "elutasít"]
+
+  # --- Invoice / procurement process ---
+  - vars:
+      process_description: "A beszerzés igénylést kap. Kiválasztja a szállítót. Ajánlatot kér. Ha az ár elfogadható, megrendeli. Ha nem, új szállítót keres. A termék megérkezik, a raktár bevételezi, a pénzügy kifizeti a számlát."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: contains-any
+        value: ["beszerzés", "szállító", "ajánlat", "megrendel", "kifizet"]
+      - type: llm-rubric
+        value: "The flowchart should contain a decision about price acceptability and at least 7 steps"
+
+  # --- English process ---
+  - vars:
+      process_description: "Customer submits a support ticket. Level 1 agent triages it. If it's a known issue, the agent resolves it and closes the ticket. If unknown, it's escalated to Level 2. Level 2 investigates and resolves. Customer receives notification."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: contains-any
+        value: ["ticket", "triage", "Level", "escalat", "resolve"]
+
+  # --- Onboarding process ---
+  - vars:
+      process_description: "Az új munkatárs első napján megkapja a laptopot az IT-től. A HR bemutatja a csapatnak. A mentor kijelölésre kerül. Az első héten részt vesz az orientációs tréningen. A próbaidő végén a vezető értékeli a teljesítményt."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: contains-any
+        value: ["laptop", "IT", "mentor", "tréning", "értékel"]
+
+  # --- Minimal process ---
+  - vars:
+      process_description: "Bejelentkezés, ügyintézés, kijelentkezés."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: llm-rubric
+        value: "Should produce a simple 3-step linear flowchart"
+
+  # --- Complex multi-branch ---
+  - vars:
+      process_description: "Az ügyfél hívja a call centert. Az IVR rendszer irányítja: ha számlázás, a pénzügyi csapat kezeli; ha technikai probléma, a support csapat; ha értékesítés, a sales csapat veszi át. Minden esetben a hívás végén elégedettségi felmérés történik."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: contains-any
+        value: ["IVR", "számlázás", "technikai", "értékesítés", "elégedettség"]
+      - type: llm-rubric
+        value: "Should have at least 3 branches from a central decision/routing point"
+
+outputPath: test_output/promptfoo/process_doc_results.json

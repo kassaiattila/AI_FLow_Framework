@@ -52,7 +52,7 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - 18 pipeline adapter (7 eredeti + 3 Tier 2 + 7 Tier 3 + 1 Tier 4)
 - 24 API router (19 eredeti + pipelines + notifications + data_router + rag_advanced + quality)
 - 6 pipeline templates (v1, v2, kb_update, email_triage, advanced_rag, contract)
-- 332 pipeline unit test, 21 fejlesztesi ciklus (C0-C20, MIND DONE), v1.2.0 COMPLETE
+- 332 pipeline unit test, 51 promptfoo test case (6 skill), 21 fejlesztesi ciklus (C0-C20, MIND DONE), v1.2.0 COMPLETE
 - 6 skills, src/aiflow/ 19 alkonyvtar (+pipeline/ az uj modul)
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/

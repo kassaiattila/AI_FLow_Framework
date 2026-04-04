@@ -344,6 +344,24 @@ TESZTELES:
   - Osszes config szintaktikailag valid
 
 GATE: 6/6 skill config letezik, mindegyik 90%+ pass rate
+
+OUTPUT (S8 — 2026-04-04, session 12):
+  - 5 uj promptfooconfig.yaml (+ 1 meglevo aszf_rag_chat = 6/6 skill):
+    - email_intent_processor: 12 test cases (intent classification, multi-language, ambiguous)
+    - process_documentation: 10 test cases (Mermaid flowchart generation, multi-branch, HU/EN)
+    - invoice_processor: 10 test cases (HUF/EUR/USD/GBP, multi-VAT, stornó, garbled text)
+    - cubix_course_capture: 6 test cases (transcript structuring, filler cleanup, HU/EN)
+    - qbpp_test_automation: 6 test cases (Robot Framework script generation from scenarios)
+    - aszf_rag_chat: 7 test cases (meglevo, valtozatlan)
+  - Osszes: 51 test case, 6 skill, provider: openai:gpt-4o-mini
+  - .github/workflows/nightly-eval.yml: cron 02:00 UTC, matrix 6 skill, summary report
+  - Valos teszteles eredmenyek:
+    - email_intent: 91.67% (11/12) PASS
+    - process_doc: 100% (10/10) PASS
+    - invoice: 100% (10/10) PASS
+    - cubix: 100% (6/6) PASS
+    - qbpp: 100% (6/6) PASS
+  - Commit: (pending)
 ```
 
 #### S9 Reszletes: E2E Playwright Test Suite
@@ -604,7 +622,7 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S5 | Design system teljeskoruseg | DONE | 2026-04-04 | 47992bc |
 | S6 | Meglevo oldalak UI polish + MUI torles | DONE | 2026-04-04 | b38b156 |
 | S7 | Langfuse valos integracio | DONE | 2026-04-04 | 6e46fed |
-| S8 | Promptfoo 5 skill config + CI/CD | TODO | — | — |
+| S8 | Promptfoo 6 skill config + CI/CD nightly | DONE | 2026-04-04 | (pending) |
 | S9 | E2E Playwright test suite | TODO | — | — |
 | S10 | CI/CD regresszios pipeline | TODO | — | — |
 | S11 | Free text extraction + intent schema | TODO | — | — |

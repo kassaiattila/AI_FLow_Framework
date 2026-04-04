@@ -1,0 +1,278 @@
+# Promptfoo evaluation config for Invoice Processor
+# Run: npx promptfoo eval -c skills/invoice_processor/tests/promptfooconfig.yaml
+# View: npx promptfoo view
+
+description: "Invoice Processor - PDF invoice text to structured extraction"
+
+providers:
+  - id: openai:gpt-4o-mini
+    label: "gpt-4o-mini (invoice extractor)"
+    config:
+      temperature: 0
+      response_format:
+        type: json_object
+
+prompts:
+  - label: "invoice_header_extractor"
+    raw: |
+      You are a Hungarian invoice data extractor. Extract structured fields from the invoice text.
+
+      Extract into this EXACT JSON structure (use English field names):
+      {
+        "vendor": {"name": "", "address": "", "tax_number": "", "bank_account": null, "bank_name": null},
+        "buyer": {"name": "", "address": "", "tax_number": null},
+        "header": {
+          "invoice_number": "", "invoice_date": "YYYY-MM-DD", "fulfillment_date": "YYYY-MM-DD",
+          "due_date": "YYYY-MM-DD", "currency": "", "payment_method": "", "invoice_type": "invoice"
+        },
+        "line_items": [
+          {"description": "", "quantity": 0, "unit": "", "unit_price": 0, "net_amount": 0,
+           "vat_rate": 0.27, "vat_amount": 0, "gross_amount": 0}
+        ],
+        "totals": {"net_total": 0, "vat_total": 0, "gross_total": 0},
+        "confidence": 0.95
+      }
+
+      CURRENCY: ALWAYS use ISO 4217 codes: HUF (not Ft), EUR (not €), USD (not $), GBP (not £), CHF.
+      Do NOT default to HUF — detect from symbols in the text.
+      Numbers: Hungarian format uses space for thousands, comma for decimal (1 234 567,89).
+      invoice_type: "invoice", "proforma", "credit_note", "díjbekérő" as appropriate.
+      confidence: Set below 0.5 if text is garbled, illegible, or missing critical fields.
+
+      Respond with valid JSON only.
+
+      Invoice text:
+      {{invoice_text}}
+
+tests:
+  # --- Standard Hungarian invoice (HUF) ---
+  - vars:
+      invoice_text: |
+        SZÁMLA / INVOICE
+        Számlaszám: INV-2024-001234
+        Kiállítás dátuma: 2024.03.15.
+        Teljesítés dátuma: 2024.03.14.
+        Fizetési határidő: 2024.04.14.
+        Fizetés módja: Átutalás
+
+        Szállító:
+        BestIx Kft.
+        1234 Budapest, Példa utca 5.
+        Adószám: 12345678-2-42
+        Bankszámlaszám: 11111111-22222222-33333333
+        Bank neve: OTP Bank
+
+        Vevő:
+        Teszt Zrt.
+        5678 Szeged, Tisza utca 10.
+        Adószám: 87654321-2-06
+
+        Tétel                    Menny.  Egys.  Nettó ár    ÁFA 27%      Bruttó
+        Szoftverfejlesztés       40      óra    15 000 Ft   162 000 Ft   762 000 Ft
+        Konzultáció              8       óra    25 000 Ft   54 000 Ft    254 000 Ft
+
+        Nettó összesen: 800 000 Ft
+        ÁFA (27%): 216 000 Ft
+        Bruttó összesen: 1 016 000 Ft
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).vendor?.name?.includes('BestIx')"
+      - type: javascript
+        value: "JSON.parse(output).vendor?.tax_number === '12345678-2-42'"
+      - type: javascript
+        value: "JSON.parse(output).header?.invoice_number === 'INV-2024-001234'"
+      - type: javascript
+        value: "['HUF','Ft'].includes(JSON.parse(output).header?.currency)"
+      - type: javascript
+        value: "JSON.parse(output).header?.invoice_date === '2024-03-15'"
+
+  # --- EUR invoice ---
+  - vars:
+      invoice_text: |
+        INVOICE
+        Invoice No: EU-2024-0042
+        Date: 2024-02-28
+        Due: 2024-03-30
+        Payment: Wire transfer
+
+        Vendor:
+        CloudTech GmbH
+        Musterstr. 10, 10115 Berlin, Germany
+        VAT: DE123456789
+
+        Buyer:
+        BestIx Kft.
+        1234 Budapest, Példa u. 5.
+        VAT: HU12345678
+
+        Description           Qty   Unit Price   Net        VAT 19%     Gross
+        Cloud hosting          12    €500.00      €6,000.00  €1,140.00   €7,140.00
+        Support plan            1    €200.00      €200.00    €38.00      €238.00
+
+        Net total: €6,200.00
+        VAT (19%): €1,178.00
+        Gross total: €7,378.00
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).header?.currency === 'EUR'"
+      - type: javascript
+        value: "JSON.parse(output).vendor?.name?.includes('CloudTech')"
+      - type: javascript
+        value: "JSON.parse(output).header?.invoice_number === 'EU-2024-0042'"
+
+  # --- Simple one-line invoice ---
+  - vars:
+      invoice_text: |
+        Számla
+        Szám: SZ-2024-99
+        Kelt: 2024.01.10.
+        Teljesítés: 2024.01.10.
+        Fizetési határidő: 2024.01.25.
+        Fizetés módja: Készpénz
+
+        Eladó: Kis Bolt Bt., 9999 Győr, Fő tér 1., Adószám: 11223344-1-08
+        Vevő: Magánszemély
+
+        Tétel: Nyomtatópapír A4 (5 csomag) — 2 500 Ft/db
+        Nettó: 12 500 Ft, ÁFA 27%: 3 375 Ft, Bruttó: 15 875 Ft
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).vendor?.tax_number === '11223344-1-08'"
+      - type: javascript
+        value: "(JSON.parse(output).header?.payment_method || '').toLowerCase().includes('készpénz') || (JSON.parse(output).header?.payment_method || '').toLowerCase().includes('cash')"
+
+  # --- Multi-VAT rate invoice ---
+  - vars:
+      invoice_text: |
+        SZÁMLA
+        Számlaszám: MV-2024-0007
+        Kiállítás: 2024.04.01.
+        Teljesítés: 2024.03.31.
+        Fizetési határidő: 2024.04.30.
+        Fizetés módja: Átutalás
+
+        Szállító: Élelmiszer Kft., 1111 Budapest, Alma u. 1., Adószám: 55667788-2-41
+        Vevő: Étterem Zrt., 2222 Debrecen, Dob u. 3., Adószám: 99887766-2-09
+
+        Tétel                    Menny.  Egys.  Nettó     ÁFA kulcs  ÁFA        Bruttó
+        Friss kenyér             100     db     200 Ft    5%         1 000 Ft   21 000 Ft
+        Tej 2.8%                 50      liter  300 Ft    18%        2 700 Ft   17 700 Ft
+        Tisztítószer             20      db     1 500 Ft  27%        8 100 Ft   38 100 Ft
+
+        Nettó összesen: 45 000 Ft
+        ÁFA összesen: 11 800 Ft
+        Bruttó összesen: 76 800 Ft
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "(JSON.parse(output).line_items || []).length >= 3"
+      - type: llm-rubric
+        value: "The extraction should correctly identify 3 different VAT rates (5%, 18%, 27%) across the line items"
+
+  # --- USD invoice ---
+  - vars:
+      invoice_text: |
+        INVOICE #US-2024-0101
+        Date: 03/15/2024
+        Due: 04/15/2024
+        Payment: Credit card
+
+        From: Acme Corp, 123 Main St, New York, NY 10001
+        To: BestIx Kft., Budapest, Hungary
+
+        SaaS License (annual)    1x   $12,000.00
+        Implementation fee       1x   $3,000.00
+
+        Subtotal: $15,000.00
+        Tax (0%): $0.00
+        Total: $15,000.00
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).header?.currency === 'USD'"
+      - type: javascript
+        value: "JSON.parse(output).vendor?.name?.includes('Acme')"
+
+  # --- Proforma / díjbekérő ---
+  - vars:
+      invoice_text: |
+        DÍJBEKÉRŐ
+        Szám: DB-2024-0055
+        Kelt: 2024.05.01.
+        Fizetési határidő: 2024.05.15.
+
+        Szállító: Webes Megoldások Kft., 3333 Eger, Web u. 7., Adószám: 33445566-2-10
+        Vevő: Minta Bt., 4444 Miskolc, Teszt u. 2.
+
+        Webfejlesztés - landing page    1 db    250 000 Ft
+        ÁFA 27%: 67 500 Ft
+        Bruttó: 317 500 Ft
+    assert:
+      - type: is-json
+      - type: llm-rubric
+        value: "The invoice_type field should indicate this is a proforma invoice or díjbekérő, not a regular invoice"
+
+  # --- Minimal data extraction ---
+  - vars:
+      invoice_text: |
+        Szla.szám: X-001
+        Kelt: 2024.06.01.
+        Eladó: ABC Kft. (adószám: 11111111-1-11)
+        Vevő: XYZ Bt.
+        Összeg: 100 000 Ft + ÁFA = 127 000 Ft
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).vendor?.tax_number === '11111111-1-11'"
+      - type: javascript
+        value: "['HUF','Ft'].includes(JSON.parse(output).header?.currency)"
+
+  # --- Credit note (stornó) ---
+  - vars:
+      invoice_text: |
+        STORNÓ SZÁMLA
+        Számlaszám: ST-2024-001 (eredeti: INV-2024-001234)
+        Kiállítás: 2024.04.01.
+
+        Szállító: BestIx Kft., 1234 Budapest, Példa u. 5., Adószám: 12345678-2-42
+        Vevő: Teszt Zrt., 5678 Szeged, Tisza u. 10.
+
+        Szoftverfejlesztés   -40 óra   15 000 Ft   -600 000 Ft
+        ÁFA 27%: -162 000 Ft
+        Bruttó: -762 000 Ft
+    assert:
+      - type: is-json
+      - type: llm-rubric
+        value: "The invoice_type should indicate this is a credit note or stornó (reversal), not a regular invoice"
+
+  # --- Confidence test: garbled text ---
+  - vars:
+      invoice_text: |
+        Sz..mla ##2024
+        Kel!: 2024 marc 15
+        Elado: ??? Kft
+        Osszeg: kb 50000 ft
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).confidence < 0.8"
+
+  # --- GBP invoice ---
+  - vars:
+      invoice_text: |
+        INVOICE INV-UK-001
+        Date: 15 March 2024
+        Vendor: London Services Ltd, 10 Baker St, London
+        Buyer: BestIx Kft, Budapest
+        Consulting (10 hours) £150/hr = £1,500.00
+        VAT 20%: £300.00
+        Total: £1,800.00
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).header?.currency === 'GBP'"
+
+outputPath: test_output/promptfoo/invoice_results.json
