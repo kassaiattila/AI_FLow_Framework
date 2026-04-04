@@ -580,8 +580,8 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | Ciklus | Tartalom | Allapot | Datum | Commit |
 |--------|----------|---------|-------|--------|
 | S1 | Chat UI integracio | DONE | 2026-04-04 | 1dff737 |
-| S2 | In-app notifications | DONE | 2026-04-04 | (pending) |
-| S3 | Quality dashboard UI (7 HARD GATE) | TODO | — | — |
+| S2 | In-app notifications | DONE | 2026-04-04 | 65fc403 |
+| S3 | Quality dashboard UI (7 HARD GATE) | DONE | 2026-04-04 | (pending) |
 | S4 | Service Catalog + Pipeline integracio | TODO | — | — |
 | S5 | Design system teljeskoruseg | TODO | — | — |
 | S6 | Meglevo oldalak UI polish + MUI torles | TODO | — | — |

@@ -27,6 +27,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { path: "/runs", labelKey: "aiflow.resources.runs", icon: "play" },
       { path: "/costs", labelKey: "aiflow.costs.title", icon: "dollar" },
       { path: "/monitoring", labelKey: "aiflow.monitoring.title", icon: "heart" },
+      { path: "/quality", labelKey: "aiflow.quality.title", icon: "star" },
     ],
   },
   {

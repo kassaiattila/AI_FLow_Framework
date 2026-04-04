@@ -269,6 +269,26 @@
       "assistant": "AI Asszisztens",
       "scrollToBottom": "Gorgetese lefele"
     },
+    "quality": {
+      "title": "Minoseg",
+      "subtitle": "LLM minoseg monitorozas, rubric ertekeles es koltseg kovetes.",
+      "totalEvals": "Osszes ertekeles",
+      "avgScore": "Atlag pontszam",
+      "passRate": "Sikeresseg",
+      "costToday": "Mai koltseg",
+      "costMonth": "Havi koltseg",
+      "rubrics": "Rubric-ok",
+      "rubricName": "Nev",
+      "rubricDesc": "Leiras",
+      "evaluate": "Ertekelese",
+      "actualOutput": "Valos kimenet",
+      "expectedOutput": "Elvart kimenet",
+      "selectRubric": "Rubric valasztas",
+      "score": "Pontszam",
+      "pass": "Sikeres",
+      "fail": "Sikertelen",
+      "reasoning": "Indoklas"
+    },
     "notifications": {
       "title": "Ertesitesek",
       "markAllRead": "Osszes olvasott",

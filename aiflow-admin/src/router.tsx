@@ -28,6 +28,7 @@ import { Verification } from "./pages-new/Verification";
 import { DocumentDetail } from "./pages-new/DocumentDetail";
 import { Pipelines } from "./pages-new/Pipelines";
 import { PipelineDetail } from "./pages-new/PipelineDetail";
+import { Quality } from "./pages-new/Quality";
 
 // --- Legacy MUI (to be migrated in future) ---
 import { CubixViewer } from "./pages/CubixViewer";
@@ -65,6 +66,7 @@ export const router = createHashRouter([
       { path: "runs", element: <RunsNew /> },
       { path: "costs", element: <CostsNew /> },
       { path: "monitoring", element: <MonitoringNew /> },
+      { path: "quality", element: <Quality /> },
 
       // Data
       { path: "documents", element: <DocumentsNew /> },

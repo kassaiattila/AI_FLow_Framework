@@ -269,6 +269,26 @@
       "assistant": "AI Assistant",
       "scrollToBottom": "Scroll to bottom"
     },
+    "quality": {
+      "title": "Quality",
+      "subtitle": "LLM quality monitoring, rubric evaluation, and cost tracking.",
+      "totalEvals": "Total Evaluations",
+      "avgScore": "Avg Score",
+      "passRate": "Pass Rate",
+      "costToday": "Cost Today",
+      "costMonth": "Cost This Month",
+      "rubrics": "Rubrics",
+      "rubricName": "Name",
+      "rubricDesc": "Description",
+      "evaluate": "Evaluate",
+      "actualOutput": "Actual Output",
+      "expectedOutput": "Expected Output",
+      "selectRubric": "Select Rubric",
+      "score": "Score",
+      "pass": "Pass",
+      "fail": "Fail",
+      "reasoning": "Reasoning"
+    },
     "notifications": {
       "title": "Notifications",
       "markAllRead": "Mark all read",

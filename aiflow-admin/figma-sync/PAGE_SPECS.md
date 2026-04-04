@@ -31,6 +31,7 @@
 | Admin | `11659:111584` | `11659:111585` | AIFlow Admin — Desktop 1440px |
 | Pipelines | `11662:113170` | `11693:283232` | 16 — Pipelines |
 | Pipeline Detail | `11662:113170` | `11693:283233` | 17 — Pipeline Detail |
+| Quality | `11662:113170` | `11700:283294` | 18 — Quality |
 
 ---
 
@@ -1169,3 +1170,53 @@ Sidebar + Main:
 - `pipelineDetail.noRuns`: "No runs yet" / "Még nincs futtatás"
 - `pipelineDetail.dependsOn`: "depends on" / "függ"
 - `pipelineDetail.copyYaml`: "Copy YAML" / "YAML másolás"
+
+---
+
+## Page 18: Quality Dashboard (/quality) — S3
+
+**Phase:** S3 (v1.2.1 Production Ready Sprint)
+**Figma Frame:** `11700:283294` (18 — Quality)
+**Layout:** KPI cards row + two-column body (Rubrics table + Evaluate form)
+**Data Source:** `GET /api/v1/quality/overview`, `GET /api/v1/quality/rubrics`, `POST /api/v1/quality/evaluate`
+
+**Header:**
+- Title: "Quality Dashboard" (i18n: `aiflow.quality.title`)
+- Subtitle: "LLM quality monitoring, rubric evaluation, and cost tracking."
+- Backend badge (top-right)
+
+**KPI Cards (5):**
+
+| Card | API Field | Format | i18n Key |
+|------|-----------|--------|----------|
+| Total Evaluations | `total_evaluations` | integer | `aiflow.quality.totalEvals` |
+| Avg Score | `avg_score` | percentage | `aiflow.quality.avgScore` |
+| Pass Rate | `pass_rate` | percentage (green) | `aiflow.quality.passRate` |
+| Cost Today | `cost_today` | USD | `aiflow.quality.costToday` |
+| Cost This Month | `cost_month` | USD | `aiflow.quality.costMonth` |
+
+**Rubrics Table (DataTable):**
+
+| Column | Source | i18n Key |
+|--------|--------|----------|
+| Name | rubric key | `aiflow.quality.rubricName` |
+| Description | rubric value | `aiflow.quality.rubricDesc` |
+
+**Evaluate Form:**
+- Rubric select (dropdown from /rubrics list)
+- Actual output (textarea, required)
+- Expected output (textarea, optional)
+- "Evaluate" button (brand color) → POST /api/v1/quality/evaluate
+- Result display: Score (0-100%), Pass/Fail badge, Reasoning text
+
+**States:**
+- Loading: Spinner centered
+- Error: Alert with retry button
+- Empty: "No evaluations yet" message
+
+**i18n Keys (quality.* namespace):**
+- `quality.title`, `quality.subtitle`, `quality.totalEvals`, `quality.avgScore`
+- `quality.passRate`, `quality.costToday`, `quality.costMonth`
+- `quality.rubrics`, `quality.rubricName`, `quality.rubricDesc`
+- `quality.evaluate`, `quality.actualOutput`, `quality.expectedOutput`
+- `quality.selectRubric`, `quality.score`, `quality.pass`, `quality.fail`, `quality.reasoning`
