@@ -14,10 +14,11 @@ de a kovetkezo tersegek **nem keszek produkciohoz:**
 | Kategoria | Problema | Hatas |
 |-----------|---------|-------|
 | **UI integracio** | ChatMarkdown megvan de nem bekotott, Quality oldal nincs, in-app notifications UI nincs | Felhasznalok nem latjak az eredmenyeket |
+| **Szolgaltatas-pipeline egysegesites** | Meglevo szolgaltatasok (Documents, Emails, RAG) es az uj pipeline rendszer KULON elnek — nincs unified workflow | Felhasznalo nem latja az osszefuggest |
 | **Observability** | Langfuse 100% stub, rubric scores nem logolva | Koltseg es minoseg nem kovetheto |
 | **Quality assurance** | 5/6 skill Promptfoo config hianyzik, E2E tesztek uresek | Minoseg nem merheto, regresszio nem detektalhato |
 | **Hianyzo funkciok** | Free text extraction, SLA eszkalacio, intent schema CRUD | Use case-ek nem teljesek |
-| **Design rendszer** | Design tokens nem hasznalva, nem minden oldal migralva | Inkonzisztens UI |
+| **Design rendszer** | Design tokens nem hasznalva, CubixViewer meg MUI, regi components/ mappa | Inkonzisztens UI |
 
 ---
 
@@ -55,16 +56,22 @@ main (v1.2.0 — stabil)
 
 ---
 
-## 3. Vegrehajtasi Sorrend (12 ciklus, ~6-8 session)
+## 3. Vegrehajtasi Sorrend (14 ciklus, ~7-9 session)
 
-### Tier A: UI Integracio & Polish (S1-S4)
+### Tier A: UI Integracio & Unified Experience (S1-S6)
+
+> **Alapelv:** A meglevo szolgaltatasok (Documents, Emails, RAG, ProcessDocs, Media, RPA, Reviews)
+> es az uj pipeline rendszer **EGYSEGES felhasznaloi elmeny**-kent kell mukodjenek.
+> Nem elegendo az oldalakat kulon-kulon szeppiteni — az egesz alkalmazas EGYBEN kell mukodjon.
 
 | Ciklus | Tartalom | Teszt | Becsult meret |
 |--------|----------|-------|---------------|
 | **S1** | Chat UI integracio: ChatMarkdown → ChatPanel, virtual scroll | Playwright: markdown render, code block, copy | ~200 loc |
 | **S2** | In-app notifications: API endpoints + TopBar bell icon + dropdown | curl + Playwright: bell, unread count, mark read | ~400 loc |
-| **S3** | Quality dashboard UI: /quality oldal + router + sidebar | Playwright: KPI cards, rubric list, cost chart | ~350 loc |
-| **S4** | Design system teljeskoruseg: tokens → Tailwind config, komponens audit | tsc + vizualis audit, dark mode | ~300 loc |
+| **S3** | Quality dashboard UI: /quality oldal + router + sidebar (7 HARD GATE!) | Playwright: KPI cards, rubric list, cost chart | ~350 loc |
+| **S4** | Service Catalog + Pipeline integracio a meglevo oldalakra | Playwright: catalog nezet, "Run as Pipeline" gombok | ~500 loc |
+| **S5** | Design system teljeskoruseg: tokens → Tailwind, CubixViewer Untitled UI migracio | tsc + vizualis audit, dark mode | ~400 loc |
+| **S6** | Meglevo oldalak UI polish: loading/error/empty allapotok, regi MUI components torles | Playwright: MINDEN oldal, 0 console error | ~500 loc |
 
 #### S1 Reszletes: Chat UI Integracio
 ```
@@ -134,7 +141,46 @@ TESZTELES:
 GATE: 7 HARD GATE MIND PASS
 ```
 
-#### S4 Reszletes: Design System Teljeskoruseg
+#### S4 Reszletes: Service Catalog + Pipeline Integracio
+```
+ELOFELTETEL: 7 HARD GATE (uj oldal!)
+  GATE 1: /ui-journey → 01_PLAN/SERVICE_CATALOG_JOURNEY.md
+
+CEL: A felhasznalo EGY helyrol lassa az osszes szolgaltatast, azok allapotat,
+     es egy kattintassal indithasson pipeline-t vagy hasznalhasson funkciokat.
+
+FEJLESZTES:
+  a) ServiceCatalog.tsx oldal (uj):
+     - 26 service kartya (ServiceManagerService.list_services() -bol)
+     - Kartya tartalma: nev, leiras, statusz badge, adapter(ek) lista
+     - Szures: has_adapter=true/false, search by name
+     - "Run Pipeline" gomb → navigate to /pipelines (szurt template-ekkel)
+     - "View Details" → service detail modal (metrikak, pipeline history)
+
+  b) Meglevo oldalak bovitese "Pipeline Integration" szekcio-val:
+     - Documents.tsx: "Automate with Pipeline" gomb → invoice_automation_v2
+     - Emails.tsx: "Setup Email Triage" gomb → email_triage template
+     - RagChat.tsx: "Advanced Ingest" gomb → advanced_rag_ingest template
+     - ProcessDocs.tsx: "Batch Process" gomb → pipeline template valaszto
+
+  c) Pipeline run status widget (ujrahasznalhato):
+     - PipelineRunBadge.tsx: utolso pipeline run statusz megjelenites
+     - Hasznalva: Documents, Emails, RAG oldalakon — "Last pipeline run: 2h ago, OK"
+
+  d) Router + Sidebar frissites:
+     - /services → ServiceCatalog oldal
+     - Sidebar: "Services" menu item (uj, AI Services csoport ala)
+
+TESZTELES:
+  - curl /api/v1/services/manager → 26 service, source=backend
+  - Playwright: /services betolt, kartyak megjelennek
+  - Playwright: Documents → "Automate with Pipeline" → navigal /pipelines-ra
+  - Playwright: ServiceCatalog search szurese mukodik
+
+GATE: catalog oldal betolt, pipeline gombok navigalnak, 0 console error
+```
+
+#### S5 Reszletes: Design System Teljeskoruseg
 ```
 FEJLESZTES:
   a) tailwind.config.ts: design tokens mapping
@@ -174,16 +220,52 @@ GATE: konzisztens design, dark mode mukodik, 0 accessibility hiba
 
 ---
 
-### Tier B: Quality & Observability (S5-S8)
+#### S6 Reszletes: Meglevo Oldalak UI Polish
+```
+CEL: MINDEN meglevo oldal egyseges felhasznaloi elmeny — loading, error, empty state,
+     i18n, dark mode, responsive. Regi components/ MUI mappa torles.
+
+FEJLESZTES:
+  a) CubixViewer.tsx: MUI → Untitled UI + Tailwind teljes ujrairas
+     - LegacyPage wrapper eltavolitas
+     - DataTable hasznalata, fetchApi, useTranslate
+  b) MINDEN pages-new/*.tsx oldalon (20 oldal):
+     - [ ] Loading: Skeleton komponens amig adat toltodik
+     - [ ] Error: error message + retry gomb
+     - [ ] Empty: ertelmes uzenet ("Nincs megjelenitendo adat")
+     - [ ] i18n: MINDEN string translate()-vel (hardcoded keresese grep-pel)
+     - [ ] Dark mode: MINDEN szin dark: prefix
+  c) components/ (regi MUI) mappa torles:
+     - Ellenorizd: van-e meg aktiv import valahol?
+     - Ha nincs → torold a teljes mappat
+     - Ha van → migralj Untitled UI + Tailwind-re
+  d) Custom komponensek (hianyzok):
+     - JsonViewer.tsx: collapsible JSON fa nezet
+     - KeyValueList.tsx: key-value par lista
+     - PipelineYamlEditor.tsx: textarea + YAML syntax highlight
+
+TESZTELES:
+  - Playwright: MINDEN oldal (20 route) betolt, 0 console error
+  - Playwright: dark mode toggle → MINDEN szin valtozik
+  - Playwright: 375px viewport → responsive
+  - tsc --noEmit: 0 error
+  - grep "@mui" aiflow-admin/src/ → 0 talalat!
+
+GATE: 0 MUI import, 0 console error, 20/20 oldal PASS
+```
+
+---
+
+### Tier B: Quality & Observability (S7-S10)
 
 | Ciklus | Tartalom | Teszt | Becsult meret |
 |--------|----------|-------|---------------|
-| **S5** | Langfuse valos integracio: tracing decorator, pipeline cost log | Valos Langfuse dashboard | ~300 loc |
-| **S6** | Promptfoo 5 skill config + CI/CD nightly job | npx promptfoo eval → 90%+ | ~500 loc (YAML) |
-| **S7** | E2E Playwright test suite: 10+ oldal, reusable Page Objects | pytest-playwright PASS | ~800 loc |
-| **S8** | Regresszios automatizacio: L2 API + L3 UI + GitHub Actions nightly | CI/CD pipeline PASS | ~400 loc |
+| **S7** | Langfuse valos integracio: tracing decorator, pipeline cost log | Valos Langfuse dashboard | ~300 loc |
+| **S8** | Promptfoo 5 skill config + CI/CD nightly job | npx promptfoo eval → 90%+ | ~500 loc (YAML) |
+| **S9** | E2E Playwright test suite: 10+ oldal, reusable Page Objects | pytest-playwright PASS | ~800 loc |
+| **S10** | Regresszios automatizacio: L2 API + L3 UI + GitHub Actions nightly | CI/CD pipeline PASS | ~400 loc |
 
-#### S5 Reszletes: Langfuse Valos Integracio
+#### S7 Reszletes: Langfuse Valos Integracio
 ```
 FEJLESZTES:
   a) src/aiflow/observability/tracing.py: replace stubs with real Langfuse client
@@ -213,7 +295,7 @@ GATE: valos trace a Langfuse UI-ban, koltseg lathato, 0 hiba
 MEGJEGYZES: Ha Langfuse account nincs → stub marad de LOGOL structlog-ba
 ```
 
-#### S6 Reszletes: Promptfoo 5 Skill Config
+#### S8 Reszletes: Promptfoo 5 Skill Config
 ```
 FEJLESZTES:
   a) skills/email_intent_processor/tests/promptfooconfig.yaml
@@ -246,7 +328,7 @@ TESZTELES:
 GATE: 6/6 skill config letezik, mindegyik 90%+ pass rate
 ```
 
-#### S7 Reszletes: E2E Playwright Test Suite
+#### S9 Reszletes: E2E Playwright Test Suite
 ```
 FEJLESZTES:
   a) tests/e2e/conftest.py: Playwright fixtures (browser, page, auth)
@@ -274,7 +356,7 @@ TESZTELES:
 GATE: 10+ E2E teszt PASS, 0 console error, osszes fo oldal tesztelve
 ```
 
-#### S8 Reszletes: CI/CD Regresszios Pipeline
+#### S10 Reszletes: CI/CD Regresszios Pipeline
 ```
 FEJLESZTES:
   a) .github/workflows/ci.yml (fo CI pipeline):
@@ -314,14 +396,14 @@ GATE: CI/CD YAML-ok leteznek es szintaktikailag helyesek
 
 ---
 
-### Tier C: Hianyzo Funkciok (S9-S10)
+### Tier C: Hianyzo Funkciok (S11-S12)
 
 | Ciklus | Tartalom | Teszt | Becsult meret |
 |--------|----------|-------|---------------|
-| **S9** | Free text extraction + intent schema CRUD API | curl: extract → result, schema CRUD | ~400 loc |
-| **S10** | SLA eszkalacio (APScheduler) + pre-execution cost estimation | Integration: SLA trigger, cost estimate | ~350 loc |
+| **S11** | Free text extraction + intent schema CRUD API | curl: extract → result, schema CRUD | ~400 loc |
+| **S12** | SLA eszkalacio (APScheduler) + pre-execution cost estimation | Integration: SLA trigger, cost estimate | ~350 loc |
 
-#### S9 Reszletes: Free Text Extraction + Intent Schema
+#### S11 Reszletes: Free Text Extraction + Intent Schema
 ```
 FEJLESZTES:
   a) src/aiflow/services/document_extractor/free_text.py:
@@ -347,7 +429,7 @@ TESZTELES:
 GATE: valos extrakcio mukodik, CRUD endpointok 200 OK
 ```
 
-#### S10 Reszletes: SLA Eszkalacio + Cost Estimation
+#### S12 Reszletes: SLA Eszkalacio + Cost Estimation
 ```
 FEJLESZTES:
   a) src/aiflow/services/human_review/service.py bovites:
@@ -374,14 +456,14 @@ GATE: SLA eszkalacio mukodik, cost estimation +-20% pontos
 
 ---
 
-### Tier D: Veglegesites & Teljeskoruseg (S11-S12)
+### Tier D: Veglegesites (S13-S14)
 
 | Ciklus | Tartalom | Teszt | Becsult meret |
 |--------|----------|-------|---------------|
-| **S11** | UI teljeskoruseg: MUI→Untitled UI migracio MINDEN oldalon | Playwright: minden oldal renderel, dark mode | ~600 loc |
-| **S12** | Vegleges polish: PWA teszt, accessibility audit, dokumentacio, v1.2.1 tag | Teljes L4 regresszio | ~300 loc |
+| **S13** | Integralt E2E teszteles: teljes user journey-k vegig tesztelese | Playwright: 5+ full journey PASS | ~500 loc |
+| **S14** | Vegleges polish: PWA teszt, accessibility audit, dokumentacio, v1.2.1 tag | Teljes L4 regresszio | ~300 loc |
 
-#### S11 Reszletes: UI Teljeskoruseg
+#### S13 Reszletes: Integralt E2E Teszteles
 ```
 FEJLESZTES:
   a) Megmaradt MUI referenciák eltavolitasa:
@@ -411,7 +493,7 @@ TESZTELES:
 GATE: 0 MUI import, 0 console error, dark mode PASS, responsive PASS
 ```
 
-#### S12 Reszletes: Vegleges Polish + v1.2.1 Tag
+#### S14 Reszletes: Vegleges Polish + v1.2.1 Tag
 ```
 FEJLESZTES:
   a) PWA teszteles:
@@ -482,12 +564,12 @@ GATE: MINDEN teszt PASS, PWA installable, v1.2.1 tag
 ## 6. Idovonal
 
 ```
-S1-S4:   UI & Integracio ──────── 2 session
-S5-S8:   Quality & Observability ─ 2-3 session
-S9-S10:  Hianyzo funkciok ──────── 1 session
-S11-S12: Veglegesites ──────────── 1-2 session
-                                   ──────────
-                                   ~6-8 session osszesen
+S1-S6:   UI & Unified Experience ─── 3 session
+S7-S10:  Quality & Observability ─── 2-3 session
+S11-S12: Hianyzo funkciok ────────── 1 session
+S13-S14: Veglegesites ────────────── 1-2 session
+                                     ──────────
+                                     ~7-9 session osszesen
 ```
 
 ---
@@ -500,13 +582,15 @@ S11-S12: Veglegesites ──────────── 1-2 session
 |--------|----------|---------|-------|--------|
 | S1 | Chat UI integracio | TODO | — | — |
 | S2 | In-app notifications | TODO | — | — |
-| S3 | Quality dashboard UI | TODO | — | — |
-| S4 | Design system teljeskoruseg | TODO | — | — |
-| S5 | Langfuse valos integracio | TODO | — | — |
-| S6 | Promptfoo 5 skill config | TODO | — | — |
-| S7 | E2E Playwright test suite | TODO | — | — |
-| S8 | CI/CD regresszios pipeline | TODO | — | — |
-| S9 | Free text extraction + intent schema | TODO | — | — |
-| S10 | SLA eszkalacio + cost estimation | TODO | — | — |
-| S11 | UI teljeskoruseg | TODO | — | — |
-| S12 | Vegleges polish + v1.2.1 tag | TODO | — | — |
+| S3 | Quality dashboard UI (7 HARD GATE) | TODO | — | — |
+| S4 | Service Catalog + Pipeline integracio | TODO | — | — |
+| S5 | Design system teljeskoruseg | TODO | — | — |
+| S6 | Meglevo oldalak UI polish + MUI torles | TODO | — | — |
+| S7 | Langfuse valos integracio | TODO | — | — |
+| S8 | Promptfoo 5 skill config + CI/CD | TODO | — | — |
+| S9 | E2E Playwright test suite | TODO | — | — |
+| S10 | CI/CD regresszios pipeline | TODO | — | — |
+| S11 | Free text extraction + intent schema | TODO | — | — |
+| S12 | SLA eszkalacio + cost estimation | TODO | — | — |
+| S13 | Integralt E2E teszteles | TODO | — | — |
+| S14 | Vegleges polish + v1.2.1 tag | TODO | — | — |
