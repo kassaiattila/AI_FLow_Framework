@@ -30,9 +30,7 @@ import { Pipelines } from "./pages-new/Pipelines";
 import { PipelineDetail } from "./pages-new/PipelineDetail";
 import { Quality } from "./pages-new/Quality";
 import { Services } from "./pages-new/Services";
-
-// --- Legacy MUI (to be migrated in future) ---
-import { CubixViewer } from "./pages/CubixViewer";
+import { Cubix } from "./pages-new/Cubix";
 
 /** Auth guard */
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -40,11 +38,6 @@ function RequireAuth({ children }: { children: ReactNode }) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
-}
-
-/** Legacy wrapper for remaining MUI pages */
-function LegacyPage({ children }: { children: ReactNode }) {
-  return <div className="legacy-mui-wrapper">{children}</div>;
 }
 
 export const router = createHashRouter([
@@ -88,7 +81,7 @@ export const router = createHashRouter([
       { path: "media", element: <MediaNew /> },
       { path: "rpa", element: <RpaNew /> },
       { path: "reviews", element: <ReviewsNew /> },
-      { path: "cubix", element: <LegacyPage><CubixViewer /></LegacyPage> },
+      { path: "cubix", element: <Cubix /> },
 
       // Orchestration (v1.2.0)
       { path: "services", element: <Services /> },
