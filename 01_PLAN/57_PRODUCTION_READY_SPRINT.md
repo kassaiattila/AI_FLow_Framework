@@ -584,7 +584,7 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S3 | Quality dashboard UI (7 HARD GATE) | DONE | 2026-04-04 | 788c1e5 |
 | S4 | Service Catalog + Pipeline integracio | DONE | 2026-04-04 | 238ee7f |
 | S5 | Design system teljeskoruseg | DONE | 2026-04-04 | 47992bc |
-| S6 | Meglevo oldalak UI polish + MUI torles | DONE | 2026-04-04 | (pending) |
+| S6 | Meglevo oldalak UI polish + MUI torles | DONE | 2026-04-04 | b38b156 |
 | S7 | Langfuse valos integracio | TODO | — | — |
 | S8 | Promptfoo 5 skill config + CI/CD | TODO | — | — |
 | S9 | E2E Playwright test suite | TODO | — | — |
