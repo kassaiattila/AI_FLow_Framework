@@ -1,0 +1,126 @@
+/*
+ * AIFlow Design Tokens
+ * Centralized CSS custom properties for spacing, radius, shadows,
+ * typography, colors, and animation durations.
+ *
+ * Usage: var(--aiflow-spacing-md), var(--aiflow-radius-lg), etc.
+ * Import this file in globals.css.
+ */
+
+:root {
+  /* ----------------------------------------------------------------
+   * Spacing scale (px-based, Tailwind-compatible)
+   * ---------------------------------------------------------------- */
+  --aiflow-spacing-0: 0px;
+  --aiflow-spacing-xs: 4px;
+  --aiflow-spacing-sm: 8px;
+  --aiflow-spacing-md: 16px;
+  --aiflow-spacing-lg: 24px;
+  --aiflow-spacing-xl: 32px;
+  --aiflow-spacing-2xl: 48px;
+  --aiflow-spacing-3xl: 64px;
+
+  /* ----------------------------------------------------------------
+   * Border radius
+   * ---------------------------------------------------------------- */
+  --aiflow-radius-none: 0px;
+  --aiflow-radius-sm: 4px;
+  --aiflow-radius-md: 8px;
+  --aiflow-radius-lg: 12px;
+  --aiflow-radius-xl: 16px;
+  --aiflow-radius-full: 9999px;
+
+  /* ----------------------------------------------------------------
+   * Shadows (elevation levels)
+   * ---------------------------------------------------------------- */
+  --aiflow-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --aiflow-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1),
+    0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --aiflow-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --aiflow-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --aiflow-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* ----------------------------------------------------------------
+   * Typography
+   * ---------------------------------------------------------------- */
+  --aiflow-font-body: "Inter", ui-sans-serif, system-ui, -apple-system,
+    sans-serif;
+  --aiflow-font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code",
+    monospace;
+  --aiflow-font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --aiflow-text-xs: 0.75rem;    /* 12px */
+  --aiflow-text-sm: 0.875rem;   /* 14px */
+  --aiflow-text-base: 1rem;     /* 16px */
+  --aiflow-text-lg: 1.125rem;   /* 18px */
+  --aiflow-text-xl: 1.25rem;    /* 20px */
+  --aiflow-text-2xl: 1.5rem;    /* 24px */
+  --aiflow-text-3xl: 1.875rem;  /* 30px */
+
+  --aiflow-leading-tight: 1.25;
+  --aiflow-leading-normal: 1.5;
+  --aiflow-leading-relaxed: 1.625;
+
+  /* ----------------------------------------------------------------
+   * Brand colors
+   * ---------------------------------------------------------------- */
+  --aiflow-brand-50: #eef2ff;
+  --aiflow-brand-100: #e0e7ff;
+  --aiflow-brand-200: #c7d2fe;
+  --aiflow-brand-300: #a5b4fc;
+  --aiflow-brand-400: #818cf8;
+  --aiflow-brand-500: #6366f1;
+  --aiflow-brand-600: #4f46e5;
+  --aiflow-brand-700: #4338ca;
+  --aiflow-brand-800: #3730a3;
+  --aiflow-brand-900: #312e81;
+
+  /* ----------------------------------------------------------------
+   * Semantic colors
+   * ---------------------------------------------------------------- */
+  --aiflow-success: #16a34a;
+  --aiflow-warning: #ca8a04;
+  --aiflow-error: #dc2626;
+  --aiflow-info: #2563eb;
+
+  /* ----------------------------------------------------------------
+   * Animation durations
+   * ---------------------------------------------------------------- */
+  --aiflow-duration-fast: 100ms;
+  --aiflow-duration-normal: 200ms;
+  --aiflow-duration-slow: 300ms;
+  --aiflow-duration-slower: 500ms;
+
+  /* ----------------------------------------------------------------
+   * Z-index scale
+   * ---------------------------------------------------------------- */
+  --aiflow-z-dropdown: 10;
+  --aiflow-z-sticky: 20;
+  --aiflow-z-overlay: 30;
+  --aiflow-z-modal: 40;
+  --aiflow-z-toast: 50;
+
+  /* ----------------------------------------------------------------
+   * Sidebar / layout
+   * ---------------------------------------------------------------- */
+  --aiflow-sidebar-width: 256px;
+  --aiflow-sidebar-collapsed: 64px;
+  --aiflow-topbar-height: 56px;
+  --aiflow-content-max-width: 1280px;
+}
+
+/* Dark mode overrides */
+:root:where(.dark, .dark *) {
+  --aiflow-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+  --aiflow-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3),
+    0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --aiflow-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3),
+    0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --aiflow-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3),
+    0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --aiflow-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.3),
+    0 8px 10px -6px rgb(0 0 0 / 0.3);
+}

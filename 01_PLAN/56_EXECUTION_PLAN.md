@@ -319,10 +319,10 @@ Minden ciklus vegén frissitjuk:
 | C14 | P7F VectorOps | DONE | 2026-04-04 | 1257560 → v1.2.0-rc2 (squash) |
 | C15 | P7G Parser Factory | DONE | 2026-04-04 | 1257560 → v1.2.0-rc2 (squash) |
 | C16 | P7E GraphRAG | DONE | 2026-04-04 | 1257560 → v1.2.0-rc2 (squash) |
-| C17 | LLM Quality | TODO | — | — |
-| C18 | Chat UI | TODO | — | — |
-| C19 | Pipeline Templates | TODO | — | — |
-| C20 | UI Components+PWA | TODO | — | — |
+| C17 | LLM Quality | DONE | 2026-04-04 | 9208c32 → v1.2.0 (squash) |
+| C18 | Chat UI | DONE | 2026-04-04 | 9208c32 → v1.2.0 (squash) |
+| C19 | Pipeline Templates | DONE | 2026-04-04 | 9208c32 → v1.2.0 (squash) |
+| C20 | UI Components+PWA | DONE | 2026-04-04 | 9208c32 → v1.2.0 (squash) |
 
 ### C0 Output (2026-04-03):
 - Branch: `feature/v1.2.0-tier1-pipeline-orchestrator`
@@ -370,3 +370,21 @@ Minden ciklus vegén frissitjuk:
 - Tier 3 totals: 7 services (14 files), 7 adapters, 1 API router (7 endpoints), 40 new tests
 - Tests: 297 pipeline unit PASS
 - **GATE:** ruff clean (new files), no DB migration needed
+
+### Tier 4 Output (C17-C20, 2026-04-04, session 9):
+- Branch: `feature/v1.2.0-tier4-polish` → squash merge to main → tag `v1.2.0`
+- **C17 QualityService:** rubric scorer (6 built-in rubrics), cost estimator, 4 API endpoints, Promptfoo CI/CD workflow
+- **C18 Chat UI:** ChatMarkdown (pure TS markdown renderer), CodeBlock (copy + dark mode) — no external deps
+- **C19 Pipeline Templates:** 4 new YAML templates (kb_update, email_triage, advanced_rag, contract), TemplateRegistry, 3 template API endpoints
+- **C20 PWA + Design Tokens:** manifest.json, design-tokens.css (50+ CSS vars)
+- Tier 4 totals: 1 service, 1 adapter, 5 API endpoints, 4 templates, 2 UI components, PWA manifest, 50+ design tokens
+- Tests: 35 new (18 quality + 17 templates), 332 total pipeline PASS
+- **GATE:** ruff clean, tsc --noEmit 0 errors
+
+### ALL CYCLES COMPLETE (C0-C20, v1.2.0)
+- **Tier 0 (C0):** Elokeszites — smoke test, CLAUDE.md, Untitled UI init
+- **Tier 1 (C1-C5):** Pipeline Orchestrator — adapter, schema, runner, API, UI → v1.2.0-alpha
+- **Tier 1.5 (C6):** Invoice Use Case — E2E pipeline → v1.2.0-beta
+- **Tier 2 (C7-C10):** Supporting Services — notification, data_router, invoice V2, service_manager → v1.2.0-rc1
+- **Tier 3 (C11-C16):** Advanced RAG — 7 services (reranker, chunker, cleaner, enricher, vector_ops, parser, graph_rag) → v1.2.0-rc2
+- **Tier 4 (C17-C20):** Polish — quality, chat UI, templates, PWA → v1.2.0

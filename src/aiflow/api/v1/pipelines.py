@@ -588,3 +588,161 @@ async def export_pipeline_yaml(pipeline_id: str) -> dict[str, str]:
     if not row:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     return {"yaml_source": row["yaml_source"], "source": "backend"}
+
+
+# ---------------------------------------------------------------------------
+# Template endpoints (C19)
+# ---------------------------------------------------------------------------
+
+
+class TemplateItem(BaseModel):
+    name: str
+    version: str = "1.0.0"
+    description: str = ""
+    step_count: int = 0
+    tags: list[str] = Field(default_factory=list)
+    category: str = ""
+    file_name: str = ""
+
+
+class TemplateListResponse(BaseModel):
+    templates: list[TemplateItem]
+    total: int
+    source: str = "backend"
+
+
+class TemplateDetailResponse(BaseModel):
+    name: str
+    version: str = "1.0.0"
+    description: str = ""
+    step_count: int = 0
+    tags: list[str] = Field(default_factory=list)
+    category: str = ""
+    yaml_source: str = ""
+    source: str = "backend"
+
+
+class DeployTemplateResponse(BaseModel):
+    id: str
+    name: str
+    version: str
+    source: str = "backend"
+
+
+@router.get("/templates/list", response_model=TemplateListResponse)
+async def list_templates() -> TemplateListResponse:
+    """List all built-in pipeline templates."""
+    from aiflow.pipeline.templates import TemplateRegistry
+
+    registry = TemplateRegistry()
+    templates = registry.list_all()
+
+    items = [
+        TemplateItem(
+            name=t.name,
+            version=t.version,
+            description=t.description,
+            step_count=t.step_count,
+            tags=t.tags,
+            category=t.category,
+            file_name=t.file_name,
+        )
+        for t in templates
+    ]
+
+    return TemplateListResponse(templates=items, total=len(items))
+
+
+@router.get("/templates/{name}", response_model=TemplateDetailResponse)
+async def get_template(name: str) -> TemplateDetailResponse:
+    """Get a specific template with full YAML source."""
+    from aiflow.pipeline.templates import TemplateRegistry
+
+    registry = TemplateRegistry()
+    info = registry.get(name)
+    if info is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Template '{name}' not found",
+        )
+
+    yaml_source = registry.get_yaml(name) or ""
+
+    return TemplateDetailResponse(
+        name=info.name,
+        version=info.version,
+        description=info.description,
+        step_count=info.step_count,
+        tags=info.tags,
+        category=info.category,
+        yaml_source=yaml_source,
+    )
+
+
+@router.post(
+    "/templates/{name}/deploy",
+    response_model=DeployTemplateResponse,
+    status_code=201,
+)
+async def deploy_template(name: str) -> DeployTemplateResponse:
+    """Deploy a built-in template as a new pipeline definition."""
+    from aiflow.pipeline.templates import TemplateRegistry
+
+    registry = TemplateRegistry()
+    yaml_source = registry.get_yaml(name)
+    if yaml_source is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Template '{name}' not found",
+        )
+
+    # Parse the template YAML
+    parser = PipelineParser()
+    try:
+        pipeline_def = parser.parse_yaml(yaml_source)
+    except PipelineParseError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Template YAML invalid: {exc}",
+        )
+
+    defn_dict = pipeline_def.model_dump(mode="json")
+    trigger_dict = defn_dict.get("trigger", {})
+    input_schema = defn_dict.get("input_schema", {})
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        existing = await conn.fetchval(
+            "SELECT id FROM pipeline_definitions WHERE name=$1 AND version=$2",
+            pipeline_def.name,
+            pipeline_def.version,
+        )
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Pipeline '{pipeline_def.name}' "
+                    f"v{pipeline_def.version} already exists"
+                ),
+            )
+
+        row = await conn.fetchrow(
+            """INSERT INTO pipeline_definitions
+               (name, version, description, yaml_source, definition,
+                trigger_config, input_schema, enabled)
+               VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, true)
+               RETURNING id""",
+            pipeline_def.name,
+            pipeline_def.version,
+            pipeline_def.description,
+            yaml_source,
+            json.dumps(defn_dict),
+            json.dumps(trigger_dict),
+            json.dumps(input_schema),
+        )
+
+    return DeployTemplateResponse(
+        id=str(row["id"]),  # type: ignore[index]
+        name=pipeline_def.name,
+        version=pipeline_def.version,
+    )

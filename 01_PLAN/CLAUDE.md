@@ -46,11 +46,12 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - Service Generalization: Fazis 0-5 KESZ (v1.0.0, 2026-04-02)
 - UI Modernization: F6 KESZ (v1.1.4, 2026-04-03)
 - **v1.2.0 Orchestration: Tier 1 DONE (v1.2.0-alpha) → Tier 2 DONE (v1.2.0-rc1) → Tier 3 DONE (v1.2.0-rc2) → Tier 4 TODO (C17-C20)**
-- 25 service (15 eredeti + 10 uj v1.2.0: notification, data_router, service_manager, reranker, advanced_chunker, data_cleaner, metadata_enricher, vector_ops, advanced_parser, graph_rag)
-- ~150 endpoint (112 eredeti + 15 Tier 2 + 7 Tier 3 + pipeline 13)
-- 17 pipeline adapter (7 eredeti + 3 Tier 2 + 7 Tier 3)
-- 23 API router (19 eredeti + pipelines + notifications + data_router + rag_advanced)
-- 297 pipeline unit test, 21 fejlesztesi ciklus (C0-C20, C0-C16 DONE), ~12-15 session
+- 26 service (15 eredeti + 11 uj v1.2.0: notification, data_router, service_manager, reranker, advanced_chunker, data_cleaner, metadata_enricher, vector_ops, advanced_parser, graph_rag, quality)
+- ~155 endpoint (112 eredeti + 15 Tier 2 + 7 Tier 3 + pipeline 13 + quality 4 + templates 3)
+- 18 pipeline adapter (7 eredeti + 3 Tier 2 + 7 Tier 3 + 1 Tier 4)
+- 24 API router (19 eredeti + pipelines + notifications + data_router + rag_advanced + quality)
+- 6 pipeline templates (v1, v2, kb_update, email_triage, advanced_rag, contract)
+- 332 pipeline unit test, 21 fejlesztesi ciklus (C0-C20, MIND DONE), v1.2.0 COMPLETE
 - 6 skills, src/aiflow/ 19 alkonyvtar (+pipeline/ az uj modul)
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/

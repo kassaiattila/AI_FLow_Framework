@@ -1,0 +1,44 @@
+name: Prompt Evaluation
+
+on:
+  pull_request:
+    paths:
+      - "skills/*/prompts/**"
+      - "skills/*/tests/promptfooconfig.yaml"
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run Promptfoo evaluations
+        run: |
+          npx promptfoo eval \
+            -c skills/*/tests/promptfooconfig.yaml \
+            --output tests/artifacts/promptfoo/results.json
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Check pass rate
+        run: |
+          python scripts/check_promptfoo_results.py \
+            tests/artifacts/promptfoo/results.json \
+            --min-pass-rate 0.9
+
+      - name: Upload results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptfoo-results
+          path: tests/artifacts/promptfoo/
+          retention-days: 30
