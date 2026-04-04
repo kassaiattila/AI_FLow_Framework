@@ -2,6 +2,7 @@
 
 Thread-safe, supports registration, lookup, and listing.
 """
+
 from typing import Generic, TypeVar
 
 import structlog
@@ -30,7 +31,9 @@ class Registry(Generic[T]):
     def get(self, key: str) -> T:
         """Get an item by key. Raises KeyError if not found."""
         if key not in self._items:
-            raise KeyError(f"{self._name} registry: '{key}' not found. Available: {list(self._items.keys())}")
+            raise KeyError(
+                f"{self._name} registry: '{key}' not found. Available: {list(self._items.keys())}"
+            )
         return self._items[key]
 
     def get_or_none(self, key: str) -> T | None:

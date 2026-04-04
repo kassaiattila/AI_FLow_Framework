@@ -9,6 +9,7 @@
     requires_services: []
     tags: [execution, scheduler, trigger, cron]
 """
+
 from datetime import UTC, datetime
 
 import pytest

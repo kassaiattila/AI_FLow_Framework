@@ -1,4 +1,5 @@
 """Role-Based Access Control (RBAC) for AIFlow."""
+
 from __future__ import annotations
 
 from enum import StrEnum

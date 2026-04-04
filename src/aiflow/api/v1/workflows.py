@@ -1,4 +1,5 @@
 """Workflow management endpoints."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/api/v1/workflows", tags=["workflows"])
 
 class WorkflowInfo(BaseModel):
     """Workflow definition summary."""
+
     name: str
     description: str = ""
     version: str = "0.1.0"
@@ -23,12 +25,14 @@ class WorkflowInfo(BaseModel):
 
 class WorkflowListResponse(BaseModel):
     """List of registered workflows."""
+
     workflows: list[WorkflowInfo]
     total: int
 
 
 class WorkflowRunRequest(BaseModel):
     """Request to run a workflow."""
+
     input_data: dict[str, Any] = Field(default_factory=dict)
     async_mode: bool = True
     priority: str = "normal"
@@ -36,6 +40,7 @@ class WorkflowRunRequest(BaseModel):
 
 class WorkflowRunResponse(BaseModel):
     """Response when a workflow run is accepted."""
+
     run_id: str
     status: str = "accepted"
     workflow_name: str
@@ -79,6 +84,7 @@ async def run_workflow(name: str, request: WorkflowRunRequest) -> WorkflowRunRes
         raise HTTPException(status_code=404, detail=f"Workflow '{name}' not found")
 
     import uuid
+
     run_id = str(uuid.uuid4())
     logger.info(
         "workflow_run_accepted",

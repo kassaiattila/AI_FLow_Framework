@@ -3,6 +3,7 @@
 Generates BPMN diagrams from natural language using the process_documentation skill,
 persists results to generated_diagrams table, and supports export to multiple formats.
 """
+
 from __future__ import annotations
 
 import tempfile
@@ -21,6 +22,7 @@ logger = structlog.get_logger(__name__)
 
 class DiagramGeneratorConfig(BaseModel):
     """Configuration for Diagram Generator service."""
+
     default_export_formats: list[str] = Field(default=["mermaid", "svg"])
     kroki_url: str = Field(default="http://localhost:8000")
     max_input_length: int = Field(default=5000)
@@ -28,6 +30,7 @@ class DiagramGeneratorConfig(BaseModel):
 
 class DiagramRecord(BaseModel):
     """A persisted diagram record."""
+
     id: str
     user_input: str
     mermaid_code: str
@@ -54,6 +57,7 @@ class DiagramGeneratorService:
             import os
 
             import asyncpg
+
             url = self._db_url or os.getenv(
                 "AIFLOW_DATABASE__URL",
                 "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
@@ -81,7 +85,7 @@ class DiagramGeneratorService:
             )
         except ImportError as e:
             logger.error("skill_import_failed", error=str(e))
-            raise RuntimeError(f"process_documentation skill not available: {e}")
+            raise RuntimeError(f"process_documentation skill not available: {e}") from e
 
         input_data = {"user_input": user_input, "output_dir": str(output_dir)}
         data = await classify_intent(input_data)
@@ -117,28 +121,43 @@ class DiagramGeneratorService:
                 """INSERT INTO generated_diagrams
                    (id, user_input, mermaid_code, drawio_xml, svg_content, review, export_formats, created_by, created_at, updated_at)
                    VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $9)""",
-                diagram_id, user_input, mermaid_code, drawio_xml, svg_content,
-                _to_json(review_data), _to_json(["mermaid", "svg"]),
-                created_by, datetime.now(UTC),
+                diagram_id,
+                user_input,
+                mermaid_code,
+                drawio_xml,
+                svg_content,
+                _to_json(review_data),
+                _to_json(["mermaid", "svg"]),
+                created_by,
+                datetime.now(UTC),
             )
 
         logger.info("diagram_generated", diagram_id=diagram_id, mermaid_len=len(mermaid_code))
 
         return DiagramRecord(
-            id=diagram_id, user_input=user_input, mermaid_code=mermaid_code,
-            drawio_xml=drawio_xml, svg_content=svg_content, review=review_data,
-            export_formats=["mermaid", "svg"], created_by=created_by,
-            created_at=now, updated_at=now,
+            id=diagram_id,
+            user_input=user_input,
+            mermaid_code=mermaid_code,
+            drawio_xml=drawio_xml,
+            svg_content=svg_content,
+            review=review_data,
+            export_formats=["mermaid", "svg"],
+            created_by=created_by,
+            created_at=now,
+            updated_at=now,
         )
 
-    async def list_diagrams(self, limit: int = 50, offset: int = 0) -> tuple[list[DiagramRecord], int]:
+    async def list_diagrams(
+        self, limit: int = 50, offset: int = 0
+    ) -> tuple[list[DiagramRecord], int]:
         """List persisted diagrams with pagination."""
         pool = await self._get_pool()
         async with pool.acquire() as conn:
             total = await conn.fetchval("SELECT COUNT(*) FROM generated_diagrams")
             rows = await conn.fetch(
                 "SELECT * FROM generated_diagrams ORDER BY created_at DESC LIMIT $1 OFFSET $2",
-                limit, offset,
+                limit,
+                offset,
             )
         diagrams = [_row_to_record(r) for r in rows]
         return diagrams, total
@@ -173,6 +192,7 @@ class DiagramGeneratorService:
             # Fallback: try Kroki render on-demand
             try:
                 from skills.process_documentation.tools.kroki_renderer import KrokiRenderer
+
                 renderer = KrokiRenderer()
                 if await renderer.is_available():
                     svg = await renderer.render(record.mermaid_code, "svg")
@@ -195,12 +215,14 @@ def _to_json(data: Any) -> str | None:
     if data is None:
         return None
     import json
+
     return json.dumps(data)
 
 
 def _row_to_record(row) -> DiagramRecord:
     """Convert a DB row to a DiagramRecord."""
     import json
+
     return DiagramRecord(
         id=row["id"],
         user_input=row["user_input"],

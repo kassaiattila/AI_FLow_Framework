@@ -9,6 +9,7 @@
     requires_services: []
     tags: [observability, metrics, counter, histogram, gauge]
 """
+
 import pytest
 
 from aiflow.observability.metrics import InMemoryMetrics, MetricsCollector

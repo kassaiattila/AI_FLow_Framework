@@ -1,4 +1,5 @@
 """Admin API — health monitoring + audit trail + metrics + user/key management."""
+
 from __future__ import annotations
 
 import hashlib
@@ -24,16 +25,19 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 @cache
 def _get_health():
     from aiflow.services.health_monitor import HealthMonitorService
+
     return HealthMonitorService()
 
 
 @cache
 def _get_audit():
     from aiflow.services.audit import AuditTrailService
+
     return AuditTrailService()
 
 
 # --- Health ---
+
 
 class ServiceHealthResponse(BaseModel):
     service_name: str
@@ -91,6 +95,7 @@ async def get_metrics() -> MetricsResponse:
 
 # --- Audit ---
 
+
 class AuditEntryResponse(BaseModel):
     id: str
     action: str
@@ -117,7 +122,9 @@ async def list_audit(
     limit: int = Query(50, le=500),
 ) -> AuditListResponse:
     svc = _get_audit()
-    entries = await svc.list_entries(action=action, entity_type=entity_type, user_id=user_id, limit=limit)
+    entries = await svc.list_entries(
+        action=action, entity_type=entity_type, user_id=user_id, limit=limit
+    )
     return AuditListResponse(
         entries=[AuditEntryResponse(**e.model_dump(), source="backend") for e in entries],
         total=len(entries),
@@ -134,6 +141,7 @@ async def get_audit_entry(entry_id: str) -> AuditEntryResponse:
 
 
 # --- Users ---
+
 
 class UserResponse(BaseModel):
     id: str
@@ -163,16 +171,23 @@ class CreateUserRequest(BaseModel):
 async def list_users():
     engine = await get_engine()
     from sqlalchemy import text
+
     async with engine.connect() as conn:
-        result = await conn.execute(text(
-            "SELECT id, email, name, role, is_active, team_id, last_login_at, created_at "
-            "FROM users ORDER BY created_at DESC"
-        ))
+        result = await conn.execute(
+            text(
+                "SELECT id, email, name, role, is_active, team_id, last_login_at, created_at "
+                "FROM users ORDER BY created_at DESC"
+            )
+        )
         rows = result.fetchall()
     users = [
         UserResponse(
-            id=str(r[0]), email=r[1], name=r[2], role=r[3],
-            is_active=r[4], team_id=str(r[5]) if r[5] else None,
+            id=str(r[0]),
+            email=r[1],
+            name=r[2],
+            role=r[3],
+            is_active=r[4],
+            team_id=str(r[5]) if r[5] else None,
             last_login_at=str(r[6]) if r[6] else None,
             created_at=str(r[7]) if r[7] else "",
         )
@@ -190,16 +205,33 @@ async def create_user(req: CreateUserRequest):
 
     engine = await get_engine()
     from sqlalchemy import text
+
     user_id = uuid.uuid4()
     now = datetime.now(UTC)
     async with engine.begin() as conn:
-        await conn.execute(text(
-            "INSERT INTO users (id, email, name, role, password_hash, is_active, created_at, updated_at) "
-            "VALUES (:id, :email, :name, :role, :password_hash, true, :now, :now)"
-        ), {"id": user_id, "email": req.email, "name": req.name, "role": req.role,
-            "password_hash": password_hash, "now": now})
+        await conn.execute(
+            text(
+                "INSERT INTO users (id, email, name, role, password_hash, is_active, created_at, updated_at) "
+                "VALUES (:id, :email, :name, :role, :password_hash, true, :now, :now)"
+            ),
+            {
+                "id": user_id,
+                "email": req.email,
+                "name": req.name,
+                "role": req.role,
+                "password_hash": password_hash,
+                "now": now,
+            },
+        )
     logger.info("user_created", user_id=str(user_id), email=req.email)
-    return UserResponse(id=str(user_id), email=req.email, name=req.name, role=req.role, is_active=True, created_at=now.isoformat())
+    return UserResponse(
+        id=str(user_id),
+        email=req.email,
+        name=req.name,
+        role=req.role,
+        is_active=True,
+        created_at=now.isoformat(),
+    )
 
 
 # --- API Keys ---
@@ -240,15 +272,20 @@ class CreateAPIKeyRequest(BaseModel):
 async def list_api_keys():
     engine = await get_engine()
     from sqlalchemy import text
+
     async with engine.connect() as conn:
-        result = await conn.execute(text(
-            "SELECT id, name, prefix, user_id, created_at, last_used_at, is_active "
-            "FROM api_keys ORDER BY created_at DESC"
-        ))
+        result = await conn.execute(
+            text(
+                "SELECT id, name, prefix, user_id, created_at, last_used_at, is_active "
+                "FROM api_keys ORDER BY created_at DESC"
+            )
+        )
         rows = result.fetchall()
     keys = [
         APIKeyResponse(
-            id=str(r[0]), name=r[1], prefix=r[2],
+            id=str(r[0]),
+            name=r[1],
+            prefix=r[2],
             user_id=str(r[3]) if r[3] else None,
             created_at=str(r[4]) if r[4] else "",
             last_used_at=str(r[5]) if r[5] else None,
@@ -270,12 +307,22 @@ async def create_api_key(req: CreateAPIKeyRequest):
 
     engine = await get_engine()
     from sqlalchemy import text
+
     async with engine.begin() as conn:
-        await conn.execute(text(
-            "INSERT INTO api_keys (id, name, prefix, key_hash, user_id, is_active, created_at) "
-            "VALUES (:id, :name, :prefix, :key_hash, :user_id, true, :now)"
-        ), {"id": key_id, "name": req.name, "prefix": prefix, "key_hash": key_hash,
-            "user_id": uuid.UUID(req.user_id) if req.user_id else None, "now": now})
+        await conn.execute(
+            text(
+                "INSERT INTO api_keys (id, name, prefix, key_hash, user_id, is_active, created_at) "
+                "VALUES (:id, :name, :prefix, :key_hash, :user_id, true, :now)"
+            ),
+            {
+                "id": key_id,
+                "name": req.name,
+                "prefix": prefix,
+                "key_hash": key_hash,
+                "user_id": uuid.UUID(req.user_id) if req.user_id else None,
+                "now": now,
+            },
+        )
 
     logger.info("api_key_created", key_id=str(key_id), name=req.name, prefix=prefix)
     return APIKeyCreatedResponse(id=str(key_id), name=req.name, key=full_key, prefix=prefix)
@@ -285,10 +332,9 @@ async def create_api_key(req: CreateAPIKeyRequest):
 async def delete_api_key(key_id: str):
     engine = await get_engine()
     from sqlalchemy import text
+
     async with engine.begin() as conn:
-        result = await conn.execute(text(
-            "DELETE FROM api_keys WHERE id = :id"
-        ), {"id": key_id})
+        result = await conn.execute(text("DELETE FROM api_keys WHERE id = :id"), {"id": key_id})
         if result.rowcount == 0:
             raise HTTPException(status_code=404, detail="API key not found")
     logger.info("api_key_deleted", key_id=key_id)

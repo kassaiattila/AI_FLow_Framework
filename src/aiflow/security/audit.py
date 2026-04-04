@@ -1,4 +1,5 @@
 """Audit trail for tracking all security-relevant actions."""
+
 from __future__ import annotations
 
 import enum
@@ -22,6 +23,7 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Enums & models
 # ---------------------------------------------------------------------------
+
 
 class AuditAction(str, enum.Enum):
     """Actions that are recorded in the audit trail."""
@@ -57,6 +59,7 @@ class AuditEntry(BaseModel):
 # ---------------------------------------------------------------------------
 # Audit logger (in-memory)
 # ---------------------------------------------------------------------------
+
 
 class AuditLogger:
     """In-memory audit logger.

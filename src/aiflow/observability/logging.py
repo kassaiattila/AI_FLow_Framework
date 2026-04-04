@@ -8,6 +8,7 @@ Usage:
     logger = structlog.get_logger(__name__)
     logger.info("workflow_started", run_id="abc123", workflow="process-doc")
 """
+
 import logging
 import sys
 from typing import Literal

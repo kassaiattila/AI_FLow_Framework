@@ -129,11 +129,13 @@ class GraphRAGService(BaseService):
             for match in re.finditer(pattern, text):
                 name = match.group().strip()
                 if name not in seen and len(entities) < max_count:
-                    entities.append({
-                        "name": name,
-                        "type": EntityType.DATE.value,
-                        "confidence": 0.85,
-                    })
+                    entities.append(
+                        {
+                            "name": name,
+                            "type": EntityType.DATE.value,
+                            "confidence": 0.85,
+                        }
+                    )
                     seen.add(name)
 
         # --- Amounts ---
@@ -141,11 +143,13 @@ class GraphRAGService(BaseService):
             for match in re.finditer(pattern, text, re.IGNORECASE):
                 name = match.group().strip()
                 if name not in seen and len(entities) < max_count:
-                    entities.append({
-                        "name": name,
-                        "type": EntityType.AMOUNT.value,
-                        "confidence": 0.80,
-                    })
+                    entities.append(
+                        {
+                            "name": name,
+                            "type": EntityType.AMOUNT.value,
+                            "confidence": 0.80,
+                        }
+                    )
                     seen.add(name)
 
         # --- Capitalized phrases (potential persons / organizations) ---
@@ -164,15 +168,15 @@ class GraphRAGService(BaseService):
                 # Heuristic: 3+ words more likely org, 2 words more likely person
                 word_count = len(name.split())
                 entity_type = (
-                    EntityType.ORGANIZATION.value
-                    if word_count >= 3
-                    else EntityType.PERSON.value
+                    EntityType.ORGANIZATION.value if word_count >= 3 else EntityType.PERSON.value
                 )
-                entities.append({
-                    "name": name,
-                    "type": entity_type,
-                    "confidence": 0.50,
-                })
+                entities.append(
+                    {
+                        "name": name,
+                        "type": entity_type,
+                        "confidence": 0.50,
+                    }
+                )
                 seen.add(name)
 
         self._logger.info(
@@ -207,12 +211,14 @@ class GraphRAGService(BaseService):
 
         # Create nodes from entities
         for i, entity in enumerate(entities):
-            nodes.append({
-                "id": f"node_{i}",
-                "name": entity.get("name", ""),
-                "type": entity.get("type", "concept"),
-                "confidence": entity.get("confidence", 0.0),
-            })
+            nodes.append(
+                {
+                    "id": f"node_{i}",
+                    "name": entity.get("name", ""),
+                    "type": entity.get("type", "concept"),
+                    "confidence": entity.get("confidence", 0.0),
+                }
+            )
 
         # Create co-occurrence edges between entities of different types
         for i, node_a in enumerate(nodes):
@@ -220,12 +226,14 @@ class GraphRAGService(BaseService):
                 if i >= j:
                     continue
                 if node_a["type"] != node_b["type"]:
-                    edges.append({
-                        "source": node_a["id"],
-                        "target": node_b["id"],
-                        "relation": "co_occurs_with",
-                        "weight": 1.0,
-                    })
+                    edges.append(
+                        {
+                            "source": node_a["id"],
+                            "target": node_b["id"],
+                            "relation": "co_occurs_with",
+                            "weight": 1.0,
+                        }
+                    )
 
         self._logger.info(
             "graph_built",
@@ -244,9 +252,7 @@ class GraphRAGService(BaseService):
     # Query graph
     # ------------------------------------------------------------------
 
-    async def query_graph(
-        self, question: str, collection_id: str
-    ) -> dict[str, Any]:
+    async def query_graph(self, question: str, collection_id: str) -> dict[str, Any]:
         """Query the knowledge graph to augment RAG answers.
 
         Stub implementation — extracts entities from question and returns them.

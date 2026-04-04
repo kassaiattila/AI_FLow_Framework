@@ -116,9 +116,7 @@ class VectorOpsService(BaseService):
             CollectionHealth with vector count, index info, fragmentation.
         """
         if self._session_factory is None:
-            self._logger.warning(
-                "no_session_factory", note="Returning default health"
-            )
+            self._logger.warning("no_session_factory", note="Returning default health")
             return CollectionHealth()
 
         from sqlalchemy import text
@@ -127,10 +125,7 @@ class VectorOpsService(BaseService):
             async with self._session_factory() as session:
                 # Count vectors in collection
                 count_result = await session.execute(
-                    text(
-                        "SELECT COUNT(*) FROM vector_chunks "
-                        "WHERE collection_id = :cid"
-                    ),
+                    text("SELECT COUNT(*) FROM vector_chunks WHERE collection_id = :cid"),
                     {"cid": collection_id},
                 )
                 total = count_result.scalar() or 0
@@ -158,9 +153,7 @@ class VectorOpsService(BaseService):
                 frag_row = frag_result.fetchone()
                 frag_pct = 0.0
                 if frag_row and frag_row[1] and frag_row[1] > 0:
-                    frag_pct = round(
-                        (frag_row[0] / (frag_row[0] + frag_row[1])) * 100, 2
-                    )
+                    frag_pct = round((frag_row[0] / (frag_row[0] + frag_row[1])) * 100, 2)
 
             self._logger.info(
                 "collection_health_checked",
@@ -220,9 +213,7 @@ class VectorOpsService(BaseService):
         try:
             async with self._session_factory() as session:
                 # Set HNSW search parameters for the session
-                await session.execute(
-                    text(f"SET hnsw.ef_search = {cfg.ef_search}")
-                )
+                await session.execute(text(f"SET hnsw.ef_search = {cfg.ef_search}"))
 
                 # VACUUM ANALYZE to reduce fragmentation
                 # Note: VACUUM cannot run inside a transaction in standard mode,
@@ -260,9 +251,7 @@ class VectorOpsService(BaseService):
     # Bulk delete
     # ------------------------------------------------------------------
 
-    async def bulk_delete(
-        self, collection_id: str, filter_cond: dict[str, Any]
-    ) -> int:
+    async def bulk_delete(self, collection_id: str, filter_cond: dict[str, Any]) -> int:
         """Delete vectors matching filter conditions.
 
         Args:

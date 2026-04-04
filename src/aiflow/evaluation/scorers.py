@@ -3,6 +3,7 @@
 Each scorer returns a tuple of (score: float, passed: bool).
 Score is typically 0.0-1.0 where 1.0 means perfect.
 """
+
 from __future__ import annotations
 
 import json
@@ -162,7 +163,9 @@ def threshold_check(
     return (0.0, False)
 
 
-def regex_match(actual: Any, expected: Any = None, *, pattern: str = "", **kwargs: Any) -> tuple[float, bool]:
+def regex_match(
+    actual: Any, expected: Any = None, *, pattern: str = "", **kwargs: Any
+) -> tuple[float, bool]:
     """Check if actual output matches a regex pattern.
 
     Args:

@@ -1,4 +1,5 @@
 """Cost tracking and aggregation endpoints."""
+
 from __future__ import annotations
 
 import structlog
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/api/v1/costs", tags=["costs"])
 
 class SkillCost(BaseModel):
     """Cost summary for a single skill."""
+
     skill_name: str
     total_cost_usd: float
     run_count: int
@@ -23,6 +25,7 @@ class SkillCost(BaseModel):
 
 class DailyCost(BaseModel):
     """Cost for a single day."""
+
     date: str
     total_cost_usd: float
     run_count: int
@@ -30,6 +33,7 @@ class DailyCost(BaseModel):
 
 class CostsSummaryResponse(BaseModel):
     """Aggregated cost summary."""
+
     total_cost_usd: float = 0.0
     total_runs: int = 0
     per_skill: list[SkillCost] = []
@@ -38,6 +42,7 @@ class CostsSummaryResponse(BaseModel):
 
 class TeamDailyCost(BaseModel):
     """Daily cost per team from v_daily_team_costs view."""
+
     team_name: str | None = None
     cost_date: str
     model: str | None = None
@@ -47,6 +52,7 @@ class TeamDailyCost(BaseModel):
 
 class BudgetStatus(BaseModel):
     """Team budget status from v_monthly_budget view."""
+
     team_name: str | None = None
     budget_limit_usd: float = 0.0
     used_usd: float = 0.0
@@ -78,12 +84,14 @@ async def costs_summary() -> CostsSummaryResponse:
             for row in skill_rows:
                 rc = row["run_count"]
                 tc = float(row["total_cost"] or 0)
-                result.per_skill.append(SkillCost(
-                    skill_name=row["skill"],
-                    total_cost_usd=tc,
-                    run_count=rc,
-                    avg_cost_usd=tc / rc if rc > 0 else 0,
-                ))
+                result.per_skill.append(
+                    SkillCost(
+                        skill_name=row["skill"],
+                        total_cost_usd=tc,
+                        run_count=rc,
+                        avg_cost_usd=tc / rc if rc > 0 else 0,
+                    )
+                )
                 result.total_cost_usd += tc
                 result.total_runs += rc
 
@@ -101,11 +109,13 @@ async def costs_summary() -> CostsSummaryResponse:
                 """
             )
             for row in daily_rows:
-                result.daily.append(DailyCost(
-                    date=row["day"].isoformat() if row["day"] else "",
-                    total_cost_usd=float(row["total_cost"] or 0),
-                    run_count=row["run_count"],
-                ))
+                result.daily.append(
+                    DailyCost(
+                        date=row["day"].isoformat() if row["day"] else "",
+                        total_cost_usd=float(row["total_cost"] or 0),
+                        run_count=row["run_count"],
+                    )
+                )
     except Exception as e:
         logger.warning("costs_db_failed", error=str(e))
 
@@ -165,6 +175,7 @@ async def budget_status() -> list[BudgetStatus]:
 
 class ModelCostItem(BaseModel):
     """Cost breakdown per model."""
+
     model: str
     provider: str
     request_count: int = 0
@@ -175,6 +186,7 @@ class ModelCostItem(BaseModel):
 
 class CostRecordsBreakdown(BaseModel):
     """Detailed cost breakdown from cost_records table."""
+
     per_model: list[ModelCostItem] = []
     total_records: int = 0
     total_tokens: int = 0
@@ -207,14 +219,16 @@ async def cost_breakdown() -> CostRecordsBreakdown:
                 inp = int(r["total_input_tokens"])
                 out = int(r["total_output_tokens"])
                 cost = float(r["total_cost_usd"])
-                result.per_model.append(ModelCostItem(
-                    model=r["model"],
-                    provider=r["provider"],
-                    request_count=r["request_count"],
-                    total_input_tokens=inp,
-                    total_output_tokens=out,
-                    total_cost_usd=cost,
-                ))
+                result.per_model.append(
+                    ModelCostItem(
+                        model=r["model"],
+                        provider=r["provider"],
+                        request_count=r["request_count"],
+                        total_input_tokens=inp,
+                        total_output_tokens=out,
+                        total_cost_usd=cost,
+                    )
+                )
                 result.total_records += r["request_count"]
                 result.total_tokens += inp + out
                 result.total_cost_usd += cost

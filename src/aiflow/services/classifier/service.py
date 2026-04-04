@@ -11,6 +11,7 @@ Strategies:
     sklearn_only: Only keyword-based scoring
     llm_only: Only LLM classification
 """
+
 from __future__ import annotations
 
 import json
@@ -155,9 +156,7 @@ class ClassifierService(BaseService):
             ClassificationResult with the winning label and metadata.
         """
         active_strategy = (
-            ClassificationStrategy(strategy)
-            if strategy
-            else self._cls_config.strategy
+            ClassificationStrategy(strategy) if strategy else self._cls_config.strategy
         )
         labels = schema_labels or []
         full_text = f"{subject}\n\n{text}" if subject else text
@@ -346,9 +345,7 @@ class ClassifierService(BaseService):
 
         # Build alternatives (top-3 excluding winner)
         alternatives = [
-            {"label": lid, "confidence": round(sc, 4)}
-            for lid, sc in sorted_labels[1:4]
-            if sc > 0
+            {"label": lid, "confidence": round(sc, 4)} for lid, sc in sorted_labels[1:4] if sc > 0
         ]
 
         return ClassificationResult(
@@ -427,9 +424,7 @@ class ClassifierService(BaseService):
             response_text = result.output.text.strip()
             # Handle markdown code blocks
             if response_text.startswith("```"):
-                response_text = re.sub(
-                    r"^```(?:json)?\s*", "", response_text
-                )
+                response_text = re.sub(r"^```(?:json)?\s*", "", response_text)
                 response_text = re.sub(r"\s*```$", "", response_text)
 
             parsed = json.loads(response_text)

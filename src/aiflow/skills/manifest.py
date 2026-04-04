@@ -3,6 +3,7 @@
 Each skill declares its metadata, dependencies, required models,
 workflows, agent types, prompts, and estimated cost.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

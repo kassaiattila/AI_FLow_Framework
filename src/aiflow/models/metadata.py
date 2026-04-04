@@ -1,4 +1,5 @@
 """Model metadata, types, and lifecycle definitions."""
+
 from enum import StrEnum
 
 from pydantic import BaseModel
@@ -34,6 +35,7 @@ class ServingMode(StrEnum):
 
 class ModelMetadata(BaseModel):
     """Metadata for a registered model."""
+
     name: str
     model_type: ModelType
     provider: str

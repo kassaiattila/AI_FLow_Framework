@@ -1,4 +1,5 @@
 """In-memory model registry for tracking available models."""
+
 import structlog
 
 from aiflow.core.registry import Registry
@@ -29,18 +30,12 @@ class ModelRegistry:
 
     def find_by_type(self, model_type: ModelType) -> list[ModelMetadata]:
         """Find all models of a given type, sorted by priority."""
-        results = [
-            meta for _, meta in self._registry.list_items()
-            if meta.model_type == model_type
-        ]
+        results = [meta for _, meta in self._registry.list_items() if meta.model_type == model_type]
         return sorted(results, key=lambda m: m.priority)
 
     def find_by_capability(self, capability: str) -> list[ModelMetadata]:
         """Find models with a specific capability."""
-        return [
-            meta for _, meta in self._registry.list_items()
-            if capability in meta.capabilities
-        ]
+        return [meta for _, meta in self._registry.list_items() if capability in meta.capabilities]
 
     def get_fallback(self, name: str) -> ModelMetadata | None:
         """Get the fallback model for a given model."""

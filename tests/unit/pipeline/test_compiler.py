@@ -45,7 +45,11 @@ class StubAdapter(BaseAdapter):
         config: dict[str, Any],
         ctx: ExecutionContext,
     ) -> dict[str, Any]:
-        data = input_data if isinstance(input_data, StubInput) else StubInput.model_validate(input_data)
+        data = (
+            input_data
+            if isinstance(input_data, StubInput)
+            else StubInput.model_validate(input_data)
+        )
         return {"result": f"processed:{data.text}"}
 
 
@@ -76,7 +80,11 @@ class ClassifyStubAdapter(BaseAdapter):
         config: dict[str, Any],
         ctx: ExecutionContext,
     ) -> dict[str, Any]:
-        data = input_data if isinstance(input_data, StubInput) else StubInput.model_validate(input_data)
+        data = (
+            input_data
+            if isinstance(input_data, StubInput)
+            else StubInput.model_validate(input_data)
+        )
         return {"result": f"classified:{data.text}"}
 
 
@@ -99,33 +107,35 @@ def compiler(registry):
 
 class TestCompileBasic:
     def test_single_step(self, compiler):
-        pipeline = PipelineDefinition.model_validate({
-            "name": "simple",
-            "steps": [
-                {"name": "s1", "service": "test_svc", "method": "test_method"}
-            ],
-        })
+        pipeline = PipelineDefinition.model_validate(
+            {
+                "name": "simple",
+                "steps": [{"name": "s1", "service": "test_svc", "method": "test_method"}],
+            }
+        )
         result = compiler.compile(pipeline)
         assert "s1" in result.step_funcs
         assert result.pipeline_def.name == "simple"
 
     def test_multi_step_with_deps(self, compiler):
-        pipeline = PipelineDefinition.model_validate({
-            "name": "chain",
-            "steps": [
-                {
-                    "name": "fetch",
-                    "service": "email_connector",
-                    "method": "fetch_emails",
-                },
-                {
-                    "name": "classify",
-                    "service": "classifier",
-                    "method": "classify",
-                    "depends_on": ["fetch"],
-                },
-            ],
-        })
+        pipeline = PipelineDefinition.model_validate(
+            {
+                "name": "chain",
+                "steps": [
+                    {
+                        "name": "fetch",
+                        "service": "email_connector",
+                        "method": "fetch_emails",
+                    },
+                    {
+                        "name": "classify",
+                        "service": "classifier",
+                        "method": "classify",
+                        "depends_on": ["fetch"],
+                    },
+                ],
+            }
+        )
         result = compiler.compile(pipeline)
         assert len(result.step_funcs) == 2
 
@@ -133,18 +143,20 @@ class TestCompileBasic:
         assert order.index("fetch") < order.index("classify")
 
     def test_dag_nodes_have_metadata(self, compiler):
-        pipeline = PipelineDefinition.model_validate({
-            "name": "meta",
-            "steps": [
-                {
-                    "name": "s1",
-                    "service": "test_svc",
-                    "method": "test_method",
-                    "for_each": "{{ input.items }}",
-                    "condition": "output.x == 1",
-                },
-            ],
-        })
+        pipeline = PipelineDefinition.model_validate(
+            {
+                "name": "meta",
+                "steps": [
+                    {
+                        "name": "s1",
+                        "service": "test_svc",
+                        "method": "test_method",
+                        "for_each": "{{ input.items }}",
+                        "condition": "output.x == 1",
+                    },
+                ],
+            }
+        )
         result = compiler.compile(pipeline)
         node = result.dag.get_node("s1")
         assert node.metadata["service"] == "test_svc"
@@ -154,33 +166,35 @@ class TestCompileBasic:
 
 class TestCompileErrors:
     def test_missing_adapter(self, compiler):
-        pipeline = PipelineDefinition.model_validate({
-            "name": "bad",
-            "steps": [
-                {"name": "s1", "service": "nonexistent", "method": "nope"}
-            ],
-        })
+        pipeline = PipelineDefinition.model_validate(
+            {
+                "name": "bad",
+                "steps": [{"name": "s1", "service": "nonexistent", "method": "nope"}],
+            }
+        )
         with pytest.raises(PipelineCompileError, match="Missing adapters"):
             compiler.compile(pipeline)
 
     def test_cyclic_dependency(self, compiler):
-        pipeline = PipelineDefinition.model_validate({
-            "name": "cycle",
-            "steps": [
-                {
-                    "name": "a",
-                    "service": "test_svc",
-                    "method": "test_method",
-                    "depends_on": ["b"],
-                },
-                {
-                    "name": "b",
-                    "service": "test_svc",
-                    "method": "test_method",
-                    "depends_on": ["a"],
-                },
-            ],
-        })
+        pipeline = PipelineDefinition.model_validate(
+            {
+                "name": "cycle",
+                "steps": [
+                    {
+                        "name": "a",
+                        "service": "test_svc",
+                        "method": "test_method",
+                        "depends_on": ["b"],
+                    },
+                    {
+                        "name": "b",
+                        "service": "test_svc",
+                        "method": "test_method",
+                        "depends_on": ["a"],
+                    },
+                ],
+            }
+        )
         with pytest.raises(PipelineCompileError, match="DAG validation"):
             compiler.compile(pipeline)
 
@@ -188,17 +202,19 @@ class TestCompileErrors:
 class TestStepExecution:
     @pytest.mark.asyncio
     async def test_step_func_runs(self, compiler):
-        pipeline = PipelineDefinition.model_validate({
-            "name": "exec",
-            "steps": [
-                {
-                    "name": "s1",
-                    "service": "test_svc",
-                    "method": "test_method",
-                    "config": {"text": "hello"},
-                },
-            ],
-        })
+        pipeline = PipelineDefinition.model_validate(
+            {
+                "name": "exec",
+                "steps": [
+                    {
+                        "name": "s1",
+                        "service": "test_svc",
+                        "method": "test_method",
+                        "config": {"text": "hello"},
+                    },
+                ],
+            }
+        )
         result = compiler.compile(pipeline)
         step_fn = result.step_funcs["s1"]
         ctx = ExecutionContext()
@@ -207,17 +223,19 @@ class TestStepExecution:
 
     @pytest.mark.asyncio
     async def test_step_func_with_jinja(self, compiler):
-        pipeline = PipelineDefinition.model_validate({
-            "name": "jinja",
-            "steps": [
-                {
-                    "name": "s1",
-                    "service": "test_svc",
-                    "method": "test_method",
-                    "config": {"text": "{{ input.name }}"},
-                },
-            ],
-        })
+        pipeline = PipelineDefinition.model_validate(
+            {
+                "name": "jinja",
+                "steps": [
+                    {
+                        "name": "s1",
+                        "service": "test_svc",
+                        "method": "test_method",
+                        "config": {"text": "{{ input.name }}"},
+                    },
+                ],
+            }
+        )
         result = compiler.compile(pipeline)
         step_fn = result.step_funcs["s1"]
         ctx = ExecutionContext()
@@ -226,25 +244,27 @@ class TestStepExecution:
 
     @pytest.mark.asyncio
     async def test_step_func_chained_context(self, compiler):
-        pipeline = PipelineDefinition.model_validate({
-            "name": "chain",
-            "steps": [
-                {
-                    "name": "fetch",
-                    "service": "email_connector",
-                    "method": "fetch_emails",
-                },
-                {
-                    "name": "classify",
-                    "service": "classifier",
-                    "method": "classify",
-                    "depends_on": ["fetch"],
-                    "config": {
-                        "text": "{{ fetch.output.result }}",
+        pipeline = PipelineDefinition.model_validate(
+            {
+                "name": "chain",
+                "steps": [
+                    {
+                        "name": "fetch",
+                        "service": "email_connector",
+                        "method": "fetch_emails",
                     },
-                },
-            ],
-        })
+                    {
+                        "name": "classify",
+                        "service": "classifier",
+                        "method": "classify",
+                        "depends_on": ["fetch"],
+                        "config": {
+                            "text": "{{ fetch.output.result }}",
+                        },
+                    },
+                ],
+            }
+        )
         result = compiler.compile(pipeline)
         ctx = ExecutionContext()
 
@@ -260,12 +280,14 @@ class TestStepExecution:
 
 class TestCompilationResultRepr:
     def test_repr(self, compiler):
-        pipeline = PipelineDefinition.model_validate({
-            "name": "test",
-            "steps": [
-                {"name": "s1", "service": "test_svc", "method": "test_method"},
-            ],
-        })
+        pipeline = PipelineDefinition.model_validate(
+            {
+                "name": "test",
+                "steps": [
+                    {"name": "s1", "service": "test_svc", "method": "test_method"},
+                ],
+            }
+        )
         result = compiler.compile(pipeline)
         r = repr(result)
         assert "test" in r

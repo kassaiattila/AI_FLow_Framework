@@ -1,4 +1,5 @@
 """Base protocol and result types for model calls."""
+
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
@@ -11,6 +12,7 @@ TOutput = TypeVar("TOutput", bound=BaseModel)
 
 class ModelCallResult(BaseModel, Generic[TOutput]):
     """Standard result wrapper for all model calls."""
+
     output: Any  # The actual result (type varies by protocol)
     model_used: str
     input_tokens: int = 0

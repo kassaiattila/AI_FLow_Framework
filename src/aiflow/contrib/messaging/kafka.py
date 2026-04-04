@@ -9,6 +9,7 @@ is an optional install::
 All public classes are usable for type-checking and testing.  The
 ``connect()`` methods log warnings until the real driver is wired in.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -28,6 +29,7 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+
 
 class KafkaConfig(BaseModel):
     """Connection settings for a Kafka cluster."""
@@ -49,6 +51,7 @@ class KafkaConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # Producer
 # ---------------------------------------------------------------------------
+
 
 class KafkaProducer:
     """Placeholder Kafka producer.
@@ -106,6 +109,7 @@ class KafkaProducer:
 # ---------------------------------------------------------------------------
 # Consumer
 # ---------------------------------------------------------------------------
+
 
 class KafkaConsumer:
     """Placeholder Kafka consumer.

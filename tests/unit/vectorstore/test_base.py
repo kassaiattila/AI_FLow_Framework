@@ -9,6 +9,7 @@
     requires_services: []
     tags: [vectorstore, base, models]
 """
+
 import uuid
 from datetime import date
 
@@ -22,9 +23,14 @@ class TestSearchFilter:
         assert f.skill_name is None
 
     def test_full(self):
-        f = SearchFilter(skill_name="aszf_rag", collection_name="docs",
-                         language="hu", effective_date=date(2026, 1, 1))
+        f = SearchFilter(
+            skill_name="aszf_rag",
+            collection_name="docs",
+            language="hu",
+            effective_date=date(2026, 1, 1),
+        )
         assert f.skill_name == "aszf_rag"
+
 
 class TestSearchResult:
     def test_basic(self):
@@ -34,10 +40,15 @@ class TestSearchResult:
 
     def test_full(self):
         r = SearchResult(
-            chunk_id=uuid.uuid4(), content="Test", score=0.9,
-            vector_score=0.85, keyword_score=0.7,
-            document_id=uuid.uuid4(), document_title="ASZF",
-            section_title="3.1 Fejezet", page_start=42,
+            chunk_id=uuid.uuid4(),
+            content="Test",
+            score=0.9,
+            vector_score=0.85,
+            keyword_score=0.7,
+            document_id=uuid.uuid4(),
+            document_title="ASZF",
+            section_title="3.1 Fejezet",
+            page_start=42,
         )
         assert r.document_title == "ASZF"
         assert r.page_start == 42

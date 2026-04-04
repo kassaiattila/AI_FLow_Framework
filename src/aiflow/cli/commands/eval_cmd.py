@@ -7,7 +7,6 @@ Usage:
     aiflow eval report --skill <name>
 """
 
-
 import structlog
 import typer
 

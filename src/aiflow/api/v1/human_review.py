@@ -1,4 +1,5 @@
 """Human Review API — pending queue + approve/reject + history."""
+
 from __future__ import annotations
 
 from functools import cache
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/api/v1/reviews", tags=["reviews"])
 @cache
 def _get_service():
     from aiflow.services.human_review import HumanReviewService
+
     return HumanReviewService()
 
 
@@ -90,7 +92,7 @@ async def create_review(request: ReviewCreateRequest):
         )
         return ReviewResponse(**item.model_dump(), source="backend")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/{review_id}", response_model=ReviewResponse)

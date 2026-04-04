@@ -9,6 +9,7 @@
     requires_services: []
     tags: [state, repository, async]
 """
+
 from unittest.mock import MagicMock
 
 from aiflow.state.repository import StateRepository
@@ -24,4 +25,5 @@ class TestStateRepositoryInit:
 class TestCreateSessionFactory:
     def test_function_exists(self):
         from aiflow.state.repository import create_session_factory
+
         assert callable(create_session_factory)

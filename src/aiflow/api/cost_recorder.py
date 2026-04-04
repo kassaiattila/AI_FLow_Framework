@@ -1,4 +1,5 @@
 """Persistent cost recording — writes LLM usage to cost_records table."""
+
 import uuid
 
 import structlog

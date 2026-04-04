@@ -1,4 +1,5 @@
 """Authentication endpoints — login, token verification, token refresh."""
+
 from __future__ import annotations
 
 import os
@@ -16,6 +17,7 @@ __all__ = ["router"]
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
 
 def _init_auth() -> AuthProvider:
     """Initialize AuthProvider with JWT secret validation.
@@ -53,12 +55,14 @@ _auth = _init_auth()
 
 class LoginRequest(BaseModel):
     """Login credentials."""
+
     username: str
     password: str
 
 
 class LoginResponse(BaseModel):
     """Login response with token."""
+
     token: str
     user_id: str
     role: str
@@ -68,6 +72,7 @@ class LoginResponse(BaseModel):
 
 class MeResponse(BaseModel):
     """Current user info."""
+
     user_id: str
     role: str
     team_id: str | None = None
@@ -112,6 +117,7 @@ async def login(request: LoginRequest) -> LoginResponse:
     # Update last_login_at
     async with engine.begin() as conn:
         from sqlalchemy import text as t
+
         await conn.execute(
             t("UPDATE users SET last_login_at = :now WHERE id = :id"),
             {"now": datetime.now(UTC), "id": user_id},
@@ -162,11 +168,13 @@ async def me(authorization: str = Header("")) -> MeResponse:
 
 class RefreshRequest(BaseModel):
     """Token refresh request."""
+
     token: str
 
 
 class RefreshResponse(BaseModel):
     """Token refresh response."""
+
     token: str
     expires_in: int = 3600
 

@@ -1,4 +1,5 @@
 """Document versioning - supersede, version chains."""
+
 from __future__ import annotations
 
 import uuid

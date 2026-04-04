@@ -1,4 +1,5 @@
 """Workflow scheduler with cron, event, webhook, and manual triggers."""
+
 from __future__ import annotations
 
 import enum
@@ -24,6 +25,7 @@ logger = structlog.get_logger(__name__)
 # Enums & models
 # ---------------------------------------------------------------------------
 
+
 class TriggerType(str, enum.Enum):
     """Supported trigger types for scheduled workflows."""
 
@@ -47,14 +49,10 @@ class ScheduleDefinition(BaseModel):
     )
 
     # Event-specific
-    event_pattern: str | None = Field(
-        None, description="Event name/pattern to subscribe to"
-    )
+    event_pattern: str | None = Field(None, description="Event name/pattern to subscribe to")
 
     # Webhook-specific
-    webhook_path: str | None = Field(
-        None, description="HTTP path that triggers the workflow"
-    )
+    webhook_path: str | None = Field(None, description="HTTP path that triggers the workflow")
 
     # Execution settings
     input_data: dict[str, Any] = Field(default_factory=dict)
@@ -66,6 +64,7 @@ class ScheduleDefinition(BaseModel):
 # ---------------------------------------------------------------------------
 # Simple cron pattern matcher
 # ---------------------------------------------------------------------------
+
 
 class CronTrigger:
     """Evaluate whether a simplified cron expression should fire at a given time.
@@ -116,7 +115,7 @@ class CronTrigger:
             now.isoweekday() % 7,  # 0=Sun .. 6=Sat
         )
 
-        for field_val, actual in zip(self._parts, actuals):
+        for field_val, actual in zip(self._parts, actuals, strict=False):
             if not self._match_field(field_val, actual):
                 return False
         return True
@@ -128,6 +127,7 @@ class CronTrigger:
 # ---------------------------------------------------------------------------
 # Scheduler
 # ---------------------------------------------------------------------------
+
 
 class Scheduler:
     """In-memory schedule manager.
@@ -152,13 +152,8 @@ class Scheduler:
                 raise ValueError(f"Schedule already exists: {definition.name!r}")
             self._schedules[definition.name] = definition
 
-            if (
-                definition.trigger_type == TriggerType.cron
-                and definition.cron_expression
-            ):
-                self._cron_triggers[definition.name] = CronTrigger(
-                    definition.cron_expression
-                )
+            if definition.trigger_type == TriggerType.cron and definition.cron_expression:
+                self._cron_triggers[definition.name] = CronTrigger(definition.cron_expression)
 
         logger.info(
             "schedule_added",
@@ -210,9 +205,7 @@ class Scheduler:
 
     # -- Tick ---------------------------------------------------------------
 
-    def get_due_schedules(
-        self, now: datetime | None = None
-    ) -> list[ScheduleDefinition]:
+    def get_due_schedules(self, now: datetime | None = None) -> list[ScheduleDefinition]:
         """Return all cron schedules that should fire at *now*."""
         if now is None:
             now = datetime.now(UTC)

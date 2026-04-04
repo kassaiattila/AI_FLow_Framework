@@ -9,6 +9,7 @@
     requires_services: []
     tags: [prompts, schema, pydantic, jinja2, compile]
 """
+
 import pytest
 from jinja2 import UndefinedError
 

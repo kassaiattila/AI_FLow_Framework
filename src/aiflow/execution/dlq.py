@@ -1,4 +1,5 @@
 """Dead Letter Queue for failed jobs that exceeded retry limits."""
+
 from __future__ import annotations
 
 import uuid

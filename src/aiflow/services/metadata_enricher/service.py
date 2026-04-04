@@ -24,23 +24,123 @@ logger = structlog.get_logger(__name__)
 # Stopwords (minimal sets for keyword extraction)
 # ---------------------------------------------------------------------------
 
-_STOPWORDS_HU = frozenset({
-    "a", "az", "egy", "es", "is", "de", "hogy", "nem", "meg", "volt",
-    "van", "fel", "le", "ki", "be", "el", "ra", "re", "ban", "ben",
-    "nak", "nek", "bol", "tol", "hoz", "hez", "val", "vel", "ert",
-    "kent", "ul", "ig", "on", "en", "at", "et", "ot",
-    "minden", "csak", "mint", "vagy", "sem", "mar",
-    "itt", "ott", "akkor", "most", "ha", "mert", "ezt", "azt", "ami",
-})
+_STOPWORDS_HU = frozenset(
+    {
+        "a",
+        "az",
+        "egy",
+        "es",
+        "is",
+        "de",
+        "hogy",
+        "nem",
+        "meg",
+        "volt",
+        "van",
+        "fel",
+        "le",
+        "ki",
+        "be",
+        "el",
+        "ra",
+        "re",
+        "ban",
+        "ben",
+        "nak",
+        "nek",
+        "bol",
+        "tol",
+        "hoz",
+        "hez",
+        "val",
+        "vel",
+        "ert",
+        "kent",
+        "ul",
+        "ig",
+        "on",
+        "en",
+        "at",
+        "et",
+        "ot",
+        "minden",
+        "csak",
+        "mint",
+        "vagy",
+        "sem",
+        "mar",
+        "itt",
+        "ott",
+        "akkor",
+        "most",
+        "ha",
+        "mert",
+        "ezt",
+        "azt",
+        "ami",
+    }
+)
 
-_STOPWORDS_EN = frozenset({
-    "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
-    "of", "with", "by", "from", "is", "are", "was", "were", "be", "been",
-    "being", "have", "has", "had", "do", "does", "did", "will", "would",
-    "could", "should", "may", "might", "shall", "can", "this", "that",
-    "these", "those", "it", "its", "not", "no", "as", "if", "then",
-    "than", "so", "up", "out", "about", "into", "over", "after", "before",
-})
+_STOPWORDS_EN = frozenset(
+    {
+        "a",
+        "an",
+        "the",
+        "and",
+        "or",
+        "but",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "of",
+        "with",
+        "by",
+        "from",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "could",
+        "should",
+        "may",
+        "might",
+        "shall",
+        "can",
+        "this",
+        "that",
+        "these",
+        "those",
+        "it",
+        "its",
+        "not",
+        "no",
+        "as",
+        "if",
+        "then",
+        "than",
+        "so",
+        "up",
+        "out",
+        "about",
+        "into",
+        "over",
+        "after",
+        "before",
+    }
+)
 
 
 # ---------------------------------------------------------------------------
@@ -117,9 +217,7 @@ class MetadataEnricherService(BaseService):
     # Enrich
     # ------------------------------------------------------------------
 
-    async def enrich(
-        self, text: str, config: EnrichmentConfig | None = None
-    ) -> EnrichedMetadata:
+    async def enrich(self, text: str, config: EnrichmentConfig | None = None) -> EnrichedMetadata:
         """Extract metadata from document text.
 
         Args:
@@ -193,10 +291,7 @@ class MetadataEnricherService(BaseService):
 
         # Tokenize: lowercase, alpha-only words
         words = re.findall(r"[a-zA-ZáéíóöőúüűÁÉÍÓÖŐÚÜŰ]+", text.lower())
-        filtered = [
-            w for w in words
-            if len(w) >= min_len and w not in stopwords
-        ]
+        filtered = [w for w in words if len(w) >= min_len and w not in stopwords]
 
         counter = Counter(filtered)
         return [word for word, _ in counter.most_common(max_kw)]

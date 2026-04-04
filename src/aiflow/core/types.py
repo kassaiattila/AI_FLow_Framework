@@ -1,10 +1,12 @@
 """Common type definitions for AIFlow."""
+
 from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel
 
 __all__ = ["Status", "StepStatus", "Priority", "SkillType", "StepResult", "WorkflowResult"]
+
 
 class Status(StrEnum):
     PENDING = "pending"
@@ -14,6 +16,7 @@ class Status(StrEnum):
     PAUSED = "paused"
     CANCELLED = "cancelled"
 
+
 class StepStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
@@ -22,6 +25,7 @@ class StepStatus(StrEnum):
     SKIPPED = "skipped"
     RETRYING = "retrying"
 
+
 class Priority(StrEnum):
     CRITICAL = "critical"
     HIGH = "high"
@@ -29,10 +33,12 @@ class Priority(StrEnum):
     LOW = "low"
     BACKGROUND = "background"
 
+
 class SkillType(StrEnum):
     AI = "ai"
     RPA = "rpa"
     HYBRID = "hybrid"
+
 
 class StepResult(BaseModel):
     status: StepStatus
@@ -42,6 +48,7 @@ class StepResult(BaseModel):
     duration_ms: float | None = None
     cost_usd: float = 0.0
     scores: dict[str, float] = {}
+
 
 class WorkflowResult(BaseModel):
     status: Status

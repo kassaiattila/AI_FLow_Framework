@@ -4,6 +4,7 @@ Skills are self-contained packages of AI/RPA/hybrid capabilities
 defined via skill.yaml manifests. Instances are configured deployments
 of skill templates per customer.
 """
+
 from aiflow.skill_system.instance import InstanceConfig
 from aiflow.skill_system.instance_loader import (
     DeploymentProfile,

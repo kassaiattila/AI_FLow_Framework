@@ -20,9 +20,7 @@ logger = structlog.get_logger(__name__)
 class PipelineRepository:
     """Async CRUD for pipeline_definitions table."""
 
-    def __init__(
-        self, session_factory: async_sessionmaker[AsyncSession]
-    ) -> None:
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         self._sf = session_factory
 
     async def create(
@@ -64,16 +62,12 @@ class PipelineRepository:
         )
         return model
 
-    async def get_by_id(
-        self, pipeline_id: uuid.UUID
-    ) -> PipelineDefinitionModel | None:
+    async def get_by_id(self, pipeline_id: uuid.UUID) -> PipelineDefinitionModel | None:
         """Get pipeline by ID."""
         async with self._sf() as session:
             return await session.get(PipelineDefinitionModel, pipeline_id)
 
-    async def get_by_name_version(
-        self, name: str, version: str
-    ) -> PipelineDefinitionModel | None:
+    async def get_by_name_version(self, name: str, version: str) -> PipelineDefinitionModel | None:
         """Get pipeline by unique (name, version)."""
         async with self._sf() as session:
             stmt = select(PipelineDefinitionModel).where(
@@ -97,13 +91,9 @@ class PipelineRepository:
                 PipelineDefinitionModel.updated_at.desc()
             )
             if team_id is not None:
-                stmt = stmt.where(
-                    PipelineDefinitionModel.team_id == team_id
-                )
+                stmt = stmt.where(PipelineDefinitionModel.team_id == team_id)
             if enabled_only:
-                stmt = stmt.where(
-                    PipelineDefinitionModel.enabled.is_(True)
-                )
+                stmt = stmt.where(PipelineDefinitionModel.enabled.is_(True))
             stmt = stmt.limit(limit).offset(offset)
             result = await session.execute(stmt)
             return list(result.scalars().all())
@@ -152,12 +142,8 @@ class PipelineRepository:
         async with self._sf() as session:
             stmt = select(func.count(PipelineDefinitionModel.id))
             if team_id is not None:
-                stmt = stmt.where(
-                    PipelineDefinitionModel.team_id == team_id
-                )
+                stmt = stmt.where(PipelineDefinitionModel.team_id == team_id)
             if enabled_only:
-                stmt = stmt.where(
-                    PipelineDefinitionModel.enabled.is_(True)
-                )
+                stmt = stmt.where(PipelineDefinitionModel.enabled.is_(True))
             result = await session.execute(stmt)
             return result.scalar_one()

@@ -1,4 +1,5 @@
 """Global test fixtures for AIFlow."""
+
 import pytest
 
 from aiflow.core.config import AIFlowSettings

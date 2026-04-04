@@ -9,6 +9,7 @@
     requires_services: []
     tags: [observability, logging, structlog]
 """
+
 import logging
 
 import structlog

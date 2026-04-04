@@ -9,6 +9,7 @@
     requires_services: []
     tags: [engine, workflow, builder, decorator]
 """
+
 import pytest
 
 from aiflow.engine.dag import DAGValidationError
@@ -21,13 +22,16 @@ from aiflow.engine.workflow import Workflow, WorkflowBuilder, WorkflowDefinition
 async def step_a(data):
     return {"result": "a"}
 
+
 @step(name="step_b")
 async def step_b(data):
     return {"result": "b"}
 
+
 @step(name="step_c")
 async def step_c(data):
     return {"result": "c"}
+
 
 @step(name="step_d")
 async def step_d(data):
@@ -68,9 +72,13 @@ class TestWorkflowBuilder:
         builder.step(step_a)
         builder.step(step_b)
         builder.step(step_c)
-        builder.branch(on="step_a", when={
-            "output.category == 'yes'": ["step_b"],
-        }, otherwise="step_c")
+        builder.branch(
+            on="step_a",
+            when={
+                "output.category == 'yes'": ["step_b"],
+            },
+            otherwise="step_c",
+        )
         successors = builder.dag.get_successors("step_a")
         assert "step_b" in successors
         assert "step_c" in successors
@@ -153,9 +161,13 @@ class TestWorkflowDecorator:
             wf.step(step_a)
             wf.step(step_b)
             wf.step(step_c)
-            wf.branch(on="step_a", when={
-                "output.category == 'yes'": ["step_b"],
-            }, otherwise="step_c")
+            wf.branch(
+                on="step_a",
+                when={
+                    "output.category == 'yes'": ["step_b"],
+                },
+                otherwise="step_c",
+            )
 
         assert my_workflow.dag.node_count == 3
 
@@ -169,7 +181,10 @@ class TestWorkflowDefinition:
 
     def test_full(self):
         defn = WorkflowDefinition(
-            name="full", version="2.0.0", skill="my_skill",
-            complexity="large", tags=["production"],
+            name="full",
+            version="2.0.0",
+            skill="my_skill",
+            complexity="large",
+            tags=["production"],
         )
         assert defn.skill == "my_skill"

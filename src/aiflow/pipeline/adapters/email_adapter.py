@@ -88,14 +88,16 @@ class EmailFetchAdapter(BaseAdapter):
 
         emails = []
         for email in result.emails:
-            emails.append({
-                "message_id": getattr(email, "message_id", ""),
-                "subject": getattr(email, "subject", ""),
-                "sender": getattr(email, "sender", ""),
-                "body_text": getattr(email, "body_text", ""),
-                "received_at": str(getattr(email, "received_at", "")),
-                "attachments": getattr(email, "attachments", []),
-            })
+            emails.append(
+                {
+                    "message_id": getattr(email, "message_id", ""),
+                    "subject": getattr(email, "subject", ""),
+                    "sender": getattr(email, "sender", ""),
+                    "body_text": getattr(email, "body_text", ""),
+                    "received_at": str(getattr(email, "received_at", "")),
+                    "attachments": getattr(email, "attachments", []),
+                }
+            )
 
         return {
             "emails": emails,

@@ -9,6 +9,7 @@
     requires_services: []
     tags: [registry, lookup, components]
 """
+
 import pytest
 
 from aiflow.core.registry import Registry

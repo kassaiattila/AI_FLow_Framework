@@ -3,6 +3,7 @@
 Supports Jinja2 template rendering for system/user messages and
 label-based environments (dev/test/staging/prod).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -91,10 +92,12 @@ class PromptDefinition(BaseModel):
 
         if self.system:
             system_template = _JINJA_ENV.from_string(self.system)
-            messages.append({
-                "role": "system",
-                "content": system_template.render(**vars_),
-            })
+            messages.append(
+                {
+                    "role": "system",
+                    "content": system_template.render(**vars_),
+                }
+            )
 
         # Inject examples as assistant/user turns
         for example in self.examples:
@@ -103,9 +106,11 @@ class PromptDefinition(BaseModel):
 
         if self.user:
             user_template = _JINJA_ENV.from_string(self.user)
-            messages.append({
-                "role": "user",
-                "content": user_template.render(**vars_),
-            })
+            messages.append(
+                {
+                    "role": "user",
+                    "content": user_template.render(**vars_),
+                }
+            )
 
         return messages

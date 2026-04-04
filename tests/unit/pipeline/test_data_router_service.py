@@ -168,9 +168,7 @@ class TestMoveToDir:
         assert "not found" in (result.error or "").lower()
 
     @pytest.mark.asyncio
-    async def test_move_preserves_filename(
-        self, svc: DataRouterService, tmp_path: Path
-    ) -> None:
+    async def test_move_preserves_filename(self, svc: DataRouterService, tmp_path: Path) -> None:
         await svc.start()
         src = tmp_path / "source" / "report.xlsx"
         src.parent.mkdir(parents=True)
@@ -224,9 +222,7 @@ class TestRouteFiles:
         assert results[0].success is True
 
     @pytest.mark.asyncio
-    async def test_route_move_to_dir_real(
-        self, svc: DataRouterService, tmp_path: Path
-    ) -> None:
+    async def test_route_move_to_dir_real(self, svc: DataRouterService, tmp_path: Path) -> None:
         await svc.start()
         src = tmp_path / "uploads" / "doc.pdf"
         src.parent.mkdir(parents=True)

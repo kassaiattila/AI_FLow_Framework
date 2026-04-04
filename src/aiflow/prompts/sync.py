@@ -3,6 +3,7 @@
 Syncs local YAML prompt definitions to Langfuse as the Cloud SSOT.
 Uses Langfuse v4 SDK: create_prompt (chat type) and get_prompt.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -118,9 +119,7 @@ class PromptSyncer:
             version=prompt.version,
         )
 
-    def sync_directory(
-        self, dir_path: Path | str, label: str = "dev"
-    ) -> list[SyncResult]:
+    def sync_directory(self, dir_path: Path | str, label: str = "dev") -> list[SyncResult]:
         """Sync all YAML prompt files in a directory to Langfuse.
 
         Args:
@@ -216,7 +215,9 @@ class PromptSyncer:
                 "labels": list(remote.labels) if remote.labels else [],
                 "prompt": remote.prompt,  # the message list
             }
-            logger.info("prompt_syncer.fetch_remote_ok", prompt=prompt_name, version=result["version"])
+            logger.info(
+                "prompt_syncer.fetch_remote_ok", prompt=prompt_name, version=result["version"]
+            )
             return result
         except Exception as exc:
             error_str = str(exc)
@@ -226,9 +227,7 @@ class PromptSyncer:
             logger.warning("prompt_syncer.fetch_remote_failed", prompt=prompt_name, error=error_str)
             return None
 
-    def _push_to_langfuse(
-        self, prompt: PromptDefinition, label: str
-    ) -> SyncResult:
+    def _push_to_langfuse(self, prompt: PromptDefinition, label: str) -> SyncResult:
         """Push prompt to Langfuse using v4 create_prompt() API.
 
         Creates a new version of the prompt in Langfuse as a chat prompt
@@ -302,9 +301,7 @@ class PromptSyncer:
                 error=str(exc),
             )
 
-    def _compute_diff(
-        self, local: PromptDefinition, remote: dict[str, Any]
-    ) -> list[str]:
+    def _compute_diff(self, local: PromptDefinition, remote: dict[str, Any]) -> list[str]:
         """Compute list of changed field names between local and remote."""
         changed: list[str] = []
 

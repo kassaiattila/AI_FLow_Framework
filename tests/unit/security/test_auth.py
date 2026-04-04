@@ -9,6 +9,7 @@
     requires_services: []
     tags: [security, auth, jwt, api-key]
 """
+
 import pytest
 
 from aiflow.security.auth import APIKeyProvider, AuthProvider, TokenPayload

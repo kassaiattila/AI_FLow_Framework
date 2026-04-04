@@ -16,12 +16,8 @@ class QualityEvalInput(BaseModel):
     """Input schema for rubric evaluation."""
 
     actual: str = Field(..., description="Actual LLM output to evaluate")
-    rubric: str = Field(
-        ..., description="Rubric name or custom rubric text"
-    )
-    expected: str | None = Field(
-        None, description="Expected output for comparison"
-    )
+    rubric: str = Field(..., description="Rubric name or custom rubric text")
+    expected: str | None = Field(None, description="Expected output for comparison")
 
 
 class QualityEvalOutput(BaseModel):

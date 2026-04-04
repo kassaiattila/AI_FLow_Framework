@@ -4,6 +4,7 @@ Loads instance config YAML files and validates them against the
 InstanceConfig schema. Also loads deployment.yaml profiles
 and resolves all instance references.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

@@ -11,6 +11,7 @@ E2E test fixtures for AIFlow admin dashboard.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, playwright, ui]
 """
+
 from __future__ import annotations
 
 import pytest
@@ -40,8 +41,8 @@ def authenticated_page(page: Page) -> Page:
     page.wait_for_load_state("networkidle")
 
     # Fill login form
-    page.fill('input#email', AUTH_EMAIL)
-    page.fill('input#password', AUTH_PASSWORD)
+    page.fill("input#email", AUTH_EMAIL)
+    page.fill("input#password", AUTH_PASSWORD)
     page.click('button[type="submit"]')
 
     # Wait for sidebar nav to appear (means login succeeded)
@@ -68,11 +69,15 @@ def navigate_to(page: Page, path: str) -> None:
 def assert_no_console_errors(errors: list[str]) -> None:
     """Assert no JS console errors occurred (ignoring known benign ones)."""
     real_errors = [
-        e for e in errors
-        if not any(ignore in e for ignore in [
-            "favicon.ico",
-            "ResizeObserver",
-            "Failed to fetch",  # API may not be running
-        ])
+        e
+        for e in errors
+        if not any(
+            ignore in e
+            for ignore in [
+                "favicon.ico",
+                "ResizeObserver",
+                "Failed to fetch",  # API may not be running
+            ]
+        )
     ]
     assert not real_errors, f"Console errors: {real_errors}"

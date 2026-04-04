@@ -104,9 +104,7 @@ class PipelineCompiler:
 
         dag_errors = dag.validate()
         if dag_errors:
-            raise PipelineCompileError(
-                f"DAG validation failed: {'; '.join(dag_errors)}"
-            )
+            raise PipelineCompileError(f"DAG validation failed: {'; '.join(dag_errors)}")
 
         logger.info(
             "pipeline_compiled",
@@ -115,9 +113,7 @@ class PipelineCompiler:
             edges=dag.edge_count,
         )
 
-        return CompilationResult(
-            dag=dag, step_funcs=step_funcs, pipeline_def=pipeline_def
-        )
+        return CompilationResult(dag=dag, step_funcs=step_funcs, pipeline_def=pipeline_def)
 
     def _validate_adapters(self, pipeline_def: PipelineDefinition) -> None:
         """Ensure all steps reference registered adapters."""
@@ -144,9 +140,7 @@ class PipelineCompiler:
             """Execute one pipeline step with Jinja2 config resolution."""
             if step_def.for_each and isinstance(adapter, BaseAdapter):
                 items_expr = step_def.for_each
-                items = resolver.resolve_expression(
-                    items_expr, pipeline_context
-                )
+                items = resolver.resolve_expression(items_expr, pipeline_context)
                 if not isinstance(items, list):
                     items = [items]
 
@@ -167,9 +161,7 @@ class PipelineCompiler:
                 )
                 return {"results": results, "count": len(results)}
 
-            resolved_config = resolver.resolve_config(
-                step_def.config, pipeline_context
-            )
+            resolved_config = resolver.resolve_config(step_def.config, pipeline_context)
             return await adapter.execute(resolved_config, {}, ctx)
 
         step_func.__name__ = f"step_{step_def.name}"

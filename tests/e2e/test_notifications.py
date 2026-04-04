@@ -11,6 +11,7 @@ Notification bell E2E tests.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, notifications, playwright]
 """
+
 from __future__ import annotations
 
 from playwright.sync_api import Page, expect
@@ -25,7 +26,9 @@ class TestNotifications:
         navigate_to(authenticated_page, "/")
 
         # Bell icon should be in the top bar (svg with bell path or aria label)
-        bell = authenticated_page.locator('[aria-label*="otif"], [aria-label*="bell"], button:has(svg)').first
+        bell = authenticated_page.locator(
+            '[aria-label*="otif"], [aria-label*="bell"], button:has(svg)'
+        ).first
         expect(bell).to_be_visible()
 
     def test_notification_dropdown_toggles(self, authenticated_page: Page) -> None:

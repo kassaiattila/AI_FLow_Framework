@@ -12,6 +12,7 @@ Usage:
         wf.step(review, depends_on=["extract"])
         wf.join(["generate_diagram", "generate_table"], into="assemble_output")
 """
+
 from collections.abc import Callable
 from typing import Any
 
@@ -29,6 +30,7 @@ logger = structlog.get_logger(__name__)
 
 class WorkflowDefinition(BaseModel):
     """Metadata for a registered workflow."""
+
     name: str
     version: str = "1.0.0"
     skill: str | None = None
@@ -60,8 +62,14 @@ class WorkflowBuilder:
         """Map of step name -> step function."""
         return self._step_funcs
 
-    def step(self, func: Callable, *, depends_on: list[str] | None = None,
-             terminal: bool = False, max_iterations: int = 1) -> str:
+    def step(
+        self,
+        func: Callable,
+        *,
+        depends_on: list[str] | None = None,
+        terminal: bool = False,
+        max_iterations: int = 1,
+    ) -> str:
         """Add a step to the workflow.
 
         Args:
@@ -74,11 +82,8 @@ class WorkflowBuilder:
             The step name
         """
         step_def = get_step_definition(func)
-        if step_def is None:
-            # Allow plain async functions too (use function name)
-            name = getattr(func, '__name__', str(func))
-        else:
-            name = step_def.name
+        # Allow plain async functions too (use function name)
+        name = getattr(func, "__name__", str(func)) if step_def is None else step_def.name
 
         self._dag.add_node(
             name,
@@ -95,8 +100,7 @@ class WorkflowBuilder:
 
         return name
 
-    def edge(self, from_step: str, to_step: str, *,
-             condition: str | None = None) -> None:
+    def edge(self, from_step: str, to_step: str, *, condition: str | None = None) -> None:
         """Add a directed edge between two steps.
 
         Args:
@@ -107,8 +111,7 @@ class WorkflowBuilder:
         cond = Condition(expression=condition) if condition else None
         self._dag.add_edge(from_step, to_step, condition=cond)
 
-    def branch(self, on: str, when: dict[str, list[str]], *,
-               otherwise: str | None = None) -> None:
+    def branch(self, on: str, when: dict[str, list[str]], *, otherwise: str | None = None) -> None:
         """Add conditional branching from a step.
 
         Args:
@@ -137,9 +140,9 @@ class WorkflowBuilder:
         for step_name in steps:
             self._dag.add_edge(step_name, into)
 
-    def quality_gate(self, after: str, *, gate: Any,
-                     on_fail: str | None = None,
-                     on_exhausted: str | None = None) -> None:
+    def quality_gate(
+        self, after: str, *, gate: Any, on_fail: str | None = None, on_exhausted: str | None = None
+    ) -> None:
         """Add a quality gate after a step.
 
         Stored as metadata on the step's DAG node.
@@ -170,8 +173,13 @@ class WorkflowBuilder:
 class Workflow:
     """A complete workflow with metadata and DAG."""
 
-    def __init__(self, definition: WorkflowDefinition, dag: DAG,
-                 step_funcs: dict[str, Callable], builder_func: Callable) -> None:
+    def __init__(
+        self,
+        definition: WorkflowDefinition,
+        dag: DAG,
+        step_funcs: dict[str, Callable],
+        builder_func: Callable,
+    ) -> None:
         self.definition = definition
         self.dag = dag
         self.step_funcs = step_funcs
@@ -205,6 +213,7 @@ def workflow(
 
     Returns a Workflow instance.
     """
+
     def decorator(func: Callable) -> Workflow:
         definition = WorkflowDefinition(
             name=name,
@@ -227,8 +236,13 @@ def workflow(
             builder_func=func,
         )
 
-        logger.info("workflow_defined", name=name, version=version,
-                     steps=dag.node_count, edges=dag.edge_count)
+        logger.info(
+            "workflow_defined",
+            name=name,
+            version=version,
+            steps=dag.node_count,
+            edges=dag.edge_count,
+        )
         return wf
 
     return decorator

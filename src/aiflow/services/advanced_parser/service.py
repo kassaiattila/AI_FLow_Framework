@@ -57,19 +57,58 @@ class AdvancedParserConfig(ServiceConfig):
 # Supported extensions per parser
 # ---------------------------------------------------------------------------
 
-_DOCLING_EXTENSIONS = frozenset({
-    ".pdf", ".docx", ".xlsx", ".pptx", ".html", ".htm", ".md", ".txt",
-})
+_DOCLING_EXTENSIONS = frozenset(
+    {
+        ".pdf",
+        ".docx",
+        ".xlsx",
+        ".pptx",
+        ".html",
+        ".htm",
+        ".md",
+        ".txt",
+    }
+)
 
-_UNSTRUCTURED_EXTENSIONS = frozenset({
-    ".pdf", ".docx", ".doc", ".xlsx", ".xls", ".pptx", ".ppt",
-    ".html", ".htm", ".txt", ".md", ".csv", ".tsv", ".rtf", ".odt",
-})
+_UNSTRUCTURED_EXTENSIONS = frozenset(
+    {
+        ".pdf",
+        ".docx",
+        ".doc",
+        ".xlsx",
+        ".xls",
+        ".pptx",
+        ".ppt",
+        ".html",
+        ".htm",
+        ".txt",
+        ".md",
+        ".csv",
+        ".tsv",
+        ".rtf",
+        ".odt",
+    }
+)
 
-_TEXT_EXTENSIONS = frozenset({
-    ".txt", ".md", ".csv", ".tsv", ".log", ".json", ".xml", ".yaml", ".yml",
-    ".py", ".js", ".ts", ".html", ".htm", ".css",
-})
+_TEXT_EXTENSIONS = frozenset(
+    {
+        ".txt",
+        ".md",
+        ".csv",
+        ".tsv",
+        ".log",
+        ".json",
+        ".xml",
+        ".yaml",
+        ".yml",
+        ".py",
+        ".js",
+        ".ts",
+        ".html",
+        ".htm",
+        ".css",
+    }
+)
 
 
 # ---------------------------------------------------------------------------
@@ -113,9 +152,7 @@ class AdvancedParserService(BaseService):
     # Parse
     # ------------------------------------------------------------------
 
-    async def parse(
-        self, file_path: str, config: ParserConfig | None = None
-    ) -> ParsedDocument:
+    async def parse(self, file_path: str, config: ParserConfig | None = None) -> ParsedDocument:
         """Parse a document file using the fallback chain.
 
         Args:
@@ -138,11 +175,7 @@ class AdvancedParserService(BaseService):
         extension = path.suffix.lower()
 
         # Determine parser order
-        chain = (
-            [cfg.parser]
-            if cfg.parser != "auto"
-            else list(self._ext_config.fallback_chain)
-        )
+        chain = [cfg.parser] if cfg.parser != "auto" else list(self._ext_config.fallback_chain)
 
         # Try each parser in the chain
         for parser_name in chain:

@@ -1,4 +1,5 @@
 """Email parser - extract headers, body, and attachments from .eml/.msg files."""
+
 from __future__ import annotations
 
 import email
@@ -77,9 +78,7 @@ class EmailParser:
         date = str(msg.get("Date", ""))
         message_id = str(msg.get("Message-ID", ""))
         in_reply_to = str(msg.get("In-Reply-To", ""))
-        references = [
-            r.strip() for r in str(msg.get("References", "")).split() if r.strip()
-        ]
+        references = [r.strip() for r in str(msg.get("References", "")).split() if r.strip()]
 
         # Body
         body_text = ""

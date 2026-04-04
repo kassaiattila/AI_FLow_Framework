@@ -156,9 +156,7 @@ class TestInvoiceTemplateCompilation:
         assert result is not None
         assert len(result.step_funcs) == 3
 
-    def test_dag_is_valid(
-        self, pipeline_def: PipelineDefinition, registry: AdapterRegistry
-    ):
+    def test_dag_is_valid(self, pipeline_def: PipelineDefinition, registry: AdapterRegistry):
         compiler = PipelineCompiler(registry)
         result = compiler.compile(pipeline_def)
         errors = result.dag.validate()

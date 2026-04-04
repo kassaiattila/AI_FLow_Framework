@@ -5,6 +5,7 @@ Supports IMAP, O365 Graph API, and Gmail providers.
 
 Pipeline: connect → authenticate → fetch → parse → save .eml → record history
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -206,15 +207,21 @@ class EmailConnectorService(BaseService):
             self._logger.info("connector_config_created", name=name, id=config_id)
             return await self.get_config(config_id)  # type: ignore[return-value]
 
-    async def update_config(
-        self, config_id: str, **kwargs: Any
-    ) -> dict[str, Any] | None:
+    async def update_config(self, config_id: str, **kwargs: Any) -> dict[str, Any] | None:
         """Update a connector configuration. Only provided kwargs are updated."""
         # Build SET clause dynamically from provided kwargs
         allowed_fields = {
-            "name", "provider", "host", "port", "use_ssl", "mailbox",
-            "credentials_encrypted", "filters", "polling_interval_minutes",
-            "max_emails_per_fetch", "is_active",
+            "name",
+            "provider",
+            "host",
+            "port",
+            "use_ssl",
+            "mailbox",
+            "credentials_encrypted",
+            "filters",
+            "polling_interval_minutes",
+            "max_emails_per_fetch",
+            "is_active",
         }
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         if not updates:
@@ -262,9 +269,7 @@ class EmailConnectorService(BaseService):
             )
             await session.commit()
             deleted = result.rowcount > 0
-            self._logger.info(
-                "connector_config_deleted", config_id=config_id, deleted=deleted
-            )
+            self._logger.info("connector_config_deleted", config_id=config_id, deleted=deleted)
             return deleted
 
     # -------------------------------------------------------------------------
@@ -358,9 +363,7 @@ class EmailConnectorService(BaseService):
             )
 
             # Update fetch history and last_fetched_at
-            await self._record_fetch_complete(
-                history_id, config_id, result
-            )
+            await self._record_fetch_complete(history_id, config_id, result)
             self._logger.info(
                 "emails_fetched",
                 config_id=config_id,
@@ -386,9 +389,7 @@ class EmailConnectorService(BaseService):
     # Fetch history
     # -------------------------------------------------------------------------
 
-    async def get_fetch_history(
-        self, config_id: str, limit: int = 20
-    ) -> list[dict[str, Any]]:
+    async def get_fetch_history(self, config_id: str, limit: int = 20) -> list[dict[str, Any]]:
         """Get fetch history for a connector configuration."""
         async with self._session_factory() as session:
             result = await session.execute(
@@ -420,9 +421,7 @@ class EmailConnectorService(BaseService):
     # IMAP provider implementation
     # =========================================================================
 
-    async def _test_imap_connection(
-        self, cfg: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _test_imap_connection(self, cfg: dict[str, Any]) -> dict[str, Any]:
         """Test IMAP connectivity in a thread (imaplib is blocking)."""
 
         def _test() -> dict[str, Any]:
@@ -496,9 +495,7 @@ class EmailConnectorService(BaseService):
 
             parts = credentials.split(":", 1)
             if len(parts) != 2:
-                raise ValueError(
-                    "Invalid credentials format (expected user:password)"
-                )
+                raise ValueError("Invalid credentials format (expected user:password)")
             username, password = parts
 
             # Connect
@@ -536,9 +533,13 @@ class EmailConnectorService(BaseService):
                     parsed = _parse_email_message(raw_bytes)
 
                     # Save .eml file
-                    safe_id = (parsed.message_id or str(msg_id)).replace(
-                        "/", "_"
-                    ).replace("\\", "_").replace("<", "").replace(">", "")[:80]
+                    safe_id = (
+                        (parsed.message_id or str(msg_id))
+                        .replace("/", "_")
+                        .replace("\\", "_")
+                        .replace("<", "")
+                        .replace(">", "")[:80]
+                    )
                     eml_path = upload_dir / f"{safe_id}.eml"
                     eml_path.write_bytes(raw_bytes)
                     parsed.raw_eml_path = str(eml_path)
@@ -560,9 +561,7 @@ class EmailConnectorService(BaseService):
     # Outlook COM/MAPI provider (Windows — local Outlook)
     # =========================================================================
 
-    async def _test_outlook_com_connection(
-        self, cfg: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _test_outlook_com_connection(self, cfg: dict[str, Any]) -> dict[str, Any]:
         return await _test_outlook_com_connection_impl(cfg)
 
     async def _fetch_outlook_com(
@@ -575,9 +574,7 @@ class EmailConnectorService(BaseService):
     # O365 Graph API provider implementation
     # =========================================================================
 
-    async def _test_o365_connection(
-        self, cfg: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _test_o365_connection(self, cfg: dict[str, Any]) -> dict[str, Any]:
         """Test O365 Graph API connectivity."""
         try:
             import httpx
@@ -603,9 +600,7 @@ class EmailConnectorService(BaseService):
         tenant_id, client_id, client_secret, user_email = parts
 
         try:
-            token = await self._get_o365_token(
-                tenant_id, client_id, client_secret
-            )
+            token = await self._get_o365_token(tenant_id, client_id, client_secret)
             if not token:
                 return {"success": False, "message": "Failed to obtain access token"}
 
@@ -638,11 +633,10 @@ class EmailConnectorService(BaseService):
         """Fetch emails via Microsoft Graph API."""
         try:
             import httpx
-        except ImportError:
+        except ImportError as exc:
             raise ImportError(
-                "httpx is required for O365 Graph provider. "
-                "Install with: uv pip install httpx"
-            )
+                "httpx is required for O365 Graph provider. Install with: uv pip install httpx"
+            ) from exc
 
         credentials = cfg.get("credentials_encrypted", "")
         parts = credentials.split(":", 3)
@@ -700,9 +694,7 @@ class EmailConnectorService(BaseService):
                 fetched = _parse_o365_message(msg)
 
                 # For O365, we don't have raw .eml, but store the JSON
-                safe_id = (
-                    msg.get("id", "")[:80].replace("/", "_").replace("\\", "_")
-                )
+                safe_id = msg.get("id", "")[:80].replace("/", "_").replace("\\", "_")
                 json_path = upload_dir / f"{safe_id}.json"
                 json_path.write_text(json.dumps(msg, default=str), encoding="utf-8")
                 fetched.raw_eml_path = str(json_path)
@@ -723,9 +715,7 @@ class EmailConnectorService(BaseService):
         """Obtain OAuth2 access token using client_credentials flow."""
         import httpx
 
-        token_url = (
-            f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
-        )
+        token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 token_url,
@@ -905,9 +895,7 @@ def _decode_header_value(value: str | None) -> str:
     result_parts = []
     for part, charset in decoded_parts:
         if isinstance(part, bytes):
-            result_parts.append(
-                part.decode(charset or "utf-8", errors="replace")
-            )
+            result_parts.append(part.decode(charset or "utf-8", errors="replace"))
         else:
             result_parts.append(str(part))
     return " ".join(result_parts)
@@ -1016,9 +1004,7 @@ def _parse_o365_message(msg: dict[str, Any]) -> FetchedEmail:
     raw_date = msg.get("receivedDateTime")
     if raw_date:
         try:
-            msg_date = datetime.fromisoformat(
-                raw_date.replace("Z", "+00:00")
-            )
+            msg_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
         except Exception:
             pass
 
@@ -1062,15 +1048,18 @@ def _parse_o365_message(msg: dict[str, Any]) -> FetchedEmail:
 # Outlook COM/MAPI provider (Windows only — requires running Outlook)
 # ---------------------------------------------------------------------------
 
+
 async def _test_outlook_com_connection_impl(cfg: dict[str, Any]) -> dict[str, Any]:
     """Test Outlook COM connection (blocking, runs in thread)."""
     import sys
+
     if sys.platform != "win32":
         return {"success": False, "message": "Outlook COM only available on Windows"}
 
     def _test() -> dict[str, Any]:
         try:
             import pythoncom
+
             pythoncom.CoInitialize()
         except Exception:
             pass
@@ -1119,12 +1108,14 @@ async def _fetch_outlook_com_impl(
 ) -> list[FetchedEmail]:
     """Fetch emails from local Outlook via COM/MAPI."""
     import sys
+
     if sys.platform != "win32":
         raise RuntimeError("Outlook COM only available on Windows")
 
     def _fetch() -> list[FetchedEmail]:
         try:
             import pythoncom
+
             pythoncom.CoInitialize()
         except Exception:
             pass
@@ -1139,7 +1130,11 @@ async def _fetch_outlook_com_impl(
 
         # Find account by mailbox/credentials field
         account_filter = cfg.get("mailbox") or cfg.get("credentials_encrypted") or ""
-        folder_name = cfg.get("filters", {}).get("folder", "Inbox") if isinstance(cfg.get("filters"), dict) else "Inbox"
+        folder_name = (
+            cfg.get("filters", {}).get("folder", "Inbox")
+            if isinstance(cfg.get("filters"), dict)
+            else "Inbox"
+        )
 
         target_folder = None
         if account_filter:
@@ -1162,10 +1157,8 @@ async def _fetch_outlook_com_impl(
         # Date filter
         from datetime import datetime as dt
         from datetime import timedelta
-        if since_date:
-            cutoff = since_date
-        else:
-            cutoff = (dt.now() - timedelta(days=7)).date()
+
+        cutoff = since_date or (dt.now() - timedelta(days=7)).date()
         cutoff_str = cutoff.strftime("%m/%d/%Y")
 
         items = target_folder.Items
@@ -1191,7 +1184,9 @@ async def _fetch_outlook_com_impl(
                 msg_id = getattr(item, "EntryID", "") or ""
 
                 # Safe filename
-                safe_subject = "".join(c if c.isalnum() or c in "-_ " else "_" for c in subject[:60]).strip()
+                safe_subject = "".join(
+                    c if c.isalnum() or c in "-_ " else "_" for c in subject[:60]
+                ).strip()
                 date_str = received.strftime("%Y%m%d_%H%M") if received else "nodate"
                 base_name = f"{date_str}_{safe_subject}"
 
@@ -1213,16 +1208,20 @@ async def _fetch_outlook_com_impl(
                         att_path = attach_dir / f"{base_name}_{att_name}"
                         try:
                             att.SaveAsFile(str(att_path))
-                            att_list.append(EmailAttachment(
-                                filename=att_name,
-                                mime_type="application/octet-stream",
-                                size=att_path.stat().st_size if att_path.exists() else 0,
-                            ))
+                            att_list.append(
+                                EmailAttachment(
+                                    filename=att_name,
+                                    mime_type="application/octet-stream",
+                                    size=att_path.stat().st_size if att_path.exists() else 0,
+                                )
+                            )
                             with open(att_path, "rb") as af:
                                 part = MIMEBase("application", "octet-stream")
                                 part.set_payload(af.read())
                                 encoders.encode_base64(part)
-                                part.add_header("Content-Disposition", f"attachment; filename={att_name}")
+                                part.add_header(
+                                    "Content-Disposition", f"attachment; filename={att_name}"
+                                )
                                 msg.attach(part)
                         except Exception:
                             pass
@@ -1234,22 +1233,34 @@ async def _fetch_outlook_com_impl(
                 received_dt = None
                 if received:
                     try:
-                        received_dt = dt(received.year, received.month, received.day,
-                                         received.hour, received.minute, received.second)
+                        received_dt = dt(
+                            received.year,
+                            received.month,
+                            received.day,
+                            received.hour,
+                            received.minute,
+                            received.second,
+                        )
                     except Exception:
                         pass
 
-                results.append(FetchedEmail(
-                    message_id=msg_id,
-                    subject=subject,
-                    sender=sender,
-                    recipients=[r.strip() for r in (getattr(item, "To", "") or "").split(";") if r.strip()],
-                    date=received_dt,
-                    body_text=body,
-                    body_html=html_body,
-                    attachments=att_list,
-                    raw_eml_path=str(eml_path),
-                ))
+                results.append(
+                    FetchedEmail(
+                        message_id=msg_id,
+                        subject=subject,
+                        sender=sender,
+                        recipients=[
+                            r.strip()
+                            for r in (getattr(item, "To", "") or "").split(";")
+                            if r.strip()
+                        ],
+                        date=received_dt,
+                        body_text=body,
+                        body_html=html_body,
+                        attachments=att_list,
+                        raw_eml_path=str(eml_path),
+                    )
+                )
                 count += 1
             except Exception as e:
                 logger.warning("outlook_com_item_error", error=str(e))

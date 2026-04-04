@@ -4,6 +4,7 @@ Actual implementation will use ``pymupdf`` (from the ``vectorstore`` optional
 dependency group).  This module provides the interface and a stub that raises
 when the dependency is unavailable.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -41,11 +42,11 @@ class PdfParser:
 
         try:
             import pymupdf  # noqa: F401
-        except ImportError:
+        except ImportError as exc:
             raise ImportError(
                 "pymupdf is required for PDF parsing.  "
                 "Install with: pip install 'aiflow[vectorstore]'"
-            )
+            ) from exc
 
         # Placeholder: real implementation goes here
         logger.info("pdf.parse", file=str(path))

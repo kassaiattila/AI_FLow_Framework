@@ -3,6 +3,7 @@
 Processes video/audio files through STT pipeline (Whisper/Azure Speech),
 persists results to media_jobs table.
 """
+
 from __future__ import annotations
 
 import os
@@ -22,6 +23,7 @@ logger = structlog.get_logger(__name__)
 
 class MediaProcessorConfig(BaseModel):
     """Configuration for Media Processor service."""
+
     default_stt_provider: str = Field(default="whisper")
     max_file_size_mb: int = Field(default=500)
     supported_formats: list[str] = Field(default=["mp4", "mkv", "mp3", "wav", "m4a", "webm", "ogg"])
@@ -29,6 +31,7 @@ class MediaProcessorConfig(BaseModel):
 
 class MediaJobRecord(BaseModel):
     """A persisted media processing job."""
+
     id: str
     filename: str
     media_type: str = "video"
@@ -57,6 +60,7 @@ class MediaProcessorService:
     async def _get_pool(self):
         if self._pool is None:
             import asyncpg
+
             url = self._db_url or os.getenv(
                 "AIFLOW_DATABASE__URL",
                 "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
@@ -65,7 +69,10 @@ class MediaProcessorService:
         return self._pool
 
     async def process_media(
-        self, file_path: Path, stt_provider: str | None = None, created_by: str | None = None,
+        self,
+        file_path: Path,
+        stt_provider: str | None = None,
+        created_by: str | None = None,
     ) -> MediaJobRecord:
         """Process a media file: probe → extract audio → chunk → STT → merge → structure."""
         job_id = str(uuid.uuid4())
@@ -79,8 +86,13 @@ class MediaProcessorService:
             await conn.execute(
                 """INSERT INTO media_jobs (id, filename, media_type, file_size_bytes, stt_provider, status, created_by, created_at, updated_at)
                    VALUES ($1, $2, $3, $4, $5, 'running', $6, $7, $7)""",
-                job_id, filename, _detect_media_type(filename), file_size, provider,
-                created_by, datetime.now(UTC),
+                job_id,
+                filename,
+                _detect_media_type(filename),
+                file_size,
+                provider,
+                created_by,
+                datetime.now(UTC),
             )
 
         start = time.time()
@@ -94,7 +106,10 @@ class MediaProcessorService:
                 transcribe,
             )
 
-            data: dict[str, Any] = {"file_path": str(file_path), "output_dir": str(file_path.parent)}
+            data: dict[str, Any] = {
+                "file_path": str(file_path),
+                "output_dir": str(file_path.parent),
+            }
             data = await probe_audio(data)
             duration = data.get("duration_seconds")
             data = await extract_audio(data)
@@ -105,10 +120,22 @@ class MediaProcessorService:
 
             elapsed = (time.time() - start) * 1000
             transcript_raw = data.get("full_text", "") or data.get("merged_text", "")
-            transcript_structured = data.get("structured_transcript") or {
-                k: data[k] for k in ("title", "summary", "key_topics", "sections", "vocabulary", "cleaned_text")
-                if k in data
-            } or None
+            transcript_structured = (
+                data.get("structured_transcript")
+                or {
+                    k: data[k]
+                    for k in (
+                        "title",
+                        "summary",
+                        "key_topics",
+                        "sections",
+                        "vocabulary",
+                        "cleaned_text",
+                    )
+                    if k in data
+                }
+                or None
+            )
 
             # Update job record
             async with pool.acquire() as conn:
@@ -117,17 +144,27 @@ class MediaProcessorService:
                        transcript_structured=$3::jsonb, duration_seconds=$4,
                        processing_time_ms=$5, updated_at=$6
                        WHERE id=$1""",
-                    job_id, transcript_raw, _to_json(transcript_structured),
-                    duration, elapsed, datetime.now(UTC),
+                    job_id,
+                    transcript_raw,
+                    _to_json(transcript_structured),
+                    duration,
+                    elapsed,
+                    datetime.now(UTC),
                 )
 
             logger.info("media_processed", job_id=job_id, duration_s=duration, elapsed_ms=elapsed)
             return MediaJobRecord(
-                id=job_id, filename=filename, media_type=_detect_media_type(filename),
-                file_size_bytes=file_size, duration_seconds=duration,
-                stt_provider=provider, status="completed",
-                transcript_raw=transcript_raw, transcript_structured=transcript_structured,
-                processing_time_ms=elapsed, created_by=created_by,
+                id=job_id,
+                filename=filename,
+                media_type=_detect_media_type(filename),
+                file_size_bytes=file_size,
+                duration_seconds=duration,
+                stt_provider=provider,
+                status="completed",
+                transcript_raw=transcript_raw,
+                transcript_structured=transcript_structured,
+                processing_time_ms=elapsed,
+                created_by=created_by,
                 created_at=datetime.now(UTC).isoformat(),
                 updated_at=datetime.now(UTC).isoformat(),
             )
@@ -137,12 +174,18 @@ class MediaProcessorService:
             async with pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE media_jobs SET status='failed', error=$2, processing_time_ms=$3, updated_at=$4 WHERE id=$1",
-                    job_id, error_msg, elapsed, datetime.now(UTC),
+                    job_id,
+                    error_msg,
+                    elapsed,
+                    datetime.now(UTC),
                 )
             logger.error("media_processing_failed", job_id=job_id, error=error_msg)
             return MediaJobRecord(
-                id=job_id, filename=filename, status="failed",
-                error=error_msg, processing_time_ms=elapsed,
+                id=job_id,
+                filename=filename,
+                status="failed",
+                error=error_msg,
+                processing_time_ms=elapsed,
                 created_at=datetime.now(UTC).isoformat(),
                 updated_at=datetime.now(UTC).isoformat(),
             )
@@ -154,7 +197,8 @@ class MediaProcessorService:
             total = await conn.fetchval("SELECT COUNT(*) FROM media_jobs")
             rows = await conn.fetch(
                 "SELECT * FROM media_jobs ORDER BY created_at DESC LIMIT $1 OFFSET $2",
-                limit, offset,
+                limit,
+                offset,
             )
         return [_row_to_record(r) for r in rows], total
 
@@ -184,11 +228,13 @@ def _to_json(data: Any) -> str | None:
     if data is None:
         return None
     import json
+
     return json.dumps(data)
 
 
 def _row_to_record(row) -> MediaJobRecord:
     import json
+
     return MediaJobRecord(
         id=row["id"],
         filename=row["filename"],
@@ -198,7 +244,9 @@ def _row_to_record(row) -> MediaJobRecord:
         stt_provider=row.get("stt_provider", "whisper"),
         status=row["status"],
         transcript_raw=row.get("transcript_raw"),
-        transcript_structured=json.loads(row["transcript_structured"]) if row.get("transcript_structured") else None,
+        transcript_structured=json.loads(row["transcript_structured"])
+        if row.get("transcript_structured")
+        else None,
         metadata=json.loads(row["metadata"]) if row.get("metadata") else {},
         error=row.get("error"),
         processing_time_ms=row.get("processing_time_ms"),

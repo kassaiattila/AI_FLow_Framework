@@ -1,4 +1,5 @@
 """Schema registry - load and validate versioned JSON schema definitions."""
+
 from __future__ import annotations
 
 import json
@@ -27,7 +28,9 @@ class SchemaRegistry:
     ):
         self._skills_dir = Path(skills_dir)
         self._customer = customer
-        self._deployments_dir = Path(deployments_dir) if deployments_dir else self._skills_dir.parent / "deployments"
+        self._deployments_dir = (
+            Path(deployments_dir) if deployments_dir else self._skills_dir.parent / "deployments"
+        )
         self._cache: dict[str, dict] = {}
 
     def load_schema(
@@ -47,15 +50,19 @@ class SchemaRegistry:
         # 1. Try customer-specific schema first
         if self._customer:
             customer_path = (
-                self._deployments_dir / self._customer / "schemas"
-                / skill_name / f"{schema_type}.json"
+                self._deployments_dir
+                / self._customer
+                / "schemas"
+                / skill_name
+                / f"{schema_type}.json"
             )
             if customer_path.exists():
                 data = json.loads(customer_path.read_text(encoding="utf-8"))
                 self._cache[cache_key] = data
                 logger.info(
                     "schema_loaded",
-                    skill=skill_name, type=schema_type,
+                    skill=skill_name,
+                    type=schema_type,
                     source=f"customer:{self._customer}",
                 )
                 return data
@@ -74,9 +81,7 @@ class SchemaRegistry:
 
         data = json.loads(path.read_text(encoding="utf-8"))
         self._cache[cache_key] = data
-        logger.info(
-            "schema_loaded", skill=skill_name, type=schema_type, version=version
-        )
+        logger.info("schema_loaded", skill=skill_name, type=schema_type, version=version)
         return data
 
     def list_versions(self, skill_name: str) -> list[str]:
@@ -88,9 +93,7 @@ class SchemaRegistry:
             [d.name for d in schema_dir.iterdir() if d.is_dir() and d.name.startswith("v")]
         )
 
-    def list_schema_types(
-        self, skill_name: str, version: str = "latest"
-    ) -> list[str]:
+    def list_schema_types(self, skill_name: str, version: str = "latest") -> list[str]:
         """List available schema types for a version."""
         schema_dir = self._skills_dir / skill_name / "schemas"
         if version == "latest":
@@ -100,9 +103,7 @@ class SchemaRegistry:
             return []
         return sorted([f.stem for f in ver_dir.glob("*.json")])
 
-    def get_items(
-        self, skill_name: str, schema_type: str, version: str = "latest"
-    ) -> list[dict]:
+    def get_items(self, skill_name: str, schema_type: str, version: str = "latest") -> list[dict]:
         """Get the main items list from a schema (e.g., intents, entity_types)."""
         schema = self.load_schema(skill_name, schema_type, version)
         # Try common list field names
@@ -118,11 +119,7 @@ class SchemaRegistry:
 
     def _find_latest_version(self, schema_dir: Path) -> str:
         versions = sorted(
-            [
-                d.name
-                for d in schema_dir.iterdir()
-                if d.is_dir() and d.name.startswith("v")
-            ]
+            [d.name for d in schema_dir.iterdir() if d.is_dir() and d.name.startswith("v")]
         )
         if not versions:
             raise FileNotFoundError(f"No versions in {schema_dir}")

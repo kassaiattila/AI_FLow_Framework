@@ -9,6 +9,7 @@
     requires_services: []
     tags: [observability, langfuse, tracing, decorator]
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -174,8 +175,11 @@ class TestLangfuseTracerConnected:
         tracer._traces["t1"] = mock_root_span
 
         tracer.generation(
-            trace_id="t1", name="classify", model="gpt-4o",
-            input_data="hello", output_data="world",
+            trace_id="t1",
+            name="classify",
+            model="gpt-4o",
+            input_data="hello",
+            output_data="world",
             usage={"input": 10, "output": 5},
         )
         # Langfuse v4: generation via start_observation(as_type="generation")
@@ -213,6 +217,7 @@ class TestTraceLlmCallDecorator:
 
         # Ensure no global client
         import aiflow.observability.tracing as mod
+
         original = mod._langfuse_client
         mod._langfuse_client = None
         try:
@@ -233,6 +238,7 @@ class TestTraceLlmCallDecorator:
             return {"result": x * 3}
 
         import aiflow.observability.tracing as mod
+
         original = mod._langfuse_client
         mod._langfuse_client = mock_client
         try:
@@ -257,6 +263,7 @@ class TestTraceLlmCallDecorator:
             raise ValueError("test error")
 
         import aiflow.observability.tracing as mod
+
         original = mod._langfuse_client
         mod._langfuse_client = mock_client
         try:
@@ -279,6 +286,7 @@ class TestTraceLlmCallDecorator:
             return "ok"
 
         import aiflow.observability.tracing as mod
+
         original = mod._langfuse_client
         mod._langfuse_client = None
         try:

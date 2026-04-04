@@ -9,6 +9,7 @@
     requires_services: [postgres]
     tags: [integration, state, postgres, async]
 """
+
 import os
 import uuid
 
@@ -102,7 +103,8 @@ class TestWorkflowRunCRUD:
         )
         await repo.update_workflow_run_status(run.id, "running")
         await repo.update_workflow_run_status(
-            run.id, "completed",
+            run.id,
+            "completed",
             output_data={"result": "ok"},
             total_cost_usd=0.05,
         )
@@ -120,7 +122,8 @@ class TestWorkflowRunCRUD:
             input_data={},
         )
         await repo.update_workflow_run_status(
-            run.id, "failed",
+            run.id,
+            "failed",
             error="timeout occurred",
             error_type="LLMTimeoutError",
         )

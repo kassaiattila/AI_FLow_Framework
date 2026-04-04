@@ -3,6 +3,7 @@
 Uses consistent hashing to deterministically assign users to prompt variants,
 ensuring the same user always sees the same variant.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -56,9 +57,7 @@ class ABTest(BaseModel):
 
         total = sum(self.traffic_split.values())
         if abs(total - 100.0) > 0.01:
-            raise ValueError(
-                f"Traffic split must sum to 100, got {total}"
-            )
+            raise ValueError(f"Traffic split must sum to 100, got {total}")
 
         return self
 

@@ -14,6 +14,7 @@
     requires_services: []
     tags: [cli, typer, commands, workflow, skill, prompt, eval, dev]
 """
+
 from typer.testing import CliRunner
 
 from aiflow.cli.main import app

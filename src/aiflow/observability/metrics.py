@@ -32,6 +32,7 @@ logger = structlog.get_logger(__name__)
 # Models
 # ---------------------------------------------------------------------------
 
+
 class MetricSample(BaseModel):
     """A single metric observation."""
 
@@ -45,6 +46,7 @@ class MetricSample(BaseModel):
 # Abstract collector
 # ---------------------------------------------------------------------------
 
+
 class MetricsCollector(ABC):
     """Abstract metrics collection interface.
 
@@ -53,11 +55,15 @@ class MetricsCollector(ABC):
     """
 
     @abstractmethod
-    def increment_counter(self, name: str, labels: dict[str, str] | None = None, amount: float = 1.0) -> None:
+    def increment_counter(
+        self, name: str, labels: dict[str, str] | None = None, amount: float = 1.0
+    ) -> None:
         """Increment a counter metric."""
 
     @abstractmethod
-    def observe_histogram(self, name: str, value: float, labels: dict[str, str] | None = None) -> None:
+    def observe_histogram(
+        self, name: str, value: float, labels: dict[str, str] | None = None
+    ) -> None:
         """Record an observation in a histogram metric."""
 
     @abstractmethod
@@ -81,6 +87,7 @@ class MetricsCollector(ABC):
 # In-memory implementation
 # ---------------------------------------------------------------------------
 
+
 def _label_key(labels: dict[str, str] | None) -> str:
     """Create a deterministic hashable key from label dict."""
     if not labels:
@@ -102,7 +109,9 @@ class InMemoryMetrics(MetricsCollector):
 
     # -- counters -----------------------------------------------------------
 
-    def increment_counter(self, name: str, labels: dict[str, str] | None = None, amount: float = 1.0) -> None:
+    def increment_counter(
+        self, name: str, labels: dict[str, str] | None = None, amount: float = 1.0
+    ) -> None:
         key = _label_key(labels)
         self._counters[name][key] += amount
         logger.debug("metric_counter_inc", name=name, labels=labels, amount=amount)
@@ -113,7 +122,9 @@ class InMemoryMetrics(MetricsCollector):
 
     # -- histograms ---------------------------------------------------------
 
-    def observe_histogram(self, name: str, value: float, labels: dict[str, str] | None = None) -> None:
+    def observe_histogram(
+        self, name: str, value: float, labels: dict[str, str] | None = None
+    ) -> None:
         key = _label_key(labels)
         self._histograms[name][key].append(value)
         logger.debug("metric_histogram_obs", name=name, labels=labels, value=value)

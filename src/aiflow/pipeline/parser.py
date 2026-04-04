@@ -33,9 +33,7 @@ class PipelineParser:
             raise PipelineParseError(f"Invalid YAML: {exc}") from exc
 
         if not isinstance(data, dict):
-            raise PipelineParseError(
-                f"Pipeline YAML must be a mapping, got {type(data).__name__}"
-            )
+            raise PipelineParseError(f"Pipeline YAML must be a mapping, got {type(data).__name__}")
 
         return self._validate(data)
 
@@ -48,9 +46,7 @@ class PipelineParser:
         if not path.exists():
             raise PipelineParseError(f"Pipeline file not found: {path}")
         if path.suffix not in (".yaml", ".yml"):
-            raise PipelineParseError(
-                f"Expected .yaml/.yml file, got: {path.suffix}"
-            )
+            raise PipelineParseError(f"Expected .yaml/.yml file, got: {path.suffix}")
 
         content = path.read_text(encoding="utf-8")
         logger.info("pipeline_file_loaded", path=str(path), size=len(content))
@@ -68,15 +64,11 @@ class PipelineParser:
         try:
             pipeline = PipelineDefinition.model_validate(data)
         except Exception as exc:
-            raise PipelineParseError(
-                f"Pipeline validation failed: {exc}"
-            ) from exc
+            raise PipelineParseError(f"Pipeline validation failed: {exc}") from exc
 
         errors = self._cross_validate(pipeline)
         if errors:
-            raise PipelineParseError(
-                f"Pipeline cross-validation failed: {'; '.join(errors)}"
-            )
+            raise PipelineParseError(f"Pipeline cross-validation failed: {'; '.join(errors)}")
 
         logger.info(
             "pipeline_parsed",
@@ -94,12 +86,8 @@ class PipelineParser:
         for step in pipeline.steps:
             for dep in step.depends_on:
                 if dep not in step_names:
-                    errors.append(
-                        f"Step '{step.name}' depends on unknown step '{dep}'"
-                    )
+                    errors.append(f"Step '{step.name}' depends on unknown step '{dep}'")
                 if dep == step.name:
-                    errors.append(
-                        f"Step '{step.name}' cannot depend on itself"
-                    )
+                    errors.append(f"Step '{step.name}' cannot depend on itself")
 
         return errors

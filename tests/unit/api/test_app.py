@@ -9,6 +9,7 @@
     requires_services: []
     tags: [api, fastapi, app-factory]
 """
+
 from fastapi import FastAPI
 
 from aiflow._version import __version__

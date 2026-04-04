@@ -1,4 +1,5 @@
 """AuditTrailService — immutable audit log with filtering and export."""
+
 from __future__ import annotations
 
 import json
@@ -35,6 +36,7 @@ class AuditTrailService:
     async def _get_pool(self):
         if self._pool is None:
             import asyncpg
+
             url = self._db_url or os.getenv(
                 "AIFLOW_DATABASE__URL",
                 "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
@@ -58,7 +60,13 @@ class AuditTrailService:
                 """INSERT INTO audit_log (id, action, resource_type, resource_id, user_id, details, ip_address)
                    VALUES ($1, $2, $3, $4, $5, $6, $7)
                    RETURNING *""",
-                entry_id, action, entity_type, entity_id, None, details, ip_address,
+                entry_id,
+                action,
+                entity_type,
+                entity_id,
+                None,
+                details,
+                ip_address,
             )
         logger.info("audit_logged", action=action, entity_type=entity_type, entity_id=entity_id)
         return self._row_to_entry(row)
@@ -98,6 +106,7 @@ class AuditTrailService:
     async def get_entry(self, entry_id: str) -> AuditEntry | None:
         pool = await self._get_pool()
         import uuid as _uuid
+
         try:
             uid = _uuid.UUID(entry_id)
         except ValueError:
@@ -111,7 +120,11 @@ class AuditTrailService:
         details = None
         if row["details"]:
             try:
-                details = json.loads(row["details"]) if isinstance(row["details"], str) else row["details"]
+                details = (
+                    json.loads(row["details"])
+                    if isinstance(row["details"], str)
+                    else row["details"]
+                )
             except (json.JSONDecodeError, TypeError):
                 details = None
         return AuditEntry(

@@ -7,6 +7,7 @@ Supports three search modes:
 
 Configurable via SearchConfig Pydantic model.
 """
+
 from __future__ import annotations
 
 import structlog
@@ -22,6 +23,7 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Configuration model
 # ---------------------------------------------------------------------------
+
 
 class SearchConfig(BaseModel):
     """Configuration for hybrid search behavior."""
@@ -79,6 +81,7 @@ class SearchConfig(BaseModel):
 # Hybrid search engine
 # ---------------------------------------------------------------------------
 
+
 class HybridSearchEngine:
     """Combines vector search + keyword search using Reciprocal Rank Fusion (RRF).
 
@@ -113,9 +116,7 @@ class HybridSearchEngine:
         self._fetch_multiplier = fetch_multiplier
 
     @classmethod
-    def from_config(
-        cls, vector_store: VectorStore, config: SearchConfig
-    ) -> HybridSearchEngine:
+    def from_config(cls, vector_store: VectorStore, config: SearchConfig) -> HybridSearchEngine:
         """Create engine from a SearchConfig model."""
         return cls(
             vector_store,
@@ -227,10 +228,7 @@ class HybridSearchEngine:
         # Sort by RRF score descending
         sorted_keys = sorted(rrf_scores, key=lambda k: rrf_scores[k], reverse=True)
 
-        return [
-            chunk_map[key].model_copy(update={"score": rrf_scores[key]})
-            for key in sorted_keys
-        ]
+        return [chunk_map[key].model_copy(update={"score": rrf_scores[key]}) for key in sorted_keys]
 
     # ------------------------------------------------------------------
     # Threshold filter

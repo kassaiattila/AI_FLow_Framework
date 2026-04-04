@@ -1,4 +1,5 @@
 """Message broker abstraction for inter-service communication."""
+
 from __future__ import annotations
 
 import uuid
@@ -38,19 +39,13 @@ class MessageBroker:
             except Exception as exc:
                 logger.error("message_handler_error", topic=message.topic, error=str(exc))
 
-    def subscribe(
-        self, topic: str, handler: Callable[[Message], Awaitable[None]]
-    ) -> None:
+    def subscribe(self, topic: str, handler: Callable[[Message], Awaitable[None]]) -> None:
         """Subscribe to a topic."""
         if topic not in self._subscribers:
             self._subscribers[topic] = []
         self._subscribers[topic].append(handler)
 
-    def unsubscribe(
-        self, topic: str, handler: Callable[[Message], Awaitable[None]]
-    ) -> None:
+    def unsubscribe(self, topic: str, handler: Callable[[Message], Awaitable[None]]) -> None:
         """Unsubscribe from a topic."""
         if topic in self._subscribers:
-            self._subscribers[topic] = [
-                h for h in self._subscribers[topic] if h is not handler
-            ]
+            self._subscribers[topic] = [h for h in self._subscribers[topic] if h is not handler]

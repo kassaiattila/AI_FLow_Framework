@@ -9,6 +9,7 @@
     requires_services: []
     tags: [models, registry, lookup]
 """
+
 import pytest
 
 from aiflow.models.metadata import ModelMetadata, ModelType
@@ -18,14 +19,30 @@ from aiflow.models.registry import ModelRegistry
 @pytest.fixture
 def reg():
     r = ModelRegistry()
-    r.register(ModelMetadata(name="openai/gpt-4o", model_type=ModelType.LLM,
-                             provider="openai", priority=10,
-                             fallback_model="openai/gpt-4o-mini"))
-    r.register(ModelMetadata(name="openai/gpt-4o-mini", model_type=ModelType.LLM,
-                             provider="openai", priority=20))
-    r.register(ModelMetadata(name="openai/text-embedding-3-small",
-                             model_type=ModelType.EMBEDDING, provider="openai", priority=10))
+    r.register(
+        ModelMetadata(
+            name="openai/gpt-4o",
+            model_type=ModelType.LLM,
+            provider="openai",
+            priority=10,
+            fallback_model="openai/gpt-4o-mini",
+        )
+    )
+    r.register(
+        ModelMetadata(
+            name="openai/gpt-4o-mini", model_type=ModelType.LLM, provider="openai", priority=20
+        )
+    )
+    r.register(
+        ModelMetadata(
+            name="openai/text-embedding-3-small",
+            model_type=ModelType.EMBEDDING,
+            provider="openai",
+            priority=10,
+        )
+    )
     return r
+
 
 class TestModelRegistry:
     def test_register_and_get(self, reg):

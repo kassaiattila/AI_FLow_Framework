@@ -14,6 +14,7 @@ Tests the admin/governance browsing flow.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, journey, admin, notifications, playwright]
 """
+
 from __future__ import annotations
 
 from playwright.sync_api import Page, expect
@@ -37,9 +38,15 @@ class TestAdminJourney:
         has_dashboard = any(
             w in body
             for w in [
-                "Dashboard", "Iranyitopult",
-                "Skills", "Pipeline", "Service",
-                "Active", "Aktiv", "Total", "Osszes",
+                "Dashboard",
+                "Iranyitopult",
+                "Skills",
+                "Pipeline",
+                "Service",
+                "Active",
+                "Aktiv",
+                "Total",
+                "Osszes",
             ]
         )
         assert has_dashboard, f"Dashboard missing KPI content: {body[:200]}"
@@ -86,8 +93,13 @@ class TestAdminJourney:
         assert any(
             w in admin_body
             for w in [
-                "Admin", "Adminisztrac", "admin",
-                "User", "Felhasznalo", "Settings", "Beallitas",
+                "Admin",
+                "Adminisztrac",
+                "admin",
+                "User",
+                "Felhasznalo",
+                "Settings",
+                "Beallitas",
             ]
         ), f"Admin page missing content: {admin_body[:200]}"
 
@@ -100,8 +112,7 @@ class TestAdminJourney:
 
         audit_body = page.locator("body").text_content() or ""
         assert any(
-            w in audit_body
-            for w in ["Audit", "audit", "Log", "log", "Naplo", "No data", "Nincs"]
+            w in audit_body for w in ["Audit", "audit", "Log", "log", "Naplo", "No data", "Nincs"]
         ), f"Audit page missing content: {audit_body[:200]}"
 
     def test_full_admin_loop(self, authenticated_page: Page) -> None:
@@ -118,10 +129,17 @@ class TestAdminJourney:
             assert len(body.strip()) > 20, f"Page {path} rendered empty"
 
         real_errors = [
-            e for e in errors
-            if not any(x in e for x in [
-                "favicon", "ResizeObserver", "Failed to fetch",
-                "Failed to load resource", "Maximum update depth",
-            ])
+            e
+            for e in errors
+            if not any(
+                x in e
+                for x in [
+                    "favicon",
+                    "ResizeObserver",
+                    "Failed to fetch",
+                    "Failed to load resource",
+                    "Maximum update depth",
+                ]
+            )
         ]
         assert not real_errors, f"Console errors during admin loop: {real_errors}"

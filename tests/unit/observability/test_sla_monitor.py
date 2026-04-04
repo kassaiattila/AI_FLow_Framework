@@ -9,6 +9,7 @@
     requires_services: []
     tags: [observability, sla, latency, success_rate]
 """
+
 import pytest
 
 from aiflow.observability.sla_monitor import SLADefinition, SLAMonitor, SLAResult

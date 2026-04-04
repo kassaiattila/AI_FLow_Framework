@@ -1,4 +1,5 @@
 """Workflow worker that processes jobs from the queue."""
+
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable

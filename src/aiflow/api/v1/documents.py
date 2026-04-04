@@ -3,6 +3,7 @@
 Replaces the Next.js proxy layer — serves data directly from PostgreSQL
 and runs skill processing in-process (no subprocess fork).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -31,6 +32,7 @@ router = APIRouter(prefix="/api/v1/documents", tags=["documents"])
 # Response models
 # ---------------------------------------------------------------------------
 
+
 class LineItemModel(BaseModel):
     line_number: int = 0
     description: str = ""
@@ -45,6 +47,7 @@ class LineItemModel(BaseModel):
 
 class DocumentItem(BaseModel):
     """An invoice document with all extracted fields."""
+
     id: str
     source_file: str
     direction: str = ""
@@ -61,6 +64,7 @@ class DocumentItem(BaseModel):
 
 class DocumentListResponse(BaseModel):
     """List of invoice documents."""
+
     documents: list[DocumentItem]
     total: int
     source: str = "backend"
@@ -68,18 +72,21 @@ class DocumentListResponse(BaseModel):
 
 class UploadResponse(BaseModel):
     """Response after uploading files."""
+
     uploaded: list[str]
     count: int
 
 
 class ProcessRequest(BaseModel):
     """Request to process uploaded documents."""
+
     files: list[str] = []
     output_dir: str = ""
 
 
 class ProcessResponse(BaseModel):
     """Response after processing documents."""
+
     processed: int
     results: list[dict[str, Any]]
     source: str = "backend"
@@ -88,6 +95,7 @@ class ProcessResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _upload_dir() -> Path:
     """Where uploaded PDFs are stored."""
@@ -104,6 +112,7 @@ def _json_fallback(resource: str) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # GET /api/v1/documents — list invoices from DB
 # ---------------------------------------------------------------------------
+
 
 @router.get("", response_model=DocumentListResponse)
 async def list_documents(
@@ -134,7 +143,8 @@ async def list_documents(
                 ORDER BY created_at DESC NULLS LAST
                 LIMIT $1 OFFSET $2
                 """,
-                limit, offset,
+                limit,
+                offset,
             )
 
             invoice_ids = [row["id"] for row in rows]
@@ -156,17 +166,19 @@ async def list_documents(
                     iid = str(ir["invoice_id"])
                     if iid not in items_by_invoice:
                         items_by_invoice[iid] = []
-                    items_by_invoice[iid].append({
-                        "line_number": ir["line_number"],
-                        "description": ir["description"],
-                        "quantity": float(ir["quantity"] or 0),
-                        "unit": ir["unit"] or "",
-                        "unit_price": float(ir["unit_price"] or 0),
-                        "net_amount": float(ir["net_amount"] or 0),
-                        "vat_rate": float(ir["vat_rate"] or 0),
-                        "vat_amount": float(ir["vat_amount"] or 0),
-                        "gross_amount": float(ir["gross_amount"] or 0),
-                    })
+                    items_by_invoice[iid].append(
+                        {
+                            "line_number": ir["line_number"],
+                            "description": ir["description"],
+                            "quantity": float(ir["quantity"] or 0),
+                            "unit": ir["unit"] or "",
+                            "unit_price": float(ir["unit_price"] or 0),
+                            "net_amount": float(ir["net_amount"] or 0),
+                            "vat_rate": float(ir["vat_rate"] or 0),
+                            "vat_amount": float(ir["vat_amount"] or 0),
+                            "gross_amount": float(ir["gross_amount"] or 0),
+                        }
+                    )
 
             for row in rows:
                 rid = str(row["id"])
@@ -174,46 +186,50 @@ async def list_documents(
                 if isinstance(validation_errors, str):
                     validation_errors = json.loads(validation_errors)
 
-                documents.append(DocumentItem(
-                    id=str(row["id"]),  # Use real DB UUID as ID
-                    source_file=row["source_file"],
-                    direction=row["direction"] or "",
-                    vendor={
-                        "name": row["vendor_name"] or "",
-                        "address": row["vendor_address"] or "",
-                        "tax_number": row["vendor_tax_number"] or "",
-                        "bank_account": row["vendor_bank_account"] or "",
-                        "bank_name": row["vendor_bank_name"] or "",
-                    },
-                    buyer={
-                        "name": row["buyer_name"] or "",
-                        "address": row["buyer_address"] or "",
-                        "tax_number": row["buyer_tax_number"] or "",
-                    },
-                    header={
-                        "invoice_number": row["invoice_number"] or "",
-                        "invoice_date": str(row["invoice_date"]) if row["invoice_date"] else "",
-                        "fulfillment_date": str(row["fulfillment_date"]) if row["fulfillment_date"] else "",
-                        "due_date": str(row["due_date"]) if row["due_date"] else "",
-                        "currency": row["currency"] or "HUF",
-                        "payment_method": row["payment_method"] or "",
-                        "invoice_type": row["invoice_type"] or "",
-                    },
-                    totals={
-                        "net_total": float(row["net_total"] or 0),
-                        "vat_total": float(row["vat_total"] or 0),
-                        "gross_total": float(row["gross_total"] or 0),
-                    },
-                    validation={
-                        "is_valid": row["is_valid"],
-                        "errors": validation_errors or [],
-                        "confidence_score": float(row["confidence_score"] or 0),
-                    },
-                    line_items=items_by_invoice.get(rid, []),
-                    parser_used=row["parser_used"] or "",
-                    extraction_confidence=float(row["confidence_score"] or 0),
-                    created_at=row["created_at"].isoformat() if row["created_at"] else None,
-                ))
+                documents.append(
+                    DocumentItem(
+                        id=str(row["id"]),  # Use real DB UUID as ID
+                        source_file=row["source_file"],
+                        direction=row["direction"] or "",
+                        vendor={
+                            "name": row["vendor_name"] or "",
+                            "address": row["vendor_address"] or "",
+                            "tax_number": row["vendor_tax_number"] or "",
+                            "bank_account": row["vendor_bank_account"] or "",
+                            "bank_name": row["vendor_bank_name"] or "",
+                        },
+                        buyer={
+                            "name": row["buyer_name"] or "",
+                            "address": row["buyer_address"] or "",
+                            "tax_number": row["buyer_tax_number"] or "",
+                        },
+                        header={
+                            "invoice_number": row["invoice_number"] or "",
+                            "invoice_date": str(row["invoice_date"]) if row["invoice_date"] else "",
+                            "fulfillment_date": str(row["fulfillment_date"])
+                            if row["fulfillment_date"]
+                            else "",
+                            "due_date": str(row["due_date"]) if row["due_date"] else "",
+                            "currency": row["currency"] or "HUF",
+                            "payment_method": row["payment_method"] or "",
+                            "invoice_type": row["invoice_type"] or "",
+                        },
+                        totals={
+                            "net_total": float(row["net_total"] or 0),
+                            "vat_total": float(row["vat_total"] or 0),
+                            "gross_total": float(row["gross_total"] or 0),
+                        },
+                        validation={
+                            "is_valid": row["is_valid"],
+                            "errors": validation_errors or [],
+                            "confidence_score": float(row["confidence_score"] or 0),
+                        },
+                        line_items=items_by_invoice.get(rid, []),
+                        parser_used=row["parser_used"] or "",
+                        extraction_confidence=float(row["confidence_score"] or 0),
+                        created_at=row["created_at"].isoformat() if row["created_at"] else None,
+                    )
+                )
     except Exception as e:
         logger.warning("documents_db_failed", error=str(e))
 
@@ -222,19 +238,21 @@ async def list_documents(
         fallback = _json_fallback("invoices")
         for item in fallback:
             sf = item.get("source_file", "")
-            documents.append(DocumentItem(
-                id=sf,
-                source_file=sf,
-                direction=item.get("direction", ""),
-                vendor=item.get("vendor", {}),
-                buyer=item.get("buyer", {}),
-                header=item.get("header", {}),
-                totals=item.get("totals", {}),
-                validation=item.get("validation", {}),
-                line_items=item.get("line_items", []),
-                parser_used=item.get("parser_used", ""),
-                extraction_confidence=item.get("extraction_confidence", 0),
-            ))
+            documents.append(
+                DocumentItem(
+                    id=sf,
+                    source_file=sf,
+                    direction=item.get("direction", ""),
+                    vendor=item.get("vendor", {}),
+                    buyer=item.get("buyer", {}),
+                    header=item.get("header", {}),
+                    totals=item.get("totals", {}),
+                    validation=item.get("validation", {}),
+                    line_items=item.get("line_items", []),
+                    parser_used=item.get("parser_used", ""),
+                    extraction_confidence=item.get("extraction_confidence", 0),
+                )
+            )
         if documents:
             return DocumentListResponse(documents=documents, total=len(documents), source="demo")
 
@@ -246,6 +264,7 @@ async def list_documents(
 # ---------------------------------------------------------------------------
 # NOTE: Must be BEFORE /{source_file:path} catch-all route!
 
+
 @router.post("/process-stream")
 async def process_documents_stream(request: ProcessRequest) -> StreamingResponse:
     """Process uploaded PDFs with real-time SSE step progress.
@@ -253,8 +272,12 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
     Streams events: step_start, step_done, error, complete.
     """
     upload_dir = _upload_dir()
-    output_dir = Path(request.output_dir) if request.output_dir else Path(
-        tempfile.mkdtemp(prefix="aiflow_invoice_"),
+    output_dir = (
+        Path(request.output_dir)
+        if request.output_dir
+        else Path(
+            tempfile.mkdtemp(prefix="aiflow_invoice_"),
+        )
     )
 
     file_list = request.files
@@ -262,8 +285,10 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
         file_list = [f.name for f in upload_dir.glob("*.pdf")]
 
     if not file_list:
+
         async def empty_stream():
             yield f"data: {json.dumps({'event': 'complete', 'results': []})}\n\n"
+
         return StreamingResponse(empty_stream(), media_type="text/event-stream")
 
     try:
@@ -276,9 +301,12 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
             validate_invoice,
         )
     except ImportError as e:
-        logger.error("skill_import_failed", error=str(e))
+        err_msg = str(e)
+        logger.error("skill_import_failed", error=err_msg)
+
         async def error_stream():
-            yield f"data: {json.dumps({'event': 'error', 'step': 0, 'name': 'import', 'error': str(e)})}\n\n"
+            yield f"data: {json.dumps({'event': 'error', 'step': 0, 'name': 'import', 'error': err_msg})}\n\n"
+
         return StreamingResponse(error_stream(), media_type="text/event-stream")
 
     # Per-file pipeline (parse through store); export runs once at the end.
@@ -314,39 +342,86 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
                 "format": "all",
             }
 
-            yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total_files})
+            yield sse(
+                {"event": "file_start", "file": fname, "file_index": fi, "total_files": total_files}
+            )
             await asyncio.sleep(0)
 
             file_ok = True
             for si, (name, step_fn) in enumerate(per_file_steps):
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": name, "status": "running"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": si,
+                        "step_name": name,
+                        "status": "running",
+                    }
+                )
                 await asyncio.sleep(0)
                 t = _time.perf_counter()
                 try:
                     file_data = await step_fn({**file_data} if si == 0 else file_data)
                     elapsed_ms = int((_time.perf_counter() - t) * 1000)
-                    all_step_records.append({"name": f"{fname}:{name}", "status": "completed", "duration_ms": elapsed_ms})
-                    yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": name, "status": "done", "elapsed_ms": elapsed_ms})
+                    all_step_records.append(
+                        {
+                            "name": f"{fname}:{name}",
+                            "status": "completed",
+                            "duration_ms": elapsed_ms,
+                        }
+                    )
+                    yield sse(
+                        {
+                            "event": "file_step",
+                            "file": fname,
+                            "file_index": fi,
+                            "step_index": si,
+                            "step_name": name,
+                            "status": "done",
+                            "elapsed_ms": elapsed_ms,
+                        }
+                    )
                 except Exception as e:
                     elapsed_ms = int((_time.perf_counter() - t) * 1000)
-                    all_step_records.append({"name": f"{fname}:{name}", "status": "failed", "duration_ms": elapsed_ms, "error": str(e)})
+                    all_step_records.append(
+                        {
+                            "name": f"{fname}:{name}",
+                            "status": "failed",
+                            "duration_ms": elapsed_ms,
+                            "error": str(e),
+                        }
+                    )
                     run_status = "failed"
                     run_error = str(e)
-                    logger.error("process_stream_file_step_failed", file=fname, step=name, error=str(e))
-                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": name, "error": str(e), "elapsed_ms": elapsed_ms})
+                    logger.error(
+                        "process_stream_file_step_failed", file=fname, step=name, error=str(e)
+                    )
+                    yield sse(
+                        {
+                            "event": "file_error",
+                            "file": fname,
+                            "file_index": fi,
+                            "step_name": name,
+                            "error": str(e),
+                            "elapsed_ms": elapsed_ms,
+                        }
+                    )
                     file_ok = False
                     break
 
             if file_ok:
                 for f in file_data.get("files", []):
                     all_files_data.append(f)
-                    results.append({
-                        "source_file": f.get("filename", ""),
-                        "vendor": f.get("vendor", {}).get("name", ""),
-                        "gross_total": f.get("totals", {}).get("gross_total", 0),
-                        "is_valid": f.get("validation", {}).get("is_valid", False),
-                        "confidence": f.get("validation", {}).get("confidence_score", 0),
-                    })
+                    results.append(
+                        {
+                            "source_file": f.get("filename", ""),
+                            "vendor": f.get("vendor", {}).get("name", ""),
+                            "gross_total": f.get("totals", {}).get("gross_total", 0),
+                            "is_valid": f.get("validation", {}).get("is_valid", False),
+                            "confidence": f.get("validation", {}).get("confidence_score", 0),
+                        }
+                    )
             else:
                 results.append({"source_file": fname, "error": run_error})
 
@@ -355,7 +430,11 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
         # Run export on all successfully processed files
         if all_files_data:
             try:
-                export_data: dict[str, Any] = {"files": all_files_data, "output_dir": str(output_dir), "format": "all"}
+                export_data: dict[str, Any] = {
+                    "files": all_files_data,
+                    "output_dir": str(output_dir),
+                    "format": "all",
+                }
                 await export_invoice(export_data)
             except Exception as e:
                 logger.warning("export_step_failed", error=str(e))
@@ -369,6 +448,7 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
         try:
             from aiflow.api.cost_recorder import record_cost
             from aiflow.models.cost import ModelCostCalculator
+
             calc = ModelCostCalculator()
             for f in all_files_data:
                 inp = f.get("_llm_total_input_tokens", 0)
@@ -399,17 +479,27 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
                        VALUES ($1, $2, $3, $4, $5, $6,
                                NOW() - MAKE_INTERVAL(secs := $7::float / 1000),
                                NOW(), $7, $8, $9)""",
-                    uuid.UUID(run_id), "invoice_processing", "1.0", "invoice_processor",
-                    run_status, json.dumps({"files": file_list}),
-                    float(total_duration_ms), total_cost_usd, run_error,
+                    uuid.UUID(run_id),
+                    "invoice_processing",
+                    "1.0",
+                    "invoice_processor",
+                    run_status,
+                    json.dumps({"files": file_list}),
+                    float(total_duration_ms),
+                    total_cost_usd,
+                    run_error,
                 )
                 for idx, sr in enumerate(all_step_records):
                     await conn.execute(
                         """INSERT INTO step_runs
                            (id, workflow_run_id, step_name, step_index, status, duration_ms)
                            VALUES ($1, $2, $3, $4, $5, $6)""",
-                        uuid.uuid4(), uuid.UUID(run_id), sr["name"], idx,
-                        sr["status"], float(sr["duration_ms"]),
+                        uuid.uuid4(),
+                        uuid.UUID(run_id),
+                        sr["name"],
+                        idx,
+                        sr["status"],
+                        float(sr["duration_ms"]),
                     )
         except Exception as e:
             logger.warning("workflow_run_persist_failed", error=str(e), run_id=run_id)
@@ -432,6 +522,7 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
 # ---------------------------------------------------------------------------
 # NOTE: Must be BEFORE /{source_file:path} catch-all!
 
+
 @router.get("/images/{source_file}/page_{page}.png")
 async def render_pdf_page(source_file: str, page: int = 1) -> StreamingResponse:
     """Render a PDF page as PNG using PyMuPDF (fitz).
@@ -440,7 +531,9 @@ async def render_pdf_page(source_file: str, page: int = 1) -> StreamingResponse:
     """
     upload_dir = _upload_dir()
     # Normalize: if source_file contains a path, extract just the filename
-    clean_name = Path(source_file).name if ("/" in source_file or "\\" in source_file) else source_file
+    clean_name = (
+        Path(source_file).name if ("/" in source_file or "\\" in source_file) else source_file
+    )
     pdf_path = upload_dir / clean_name
 
     if not pdf_path.exists():
@@ -470,10 +563,10 @@ async def render_pdf_page(source_file: str, page: int = 1) -> StreamingResponse:
 
         png_data = await asyncio.to_thread(_render)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error("render_pdf_page_failed", file=source_file, page=page, error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to render page: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to render page: {e}") from e
 
     return StreamingResponse(
         iter([png_data]),
@@ -492,8 +585,11 @@ async def render_pdf_page(source_file: str, page: int = 1) -> StreamingResponse:
 # POST /api/v1/documents/upload — multipart file upload
 # ---------------------------------------------------------------------------
 
+_upload_file_field = File(...)
+
+
 @router.post("/upload", response_model=UploadResponse)
-async def upload_documents(files: list[UploadFile] = File(...)) -> UploadResponse:
+async def upload_documents(files: list[UploadFile] = _upload_file_field) -> UploadResponse:
     """Upload PDF invoice files for processing."""
     upload_dir = _upload_dir()
     uploaded: list[str] = []
@@ -514,6 +610,7 @@ async def upload_documents(files: list[UploadFile] = File(...)) -> UploadRespons
 # POST /api/v1/documents/process — run invoice processor skill in-process
 # ---------------------------------------------------------------------------
 
+
 @router.post("/process", response_model=ProcessResponse)
 async def process_documents(request: ProcessRequest) -> ProcessResponse:
     """Process uploaded invoice PDFs using the invoice_processor skill.
@@ -521,7 +618,11 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
     Runs the skill steps directly (no subprocess) via SkillRunner.
     """
     upload_dir = _upload_dir()
-    output_dir = Path(request.output_dir) if request.output_dir else Path(tempfile.mkdtemp(prefix="aiflow_invoice_"))
+    output_dir = (
+        Path(request.output_dir)
+        if request.output_dir
+        else Path(tempfile.mkdtemp(prefix="aiflow_invoice_"))
+    )
 
     # Determine which files to process
     file_list = request.files
@@ -543,13 +644,12 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
         )
     except ImportError as e:
         logger.error("skill_import_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Invoice processor skill not available: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Invoice processor skill not available: {e}"
+        ) from e
 
     # Build input data — pass specific file if single, otherwise directory
-    if len(file_list) == 1:
-        source_path = str(upload_dir / file_list[0])
-    else:
-        source_path = str(upload_dir)
+    source_path = str(upload_dir / file_list[0]) if len(file_list) == 1 else str(upload_dir)
     input_data = {
         "source_path": source_path,
         "output_dir": str(output_dir),
@@ -558,6 +658,7 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
 
     # Run the pipeline steps with per-step timing
     import time as _time
+
     timings: dict[str, float] = {}
     try:
         t = _time.perf_counter()
@@ -584,23 +685,28 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
         data = await export_invoice(data)
         timings["export"] = _time.perf_counter() - t
 
-        logger.info("process_documents_timings", **{k: f"{v:.1f}s" for k, v in timings.items()},
-                     total=f"{sum(timings.values()):.1f}s")
+        logger.info(
+            "process_documents_timings",
+            **{k: f"{v:.1f}s" for k, v in timings.items()},
+            total=f"{sum(timings.values()):.1f}s",
+        )
     except Exception as e:
         logger.error("process_documents_failed", error=str(e), timings=timings)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
     # Build response
     results = []
     for f in data.get("files", []):
-        results.append({
-            "source_file": f.get("filename", ""),
-            "vendor": f.get("vendor", {}).get("name", ""),
-            "gross_total": f.get("totals", {}).get("gross_total", 0),
-            "is_valid": f.get("validation", {}).get("is_valid", False),
-            "confidence": f.get("validation", {}).get("confidence_score", 0),
-            "error": f.get("error"),
-        })
+        results.append(
+            {
+                "source_file": f.get("filename", ""),
+                "vendor": f.get("vendor", {}).get("name", ""),
+                "gross_total": f.get("totals", {}).get("gross_total", 0),
+                "is_valid": f.get("validation", {}).get("is_valid", False),
+                "confidence": f.get("validation", {}).get("confidence_score", 0),
+                "error": f.get("error"),
+            }
+        )
 
     logger.info("process_documents_done", count=len(results))
     return ProcessResponse(
@@ -613,6 +719,7 @@ async def process_documents(request: ProcessRequest) -> ProcessResponse:
 # ---------------------------------------------------------------------------
 # Document Extractor Service endpoints (F1)
 # ---------------------------------------------------------------------------
+
 
 async def _get_doc_extractor():
     """Lazy-init Document Extractor service."""
@@ -627,6 +734,7 @@ async def _get_doc_extractor():
 
 class DocumentDetailResponse(BaseModel):
     """Single document detail response (flexible schema)."""
+
     source: str = "backend"
 
     model_config = {"extra": "allow"}
@@ -634,6 +742,7 @@ class DocumentDetailResponse(BaseModel):
 
 class ExtractorConfigItem(BaseModel):
     """A single extractor config summary."""
+
     name: str
     display_name: str = ""
     document_type: str = ""
@@ -643,6 +752,7 @@ class ExtractorConfigItem(BaseModel):
 
 class ExtractorConfigListResponse(BaseModel):
     """List of extractor configurations."""
+
     configs: list[ExtractorConfigItem]
     total: int
     source: str = "backend"
@@ -650,12 +760,14 @@ class ExtractorConfigListResponse(BaseModel):
 
 class VerifyRequest(BaseModel):
     """Document verification request."""
+
     verified_fields: dict[str, Any] = {}
     verified_by: str = "user"
 
 
 class VerifyResponse(BaseModel):
     """Document verification response."""
+
     verified: bool
     invoice_id: str
     source: str = "backend"
@@ -675,7 +787,7 @@ async def verify_document(invoice_id: str, request: VerifyRequest) -> VerifyResp
         return VerifyResponse(verified=ok, invoice_id=invoice_id)
     except Exception as e:
         logger.error("verify_failed", error=str(e), invoice_id=invoice_id)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         await svc.stop()
 
@@ -698,6 +810,7 @@ async def get_document_by_id(invoice_id: str) -> DocumentDetailResponse:
 # ---------------------------------------------------------------------------
 # Document Type Config endpoints (F1)
 # ---------------------------------------------------------------------------
+
 
 @router.get("/extractor/configs", response_model=ExtractorConfigListResponse)
 async def list_extractor_configs() -> ExtractorConfigListResponse:
@@ -726,6 +839,7 @@ async def list_extractor_configs() -> ExtractorConfigListResponse:
 
 class CreateConfigRequest(BaseModel):
     """Create document type config request."""
+
     name: str
     display_name: str = ""
     document_type: str = ""
@@ -766,7 +880,7 @@ async def create_extractor_config(request: CreateConfigRequest) -> CreateConfigR
         return CreateConfigResponse(name=config.name)
     except Exception as e:
         logger.error("create_config_failed", error=str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     finally:
         await svc.stop()
 
@@ -774,6 +888,7 @@ async def create_extractor_config(request: CreateConfigRequest) -> CreateConfigR
 # ---------------------------------------------------------------------------
 # GET /api/v1/documents/export/csv — Export all invoices as CSV
 # ---------------------------------------------------------------------------
+
 
 @router.get("/export/csv")
 async def export_documents_csv():
@@ -784,33 +899,50 @@ async def export_documents_csv():
     result = await list_documents(limit=1000, offset=0)
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "source_file", "direction", "vendor_name", "vendor_tax_number",
-        "buyer_name", "buyer_tax_number", "invoice_number", "invoice_date",
-        "due_date", "currency", "net_total", "vat_total", "gross_total",
-        "is_valid", "confidence_score", "created_at",
-    ])
+    writer.writerow(
+        [
+            "source_file",
+            "direction",
+            "vendor_name",
+            "vendor_tax_number",
+            "buyer_name",
+            "buyer_tax_number",
+            "invoice_number",
+            "invoice_date",
+            "due_date",
+            "currency",
+            "net_total",
+            "vat_total",
+            "gross_total",
+            "is_valid",
+            "confidence_score",
+            "created_at",
+        ]
+    )
     for doc in result.documents:
-        writer.writerow([
-            doc.source_file,
-            doc.direction,
-            doc.vendor.get("name", "") if doc.vendor else "",
-            doc.vendor.get("tax_number", "") if doc.vendor else "",
-            doc.buyer.get("name", "") if doc.buyer else "",
-            doc.buyer.get("tax_number", "") if doc.buyer else "",
-            doc.header.get("invoice_number", "") if doc.header else "",
-            doc.header.get("invoice_date", "") if doc.header else "",
-            doc.header.get("due_date", "") if doc.header else "",
-            doc.header.get("currency", "HUF") if doc.header else "HUF",
-            doc.totals.get("net_total", "") if doc.totals else "",
-            doc.totals.get("vat_total", "") if doc.totals else "",
-            doc.totals.get("gross_total", "") if doc.totals else "",
-            doc.validation.get("is_valid", "") if doc.validation else "",
-            doc.extraction_confidence or "",
-            doc.created_at or "",
-        ])
+        writer.writerow(
+            [
+                doc.source_file,
+                doc.direction,
+                doc.vendor.get("name", "") if doc.vendor else "",
+                doc.vendor.get("tax_number", "") if doc.vendor else "",
+                doc.buyer.get("name", "") if doc.buyer else "",
+                doc.buyer.get("tax_number", "") if doc.buyer else "",
+                doc.header.get("invoice_number", "") if doc.header else "",
+                doc.header.get("invoice_date", "") if doc.header else "",
+                doc.header.get("due_date", "") if doc.header else "",
+                doc.header.get("currency", "HUF") if doc.header else "HUF",
+                doc.totals.get("net_total", "") if doc.totals else "",
+                doc.totals.get("vat_total", "") if doc.totals else "",
+                doc.totals.get("gross_total", "") if doc.totals else "",
+                doc.validation.get("is_valid", "") if doc.validation else "",
+                doc.extraction_confidence or "",
+                doc.created_at or "",
+            ]
+        )
 
     from fastapi.responses import StreamingResponse
+
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),
@@ -825,6 +957,7 @@ async def export_documents_json():
     result = await list_documents(limit=1000, offset=0)
     data = [doc.model_dump() for doc in result.documents]
     from fastapi.responses import JSONResponse
+
     return JSONResponse(
         content=data,
         headers={"Content-Disposition": "attachment; filename=aiflow_invoices_export.json"},
@@ -834,6 +967,7 @@ async def export_documents_json():
 # ---------------------------------------------------------------------------
 # DELETE /api/v1/documents/delete/{invoice_id} — delete a document
 # ---------------------------------------------------------------------------
+
 
 @router.delete("/delete/{invoice_id}", status_code=204)
 async def delete_document(invoice_id: str):
@@ -845,12 +979,18 @@ async def delete_document(invoice_id: str):
     engine = await get_engine()
     async with engine.begin() as conn:
         # Delete line items first (FK cascade might not work with raw SQL)
-        await conn.execute(text("DELETE FROM invoice_line_items WHERE invoice_id = CAST(:id AS uuid)"), {"id": invoice_id})
-        result = await conn.execute(text("DELETE FROM invoices WHERE id = CAST(:id AS uuid)"), {"id": invoice_id})
+        await conn.execute(
+            text("DELETE FROM invoice_line_items WHERE invoice_id = CAST(:id AS uuid)"),
+            {"id": invoice_id},
+        )
+        result = await conn.execute(
+            text("DELETE FROM invoices WHERE id = CAST(:id AS uuid)"), {"id": invoice_id}
+        )
         if result.rowcount == 0:
             raise HTTPException(status_code=404, detail="Document not found")
     logger.info("document_deleted", invoice_id=invoice_id)
     from aiflow.api.audit_helper import audit_log
+
     await audit_log("delete", "document", invoice_id)
 
 
@@ -877,12 +1017,18 @@ async def delete_documents_bulk(request: BulkDeleteRequest):
     total_deleted = 0
     async with engine.begin() as conn:
         for doc_id in request.ids:
-            await conn.execute(text("DELETE FROM invoice_line_items WHERE invoice_id = CAST(:id AS uuid)"), {"id": doc_id})
-            result = await conn.execute(text("DELETE FROM invoices WHERE id = CAST(:id AS uuid)"), {"id": doc_id})
+            await conn.execute(
+                text("DELETE FROM invoice_line_items WHERE invoice_id = CAST(:id AS uuid)"),
+                {"id": doc_id},
+            )
+            result = await conn.execute(
+                text("DELETE FROM invoices WHERE id = CAST(:id AS uuid)"), {"id": doc_id}
+            )
             total_deleted += result.rowcount
 
     logger.info("documents_bulk_deleted", count=total_deleted, ids=request.ids)
     from aiflow.api.audit_helper import audit_log
+
     await audit_log("bulk_delete", "document", details={"count": total_deleted, "ids": request.ids})
     return BulkDeleteResponse(deleted=total_deleted)
 
@@ -918,7 +1064,9 @@ class FreeTextExtractResponse(BaseModel):
 
 
 @router.post("/{document_id}/extract-free", response_model=FreeTextExtractResponse)
-async def extract_free_text(document_id: str, request: FreeTextExtractRequest) -> FreeTextExtractResponse:
+async def extract_free_text(
+    document_id: str, request: FreeTextExtractRequest
+) -> FreeTextExtractResponse:
     """Extract answers to arbitrary queries from a stored document using LLM."""
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -957,7 +1105,7 @@ async def extract_free_text(document_id: str, request: FreeTextExtractRequest) -
         )
     except Exception as e:
         logger.error("extract_free_failed", error=str(e), document_id=document_id)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         await svc.stop()
 
@@ -965,6 +1113,7 @@ async def extract_free_text(document_id: str, request: FreeTextExtractRequest) -
 # ---------------------------------------------------------------------------
 # GET /api/v1/documents/{source_file} — single invoice detail (CATCH-ALL, MUST BE LAST!)
 # ---------------------------------------------------------------------------
+
 
 @router.get("/{source_file:path}", response_model=DocumentItem)
 async def get_document(source_file: str) -> DocumentItem:

@@ -20,6 +20,7 @@ Usage::
         await browser.click("#submit")
         text = await browser.get_text(".results")
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -36,6 +37,7 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+
 
 class BrowserConfig(BaseModel):
     """Configuration for a managed Playwright browser instance."""
@@ -54,6 +56,7 @@ class BrowserConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # Browser wrapper
 # ---------------------------------------------------------------------------
+
 
 class PlaywrightBrowser:
     """Async Playwright browser wrapper with session management.
@@ -303,6 +306,4 @@ class PlaywrightBrowser:
     def _ensure_page(self) -> None:
         """Raise if the browser page is not initialised."""
         if self._page is None:
-            raise RuntimeError(
-                "Browser page not initialised. Call launch() or use 'async with'."
-            )
+            raise RuntimeError("Browser page not initialised. Call launch() or use 'async with'.")

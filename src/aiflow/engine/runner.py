@@ -3,6 +3,7 @@
 This is the local execution engine. For distributed execution (via arq queue),
 see src/aiflow/execution/worker.py (Phase 5).
 """
+
 import time
 from typing import Any
 
@@ -113,9 +114,7 @@ class WorkflowRunner:
                 step_input = self._prepare_step_input(step_name, dag, run_ctx, input_data)
 
                 # Execute step
-                step_result = await self._execute_step(
-                    step_name, step_func, step_input, ctx
-                )
+                step_result = await self._execute_step(step_name, step_func, step_input, ctx)
 
                 # Record result
                 run_ctx.completed_steps.add(step_name)
@@ -142,10 +141,14 @@ class WorkflowRunner:
 
             # Workflow completed
             duration = (time.monotonic() - start_time) * 1000
-            logger.info("workflow_completed", workflow=workflow_name,
-                        run_id=ctx.run_id, duration_ms=round(duration, 1),
-                        cost_usd=run_ctx.total_cost_usd,
-                        steps_completed=len(run_ctx.completed_steps))
+            logger.info(
+                "workflow_completed",
+                workflow=workflow_name,
+                run_id=ctx.run_id,
+                duration_ms=round(duration, 1),
+                cost_usd=run_ctx.total_cost_usd,
+                steps_completed=len(run_ctx.completed_steps),
+            )
 
             return WorkflowResult(
                 status=Status.COMPLETED,
@@ -158,10 +161,14 @@ class WorkflowRunner:
 
         except Exception as e:
             duration = (time.monotonic() - start_time) * 1000
-            logger.error("workflow_failed", workflow=workflow_name,
-                         run_id=ctx.run_id, error=str(e),
-                         error_type=type(e).__name__,
-                         steps_completed=len(run_ctx.completed_steps))
+            logger.error(
+                "workflow_failed",
+                workflow=workflow_name,
+                run_id=ctx.run_id,
+                error=str(e),
+                error_type=type(e).__name__,
+                steps_completed=len(run_ctx.completed_steps),
+            )
 
             return WorkflowResult(
                 status=Status.FAILED,
@@ -187,9 +194,12 @@ class WorkflowRunner:
             # Start from scratch
             return await self.run(workflow_name, dag, step_funcs, input_data)
 
-        logger.info("workflow_resuming", run_id=run_id,
-                     from_step=checkpoint.step_name,
-                     completed=checkpoint.completed_steps)
+        logger.info(
+            "workflow_resuming",
+            run_id=run_id,
+            from_step=checkpoint.step_name,
+            completed=checkpoint.completed_steps,
+        )
 
         ctx = ExecutionContext(
             run_id=run_id,
@@ -236,8 +246,9 @@ class WorkflowRunner:
 
         return True
 
-    def _prepare_step_input(self, step_name: str, dag: DAG,
-                            run_ctx: RunContext, initial_input: dict) -> Any:
+    def _prepare_step_input(
+        self, step_name: str, dag: DAG, run_ctx: RunContext, initial_input: dict
+    ) -> Any:
         """Prepare input data for a step."""
         predecessors = dag.get_predecessors(step_name)
         if not predecessors:
@@ -257,8 +268,9 @@ class WorkflowRunner:
                 merged[pred] = output
         return merged
 
-    async def _execute_step(self, step_name: str, step_func: Any,
-                            input_data: Any, ctx: ExecutionContext) -> StepResult:
+    async def _execute_step(
+        self, step_name: str, step_func: Any, input_data: Any, ctx: ExecutionContext
+    ) -> StepResult:
         """Execute a single step with optional service injection.
 
         If the step function accepts keyword arguments (models, prompts, ctx),
@@ -297,6 +309,7 @@ class WorkflowRunner:
 
         except Exception as e:
             duration = (time.monotonic() - start) * 1000
-            logger.error("step_execution_error", step=step_name,
-                         error=str(e), error_type=type(e).__name__)
+            logger.error(
+                "step_execution_error", step=step_name, error=str(e), error_type=type(e).__name__
+            )
             raise

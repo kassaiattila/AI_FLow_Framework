@@ -9,6 +9,7 @@
     requires_services: []
     tags: [documents, freshness, enforcement]
 """
+
 from datetime import date
 from pathlib import Path
 
@@ -88,29 +89,38 @@ class TestIsFresh:
 class TestFreshnessReport:
     def test_check_freshness_mixed(self, registry: DocumentRegistry, tmp_file: Path):
         # Register a mix of documents
-        d1 = registry.register(tmp_file, {
-            "title": "Active",
-            "skill_name": "rag",
-            "collection_name": "docs",
-            "status": DocumentStatus.ACTIVE,
-            "effective_from": date(2026, 1, 1),
-            "effective_until": date(2026, 12, 31),
-        })
+        registry.register(
+            tmp_file,
+            {
+                "title": "Active",
+                "skill_name": "rag",
+                "collection_name": "docs",
+                "status": DocumentStatus.ACTIVE,
+                "effective_from": date(2026, 1, 1),
+                "effective_until": date(2026, 12, 31),
+            },
+        )
 
-        d2 = registry.register(tmp_file, {
-            "title": "Expired",
-            "skill_name": "rag",
-            "collection_name": "docs",
-            "status": DocumentStatus.ACTIVE,
-            "effective_until": date(2025, 6, 1),
-        })
+        registry.register(
+            tmp_file,
+            {
+                "title": "Expired",
+                "skill_name": "rag",
+                "collection_name": "docs",
+                "status": DocumentStatus.ACTIVE,
+                "effective_until": date(2025, 6, 1),
+            },
+        )
 
-        d3 = registry.register(tmp_file, {
-            "title": "Draft",
-            "skill_name": "rag",
-            "collection_name": "docs",
-            "status": DocumentStatus.DRAFT,
-        })
+        registry.register(
+            tmp_file,
+            {
+                "title": "Draft",
+                "skill_name": "rag",
+                "collection_name": "docs",
+                "status": DocumentStatus.DRAFT,
+            },
+        )
 
         enforcer = FreshnessEnforcer(registry, today=date(2026, 6, 15))
         report = enforcer.check_freshness("rag", "docs")
@@ -122,12 +132,15 @@ class TestFreshnessReport:
         assert report.is_healthy is False
 
     def test_healthy_collection(self, registry: DocumentRegistry, tmp_file: Path):
-        registry.register(tmp_file, {
-            "title": "Good",
-            "skill_name": "rag",
-            "collection_name": "docs",
-            "status": DocumentStatus.ACTIVE,
-        })
+        registry.register(
+            tmp_file,
+            {
+                "title": "Good",
+                "skill_name": "rag",
+                "collection_name": "docs",
+                "status": DocumentStatus.ACTIVE,
+            },
+        )
 
         enforcer = FreshnessEnforcer(registry, today=date(2026, 6, 15))
         report = enforcer.check_freshness("rag", "docs")

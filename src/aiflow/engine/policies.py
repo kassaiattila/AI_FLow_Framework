@@ -2,6 +2,7 @@
 
 RetryPolicy is modeled after LangGraph's RetryPolicy (validated match).
 """
+
 import asyncio
 import random
 import time
@@ -20,14 +21,20 @@ class RetryPolicy(BaseModel):
     Inspired by LangGraph RetryPolicy (1:1 pattern match).
     Only retries on transient errors by default.
     """
+
     max_retries: int = 3
     backoff_base: float = 1.0
     backoff_max: float = 60.0
     backoff_jitter: bool = True
-    retry_on: list[str] = Field(default_factory=lambda: [
-        "LLMTimeoutError", "LLMRateLimitError", "ExternalServiceError",
-        "TimeoutError", "ConnectionError",
-    ])
+    retry_on: list[str] = Field(
+        default_factory=lambda: [
+            "LLMTimeoutError",
+            "LLMRateLimitError",
+            "ExternalServiceError",
+            "TimeoutError",
+            "ConnectionError",
+        ]
+    )
 
     def should_retry(self, error: Exception, attempt: int) -> bool:
         """Check if the error should be retried."""
@@ -35,13 +42,13 @@ class RetryPolicy(BaseModel):
             return False
         error_name = type(error).__name__
         # Also check is_transient attribute (AIFlowError hierarchy)
-        if hasattr(error, 'is_transient') and error.is_transient:
+        if hasattr(error, "is_transient") and error.is_transient:
             return True
         return error_name in self.retry_on
 
     def get_delay(self, attempt: int) -> float:
         """Calculate backoff delay for given attempt (0-indexed)."""
-        delay = min(self.backoff_base * (2 ** attempt), self.backoff_max)
+        delay = min(self.backoff_base * (2**attempt), self.backoff_max)
         if self.backoff_jitter:
             delay = delay * (0.5 + random.random() * 0.5)
         return delay
@@ -73,6 +80,7 @@ class CircuitBreakerState:
 
 class CircuitBreakerPolicy(BaseModel):
     """Circuit breaker pattern - stops calling a failing service."""
+
     failure_threshold: int = 5
     recovery_timeout: int = 60  # seconds before trying half-open
     half_open_max_calls: int = 3  # successful calls to close circuit
@@ -89,9 +97,7 @@ class CircuitBreakerPolicy(BaseModel):
                 logger.info("circuit_breaker_half_open")
                 return True
             return False
-        if state.state == "half_open":
-            return True
-        return False
+        return state.state == "half_open"
 
     def on_success(self, state: CircuitBreakerState) -> None:
         """Record a successful call."""
@@ -113,6 +119,7 @@ class CircuitBreakerPolicy(BaseModel):
 
 class TimeoutPolicy(BaseModel):
     """Timeout policy for step execution."""
+
     timeout_seconds: int = 60
     on_timeout: str = "fail"  # fail | skip | fallback
     fallback_step: str | None = None

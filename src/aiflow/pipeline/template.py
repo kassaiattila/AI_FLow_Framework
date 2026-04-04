@@ -36,9 +36,7 @@ class TemplateResolver:
             autoescape=False,
         )
 
-    def resolve_value(
-        self, value: Any, context: dict[str, Any]
-    ) -> Any:
+    def resolve_value(self, value: Any, context: dict[str, Any]) -> Any:
         """Resolve a single value. If it's a string with {{ }}, render it."""
         if not isinstance(value, str):
             return value
@@ -52,25 +50,19 @@ class TemplateResolver:
 
         return self._coerce_type(rendered)
 
-    def resolve_config(
-        self, config: dict[str, Any], context: dict[str, Any]
-    ) -> dict[str, Any]:
+    def resolve_config(self, config: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         """Resolve all Jinja2 templates in a step config dict."""
         resolved: dict[str, Any] = {}
         for key, value in config.items():
             if isinstance(value, dict):
                 resolved[key] = self.resolve_config(value, context)
             elif isinstance(value, list):
-                resolved[key] = [
-                    self.resolve_value(item, context) for item in value
-                ]
+                resolved[key] = [self.resolve_value(item, context) for item in value]
             else:
                 resolved[key] = self.resolve_value(value, context)
         return resolved
 
-    def resolve_expression(
-        self, expression: str, context: dict[str, Any]
-    ) -> Any:
+    def resolve_expression(self, expression: str, context: dict[str, Any]) -> Any:
         """Resolve a Jinja2 expression (for for_each, conditions).
 
         Uses compile_expression to return the native Python object
@@ -90,10 +82,7 @@ class TemplateResolver:
         """Raise SecurityError if template contains blocked patterns."""
         for pattern in _BLOCKED_PATTERNS:
             if pattern in template_str:
-                raise SecurityError(
-                    f"Blocked pattern '{pattern}' in template: "
-                    f"{template_str[:80]}"
-                )
+                raise SecurityError(f"Blocked pattern '{pattern}' in template: {template_str[:80]}")
 
     @staticmethod
     def _coerce_type(rendered: str) -> Any:

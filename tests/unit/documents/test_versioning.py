@@ -9,6 +9,7 @@
     requires_services: []
     tags: [documents, versioning, supersede]
 """
+
 from pathlib import Path
 
 import pytest

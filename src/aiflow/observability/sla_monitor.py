@@ -35,6 +35,7 @@ logger = structlog.get_logger(__name__)
 # Models
 # ---------------------------------------------------------------------------
 
+
 class SLADefinition(BaseModel):
     """SLA contract for a workflow."""
 
@@ -69,6 +70,7 @@ class SLAResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Monitor
 # ---------------------------------------------------------------------------
+
 
 class SLAMonitor:
     """In-memory SLA monitor that tracks latency percentiles and success rate.
@@ -151,9 +153,7 @@ class SLAMonitor:
         if sla:
             max_ms = sla.max_duration_seconds * 1000
             if p95 > max_ms:
-                violations.append(
-                    f"p95 latency ({p95:.0f}ms) exceeds max ({max_ms:.0f}ms)"
-                )
+                violations.append(f"p95 latency ({p95:.0f}ms) exceeds max ({max_ms:.0f}ms)")
             if success_rate < sla.target_success_rate:
                 violations.append(
                     f"success rate ({success_rate:.2%}) below target ({sla.target_success_rate:.2%})"
@@ -201,6 +201,7 @@ class SLAMonitor:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _percentile(sorted_values: list[float], pct: float) -> float:
     """Compute a percentile from a pre-sorted list."""

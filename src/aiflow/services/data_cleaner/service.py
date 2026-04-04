@@ -88,9 +88,7 @@ class DataCleanerService(BaseService):
     # Clean
     # ------------------------------------------------------------------
 
-    async def clean(
-        self, text: str, config: CleaningConfig | None = None
-    ) -> CleanedDocument:
+    async def clean(self, text: str, config: CleaningConfig | None = None) -> CleanedDocument:
         """Clean a single document.
 
         Args:

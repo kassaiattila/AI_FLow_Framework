@@ -9,6 +9,7 @@
     requires_services: []
     tags: [events, pubsub, async]
 """
+
 import pytest
 
 from aiflow.core.events import EventBus
@@ -41,8 +42,10 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_emit_async_handler(self, bus):
         results = []
+
         async def handler(value=None):
             results.append(value)
+
         bus.on("test", handler)
         await bus.emit("test", value="async_hello")
         assert results == ["async_hello"]
@@ -63,15 +66,19 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_handler_error_does_not_stop_others(self, bus):
         results = []
+
         def bad_handler():
             raise ValueError("boom")
+
         bus.on("test", bad_handler)
         bus.on("test", lambda: results.append("ok"))
         await bus.emit("test")
         assert results == ["ok"]
 
     def test_off_removes_handler(self, bus):
-        handler = lambda: None
+        def handler():
+            return None
+
         bus.on("test", handler)
         assert bus.handler_count == 1
         bus.off("test", handler)

@@ -9,6 +9,7 @@
     requires_services: []
     tags: [contrib, messaging, kafka, integration-point]
 """
+
 from aiflow.contrib.messaging.kafka import KafkaConfig, KafkaConsumer, KafkaProducer
 
 

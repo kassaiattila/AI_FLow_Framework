@@ -9,6 +9,7 @@
     requires_services: []
     tags: [models, protocols, classification]
 """
+
 from aiflow.models.protocols.classification import (
     ClassificationInput,
     ClassificationOutput,
@@ -31,8 +32,10 @@ class TestClassificationModels:
         assert r.all_scores == {}
 
     def test_output(self):
-        out = ClassificationOutput(results=[
-            ClassificationResult(label="pos", confidence=0.9),
-            ClassificationResult(label="neg", confidence=0.1),
-        ])
+        out = ClassificationOutput(
+            results=[
+                ClassificationResult(label="pos", confidence=0.9),
+                ClassificationResult(label="neg", confidence=0.1),
+            ]
+        )
         assert len(out.results) == 2

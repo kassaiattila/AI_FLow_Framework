@@ -9,6 +9,7 @@
     requires_services: []
     tags: [cli, typer, main, version]
 """
+
 from typer.testing import CliRunner
 
 from aiflow.cli.main import app

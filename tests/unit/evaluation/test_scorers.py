@@ -9,6 +9,7 @@
     requires_services: []
     tags: [evaluation, scorers, exact-match, json, regex, threshold]
 """
+
 import json
 
 from aiflow.evaluation.scorers import (

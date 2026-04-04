@@ -11,6 +11,7 @@ i18n toggle E2E tests — verify HU/EN switch works across pages.
     requires_services: [vite]
     tags: [e2e, i18n, playwright]
 """
+
 from __future__ import annotations
 
 from playwright.sync_api import Page
@@ -33,8 +34,9 @@ class TestI18n:
         # Submit button should be in English
         submit = page.locator('button[type="submit"]')
         submit_text = submit.text_content() or ""
-        assert any(w in submit_text.lower() for w in ["sign in", "login", "log in"]), \
+        assert any(w in submit_text.lower() for w in ["sign in", "login", "log in"]), (
             f"Expected English submit, got: {submit_text}"
+        )
 
         # Click Magyar button
         hu_btn = page.locator("button", has_text="Magyar")
@@ -43,8 +45,9 @@ class TestI18n:
 
         # Submit button should be in Hungarian
         submit_text_hu = submit.text_content() or ""
-        assert submit_text_hu != submit_text or "bel" in submit_text_hu.lower(), \
+        assert submit_text_hu != submit_text or "bel" in submit_text_hu.lower(), (
             f"HU toggle did not change text: {submit_text_hu}"
+        )
 
     def test_dashboard_locale_content(self, authenticated_page: Page) -> None:
         navigate_to(authenticated_page, "/")

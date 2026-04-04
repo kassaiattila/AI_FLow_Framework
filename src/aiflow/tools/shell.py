@@ -9,6 +9,7 @@ Note: All I/O is async via ``asyncio.create_subprocess_exec``.
 Canonical location: ``aiflow.tools.shell``
 Backward-compat re-export: ``aiflow.contrib.shell``
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -32,6 +33,7 @@ logger = structlog.get_logger(__name__)
 # Errors
 # ---------------------------------------------------------------------------
 
+
 class ShellCommandDeniedError(PermanentError):
     """Raised when a command is not in the allowed whitelist."""
 
@@ -51,6 +53,7 @@ class ShellTimeoutError(AIFlowError):
 # Models
 # ---------------------------------------------------------------------------
 
+
 class ShellResult(BaseModel):
     """Result of a shell command execution."""
 
@@ -64,6 +67,7 @@ class ShellResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Executor
 # ---------------------------------------------------------------------------
+
 
 class ShellExecutor:
     """Async subprocess executor with allowed-commands whitelist.
@@ -155,7 +159,7 @@ class ShellExecutor:
                 proc.communicate(),
                 timeout=timeout,
             )
-        except TimeoutError:
+        except TimeoutError as exc:
             # Try to kill the process on timeout
             try:
                 proc.kill()  # type: ignore[union-attr]
@@ -172,7 +176,7 @@ class ShellExecutor:
             raise ShellTimeoutError(
                 f"Command timed out after {timeout}s: {command_str}",
                 details={"command": command_str, "timeout": timeout},
-            )
+            ) from exc
 
         duration_ms = (time.monotonic() - start) * 1000
         result = ShellResult(
@@ -217,8 +221,10 @@ class ShellExecutor:
 
         cmd = [
             "ffprobe",
-            "-v", "quiet",
-            "-print_format", "json",
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
             "-show_format",
             "-show_streams",
             str(path),
@@ -226,9 +232,7 @@ class ShellExecutor:
         result = await self.run(cmd, timeout=60)
 
         if result.returncode != 0:
-            raise RuntimeError(
-                f"ffprobe failed (rc={result.returncode}): {result.stderr[:500]}"
-            )
+            raise RuntimeError(f"ffprobe failed (rc={result.returncode}): {result.stderr[:500]}")
 
         try:
             return json.loads(result.stdout)

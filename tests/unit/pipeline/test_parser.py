@@ -86,10 +86,12 @@ class TestParseYaml:
 
 class TestParseDict:
     def test_valid_dict(self, parser):
-        p = parser.parse_dict({
-            "name": "dict_pipeline",
-            "steps": [{"name": "s1", "service": "a", "method": "b"}],
-        })
+        p = parser.parse_dict(
+            {
+                "name": "dict_pipeline",
+                "steps": [{"name": "s1", "service": "a", "method": "b"}],
+            }
+        )
         assert p.name == "dict_pipeline"
 
     def test_invalid_dict(self, parser):

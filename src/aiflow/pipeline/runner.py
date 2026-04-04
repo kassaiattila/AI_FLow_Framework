@@ -371,6 +371,7 @@ async def _record_pipeline_cost(
     """Persist pipeline step cost to cost_records table (best-effort)."""
     try:
         from aiflow.api.cost_recorder import record_cost
+
         model = "unknown"
         input_tokens = 0
         output_tokens = 0

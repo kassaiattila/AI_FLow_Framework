@@ -3,6 +3,7 @@
 Uses Redis sorted sets for precise sliding window counting.
 Each service/endpoint gets an independent rate limit configuration.
 """
+
 from __future__ import annotations
 
 import time
@@ -49,9 +50,7 @@ class RateLimiterService(BaseService):
         self._rl_config = config or RateLimiterConfig()
         super().__init__(self._rl_config)
         self._redis: aioredis.Redis | None = None
-        self._rules: dict[str, RateLimitRule] = {
-            r.key: r for r in self._rl_config.rules
-        }
+        self._rules: dict[str, RateLimitRule] = {r.key: r for r in self._rl_config.rules}
 
     @property
     def service_name(self) -> str:

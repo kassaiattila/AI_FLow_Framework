@@ -3,6 +3,7 @@
 DEPRECATED: Use aiflow.skill_system instead of aiflow.skills.
 This module re-exports everything from aiflow.skill_system for backward compat.
 """
+
 # Re-export from canonical location
 from aiflow.skill_system import (  # noqa: F401
     DeploymentProfile,

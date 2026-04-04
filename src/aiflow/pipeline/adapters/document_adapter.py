@@ -14,9 +14,7 @@ class ExtractDocumentInput(BaseModel):
     """Input schema for document extraction."""
 
     file_path: str = Field(..., description="Path to the document file")
-    config_name: str | None = Field(
-        None, description="Document type config name override"
-    )
+    config_name: str | None = Field(None, description="Document type config name override")
 
 
 class ExtractDocumentOutput(BaseModel):

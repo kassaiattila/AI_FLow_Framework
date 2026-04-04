@@ -1,4 +1,5 @@
 """Email processing API — list, detail, upload, process, classify, connector config CRUD, fetch."""
+
 from __future__ import annotations
 
 import asyncio
@@ -25,13 +26,17 @@ router = APIRouter(prefix="/api/v1/emails", tags=["emails"])
 
 ALLOWED_EXTENSIONS = {".eml", ".msg", ".txt"}
 
+_upload_file_field = File(...)
+
 
 # ---------------------------------------------------------------------------
 # Pydantic Models
 # ---------------------------------------------------------------------------
 
+
 class EmailResultItem(BaseModel):
     """Email processing result summary."""
+
     email_id: str
     subject: str
     sender: str
@@ -51,6 +56,7 @@ class EmailResultItem(BaseModel):
 
 class EmailListResponse(BaseModel):
     """List of email processing results."""
+
     emails: list[EmailResultItem]
     total: int
     source: str = "backend"
@@ -58,6 +64,7 @@ class EmailListResponse(BaseModel):
 
 class EmailDetailResponse(BaseModel):
     """Full email detail with all processing results."""
+
     email_id: str
     subject: str = ""
     sender: str = ""
@@ -97,6 +104,7 @@ class EmailProcessResponse(BaseModel):
 
 class ClassifyRequest(BaseModel):
     """Request to classify a text."""
+
     text: str
     subject: str = ""
     strategy: str | None = None
@@ -105,6 +113,7 @@ class ClassifyRequest(BaseModel):
 
 class ClassifyResponse(BaseModel):
     """Classification result."""
+
     label: str = ""
     display_name: str = ""
     confidence: float = 0.0
@@ -117,6 +126,7 @@ class ClassifyResponse(BaseModel):
 
 class ConnectorConfigCreate(BaseModel):
     """Create a new email connector config."""
+
     name: str
     provider: str  # imap, o365_graph, gmail
     host: str | None = None
@@ -131,6 +141,7 @@ class ConnectorConfigCreate(BaseModel):
 
 class ConnectorConfigUpdate(BaseModel):
     """Update an existing connector config."""
+
     name: str | None = None
     host: str | None = None
     port: int | None = None
@@ -145,6 +156,7 @@ class ConnectorConfigUpdate(BaseModel):
 
 class ConnectorConfigResponse(BaseModel):
     """Single connector config."""
+
     id: str
     name: str
     provider: str
@@ -164,6 +176,7 @@ class ConnectorConfigResponse(BaseModel):
 
 class FetchRequest(BaseModel):
     """Trigger email fetch from a connector."""
+
     config_id: str
     limit: int = 50
     since_days: int | None = None
@@ -171,6 +184,7 @@ class FetchRequest(BaseModel):
 
 class FetchResponse(BaseModel):
     """Fetch operation result."""
+
     config_id: str
     total_count: int = 0
     new_count: int = 0
@@ -201,6 +215,7 @@ class TestConnectionResponse(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _email_upload_dir() -> Path:
     d = Path(os.getenv("AIFLOW_EMAIL_UPLOAD_DIR", "./data/uploads/emails"))
     d.mkdir(parents=True, exist_ok=True)
@@ -211,6 +226,7 @@ def _row_to_dict(row: asyncpg.Record) -> dict[str, Any]:
     """Convert asyncpg Record to dict, serializing datetimes and UUIDs."""
     import json as _json
     import uuid as _uuid
+
     d: dict[str, Any] = {}
     for key, val in dict(row).items():
         if isinstance(val, (datetime, date)):
@@ -230,6 +246,7 @@ def _row_to_dict(row: asyncpg.Record) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Email List (existing)
 # ---------------------------------------------------------------------------
+
 
 @router.get("", response_model=EmailListResponse)
 async def list_emails(
@@ -273,28 +290,34 @@ async def list_emails(
 
             for row in rows:
                 raw_od = row["output_data"] or {}
-                data = raw_od if isinstance(raw_od, dict) else (_json.loads(raw_od) if isinstance(raw_od, str) else {})
+                data = (
+                    raw_od
+                    if isinstance(raw_od, dict)
+                    else (_json.loads(raw_od) if isinstance(raw_od, str) else {})
+                )
                 intent_data = data.get("intent") or {}
                 priority_data = data.get("priority") or {}
                 routing_data = data.get("routing") or {}
                 entities_data = data.get("entities") or {}
 
-                emails.append(EmailResultItem(
-                    email_id=data.get("email_id", str(row["id"])),
-                    subject=data.get("subject", ""),
-                    sender=data.get("sender", ""),
-                    received_date=row["started_at"].isoformat() if row["started_at"] else None,
-                    intent_id=intent_data.get("intent_id"),
-                    intent_display_name=intent_data.get("intent_display_name"),
-                    intent_confidence=intent_data.get("confidence", 0.0),
-                    intent_method=intent_data.get("method"),
-                    priority_level=priority_data.get("priority_level"),
-                    department_name=routing_data.get("department_name"),
-                    queue_name=routing_data.get("queue_name"),
-                    entity_count=entities_data.get("entity_count", 0),
-                    attachment_count=data.get("attachment_count", 0),
-                    processing_time_ms=row["total_duration_ms"] or 0.0,
-                ))
+                emails.append(
+                    EmailResultItem(
+                        email_id=data.get("email_id", str(row["id"])),
+                        subject=data.get("subject", ""),
+                        sender=data.get("sender", ""),
+                        received_date=row["started_at"].isoformat() if row["started_at"] else None,
+                        intent_id=intent_data.get("intent_id"),
+                        intent_display_name=intent_data.get("intent_display_name"),
+                        intent_confidence=intent_data.get("confidence", 0.0),
+                        intent_method=intent_data.get("method"),
+                        priority_level=priority_data.get("priority_level"),
+                        department_name=routing_data.get("department_name"),
+                        queue_name=routing_data.get("queue_name"),
+                        entity_count=entities_data.get("entity_count", 0),
+                        attachment_count=data.get("attachment_count", 0),
+                        processing_time_ms=row["total_duration_ms"] or 0.0,
+                    )
+                )
     except Exception as e:
         logger.warning("emails_db_failed", error=str(e))
 
@@ -324,31 +347,41 @@ async def list_emails(
             except Exception:
                 pass
 
-            eml_files = sorted(fetched_dir.rglob("*.eml"), key=lambda f: f.stat().st_mtime, reverse=True)
+            eml_files = sorted(
+                fetched_dir.rglob("*.eml"), key=lambda f: f.stat().st_mtime, reverse=True
+            )
             for eml_path in eml_files[:200]:
                 if eml_path.stem in processed_files:
                     continue
                 try:
                     import email as _email_mod
+
                     raw = eml_path.read_bytes()
                     msg = _email_mod.message_from_bytes(raw)
                     subj = msg.get("Subject", "")
                     from email.header import decode_header as _dh
+
                     parts = _dh(subj)
-                    subj = "".join(p.decode(enc or "utf-8") if isinstance(p, bytes) else p for p, enc in parts)
+                    subj = "".join(
+                        p.decode(enc or "utf-8") if isinstance(p, bytes) else p for p, enc in parts
+                    )
                     sender = msg.get("From", "")
                     date_str = msg.get("Date", "")
-                    emails.append(EmailResultItem(
-                        email_id=eml_path.stem,
-                        subject=subj,
-                        sender=sender,
-                        received_date=date_str[:25] if date_str else None,
-                        intent_id=None,
-                        intent_display_name="Not processed",
-                        intent_confidence=0.0,
-                        priority_level=None,
-                        attachment_count=sum(1 for p in msg.walk() if p.get_content_disposition() == "attachment"),
-                    ))
+                    emails.append(
+                        EmailResultItem(
+                            email_id=eml_path.stem,
+                            subject=subj,
+                            sender=sender,
+                            received_date=date_str[:25] if date_str else None,
+                            intent_id=None,
+                            intent_display_name="Not processed",
+                            intent_confidence=0.0,
+                            priority_level=None,
+                            attachment_count=sum(
+                                1 for p in msg.walk() if p.get_content_disposition() == "attachment"
+                            ),
+                        )
+                    )
                     total += 1
                 except Exception:
                     continue
@@ -362,8 +395,9 @@ async def list_emails(
 # Upload & Process (existing)
 # ---------------------------------------------------------------------------
 
+
 @router.post("/upload", response_model=EmailUploadResponse)
-async def upload_emails(files: list[UploadFile] = File(...)) -> EmailUploadResponse:
+async def upload_emails(files: list[UploadFile] = _upload_file_field) -> EmailUploadResponse:
     """Upload email files (.eml, .msg, .txt) for processing."""
     upload_dir = _email_upload_dir()
     uploaded: list[str] = []
@@ -412,7 +446,9 @@ async def process_email(request: EmailProcessRequest) -> EmailProcessResponse:
         )
     except ImportError as e:
         logger.error("email_skill_import_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Email processor skill not available: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Email processor skill not available: {e}"
+        ) from e
 
     output_dir = Path(tempfile.mkdtemp(prefix="aiflow_email_"))
     try:
@@ -444,6 +480,7 @@ async def process_email(request: EmailProcessRequest) -> EmailProcessResponse:
 # Classify (F2 — new)
 # ---------------------------------------------------------------------------
 
+
 @router.post("/classify", response_model=ClassifyResponse)
 async def classify_text(request: ClassifyRequest) -> ClassifyResponse:
     """Classify text using the Classifier service with schema-driven labels."""
@@ -452,6 +489,7 @@ async def classify_text(request: ClassifyRequest) -> ClassifyResponse:
     try:
         # Load intent schema for labels
         from aiflow.tools.schema_registry import SchemaRegistry
+
         _skills_dir = Path(__file__).parent.parent.parent.parent.parent / "skills"
         registry = SchemaRegistry(skills_dir=_skills_dir)
         intents_schema = registry.load_schema(request.schema_name, "intents")
@@ -500,6 +538,7 @@ async def classify_text(request: ClassifyRequest) -> ClassifyResponse:
 # Connector Config CRUD (F2 — new)
 # ---------------------------------------------------------------------------
 
+
 @router.get("/connectors", response_model=list[ConnectorConfigResponse])
 async def list_connectors() -> list[ConnectorConfigResponse]:
     """List all email connector configurations."""
@@ -513,13 +552,10 @@ async def list_connectors() -> list[ConnectorConfigResponse]:
                    FROM email_connector_configs
                    ORDER BY created_at DESC"""
             )
-            return [
-                ConnectorConfigResponse(**_row_to_dict(row))
-                for row in rows
-            ]
+            return [ConnectorConfigResponse(**_row_to_dict(row)) for row in rows]
     except Exception as e:
         logger.error("list_connectors_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/connectors/{config_id}", response_model=ConnectorConfigResponse)
@@ -542,7 +578,7 @@ async def get_connector(config_id: str) -> ConnectorConfigResponse:
         raise
     except Exception as e:
         logger.error("get_connector_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/connectors", response_model=ConnectorConfigResponse, status_code=201)
@@ -578,15 +614,19 @@ async def create_connector(config: ConnectorConfigCreate) -> ConnectorConfigResp
             )
             logger.info("connector_created", name=config.name, provider=config.provider)
             return ConnectorConfigResponse(**_row_to_dict(row))
-    except asyncpg.UniqueViolationError:
-        raise HTTPException(status_code=409, detail=f"Connector '{config.name}' already exists")
+    except asyncpg.UniqueViolationError as e:
+        raise HTTPException(
+            status_code=409, detail=f"Connector '{config.name}' already exists"
+        ) from e
     except Exception as e:
         logger.error("create_connector_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.put("/connectors/{config_id}", response_model=ConnectorConfigResponse)
-async def update_connector(config_id: str, update: ConnectorConfigUpdate) -> ConnectorConfigResponse:
+async def update_connector(
+    config_id: str, update: ConnectorConfigUpdate
+) -> ConnectorConfigResponse:
     """Update an existing connector config."""
     import json as _json
 
@@ -635,7 +675,7 @@ async def update_connector(config_id: str, update: ConnectorConfigUpdate) -> Con
         raise
     except Exception as e:
         logger.error("update_connector_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/connectors/{config_id}", status_code=204)
@@ -655,12 +695,13 @@ async def delete_connector(config_id: str) -> None:
         raise
     except Exception as e:
         logger.error("delete_connector_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ---------------------------------------------------------------------------
 # Test Connection (F2 — new)
 # ---------------------------------------------------------------------------
+
 
 @router.post("/connectors/{config_id}/test", response_model=TestConnectionResponse)
 async def test_connector(config_id: str) -> TestConnectionResponse:
@@ -693,6 +734,7 @@ async def test_connector(config_id: str) -> TestConnectionResponse:
 # Fetch Emails (F2 — new)
 # ---------------------------------------------------------------------------
 
+
 @router.post("/fetch", response_model=FetchResponse)
 async def fetch_emails(request: FetchRequest) -> FetchResponse:
     """Trigger email fetch (non-streaming fallback)."""
@@ -705,13 +747,23 @@ async def fetch_emails(request: FetchRequest) -> FetchResponse:
     since_date = None
     if request.since_days:
         from datetime import timedelta
+
         since_date = date.today() - timedelta(days=request.since_days)
 
     service = EmailConnectorService(session_factory=session_factory, config=EmailConnectorConfig())
     await service.start()
     try:
-        result = await service.fetch_emails(config_id=request.config_id, limit=request.limit, since_date=since_date)
-        return FetchResponse(config_id=request.config_id, total_count=result.total_count, new_count=result.new_count, duration_ms=result.duration_ms, error=result.error, source="backend")
+        result = await service.fetch_emails(
+            config_id=request.config_id, limit=request.limit, since_date=since_date
+        )
+        return FetchResponse(
+            config_id=request.config_id,
+            total_count=result.total_count,
+            new_count=result.new_count,
+            duration_ms=result.duration_ms,
+            error=result.error,
+            source="backend",
+        )
     except Exception as e:
         return FetchResponse(config_id=request.config_id, error=str(e), source="backend")
     finally:
@@ -737,6 +789,7 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
     since_date = None
     if request.since_days:
         from datetime import timedelta
+
         since_date = date.today() - timedelta(days=request.since_days)
 
     try:
@@ -755,6 +808,7 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
         from skills.email_intent_processor.workflows.classify import (
             score_priority as _priority,
         )
+
         skill_available = True
     except ImportError:
         skill_available = False
@@ -765,12 +819,16 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
         def sse(obj: dict) -> str:
             return f"data: {_json.dumps(obj)}\n\n"
 
-        service = EmailConnectorService(session_factory=session_factory, config=EmailConnectorConfig())
+        service = EmailConnectorService(
+            session_factory=session_factory, config=EmailConnectorConfig()
+        )
         await service.start()
 
         try:
             # Step 1: Fetch all emails from connector
-            result = await service.fetch_emails(config_id=request.config_id, limit=request.limit, since_date=since_date)
+            result = await service.fetch_emails(
+                config_id=request.config_id, limit=request.limit, since_date=since_date
+            )
 
             if result.error:
                 yield sse({"event": "error", "error": result.error})
@@ -785,11 +843,22 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
 
             for fi, em in enumerate(fetched):
                 fname = em.subject[:60] or em.sender[:40] or f"email_{fi}"
-                yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total})
+                yield sse(
+                    {"event": "file_start", "file": fname, "file_index": fi, "total_files": total}
+                )
                 await asyncio.sleep(0)
 
                 # Step 0: fetch (already done)
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "fetch", "status": "done"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 0,
+                        "step_name": "fetch",
+                        "status": "done",
+                    }
+                )
 
                 eml_path = em.raw_eml_path
                 if not eml_path or not Path(eml_path).exists() or not skill_available:
@@ -797,21 +866,60 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
                     continue
 
                 # Steps 1-5: process pipeline
-                pipeline = [("parse", _parse), ("classify", _classify), ("extract", _extract), ("priority", _priority), ("route", _route)]
-                data: dict[str, Any] = {"input_file": eml_path, "raw_eml_path": eml_path, "output_dir": str(Path(eml_path).parent)}
+                pipeline = [
+                    ("parse", _parse),
+                    ("classify", _classify),
+                    ("extract", _extract),
+                    ("priority", _priority),
+                    ("route", _route),
+                ]
+                data: dict[str, Any] = {
+                    "input_file": eml_path,
+                    "raw_eml_path": eml_path,
+                    "output_dir": str(Path(eml_path).parent),
+                }
                 file_ok = True
 
                 for si, (sname, sfn) in enumerate(pipeline, 1):
-                    yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": sname, "status": "running"})
+                    yield sse(
+                        {
+                            "event": "file_step",
+                            "file": fname,
+                            "file_index": fi,
+                            "step_index": si,
+                            "step_name": sname,
+                            "status": "running",
+                        }
+                    )
                     await asyncio.sleep(0)
                     t = _t.perf_counter()
                     try:
                         data = await sfn(data)
                         elapsed_ms = int((_t.perf_counter() - t) * 1000)
-                        yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": sname, "status": "done", "elapsed_ms": elapsed_ms})
+                        yield sse(
+                            {
+                                "event": "file_step",
+                                "file": fname,
+                                "file_index": fi,
+                                "step_index": si,
+                                "step_name": sname,
+                                "status": "done",
+                                "elapsed_ms": elapsed_ms,
+                            }
+                        )
                     except Exception as e:
-                        logger.warning("email_process_step_failed", file=fname, step=sname, error=str(e))
-                        yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": sname, "error": str(e)})
+                        logger.warning(
+                            "email_process_step_failed", file=fname, step=sname, error=str(e)
+                        )
+                        yield sse(
+                            {
+                                "event": "file_error",
+                                "file": fname,
+                                "file_index": fi,
+                                "step_name": sname,
+                                "error": str(e),
+                            }
+                        )
                         file_ok = False
                         break
 
@@ -821,9 +929,12 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
                         run_id = str(uuid.uuid4())
                         output_data = {
                             "email_id": em.message_id or run_id,
-                            "subject": em.subject, "sender": em.sender,
-                            "intent": data.get("intent"), "entities": data.get("entities"),
-                            "priority": data.get("priority"), "routing": data.get("routing"),
+                            "subject": em.subject,
+                            "sender": em.sender,
+                            "intent": data.get("intent"),
+                            "entities": data.get("entities"),
+                            "priority": data.get("priority"),
+                            "routing": data.get("routing"),
                             "attachment_count": len(em.attachments),
                         }
                         async with pool.acquire() as conn:
@@ -833,10 +944,14 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
                                     input_data, output_data, started_at, completed_at, total_duration_ms)
                                    VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,NOW(),NOW(),$8)
                                    ON CONFLICT DO NOTHING""",
-                                uuid.UUID(run_id), "email_intent_processing", "1.0",
-                                "email_intent_processor", "completed",
+                                uuid.UUID(run_id),
+                                "email_intent_processing",
+                                "1.0",
+                                "email_intent_processor",
+                                "completed",
                                 _json.dumps({"file": eml_path, "subject": em.subject[:100]}),
-                                _json.dumps(output_data), 0.0,
+                                _json.dumps(output_data),
+                                0.0,
                             )
                         processed += 1
                     except Exception:
@@ -862,6 +977,7 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
 # Export (CSV)
 # ---------------------------------------------------------------------------
 
+
 @router.get("/export/csv")
 async def export_emails_csv():
     """Export all processed emails as CSV."""
@@ -871,15 +987,35 @@ async def export_emails_csv():
     result = await list_emails(limit=500, offset=0)
     output = io.StringIO()
     writer = csv.writer(output, delimiter=";")
-    writer.writerow(["email_id", "sender", "subject", "intent", "intent_display_name",
-                      "confidence", "priority", "department", "queue", "received_date"])
+    writer.writerow(
+        [
+            "email_id",
+            "sender",
+            "subject",
+            "intent",
+            "intent_display_name",
+            "confidence",
+            "priority",
+            "department",
+            "queue",
+            "received_date",
+        ]
+    )
     for e in result.emails:
-        writer.writerow([
-            e.email_id, e.sender, e.subject, e.intent_id or "",
-            e.intent_display_name or "", e.intent_confidence,
-            e.priority_level or "", e.department_name or "",
-            e.queue_name or "", e.received_date or "",
-        ])
+        writer.writerow(
+            [
+                e.email_id,
+                e.sender,
+                e.subject,
+                e.intent_id or "",
+                e.intent_display_name or "",
+                e.intent_confidence,
+                e.priority_level or "",
+                e.department_name or "",
+                e.queue_name or "",
+                e.received_date or "",
+            ]
+        )
 
     output.seek(0)
     return StreamingResponse(
@@ -892,6 +1028,7 @@ async def export_emails_csv():
 # ---------------------------------------------------------------------------
 # Fetch History (F2 — new)
 # ---------------------------------------------------------------------------
+
 
 @router.get("/connectors/{config_id}/history", response_model=list[FetchHistoryItem])
 async def get_fetch_history(
@@ -915,12 +1052,13 @@ async def get_fetch_history(
             return [FetchHistoryItem(**_row_to_dict(row)) for row in rows]
     except Exception as e:
         logger.error("fetch_history_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ---------------------------------------------------------------------------
 # Email Detail (F2.5 — MUST be last to avoid /{email_id} catching /connectors etc)
 # ---------------------------------------------------------------------------
+
 
 @router.get("/{email_id}", response_model=EmailDetailResponse)
 async def get_email(email_id: str) -> EmailDetailResponse:
@@ -961,13 +1099,13 @@ async def get_email(email_id: str) -> EmailDetailResponse:
     except Exception as e:
         logger.warning("email_detail_db_failed", error=str(e), email_id=email_id)
 
-
     raise HTTPException(status_code=404, detail=f"Email not found: {email_id}")
 
 
 # ---------------------------------------------------------------------------
 # POST /api/v1/emails/process-batch-stream — process existing .eml files by ID
 # ---------------------------------------------------------------------------
+
 
 class ProcessBatchRequest(BaseModel):
     email_ids: list[str]
@@ -1000,8 +1138,10 @@ async def process_batch_stream(request: ProcessBatchRequest) -> StreamingRespons
         )
     except ImportError as e:
         err_msg = str(e)
+
         async def err():
             yield f"data: {_json.dumps({'event': 'error', 'error': err_msg})}\n\n"
+
         return StreamingResponse(err(), media_type="text/event-stream")
 
     # Find .eml files matching the email_ids
@@ -1027,23 +1167,62 @@ async def process_batch_stream(request: ProcessBatchRequest) -> StreamingRespons
         for fi, (eid, eml_path) in enumerate(eml_files):
             # Use subject from .eml as display name
             fname = eml_path.stem[:60]
-            yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total})
+            yield sse(
+                {"event": "file_start", "file": fname, "file_index": fi, "total_files": total}
+            )
             await asyncio.sleep(0)
 
-            data: dict[str, Any] = {"input_file": str(eml_path), "raw_eml_path": str(eml_path), "output_dir": str(eml_path.parent)}
-            pipeline = [("parse", _parse), ("classify", _classify), ("extract", _extract), ("priority", _priority), ("route", _route)]
+            data: dict[str, Any] = {
+                "input_file": str(eml_path),
+                "raw_eml_path": str(eml_path),
+                "output_dir": str(eml_path.parent),
+            }
+            pipeline = [
+                ("parse", _parse),
+                ("classify", _classify),
+                ("extract", _extract),
+                ("priority", _priority),
+                ("route", _route),
+            ]
             file_ok = True
 
             for si, (sname, sfn) in enumerate(pipeline):
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": sname, "status": "running"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": si,
+                        "step_name": sname,
+                        "status": "running",
+                    }
+                )
                 await asyncio.sleep(0)
                 t = _t.perf_counter()
                 try:
                     data = await sfn(data)
                     elapsed_ms = int((_t.perf_counter() - t) * 1000)
-                    yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": sname, "status": "done", "elapsed_ms": elapsed_ms})
+                    yield sse(
+                        {
+                            "event": "file_step",
+                            "file": fname,
+                            "file_index": fi,
+                            "step_index": si,
+                            "step_name": sname,
+                            "status": "done",
+                            "elapsed_ms": elapsed_ms,
+                        }
+                    )
                 except Exception as e:
-                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": sname, "error": str(e)})
+                    yield sse(
+                        {
+                            "event": "file_error",
+                            "file": fname,
+                            "file_index": fi,
+                            "step_name": sname,
+                            "error": str(e),
+                        }
+                    )
                     file_ok = False
                     break
 
@@ -1054,9 +1233,13 @@ async def process_batch_stream(request: ProcessBatchRequest) -> StreamingRespons
                     subject = data.get("subject", fname)
                     sender = data.get("sender", "")
                     output_data = {
-                        "email_id": eid, "subject": subject, "sender": sender,
-                        "intent": data.get("intent"), "entities": data.get("entities"),
-                        "priority": data.get("priority"), "routing": data.get("routing"),
+                        "email_id": eid,
+                        "subject": subject,
+                        "sender": sender,
+                        "intent": data.get("intent"),
+                        "entities": data.get("entities"),
+                        "priority": data.get("priority"),
+                        "routing": data.get("routing"),
                         "attachment_count": len(data.get("attachments", [])),
                     }
                     async with pool.acquire() as conn:
@@ -1066,10 +1249,14 @@ async def process_batch_stream(request: ProcessBatchRequest) -> StreamingRespons
                                 input_data, output_data, started_at, completed_at, total_duration_ms)
                                VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,NOW(),NOW(),$8)
                                ON CONFLICT DO NOTHING""",
-                            uuid.UUID(run_id), "email_intent_processing", "1.0",
-                            "email_intent_processor", "completed",
+                            uuid.UUID(run_id),
+                            "email_intent_processing",
+                            "1.0",
+                            "email_intent_processor",
+                            "completed",
                             _json.dumps({"file": str(eml_path), "subject": subject[:100]}),
-                            _json.dumps(output_data), 0.0,
+                            _json.dumps(output_data),
+                            0.0,
                         )
                     processed += 1
                 except Exception:
@@ -1090,8 +1277,11 @@ async def process_batch_stream(request: ProcessBatchRequest) -> StreamingRespons
 # POST /api/v1/emails/upload-and-process-stream — SSE per-file progress
 # ---------------------------------------------------------------------------
 
+
 @router.post("/upload-and-process-stream")
-async def upload_and_process_stream(files: list[UploadFile] = File(...)) -> StreamingResponse:
+async def upload_and_process_stream(
+    files: list[UploadFile] = _upload_file_field,
+) -> StreamingResponse:
     """Upload + process email files with per-file SSE progress.
 
     Events: init, file_start, file_step, file_done, file_error, complete.
@@ -1118,8 +1308,10 @@ async def upload_and_process_stream(files: list[UploadFile] = File(...)) -> Stre
     except ImportError as e:
         err_msg = str(e)
         logger.error("email_skill_import_failed", error=err_msg)
+
         async def err():
             yield f"data: {_json.dumps({'event': 'error', 'error': err_msg})}\n\n"
+
         return StreamingResponse(err(), media_type="text/event-stream")
 
     per_file_steps = [
@@ -1142,48 +1334,115 @@ async def upload_and_process_stream(files: list[UploadFile] = File(...)) -> Stre
         results = []
         for fi, f in enumerate(files):
             fname = f.filename or f"email_{fi}"
-            yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total})
+            yield sse(
+                {"event": "file_start", "file": fname, "file_index": fi, "total_files": total}
+            )
             await asyncio.sleep(0)
 
             # Step 0: Upload (save to disk)
-            yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "upload", "status": "running"})
+            yield sse(
+                {
+                    "event": "file_step",
+                    "file": fname,
+                    "file_index": fi,
+                    "step_index": 0,
+                    "step_name": "upload",
+                    "status": "running",
+                }
+            )
             await asyncio.sleep(0)
             ext = Path(fname).suffix.lower()
             if ext not in ALLOWED_EXTENSIONS:
-                yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": "upload", "error": f"Invalid extension: {ext}"})
+                yield sse(
+                    {
+                        "event": "file_error",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_name": "upload",
+                        "error": f"Invalid extension: {ext}",
+                    }
+                )
                 yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": False})
                 continue
             content = await f.read()
             dest = upload_dir / Path(fname).name
             dest.write_bytes(content)
-            yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "upload", "status": "done"})
+            yield sse(
+                {
+                    "event": "file_step",
+                    "file": fname,
+                    "file_index": fi,
+                    "step_index": 0,
+                    "step_name": "upload",
+                    "status": "done",
+                }
+            )
 
             # Steps 1-5: Process pipeline
             output_dir = Path(tempfile.mkdtemp(prefix="aiflow_email_"))
-            data: dict[str, Any] = {"input_file": str(dest), "raw_eml_path": str(dest), "output_dir": str(output_dir)}
+            data: dict[str, Any] = {
+                "input_file": str(dest),
+                "raw_eml_path": str(dest),
+                "output_dir": str(output_dir),
+            }
             file_ok = True
 
             for si in range(1, len(per_file_steps)):
                 step_name, step_fn = per_file_steps[si]
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": step_name, "status": "running"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": si,
+                        "step_name": step_name,
+                        "status": "running",
+                    }
+                )
                 await asyncio.sleep(0)
                 t = _time.perf_counter()
                 try:
                     data = await step_fn(data)  # type: ignore[misc]
                     elapsed_ms = int((_time.perf_counter() - t) * 1000)
-                    yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": step_name, "status": "done", "elapsed_ms": elapsed_ms})
+                    yield sse(
+                        {
+                            "event": "file_step",
+                            "file": fname,
+                            "file_index": fi,
+                            "step_index": si,
+                            "step_name": step_name,
+                            "status": "done",
+                            "elapsed_ms": elapsed_ms,
+                        }
+                    )
                 except Exception as e:
-                    logger.error("email_stream_step_failed", file=fname, step=step_name, error=str(e))
-                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": step_name, "error": str(e)})
+                    logger.error(
+                        "email_stream_step_failed", file=fname, step=step_name, error=str(e)
+                    )
+                    yield sse(
+                        {
+                            "event": "file_error",
+                            "file": fname,
+                            "file_index": fi,
+                            "step_name": step_name,
+                            "error": str(e),
+                        }
+                    )
                     file_ok = False
                     break
 
             if file_ok:
-                results.append({
-                    "file": fname,
-                    "intent": data.get("intent", {}).get("intent_id") if isinstance(data.get("intent"), dict) else data.get("intent"),
-                    "priority": data.get("priority", {}).get("priority_name") if isinstance(data.get("priority"), dict) else None,
-                })
+                results.append(
+                    {
+                        "file": fname,
+                        "intent": data.get("intent", {}).get("intent_id")
+                        if isinstance(data.get("intent"), dict)
+                        else data.get("intent"),
+                        "priority": data.get("priority", {}).get("priority_name")
+                        if isinstance(data.get("priority"), dict)
+                        else None,
+                    }
+                )
             yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": file_ok})
 
         yield sse({"event": "complete", "results": results, "total_processed": len(results)})

@@ -3,6 +3,7 @@
 This is the main entry point for skill developers to interact with models.
 Injected via DI as `models: ModelClient` in step functions.
 """
+
 from typing import Any
 
 import structlog

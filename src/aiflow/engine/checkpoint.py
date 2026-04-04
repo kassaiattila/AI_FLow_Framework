@@ -3,6 +3,7 @@
 Inspired by LangGraph checkpoint system with version tracking.
 Each checkpoint captures the state after a successful step completion.
 """
+
 from datetime import UTC, datetime
 from typing import Any
 
@@ -16,6 +17,7 @@ logger = structlog.get_logger(__name__)
 
 class Checkpoint(BaseModel):
     """A snapshot of workflow state at a specific point."""
+
     workflow_run_id: str
     step_name: str
     step_index: int

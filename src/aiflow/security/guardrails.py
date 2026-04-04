@@ -1,4 +1,5 @@
 """Input/output guardrails for content safety."""
+
 from __future__ import annotations
 
 import re
@@ -54,9 +55,7 @@ class InputGuardrail:
 
         # Length check
         if len(text) > self._max_length:
-            violations.append(
-                f"Input exceeds maximum length ({len(text)} > {self._max_length})"
-            )
+            violations.append(f"Input exceeds maximum length ({len(text)} > {self._max_length})")
 
         # Forbidden patterns (prompt injection)
         if self._check_injection:

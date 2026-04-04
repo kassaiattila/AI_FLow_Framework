@@ -9,6 +9,7 @@
     requires_services: []
     tags: [prompts, manager, cache, yaml, fallback, langfuse]
 """
+
 import time
 
 import pytest

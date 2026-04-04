@@ -3,6 +3,7 @@
 Every config change creates a new version. Active config is the one with is_active=True.
 Rollback restores a previous version by copying it as a new active version.
 """
+
 from __future__ import annotations
 
 import json
@@ -79,9 +80,7 @@ class ConfigVersioningService(BaseService):
         except Exception:
             return False
 
-    async def list_versions(
-        self, service_instance_id: str
-    ) -> list[ConfigVersion]:
+    async def list_versions(self, service_instance_id: str) -> list[ConfigVersion]:
         """List all config versions for a service instance, newest first."""
         async with self._session_factory() as session:
             result = await session.execute(
@@ -110,9 +109,7 @@ class ConfigVersioningService(BaseService):
                 for row in rows
             ]
 
-    async def get_active(
-        self, service_instance_id: str
-    ) -> ConfigVersion | None:
+    async def get_active(self, service_instance_id: str) -> ConfigVersion | None:
         """Get the currently active config version."""
         async with self._session_factory() as session:
             result = await session.execute(

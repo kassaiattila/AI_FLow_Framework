@@ -1,4 +1,5 @@
 """Authentication middleware — enforces auth on all /api/v1/* and /v1/* endpoints."""
+
 from __future__ import annotations
 
 import hashlib
@@ -31,9 +32,7 @@ _PUBLIC_PREFIXES: tuple[str, ...] = (
 )
 
 # Path prefixes that require admin role
-_ADMIN_PREFIXES: tuple[str, ...] = (
-    "/api/v1/admin",
-)
+_ADMIN_PREFIXES: tuple[str, ...] = ("/api/v1/admin",)
 
 # API key prefix used in DB-based keys
 _API_KEY_PREFIX = "aiflow_sk_"
@@ -59,17 +58,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
         """Check if the path is publicly accessible without auth."""
         if path in _PUBLIC_PATHS:
             return True
-        for prefix in _PUBLIC_PREFIXES:
-            if path.startswith(prefix):
-                return True
-        return False
+        return any(path.startswith(prefix) for prefix in _PUBLIC_PREFIXES)
 
     def _requires_admin(self, path: str) -> bool:
         """Check if the path requires admin role."""
-        for prefix in _ADMIN_PREFIXES:
-            if path.startswith(prefix):
-                return True
-        return False
+        return any(path.startswith(prefix) for prefix in _ADMIN_PREFIXES)
 
     async def _verify_api_key(self, key: str) -> tuple[bool, str | None, str]:
         """Verify an API key against the database.
@@ -84,6 +77,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         engine = await get_engine()
         from sqlalchemy import text
+
         async with engine.connect() as conn:
             result = await conn.execute(
                 text(

@@ -2,6 +2,7 @@
 
 Supports routing strategies: cost_optimized, latency_optimized, capability_match, fallback_chain.
 """
+
 from enum import StrEnum
 
 import structlog
@@ -13,11 +14,13 @@ __all__ = ["RoutingStrategy", "ModelRouter"]
 
 logger = structlog.get_logger(__name__)
 
+
 class RoutingStrategy(StrEnum):
     COST_OPTIMIZED = "cost_optimized"
     LATENCY_OPTIMIZED = "latency_optimized"
     CAPABILITY_MATCH = "capability_match"
     FALLBACK_CHAIN = "fallback_chain"
+
 
 class ModelRouter:
     """Routes model requests to the best available model."""
@@ -25,8 +28,14 @@ class ModelRouter:
     def __init__(self, registry: ModelRegistry) -> None:
         self._registry = registry
 
-    def route(self, model_type: ModelType, *, strategy: RoutingStrategy = RoutingStrategy.FALLBACK_CHAIN,
-              required_capability: str | None = None, preferred_model: str | None = None) -> ModelMetadata | None:
+    def route(
+        self,
+        model_type: ModelType,
+        *,
+        strategy: RoutingStrategy = RoutingStrategy.FALLBACK_CHAIN,
+        required_capability: str | None = None,
+        preferred_model: str | None = None,
+    ) -> ModelMetadata | None:
         """Select the best model based on strategy.
 
         Args:
@@ -41,9 +50,12 @@ class ModelRouter:
         # Try preferred model first
         if preferred_model:
             meta = self._registry.get_or_none(preferred_model)
-            if meta and meta.model_type == model_type:
-                if required_capability is None or required_capability in meta.capabilities:
-                    return meta
+            if (
+                meta
+                and meta.model_type == model_type
+                and (required_capability is None or required_capability in meta.capabilities)
+            ):
+                return meta
 
         # Get candidates
         candidates = self._registry.find_by_type(model_type)
@@ -59,7 +71,7 @@ class ModelRouter:
         elif strategy == RoutingStrategy.LATENCY_OPTIMIZED:
             with_latency = [m for m in candidates if m.avg_latency_ms is not None]
             if with_latency:
-                return min(with_latency, key=lambda m: m.avg_latency_ms or float('inf'))
+                return min(with_latency, key=lambda m: m.avg_latency_ms or float("inf"))
             return candidates[0]  # fallback to priority order
         elif strategy == RoutingStrategy.CAPABILITY_MATCH:
             return candidates[0]  # already sorted by priority

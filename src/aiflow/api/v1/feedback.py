@@ -1,4 +1,5 @@
 """User feedback API for RAG query quality improvement."""
+
 from __future__ import annotations
 
 import structlog
@@ -15,6 +16,7 @@ logger = structlog.get_logger(__name__)
 
 class FeedbackRequest(BaseModel):
     """Feedback submission for a RAG query result."""
+
     query_id: str = ""
     collection: str = "default"
     question: str = ""
@@ -26,12 +28,14 @@ class FeedbackRequest(BaseModel):
 
 class FeedbackResponse(BaseModel):
     """Response after feedback submission."""
+
     success: bool = True
     message: str = "Feedback saved"
 
 
 class FeedbackStatsItem(BaseModel):
     """Feedback statistics for a single collection."""
+
     collection: str
     total_feedback: int = 0
     avg_score: float = 0.0
@@ -41,6 +45,7 @@ class FeedbackStatsItem(BaseModel):
 
 class FeedbackStatsResponse(BaseModel):
     """Aggregated feedback statistics."""
+
     stats: list[FeedbackStatsItem] = []
 
 
@@ -109,13 +114,15 @@ async def feedback_stats() -> FeedbackStatsResponse:
                 """
             )
             for row in rows:
-                items.append(FeedbackStatsItem(
-                    collection=row["collection"],
-                    total_feedback=row["total_feedback"],
-                    avg_score=round(float(row["avg_score"] or 0), 2),
-                    thumbs_up_count=row["thumbs_up_count"] or 0,
-                    thumbs_down_count=row["thumbs_down_count"] or 0,
-                ))
+                items.append(
+                    FeedbackStatsItem(
+                        collection=row["collection"],
+                        total_feedback=row["total_feedback"],
+                        avg_score=round(float(row["avg_score"] or 0), 2),
+                        thumbs_up_count=row["thumbs_up_count"] or 0,
+                        thumbs_down_count=row["thumbs_down_count"] or 0,
+                    )
+                )
     except Exception as e:
         logger.warning("feedback_stats_db_failed", error=str(e))
 

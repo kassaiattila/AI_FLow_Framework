@@ -9,6 +9,7 @@
     requires_services: []
     tags: [models, client, facade, llm]
 """
+
 from unittest.mock import AsyncMock
 
 import pytest
@@ -25,9 +26,13 @@ def mock_generation_backend():
     backend.generate.return_value = ModelCallResult(
         output=GenerationOutput(text="Hello!", model_used="gpt-4o"),
         model_used="gpt-4o",
-        input_tokens=10, output_tokens=5, cost_usd=0.001, latency_ms=500,
+        input_tokens=10,
+        output_tokens=5,
+        cost_usd=0.001,
+        latency_ms=500,
     )
     return backend
+
 
 @pytest.fixture
 def mock_embedding_backend():
@@ -35,14 +40,17 @@ def mock_embedding_backend():
     backend.embed.return_value = ModelCallResult(
         output=EmbeddingOutput(embeddings=[[0.1, 0.2, 0.3]], dimensions=3, total_tokens=5),
         model_used="text-embedding-3-small",
-        input_tokens=5, latency_ms=100,
+        input_tokens=5,
+        latency_ms=100,
     )
     return backend
 
+
 @pytest.fixture
 def client(mock_generation_backend, mock_embedding_backend):
-    return ModelClient(generation_backend=mock_generation_backend,
-                       embedding_backend=mock_embedding_backend)
+    return ModelClient(
+        generation_backend=mock_generation_backend, embedding_backend=mock_embedding_backend
+    )
 
 
 class TestModelClient:

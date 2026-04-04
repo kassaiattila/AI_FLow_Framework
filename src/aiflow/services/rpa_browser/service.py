@@ -1,4 +1,5 @@
 """RPA Browser service — YAML config CRUD + execution with logging."""
+
 from __future__ import annotations
 
 import json
@@ -56,6 +57,7 @@ class RPABrowserService:
     async def _get_pool(self):
         if self._pool is None:
             import asyncpg
+
             url = self._db_url or os.getenv(
                 "AIFLOW_DATABASE__URL",
                 "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
@@ -65,8 +67,14 @@ class RPABrowserService:
 
     # --- Config CRUD ---
 
-    async def create_config(self, name: str, yaml_config: str, description: str | None = None,
-                            target_url: str | None = None, schedule_cron: str | None = None) -> RPAConfigRecord:
+    async def create_config(
+        self,
+        name: str,
+        yaml_config: str,
+        description: str | None = None,
+        target_url: str | None = None,
+        schedule_cron: str | None = None,
+    ) -> RPAConfigRecord:
         config_id = str(uuid.uuid4())
         now = datetime.now(UTC)
         pool = await self._get_pool()
@@ -74,12 +82,25 @@ class RPABrowserService:
             await conn.execute(
                 """INSERT INTO rpa_configs (id, name, description, yaml_config, target_url, schedule_cron, created_at, updated_at)
                    VALUES ($1,$2,$3,$4,$5,$6,$7,$7)""",
-                config_id, name, description, yaml_config, target_url, schedule_cron, now,
+                config_id,
+                name,
+                description,
+                yaml_config,
+                target_url,
+                schedule_cron,
+                now,
             )
         logger.info("rpa_config_created", config_id=config_id, name=name)
-        return RPAConfigRecord(id=config_id, name=name, description=description,
-                               yaml_config=yaml_config, target_url=target_url,
-                               schedule_cron=schedule_cron, created_at=now.isoformat(), updated_at=now.isoformat())
+        return RPAConfigRecord(
+            id=config_id,
+            name=name,
+            description=description,
+            yaml_config=yaml_config,
+            target_url=target_url,
+            schedule_cron=schedule_cron,
+            created_at=now.isoformat(),
+            updated_at=now.isoformat(),
+        )
 
     async def list_configs(self) -> list[RPAConfigRecord]:
         pool = await self._get_pool()
@@ -114,6 +135,7 @@ class RPABrowserService:
 
         # Parse YAML to count steps
         import yaml
+
         try:
             parsed = yaml.safe_load(cfg.yaml_config)
             steps = parsed.get("steps", []) if isinstance(parsed, dict) else []
@@ -126,16 +148,27 @@ class RPABrowserService:
             await conn.execute(
                 """INSERT INTO rpa_execution_log (id, config_id, status, steps_total, started_at)
                    VALUES ($1,$2,'running',$3,$4)""",
-                exec_id, config_id, steps_total, now,
+                exec_id,
+                config_id,
+                steps_total,
+                now,
             )
 
         try:
             # Execute steps (simplified — real impl would use Playwright/Robot Framework)
             results: dict[str, Any] = {"steps": []}
             for i, step_def in enumerate(steps):
-                step_name = step_def.get("name", f"step_{i+1}") if isinstance(step_def, dict) else f"step_{i+1}"
-                action = step_def.get("action", "unknown") if isinstance(step_def, dict) else "unknown"
-                results["steps"].append({"name": step_name, "action": action, "status": "completed"})
+                step_name = (
+                    step_def.get("name", f"step_{i + 1}")
+                    if isinstance(step_def, dict)
+                    else f"step_{i + 1}"
+                )
+                action = (
+                    step_def.get("action", "unknown") if isinstance(step_def, dict) else "unknown"
+                )
+                results["steps"].append(
+                    {"name": step_name, "action": action, "status": "completed"}
+                )
 
             elapsed = (time.time() - start) * 1000
             completed_at = datetime.now(UTC)
@@ -144,44 +177,71 @@ class RPABrowserService:
                 await conn.execute(
                     """UPDATE rpa_execution_log SET status='completed', steps_completed=$2,
                        results=$3::jsonb, duration_ms=$4, completed_at=$5 WHERE id=$1""",
-                    exec_id, steps_total, json.dumps(results), elapsed, completed_at,
+                    exec_id,
+                    steps_total,
+                    json.dumps(results),
+                    elapsed,
+                    completed_at,
                 )
 
             logger.info("rpa_executed", exec_id=exec_id, steps=steps_total, elapsed_ms=elapsed)
             return RPAExecutionRecord(
-                id=exec_id, config_id=config_id, status="completed",
-                steps_total=steps_total, steps_completed=steps_total,
-                results=results, duration_ms=elapsed,
-                started_at=now.isoformat(), completed_at=completed_at.isoformat(),
+                id=exec_id,
+                config_id=config_id,
+                status="completed",
+                steps_total=steps_total,
+                steps_completed=steps_total,
+                results=results,
+                duration_ms=elapsed,
+                started_at=now.isoformat(),
+                completed_at=completed_at.isoformat(),
             )
         except Exception as e:
             elapsed = (time.time() - start) * 1000
             async with pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE rpa_execution_log SET status='failed', error=$2, duration_ms=$3, completed_at=$4 WHERE id=$1",
-                    exec_id, str(e), elapsed, datetime.now(UTC),
+                    exec_id,
+                    str(e),
+                    elapsed,
+                    datetime.now(UTC),
                 )
-            return RPAExecutionRecord(id=exec_id, config_id=config_id, status="failed",
-                                      error=str(e), duration_ms=elapsed, started_at=now.isoformat())
+            return RPAExecutionRecord(
+                id=exec_id,
+                config_id=config_id,
+                status="failed",
+                error=str(e),
+                duration_ms=elapsed,
+                started_at=now.isoformat(),
+            )
 
-    async def list_executions(self, config_id: str | None = None, limit: int = 50) -> list[RPAExecutionRecord]:
+    async def list_executions(
+        self, config_id: str | None = None, limit: int = 50
+    ) -> list[RPAExecutionRecord]:
         pool = await self._get_pool()
         async with pool.acquire() as conn:
             if config_id:
                 rows = await conn.fetch(
                     "SELECT * FROM rpa_execution_log WHERE config_id=$1 ORDER BY started_at DESC LIMIT $2",
-                    config_id, limit,
+                    config_id,
+                    limit,
                 )
             else:
-                rows = await conn.fetch("SELECT * FROM rpa_execution_log ORDER BY started_at DESC LIMIT $1", limit)
+                rows = await conn.fetch(
+                    "SELECT * FROM rpa_execution_log ORDER BY started_at DESC LIMIT $1", limit
+                )
         return [_row_to_exec(r) for r in rows]
 
 
 def _row_to_config(row) -> RPAConfigRecord:
     return RPAConfigRecord(
-        id=row["id"], name=row["name"], description=row.get("description"),
-        yaml_config=row["yaml_config"], target_url=row.get("target_url"),
-        is_active=row.get("is_active", True), schedule_cron=row.get("schedule_cron"),
+        id=row["id"],
+        name=row["name"],
+        description=row.get("description"),
+        yaml_config=row["yaml_config"],
+        target_url=row.get("target_url"),
+        is_active=row.get("is_active", True),
+        schedule_cron=row.get("schedule_cron"),
         created_at=row["created_at"].isoformat() if row.get("created_at") else "",
         updated_at=row["updated_at"].isoformat() if row.get("updated_at") else "",
     )
@@ -189,11 +249,15 @@ def _row_to_config(row) -> RPAConfigRecord:
 
 def _row_to_exec(row) -> RPAExecutionRecord:
     return RPAExecutionRecord(
-        id=row["id"], config_id=row["config_id"], status=row["status"],
-        steps_total=row.get("steps_total"), steps_completed=row.get("steps_completed", 0),
+        id=row["id"],
+        config_id=row["config_id"],
+        status=row["status"],
+        steps_total=row.get("steps_total"),
+        steps_completed=row.get("steps_completed", 0),
         results=json.loads(row["results"]) if row.get("results") else None,
         screenshots=json.loads(row["screenshots"]) if row.get("screenshots") else [],
-        error=row.get("error"), duration_ms=row.get("duration_ms"),
+        error=row.get("error"),
+        duration_ms=row.get("duration_ms"),
         started_at=row["started_at"].isoformat() if row.get("started_at") else "",
         completed_at=row["completed_at"].isoformat() if row.get("completed_at") else None,
     )

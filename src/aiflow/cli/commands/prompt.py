@@ -7,7 +7,6 @@ Usage:
     aiflow prompt promote --from dev --to staging
 """
 
-
 import structlog
 import typer
 

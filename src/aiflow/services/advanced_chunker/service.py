@@ -44,9 +44,7 @@ class ChunkConfig(BaseModel):
     chunk_overlap: int = 64
     similarity_threshold: float = 0.75
     window_size: int = 3
-    heading_patterns: list[str] = Field(
-        default_factory=lambda: [r"^#{1,6}\s", r"^\d+\.\s"]
-    )
+    heading_patterns: list[str] = Field(default_factory=lambda: [r"^#{1,6}\s", r"^\d+\.\s"])
     parent_chunk_size: int = 2048
     child_chunk_size: int = 256
 
@@ -219,9 +217,7 @@ class AdvancedChunkerService(BaseService):
                 if current:
                     chunks.append(current)
                 if len(part) > chunk_size:
-                    chunks.extend(
-                        self._recursive_split(part, remaining_seps, chunk_size, overlap)
-                    )
+                    chunks.extend(self._recursive_split(part, remaining_seps, chunk_size, overlap))
                     current = ""
                 else:
                     current = part

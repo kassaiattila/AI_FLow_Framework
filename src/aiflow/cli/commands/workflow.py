@@ -7,7 +7,6 @@ Usage:
     aiflow workflow docs <name> --format mermaid
 """
 
-
 import structlog
 import typer
 

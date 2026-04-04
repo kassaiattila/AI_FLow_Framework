@@ -9,6 +9,7 @@
     requires_services: []
     tags: [config, settings, pydantic]
 """
+
 from aiflow.core.config import AIFlowSettings, get_settings
 
 

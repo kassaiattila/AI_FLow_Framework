@@ -9,6 +9,7 @@
     requires_services: []
     tags: [execution, worker, async]
 """
+
 from unittest.mock import AsyncMock
 
 import pytest

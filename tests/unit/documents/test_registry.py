@@ -9,6 +9,7 @@
     requires_services: []
     tags: [documents, registry, lifecycle]
 """
+
 import uuid
 from pathlib import Path
 

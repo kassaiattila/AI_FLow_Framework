@@ -1,4 +1,5 @@
 """Login Page Object for AIFlow admin."""
+
 from __future__ import annotations
 
 from tests.e2e.pages.base import BasePage

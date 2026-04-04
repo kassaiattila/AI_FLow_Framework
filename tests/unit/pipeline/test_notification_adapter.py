@@ -88,7 +88,10 @@ class TestNotificationSendAdapter:
 
     @pytest.mark.asyncio
     async def test_basic_send(
-        self, adapter: NotificationSendAdapter, fake_svc: FakeNotificationService, ctx: ExecutionContext
+        self,
+        adapter: NotificationSendAdapter,
+        fake_svc: FakeNotificationService,
+        ctx: ExecutionContext,
     ) -> None:
         result = await adapter.execute(
             input_data={
@@ -108,9 +111,12 @@ class TestNotificationSendAdapter:
 
     @pytest.mark.asyncio
     async def test_config_overrides_input(
-        self, adapter: NotificationSendAdapter, fake_svc: FakeNotificationService, ctx: ExecutionContext
+        self,
+        adapter: NotificationSendAdapter,
+        fake_svc: FakeNotificationService,
+        ctx: ExecutionContext,
     ) -> None:
-        result = await adapter.execute(
+        await adapter.execute(
             input_data={
                 "channel": "email",
                 "template": "default template",
@@ -133,9 +139,12 @@ class TestNotificationSendAdapter:
 
     @pytest.mark.asyncio
     async def test_data_merge(
-        self, adapter: NotificationSendAdapter, fake_svc: FakeNotificationService, ctx: ExecutionContext
+        self,
+        adapter: NotificationSendAdapter,
+        fake_svc: FakeNotificationService,
+        ctx: ExecutionContext,
     ) -> None:
-        result = await adapter.execute(
+        await adapter.execute(
             input_data={
                 "channel": "email",
                 "template": "test",
@@ -213,7 +222,10 @@ class TestNotificationSendAdapter:
 
     @pytest.mark.asyncio
     async def test_empty_recipients(
-        self, adapter: NotificationSendAdapter, fake_svc: FakeNotificationService, ctx: ExecutionContext
+        self,
+        adapter: NotificationSendAdapter,
+        fake_svc: FakeNotificationService,
+        ctx: ExecutionContext,
     ) -> None:
         fake_svc._results = []
         result = await adapter.execute(

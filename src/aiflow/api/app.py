@@ -1,4 +1,5 @@
 """FastAPI application factory."""
+
 import os
 import traceback
 import uuid
@@ -50,6 +51,7 @@ def _get_cors_origins() -> list[str]:
 def create_app() -> FastAPI:
     # Load .env inside factory (not at module level - avoids test interference)
     from dotenv import load_dotenv
+
     load_dotenv(Path(__file__).parent.parent.parent.parent / ".env")
 
     @asynccontextmanager
@@ -61,6 +63,7 @@ def create_app() -> FastAPI:
         langfuse_tracer = None
         try:
             from aiflow.observability.tracing import LangfuseTracer
+
             pk = os.getenv("AIFLOW_LANGFUSE__PUBLIC_KEY", "")
             sk = os.getenv("AIFLOW_LANGFUSE__SECRET_KEY", "")
             host = os.getenv("AIFLOW_LANGFUSE__HOST", "https://cloud.langfuse.com")
@@ -82,6 +85,7 @@ def create_app() -> FastAPI:
         if langfuse_tracer:
             langfuse_tracer.shutdown()
         from aiflow.api.deps import close_all
+
         await close_all()
         logger.info("app_shutdown")
 
@@ -102,6 +106,7 @@ def create_app() -> FastAPI:
     )
     # Auth middleware — enforces Bearer/API key auth on /api/v1/* (after CORS)
     from aiflow.api.middleware import AuthMiddleware
+
     app.add_middleware(AuthMiddleware)
     # Include routers
     from aiflow.api.v1.admin import router as admin_router
@@ -129,6 +134,7 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.services import router as services_router
     from aiflow.api.v1.skills_api import router as skills_router
     from aiflow.api.v1.workflows import router as workflows_router
+
     app.include_router(health_router)
     app.include_router(workflows_router)
     app.include_router(chat_router)

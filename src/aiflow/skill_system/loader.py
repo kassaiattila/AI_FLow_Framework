@@ -3,6 +3,7 @@
 The SkillLoader discovers skill.yaml manifests in a directory tree
 and loads them on demand (metadata only until the skill is activated).
 """
+
 from __future__ import annotations
 
 from pathlib import Path

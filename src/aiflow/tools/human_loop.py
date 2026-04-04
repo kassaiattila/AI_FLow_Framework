@@ -25,6 +25,7 @@ Usage::
     if response.approved:
         # proceed
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -50,6 +51,7 @@ logger = structlog.get_logger(__name__)
 # Models
 # ---------------------------------------------------------------------------
 
+
 class ApprovalRequest(BaseModel):
     """A request for human approval or decision."""
 
@@ -74,6 +76,7 @@ class HumanLoopResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Manager
 # ---------------------------------------------------------------------------
+
 
 class HumanLoopManager:
     """Manage operator approvals via file-based signals.

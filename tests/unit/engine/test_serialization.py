@@ -9,6 +9,7 @@
     requires_services: []
     tags: [engine, serialization, yaml, export, import]
 """
+
 import pytest
 import yaml
 
@@ -52,6 +53,7 @@ class TestSerializeWorkflow:
 
     def test_conditional_edge_serialized(self):
         from aiflow.engine.conditions import Condition
+
         dag = DAG()
         dag.add_node("a")
         dag.add_node("b")

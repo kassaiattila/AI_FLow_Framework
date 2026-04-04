@@ -9,6 +9,7 @@
     requires_services: []
     tags: [skills, instance, pydantic, config]
 """
+
 import pytest
 
 from aiflow.skills.instance import (

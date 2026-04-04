@@ -3,6 +3,7 @@
 Provides liveness, readiness, and detailed health endpoints.
 Checks: PostgreSQL connection, pgvector extension, RAG collections/chunks, Redis.
 """
+
 from __future__ import annotations
 
 import os
@@ -35,11 +36,13 @@ def _get_redis_url() -> str:
 
 class LiveResponse(BaseModel):
     """Liveness probe response."""
+
     status: str = "alive"
 
 
 class ReadyCheck(BaseModel):
     """Individual readiness check."""
+
     name: str
     status: str
     message: str | None = None
@@ -47,12 +50,14 @@ class ReadyCheck(BaseModel):
 
 class ReadyResponse(BaseModel):
     """Readiness probe response."""
+
     status: str
     checks: list[ReadyCheck]
 
 
 class HealthResponse(BaseModel):
     """Combined health response."""
+
     status: str
     version: str
     environment: str
@@ -129,9 +134,7 @@ async def _check_rag_data() -> ReadyCheck:
             collection_count = await conn.fetchval(
                 "SELECT COUNT(DISTINCT collection) FROM rag_chunks"
             )
-            chunk_count = await conn.fetchval(
-                "SELECT COUNT(*) FROM rag_chunks"
-            )
+            chunk_count = await conn.fetchval("SELECT COUNT(*) FROM rag_chunks")
             return ReadyCheck(
                 name="rag_data",
                 status="ok",
@@ -153,6 +156,7 @@ async def _check_redis() -> ReadyCheck:
     redis_url = _get_redis_url()
     try:
         import redis.asyncio as aioredis
+
         client = aioredis.from_url(redis_url, socket_connect_timeout=3)
         try:
             pong = await client.ping()

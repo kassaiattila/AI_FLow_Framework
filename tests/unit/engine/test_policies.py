@@ -9,6 +9,7 @@
     requires_services: []
     tags: [engine, retry, circuit-breaker, timeout, policies]
 """
+
 import asyncio
 
 import pytest
@@ -93,7 +94,9 @@ class TestCircuitBreaker:
         assert state.state == "half_open"
 
     def test_closes_after_half_open_successes(self):
-        policy = CircuitBreakerPolicy(failure_threshold=2, recovery_timeout=0, half_open_max_calls=2)
+        policy = CircuitBreakerPolicy(
+            failure_threshold=2, recovery_timeout=0, half_open_max_calls=2
+        )
         state = CircuitBreakerState()
         state.state = "half_open"
         policy.on_success(state)
@@ -120,23 +123,29 @@ class TestTimeoutPolicy:
     @pytest.mark.asyncio
     async def test_executes_within_timeout(self):
         policy = TimeoutPolicy(timeout_seconds=5)
+
         async def fast():
             return "ok"
+
         result = await policy.execute_with_timeout(fast())
         assert result == "ok"
 
     @pytest.mark.asyncio
     async def test_raises_on_timeout(self):
         policy = TimeoutPolicy(timeout_seconds=0)
+
         async def slow():
             await asyncio.sleep(10)
+
         with pytest.raises(asyncio.TimeoutError):
             await policy.execute_with_timeout(slow())
 
     @pytest.mark.asyncio
     async def test_skip_on_timeout(self):
         policy = TimeoutPolicy(timeout_seconds=0, on_timeout="skip")
+
         async def slow():
             await asyncio.sleep(10)
+
         result = await policy.execute_with_timeout(slow())
         assert result is None

@@ -8,6 +8,7 @@ Usage:
     aiflow instance disable <instance-name>
     aiflow instance validate <yaml-path>
 """
+
 from pathlib import Path
 
 import structlog
@@ -134,10 +135,12 @@ def validate_instance(
     file_path = Path(path)
     try:
         config = load_instance_config(file_path)
-        typer.echo(f"Valid: {config.instance_name} (skill={config.skill_template}, customer={config.customer})")
+        typer.echo(
+            f"Valid: {config.instance_name} (skill={config.skill_template}, customer={config.customer})"
+        )
     except (FileNotFoundError, ValueError) as exc:
         typer.echo(f"Invalid: {exc}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from exc
 
 
 @app.command("enable")

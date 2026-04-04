@@ -1,4 +1,5 @@
 """Authentication: JWT tokens and API key management."""
+
 from __future__ import annotations
 
 import hashlib
@@ -70,9 +71,7 @@ class AuthProvider:
         )
         payload_json = payload.model_dump_json()
         # Simple HMAC signature for development
-        sig = hashlib.sha256(
-            (payload_json + self._secret).encode()
-        ).hexdigest()[:16]
+        sig = hashlib.sha256((payload_json + self._secret).encode()).hexdigest()[:16]
         token_data = base64.urlsafe_b64encode(payload_json.encode()).decode()
         return f"{token_data}.{sig}"
 
@@ -89,9 +88,7 @@ class AuthProvider:
             payload_json = base64.urlsafe_b64decode(payload_b64).decode()
 
             # Verify signature
-            expected_sig = hashlib.sha256(
-                (payload_json + self._secret).encode()
-            ).hexdigest()[:16]
+            expected_sig = hashlib.sha256((payload_json + self._secret).encode()).hexdigest()[:16]
             if sig != expected_sig:
                 return AuthResult(authenticated=False, error="invalid_signature")
 

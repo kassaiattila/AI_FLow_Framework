@@ -5,6 +5,7 @@ Supports any document type via document_type_configs DB table.
 
 Pipeline: parse (Docling) → extract (LLM) → validate → store → export
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -247,9 +248,7 @@ class DocumentExtractorService(BaseService):
             db_id=db_id,
         )
 
-    async def _parse_document(
-        self, file_path: Path, parser: str
-    ) -> dict[str, Any]:
+    async def _parse_document(self, file_path: Path, parser: str) -> dict[str, Any]:
         """Parse document with Docling (or fallback)."""
         import asyncio
 
@@ -269,9 +268,7 @@ class DocumentExtractorService(BaseService):
         try:
             return await asyncio.to_thread(_parse)
         except Exception as exc:
-            self._logger.warning(
-                "docling_parse_failed", file=str(file_path), error=str(exc)
-            )
+            self._logger.warning("docling_parse_failed", file=str(file_path), error=str(exc))
             # Fallback: read raw text
             try:
                 raw = file_path.read_text(encoding="utf-8", errors="replace")
@@ -296,14 +293,11 @@ class DocumentExtractorService(BaseService):
 
         # Build dynamic prompt from field definitions
         field_descriptions = "\n".join(
-            f"- {f.name} ({f.type}): {f.description}"
-            + (" [REQUIRED]" if f.required else "")
+            f"- {f.name} ({f.type}): {f.description}" + (" [REQUIRED]" if f.required else "")
             for f in config.fields
         )
 
-        field_names_json = json.dumps(
-            {f.name: f"<{f.type}>" for f in config.fields}, indent=2
-        )
+        field_names_json = json.dumps({f.name: f"<{f.type}>" for f in config.fields}, indent=2)
 
         system_prompt = f"""You are a document data extractor. Extract the following fields from the provided {config.document_type} document.
 
@@ -336,9 +330,7 @@ Expected output format:
             # Return empty fields with 0 confidence
             return {f.name: f.default for f in config.fields} | {"_confidence": 0.0}
 
-    def _validate_fields(
-        self, extracted: dict[str, Any], config: DocumentTypeConfig
-    ) -> list[str]:
+    def _validate_fields(self, extracted: dict[str, Any], config: DocumentTypeConfig) -> list[str]:
         """Validate extracted fields against config rules."""
         errors = []
 
@@ -352,7 +344,8 @@ Expected output format:
             try:
                 # Safe eval for simple math expressions
                 local_vars = {
-                    k: v for k, v in extracted.items()
+                    k: v
+                    for k, v in extracted.items()
                     if isinstance(v, (int, float)) and k != "_confidence"
                 }
                 if local_vars and not eval(rule, {"__builtins__": {}}, local_vars):  # noqa: S307
@@ -477,9 +470,7 @@ Expected output format:
                 },
             )
             await session.commit()
-            self._logger.info(
-                "document_verified", invoice_id=invoice_id, by=verified_by
-            )
+            self._logger.info("document_verified", invoice_id=invoice_id, by=verified_by)
             return True
 
     async def get_invoice(self, invoice_id: str) -> dict[str, Any] | None:

@@ -128,8 +128,7 @@ class AdapterRegistry:
         key = (adapter.service_name, adapter.method_name)
         if key in self._adapters:
             raise ValueError(
-                f"Adapter already registered for {key}. "
-                f"Existing: {self._adapters[key]!r}"
+                f"Adapter already registered for {key}. Existing: {self._adapters[key]!r}"
             )
         self._adapters[key] = adapter
         logger.info(
@@ -143,14 +142,11 @@ class AdapterRegistry:
         key = (service_name, method_name)
         if key not in self._adapters:
             raise KeyError(
-                f"No adapter for ({service_name}, {method_name}). "
-                f"Available: {self.list_adapters()}"
+                f"No adapter for ({service_name}, {method_name}). Available: {self.list_adapters()}"
             )
         return self._adapters[key]
 
-    def get_or_none(
-        self, service_name: str, method_name: str
-    ) -> ServiceAdapter | None:
+    def get_or_none(self, service_name: str, method_name: str) -> ServiceAdapter | None:
         """Get adapter or None."""
         return self._adapters.get((service_name, method_name))
 

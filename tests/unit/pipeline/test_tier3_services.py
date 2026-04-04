@@ -145,10 +145,7 @@ class TestRerankerService:
     @pytest.mark.asyncio
     async def test_score_threshold(self, reranker_svc: RerankerService) -> None:
         """Score threshold filters out low-scoring candidates."""
-        candidates = [
-            {"content": f"Result {i}", "chunk_id": f"c{i}"}
-            for i in range(10)
-        ]
+        candidates = [{"content": f"Result {i}", "chunk_id": f"c{i}"} for i in range(10)]
         await reranker_svc.start()
         results = await reranker_svc.rerank(
             query="test",
@@ -297,7 +294,9 @@ class TestMetadataEnricherService:
 
     @pytest.mark.asyncio
     async def test_keyword_extraction(self, enricher_svc: MetadataEnricherService) -> None:
-        text = "Python programming language. Python is great. Python for data science. Python modules."
+        text = (
+            "Python programming language. Python is great. Python for data science. Python modules."
+        )
         await enricher_svc.start()
         result = await enricher_svc.enrich(
             text=text,
@@ -390,9 +389,7 @@ class TestAdvancedParserService:
         assert result.parser_used in ("raw", "none", "")
 
     @pytest.mark.asyncio
-    async def test_parse_text_file(
-        self, parser_svc: AdvancedParserService, tmp_path: Any
-    ) -> None:
+    async def test_parse_text_file(self, parser_svc: AdvancedParserService, tmp_path: Any) -> None:
         """Plain text file can be read as raw text."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("Hello world from test file.", encoding="utf-8")

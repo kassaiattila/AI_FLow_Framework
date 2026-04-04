@@ -158,9 +158,7 @@ async def list_pipelines(
     pool = await get_pool()
     async with pool.acquire() as conn:
         where = "WHERE enabled = true" if enabled_only else ""
-        total = await conn.fetchval(
-            f"SELECT COUNT(*) FROM pipeline_definitions {where}"
-        )
+        total = await conn.fetchval(f"SELECT COUNT(*) FROM pipeline_definitions {where}")
         rows = await conn.fetch(
             f"""SELECT id, name, version, description, enabled,
                        definition, trigger_config, created_at, updated_at, created_by
@@ -205,7 +203,7 @@ async def create_pipeline(req: CreatePipelineRequest) -> PipelineDetailResponse:
     try:
         pipeline_def = parser.parse_yaml(req.yaml_source)
     except PipelineParseError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     defn_dict = pipeline_def.model_dump(mode="json")
     trigger_dict = defn_dict.get("trigger", {})
@@ -240,8 +238,7 @@ async def create_pipeline(req: CreatePipelineRequest) -> PipelineDetailResponse:
         )
 
     steps_info = [
-        {"name": s.name, "service": s.service, "method": s.method}
-        for s in pipeline_def.steps
+        {"name": s.name, "service": s.service, "method": s.method} for s in pipeline_def.steps
     ]
 
     return PipelineDetailResponse(
@@ -326,9 +323,7 @@ async def get_pipeline(pipeline_id: str) -> PipelineDetailResponse:
 
 
 @router.put("/{pipeline_id}")
-async def update_pipeline(
-    pipeline_id: str, req: UpdatePipelineRequest
-) -> PipelineDetailResponse:
+async def update_pipeline(pipeline_id: str, req: UpdatePipelineRequest) -> PipelineDetailResponse:
     """Update an existing pipeline."""
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -348,22 +343,26 @@ async def update_pipeline(
             try:
                 pipeline_def = parser.parse_yaml(req.yaml_source)
             except PipelineParseError as exc:
-                raise HTTPException(status_code=400, detail=str(exc))
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
             defn_dict = pipeline_def.model_dump(mode="json")
-            params.extend([
-                req.yaml_source,
-                json.dumps(defn_dict),
-                pipeline_def.name,
-                pipeline_def.version,
-                pipeline_def.description,
-            ])
-            updates.extend([
-                f"yaml_source = ${idx}",
-                f"definition = ${idx + 1}::jsonb",
-                f"name = ${idx + 2}",
-                f"version = ${idx + 3}",
-                f"description = ${idx + 4}",
-            ])
+            params.extend(
+                [
+                    req.yaml_source,
+                    json.dumps(defn_dict),
+                    pipeline_def.name,
+                    pipeline_def.version,
+                    pipeline_def.description,
+                ]
+            )
+            updates.extend(
+                [
+                    f"yaml_source = ${idx}",
+                    f"definition = ${idx + 1}::jsonb",
+                    f"name = ${idx + 2}",
+                    f"version = ${idx + 3}",
+                    f"description = ${idx + 4}",
+                ]
+            )
             idx += 5
 
         if req.description is not None and req.yaml_source is None:
@@ -440,9 +439,7 @@ async def validate_pipeline(pipeline_id: str) -> ValidateResponse:
 
 
 @router.post("/{pipeline_id}/run", status_code=202)
-async def run_pipeline(
-    pipeline_id: str, req: RunPipelineRequest
-) -> RunPipelineResponse:
+async def run_pipeline(pipeline_id: str, req: RunPipelineRequest) -> RunPipelineResponse:
     """Execute a pipeline synchronously and return the run result.
 
     Returns 202 Accepted with run_id and final status.
@@ -468,7 +465,7 @@ async def run_pipeline(
         )
     except Exception as exc:
         logger.error("pipeline_run_failed", pipeline_id=pipeline_id, error=str(exc))
-        raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {exc}") from exc
 
     return RunPipelineResponse(
         run_id=str(result.run_id),
@@ -685,13 +682,15 @@ async def estimate_pipeline_cost(
         est_tokens = _STEP_TOKEN_ESTIMATES.get(method, 1000)
         est_cost = est_tokens * cost_per_1m / 1_000_000
 
-        per_step.append(PipelineCostStepEstimate(
-            step_name=step.name,
-            service=step.service,
-            method=method,
-            estimated_tokens=est_tokens,
-            estimated_cost_usd=round(est_cost, 6),
-        ))
+        per_step.append(
+            PipelineCostStepEstimate(
+                step_name=step.name,
+                service=step.service,
+                method=method,
+                estimated_tokens=est_tokens,
+                estimated_cost_usd=round(est_cost, 6),
+            )
+        )
         total_tokens += est_tokens
 
     total_cost = total_tokens * cost_per_1m / 1_000_000
@@ -835,7 +834,7 @@ async def deploy_template(name: str) -> DeployTemplateResponse:
         raise HTTPException(
             status_code=400,
             detail=f"Template YAML invalid: {exc}",
-        )
+        ) from exc
 
     defn_dict = pipeline_def.model_dump(mode="json")
     trigger_dict = defn_dict.get("trigger", {})
@@ -851,10 +850,7 @@ async def deploy_template(name: str) -> DeployTemplateResponse:
         if existing:
             raise HTTPException(
                 status_code=409,
-                detail=(
-                    f"Pipeline '{pipeline_def.name}' "
-                    f"v{pipeline_def.version} already exists"
-                ),
+                detail=(f"Pipeline '{pipeline_def.name}' v{pipeline_def.version} already exists"),
             )
 
         row = await conn.fetchrow(

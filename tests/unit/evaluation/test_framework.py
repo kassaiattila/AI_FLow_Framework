@@ -9,6 +9,7 @@
     requires_services: []
     tags: [evaluation, framework, eval-suite, eval-case, scoring]
 """
+
 from typing import Any
 
 import pytest

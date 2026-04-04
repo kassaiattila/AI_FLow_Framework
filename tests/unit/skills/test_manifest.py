@@ -9,6 +9,7 @@
     requires_services: []
     tags: [skills, manifest, yaml, parsing, validation]
 """
+
 from pathlib import Path
 
 import pytest

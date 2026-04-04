@@ -9,6 +9,7 @@
     requires_services: []
     tags: [vectorstore, embedder, embedding]
 """
+
 from unittest.mock import AsyncMock
 
 import pytest
@@ -23,9 +24,12 @@ def mock_client():
     client = AsyncMock()
     client.embed.return_value = ModelCallResult(
         output=EmbeddingOutput(embeddings=[[0.1, 0.2, 0.3]], dimensions=3, total_tokens=5),
-        model_used="text-embedding-3-small", input_tokens=5, latency_ms=100,
+        model_used="text-embedding-3-small",
+        input_tokens=5,
+        latency_ms=100,
     )
     return client
+
 
 class TestEmbedder:
     @pytest.mark.asyncio

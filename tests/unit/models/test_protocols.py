@@ -9,6 +9,7 @@
     requires_services: []
     tags: [models, protocols, generation, embedding]
 """
+
 from aiflow.models.protocols.base import ModelCallResult
 from aiflow.models.protocols.embedding import EmbeddingInput, EmbeddingOutput
 from aiflow.models.protocols.generation import GenerationInput, GenerationOutput
@@ -22,10 +23,17 @@ class TestModelCallResult:
         assert r.cached is False
 
     def test_full(self):
-        r = ModelCallResult(output="text", model_used="gpt-4o",
-                            input_tokens=100, output_tokens=50,
-                            cost_usd=0.005, latency_ms=1200, cached=False)
+        r = ModelCallResult(
+            output="text",
+            model_used="gpt-4o",
+            input_tokens=100,
+            output_tokens=50,
+            cost_usd=0.005,
+            latency_ms=1200,
+            cached=False,
+        )
         assert r.input_tokens == 100
+
 
 class TestGenerationInput:
     def test_defaults(self):
@@ -34,15 +42,18 @@ class TestGenerationInput:
         assert inp.max_tokens == 4096
         assert inp.response_model is None
 
+
 class TestGenerationOutput:
     def test_defaults(self):
         out = GenerationOutput(text="Hello world")
         assert out.finish_reason == "stop"
 
+
 class TestEmbeddingInput:
     def test_basic(self):
         inp = EmbeddingInput(texts=["hello", "world"])
         assert len(inp.texts) == 2
+
 
 class TestEmbeddingOutput:
     def test_basic(self):

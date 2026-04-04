@@ -9,6 +9,7 @@
     requires_services: []
     tags: [skills, instance, loader, yaml, deployment]
 """
+
 from pathlib import Path
 
 import pytest

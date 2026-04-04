@@ -9,6 +9,7 @@
     requires_services: []
     tags: [prompts, ab_testing, consistent_hashing, traffic_split]
 """
+
 import pytest
 
 from aiflow.prompts.ab_testing import ABTest, ABTestManager, ABTestOutcome

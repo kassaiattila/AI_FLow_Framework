@@ -9,6 +9,7 @@
     requires_services: []
     tags: [api, health, fastapi]
 """
+
 import pytest
 from fastapi.testclient import TestClient
 

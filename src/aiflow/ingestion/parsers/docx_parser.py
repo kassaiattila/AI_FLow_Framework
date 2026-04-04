@@ -3,6 +3,7 @@
 Actual implementation will use ``python-docx``.  This module provides the
 interface and a stub.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -41,11 +42,10 @@ class DocxParser:
 
         try:
             import docx  # noqa: F401
-        except ImportError:
+        except ImportError as exc:
             raise ImportError(
-                "python-docx is required for DOCX parsing.  "
-                "Install with: pip install python-docx"
-            )
+                "python-docx is required for DOCX parsing.  Install with: pip install python-docx"
+            ) from exc
 
         # Placeholder: real implementation goes here
         logger.info("docx.parse", file=str(path))

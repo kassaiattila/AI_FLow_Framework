@@ -141,9 +141,7 @@ class TestEmailFetchAdapter:
 
         adapter = EmailFetchAdapter(service=FakeEmailService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"connector_id": "cfg-1", "limit": 10}, {}, ctx
-        )
+        result = await adapter.execute({"connector_id": "cfg-1", "limit": 10}, {}, ctx)
         assert result["total"] == 2
         assert len(result["emails"]) == 2
         assert result["emails"][0]["subject"] == "Test Subject"
@@ -155,9 +153,7 @@ class TestEmailFetchAdapter:
 
         adapter = EmailFetchAdapter(service=FakeEmailService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"connector_id": "cfg-1", "since_days": 7}, {}, ctx
-        )
+        result = await adapter.execute({"connector_id": "cfg-1", "since_days": 7}, {}, ctx)
         assert result["total"] == 2
 
     @pytest.mark.asyncio
@@ -180,9 +176,7 @@ class TestClassifierAdapter:
 
         adapter = ClassifierAdapter(service=FakeClassifierService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"text": "Please process this invoice"}, {}, ctx
-        )
+        result = await adapter.execute({"text": "Please process this invoice"}, {}, ctx)
         assert result["label"] == "invoice"
         assert result["confidence"] == pytest.approx(0.92)
         assert result["method"] == "llm"
@@ -193,9 +187,7 @@ class TestClassifierAdapter:
 
         adapter = ClassifierAdapter(service=FakeClassifierService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"text": "body text", "subject": "Invoice #123"}, {}, ctx
-        )
+        result = await adapter.execute({"text": "body text", "subject": "Invoice #123"}, {}, ctx)
         assert result["label"] == "invoice"
 
     @pytest.mark.asyncio
@@ -218,9 +210,7 @@ class TestDocumentExtractAdapter:
 
         adapter = DocumentExtractAdapter(service=FakeDocumentExtractorService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"file_path": "/tmp/invoice.pdf"}, {}, ctx
-        )
+        result = await adapter.execute({"file_path": "/tmp/invoice.pdf"}, {}, ctx)
         assert result["document_id"] == "doc-123"
         assert result["fields"]["vendor"] == "ACME"
         assert result["confidence"] == pytest.approx(0.88)
@@ -316,9 +306,7 @@ class TestMediaProcessAdapter:
 
         adapter = MediaProcessAdapter(service=FakeMediaService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"file_path": "/tmp/video.mkv"}, {}, ctx
-        )
+        result = await adapter.execute({"file_path": "/tmp/video.mkv"}, {}, ctx)
         assert result["job_id"] == "job-1"
         assert result["transcript"] == "Transcribed text here."
         assert result["status"] == "completed"
@@ -345,9 +333,7 @@ class TestDiagramGenerateAdapter:
 
         adapter = DiagramGenerateAdapter(service=FakeDiagramService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"description": "Invoice processing workflow"}, {}, ctx
-        )
+        result = await adapter.execute({"description": "Invoice processing workflow"}, {}, ctx)
         assert result["diagram_id"] == "diag-1"
         assert "graph TD" in result["mermaid_code"]
         assert result["diagram_type"] == "mermaid"

@@ -140,11 +140,7 @@ class ServiceManagerService(BaseService):
 
         discover_adapters()
 
-        methods = [
-            k[1]
-            for k in adapter_registry.list_adapters()
-            if k[0] == name
-        ]
+        methods = [k[1] for k in adapter_registry.list_adapters() if k[0] == name]
         has_adapter = len(methods) > 0
 
         # Find pipelines using this service

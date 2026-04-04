@@ -1,4 +1,5 @@
 """Token bucket rate limiter for API and workflow throttling."""
+
 from __future__ import annotations
 
 import time

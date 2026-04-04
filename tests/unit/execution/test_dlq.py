@@ -9,6 +9,7 @@
     requires_services: []
     tags: [execution, dlq, dead-letter-queue]
 """
+
 import pytest
 
 from aiflow.execution.dlq import DeadLetterQueue, DLQEntry

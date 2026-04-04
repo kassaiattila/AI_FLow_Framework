@@ -10,6 +10,7 @@ The text is split along increasingly fine separators:
 This preserves logical structure better than fixed-size chunking.
 Overlap ensures context continuity between chunks.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -82,18 +83,20 @@ class RecursiveChunker:
         for i, (chunk_text, separator) in enumerate(chunks_with_overlap):
             if len(chunk_text.strip()) < self.config.min_chunk_size:
                 continue
-            result.append(Chunk(
-                text=chunk_text.strip(),
-                index=i,
-                metadata={
-                    **base_meta,
-                    "chunk_index": i,
-                    "chunk_strategy": "recursive",
-                    "separator_used": repr(separator),
-                },
-                char_count=len(chunk_text.strip()),
-                separator_used=separator,
-            ))
+            result.append(
+                Chunk(
+                    text=chunk_text.strip(),
+                    index=i,
+                    metadata={
+                        **base_meta,
+                        "chunk_index": i,
+                        "chunk_strategy": "recursive",
+                        "separator_used": repr(separator),
+                    },
+                    char_count=len(chunk_text.strip()),
+                    separator_used=separator,
+                )
+            )
 
         logger.info(
             "recursive_chunking_done",
@@ -151,7 +154,7 @@ class RecursiveChunker:
             # No more separators - force split at max_size
             chunks = []
             for i in range(0, len(text), max_size):
-                chunks.append((text[i:i + max_size], "force"))
+                chunks.append((text[i : i + max_size], "force"))
             return chunks
 
         separator = separators[0]
@@ -179,9 +182,7 @@ class RecursiveChunker:
                 # Check if this part alone is too big
                 if len(part) > max_size:
                     # Recursively split with finer separators
-                    sub_chunks = self._recursive_split(
-                        part, remaining_separators, max_size
-                    )
+                    sub_chunks = self._recursive_split(part, remaining_separators, max_size)
                     chunks.extend(sub_chunks)
                     current = ""
                 else:

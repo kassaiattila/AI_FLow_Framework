@@ -1,4 +1,5 @@
 """HumanReviewService — pending/approve/reject/history queue with PostgreSQL persistence."""
+
 from __future__ import annotations
 
 import json
@@ -40,6 +41,7 @@ class HumanReviewService:
     async def _get_pool(self):
         if self._pool is None:
             import asyncpg
+
             url = self._db_url or os.getenv(
                 "AIFLOW_DATABASE__URL",
                 "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
@@ -65,7 +67,13 @@ class HumanReviewService:
                    (id, entity_type, entity_id, title, description, priority, metadata_json)
                    VALUES ($1, $2, $3, $4, $5, $6, $7)
                    RETURNING *""",
-                review_id, entity_type, entity_id, title, description, priority, meta_str,
+                review_id,
+                entity_type,
+                entity_id,
+                title,
+                description,
+                priority,
+                meta_str,
             )
         logger.info("review_created", id=review_id, entity_type=entity_type, entity_id=entity_id)
         return self._row_to_item(row)
@@ -96,10 +104,14 @@ class HumanReviewService:
             )
         return [self._row_to_item(r) for r in rows]
 
-    async def approve(self, review_id: str, reviewer: str = "admin", comment: str | None = None) -> HumanReviewItem | None:
+    async def approve(
+        self, review_id: str, reviewer: str = "admin", comment: str | None = None
+    ) -> HumanReviewItem | None:
         return await self._decide(review_id, "approved", reviewer, comment)
 
-    async def reject(self, review_id: str, reviewer: str = "admin", comment: str | None = None) -> HumanReviewItem | None:
+    async def reject(
+        self, review_id: str, reviewer: str = "admin", comment: str | None = None
+    ) -> HumanReviewItem | None:
         return await self._decide(review_id, "rejected", reviewer, comment)
 
     async def get_review(self, review_id: str) -> HumanReviewItem | None:
@@ -108,7 +120,9 @@ class HumanReviewService:
             row = await conn.fetchrow("SELECT * FROM human_review_queue WHERE id = $1", review_id)
         return self._row_to_item(row) if row else None
 
-    async def _decide(self, review_id: str, status: str, reviewer: str, comment: str | None) -> HumanReviewItem | None:
+    async def _decide(
+        self, review_id: str, status: str, reviewer: str, comment: str | None
+    ) -> HumanReviewItem | None:
         pool = await self._get_pool()
         now = datetime.now(UTC)
         async with pool.acquire() as conn:
@@ -117,7 +131,11 @@ class HumanReviewService:
                    SET status = $2, reviewer = $3, comment = $4, reviewed_at = $5
                    WHERE id = $1 AND status = 'pending'
                    RETURNING *""",
-                review_id, status, reviewer, comment, now,
+                review_id,
+                status,
+                reviewer,
+                comment,
+                now,
             )
         if row:
             logger.info("review_decided", id=review_id, status=status, reviewer=reviewer)
@@ -147,10 +165,12 @@ class HumanReviewService:
                    WHERE id = $1 AND status = 'pending'
                    RETURNING *""",
                 review_id,
-                json.dumps({
-                    "escalated_at": now.isoformat(),
-                    "escalation_reason": reason,
-                }),
+                json.dumps(
+                    {
+                        "escalated_at": now.isoformat(),
+                        "escalation_reason": reason,
+                    }
+                ),
             )
         if row:
             logger.warning(

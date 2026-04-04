@@ -11,6 +11,7 @@ Usage:
                                models: ModelClient, prompts: PromptManager) -> ClassifyOutput:
         ...
 """
+
 import functools
 import time
 from collections.abc import Callable
@@ -31,6 +32,7 @@ R = TypeVar("R")
 
 class StepDefinition(BaseModel):
     """Metadata for a registered step."""
+
     name: str
     output_types: dict[str, type] | None = None
     retry: RetryPolicy | None = None
@@ -63,6 +65,7 @@ def step(
         step_type: standard | playwright | shell | human
         description: Human-readable description
     """
+
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         # Store step metadata on the function
         step_def = StepDefinition(
@@ -87,6 +90,7 @@ def step(
                     if _timeout:
                         coro = func(*args, **kwargs)
                         import asyncio
+
                         result = await asyncio.wait_for(coro, timeout=_timeout)
                     else:
                         result = await func(*args, **kwargs)
@@ -113,6 +117,7 @@ def step(
                             delay_seconds=round(delay, 2),
                         )
                         import asyncio
+
                         await asyncio.sleep(delay)
                     else:
                         duration = (time.monotonic() - start) * 1000
@@ -141,9 +146,9 @@ def step(
 
 def get_step_definition(func: Callable) -> StepDefinition | None:
     """Extract StepDefinition from a decorated function."""
-    return getattr(func, '_step_definition', None)
+    return getattr(func, "_step_definition", None)
 
 
 def is_step(func: Callable) -> bool:
     """Check if a function is a decorated step."""
-    return getattr(func, '_is_step', False)
+    return getattr(func, "_is_step", False)

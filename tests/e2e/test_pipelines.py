@@ -11,6 +11,7 @@ Pipelines page E2E tests.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, pipelines, playwright]
 """
+
 from __future__ import annotations
 
 from playwright.sync_api import Page
@@ -25,19 +26,17 @@ class TestPipelinesPage:
         navigate_to(authenticated_page, "/pipelines")
 
         body = authenticated_page.locator("body").text_content() or ""
-        assert any(
-            w in body
-            for w in ["Pipeline", "pipeline", "Orchestr", "No data", "Nincs"]
-        ), "Pipelines page missing expected content"
+        assert any(w in body for w in ["Pipeline", "pipeline", "Orchestr", "No data", "Nincs"]), (
+            "Pipelines page missing expected content"
+        )
 
     def test_services_catalog_loads(self, authenticated_page: Page) -> None:
         navigate_to(authenticated_page, "/services")
 
         body = authenticated_page.locator("body").text_content() or ""
-        assert any(
-            w in body
-            for w in ["Service", "service", "Szolg", "adapter"]
-        ), "Services catalog missing expected content"
+        assert any(w in body for w in ["Service", "service", "Szolg", "adapter"]), (
+            "Services catalog missing expected content"
+        )
 
     def test_pipeline_list_or_empty(self, authenticated_page: Page) -> None:
         navigate_to(authenticated_page, "/pipelines")
@@ -45,5 +44,6 @@ class TestPipelinesPage:
         # Should show either pipeline list table or empty state
         tables = authenticated_page.locator("table")
         empty_msg = authenticated_page.locator("text=/No data|Nincs|empty/i")
-        assert tables.count() > 0 or empty_msg.count() > 0 or True, \
+        assert tables.count() > 0 or empty_msg.count() > 0 or True, (
             "Pipelines page has neither table nor empty state"
+        )

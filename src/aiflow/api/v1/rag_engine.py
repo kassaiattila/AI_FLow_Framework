@@ -1,4 +1,5 @@
 """RAG Engine API — collection CRUD, document ingestion, query, feedback, stats."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,10 +16,13 @@ __all__ = ["router"]
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/rag", tags=["rag"])
 
+_upload_file_field = File(...)
+
 
 # ---------------------------------------------------------------------------
 # Pydantic Models
 # ---------------------------------------------------------------------------
+
 
 class CollectionCreateRequest(BaseModel):
     name: str
@@ -26,9 +30,11 @@ class CollectionCreateRequest(BaseModel):
     language: str = "hu"
     embedding_model: str | None = None
 
+
 class CollectionUpdateRequest(BaseModel):
     name: str | None = None
     description: str | None = None
+
 
 class CollectionResponse(BaseModel):
     id: str
@@ -43,10 +49,12 @@ class CollectionResponse(BaseModel):
     updated_at: str | None = None
     source: str = "backend"
 
+
 class CollectionListResponse(BaseModel):
     collections: list[CollectionResponse]
     total: int
     source: str = "backend"
+
 
 class IngestResponse(BaseModel):
     collection_id: str
@@ -56,11 +64,13 @@ class IngestResponse(BaseModel):
     errors: list[str] = Field(default_factory=list)
     source: str = "backend"
 
+
 class QueryRequest(BaseModel):
     question: str
     role: str = "expert"
     top_k: int = 5
     model: str | None = None  # override answer model (e.g. "openai/gpt-4o-mini")
+
 
 class QueryResponse(BaseModel):
     query_id: str
@@ -74,14 +84,17 @@ class QueryResponse(BaseModel):
     model_used: str | None = None
     source: str = "backend"
 
+
 class FeedbackRequest(BaseModel):
     query_id: str | None = None
     thumbs_up: bool = True
     comment: str | None = None
 
+
 class FeedbackResponse(BaseModel):
     success: bool
     source: str = "backend"
+
 
 class StatsResponse(BaseModel):
     collection_id: str
@@ -117,6 +130,7 @@ class ChunkListResponse(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 async def _get_service():
     """Create and start RAG Engine service instance."""
     from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -135,6 +149,7 @@ async def _get_service():
 # Collection CRUD
 # ---------------------------------------------------------------------------
 
+
 @router.get("/collections", response_model=CollectionListResponse)
 async def list_collections():
     """List all RAG collections."""
@@ -142,16 +157,13 @@ async def list_collections():
     try:
         collections = await svc.list_collections()
         return CollectionListResponse(
-            collections=[
-                CollectionResponse(**c.model_dump())
-                for c in collections
-            ],
+            collections=[CollectionResponse(**c.model_dump()) for c in collections],
             total=len(collections),
             source="backend",
         )
     except Exception as e:
         logger.error("list_collections_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/collections", response_model=CollectionResponse, status_code=201)
@@ -168,9 +180,11 @@ async def create_collection(request: CollectionCreateRequest):
         return CollectionResponse(**coll.model_dump())
     except Exception as e:
         if "unique" in str(e).lower() or "duplicate" in str(e).lower():
-            raise HTTPException(status_code=409, detail=f"Collection '{request.name}' already exists")
+            raise HTTPException(
+                status_code=409, detail=f"Collection '{request.name}' already exists"
+            ) from e
         logger.error("create_collection_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/collections/{collection_id}", response_model=CollectionResponse)
@@ -188,7 +202,9 @@ async def update_collection(collection_id: str, request: CollectionUpdateRequest
     """Update collection name/description."""
     svc = await _get_service()
     coll = await svc.update_collection(
-        collection_id, name=request.name, description=request.description,
+        collection_id,
+        name=request.name,
+        description=request.description,
     )
     if not coll:
         raise HTTPException(status_code=404, detail="Collection not found")
@@ -224,6 +240,7 @@ async def delete_collections_bulk(request: BulkDeleteCollectionsRequest):
             total += 1
     logger.info("collections_bulk_deleted", count=total, ids=request.ids)
     from aiflow.api.audit_helper import audit_log
+
     await audit_log("bulk_delete", "rag_collection", details={"count": total})
     return BulkDeleteCollectionsResponse(deleted=total)
 
@@ -232,10 +249,11 @@ async def delete_collections_bulk(request: BulkDeleteCollectionsRequest):
 # Ingestion
 # ---------------------------------------------------------------------------
 
+
 @router.post("/collections/{collection_id}/ingest", response_model=IngestResponse)
 async def ingest_documents(
     collection_id: str,
-    files: list[UploadFile] = File(...),
+    files: list[UploadFile] = _upload_file_field,
     language: str | None = Query(None),
 ):
     """Upload and ingest documents into a collection."""
@@ -266,13 +284,13 @@ async def ingest_documents(
         return IngestResponse(**result.model_dump())
     except Exception as e:
         logger.error("ingest_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/collections/{collection_id}/ingest-stream")
 async def ingest_documents_stream(
     collection_id: str,
-    files: list[UploadFile] = File(...),
+    files: list[UploadFile] = _upload_file_field,
     language: str | None = Query(None),
 ):
     """Upload and ingest documents with SSE progress streaming.
@@ -292,6 +310,7 @@ async def ingest_documents_stream(
 
     async def event_stream():
         import asyncio as _asyncio
+
         run_start = _time.perf_counter()
         errors: list[str] = []
         total_chunks = 0
@@ -314,27 +333,64 @@ async def ingest_documents_stream(
 
             from aiflow.ingestion.chunkers.recursive_chunker import ChunkingConfig, RecursiveChunker
             from aiflow.ingestion.parsers.docling_parser import DoclingParser
+
             parser = DoclingParser()
-            chunker = RecursiveChunker(ChunkingConfig(
-                chunk_size=svc._ext_config.default_chunk_size,
-                chunk_overlap=svc._ext_config.default_chunk_overlap,
-            ))
+            chunker = RecursiveChunker(
+                ChunkingConfig(
+                    chunk_size=svc._ext_config.default_chunk_size,
+                    chunk_overlap=svc._ext_config.default_chunk_overlap,
+                )
+            )
 
             for fi, f in enumerate(files):
                 fname = f.filename or f"file_{fi}.pdf"
-                yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total_files})
+                yield sse(
+                    {
+                        "event": "file_start",
+                        "file": fname,
+                        "file_index": fi,
+                        "total_files": total_files,
+                    }
+                )
                 await _asyncio.sleep(0)
 
                 # Step 0: Upload (save to disk)
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "upload", "status": "running"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 0,
+                        "step_name": "upload",
+                        "status": "running",
+                    }
+                )
                 await _asyncio.sleep(0)
                 dest = upload_dir / fname
                 content = await f.read()
                 dest.write_bytes(content)
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "upload", "status": "done"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 0,
+                        "step_name": "upload",
+                        "status": "done",
+                    }
+                )
 
                 # Step 1: Parse
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 1, "step_name": "parse", "status": "running"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 1,
+                        "step_name": "parse",
+                        "status": "running",
+                    }
+                )
                 await _asyncio.sleep(0)
                 try:
                     doc = parser.parse(dest)
@@ -343,36 +399,109 @@ async def ingest_documents_stream(
                         raise ValueError("empty document")
                 except Exception as e:
                     errors.append(f"{fname}: parse error: {e}")
-                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": "parse", "error": str(e)})
+                    yield sse(
+                        {
+                            "event": "file_error",
+                            "file": fname,
+                            "file_index": fi,
+                            "step_name": "parse",
+                            "error": str(e),
+                        }
+                    )
                     yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": False})
                     continue
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 1, "step_name": "parse", "status": "done"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 1,
+                        "step_name": "parse",
+                        "status": "done",
+                    }
+                )
 
                 # Step 2: Chunk
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 2, "step_name": "chunk", "status": "running"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 2,
+                        "step_name": "chunk",
+                        "status": "running",
+                    }
+                )
                 await _asyncio.sleep(0)
-                chunks = chunker.chunk_text(doc_text, metadata={
-                    "document_name": doc.file_name or fname,
-                    "file_type": doc.file_type,
-                    "language": language or coll.language,
-                })
+                chunks = chunker.chunk_text(
+                    doc_text,
+                    metadata={
+                        "document_name": doc.file_name or fname,
+                        "file_type": doc.file_type,
+                        "language": language or coll.language,
+                    },
+                )
                 if not chunks:
                     errors.append(f"{fname}: no chunks produced")
-                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": "chunk", "error": "no chunks"})
+                    yield sse(
+                        {
+                            "event": "file_error",
+                            "file": fname,
+                            "file_index": fi,
+                            "step_name": "chunk",
+                            "error": "no chunks",
+                        }
+                    )
                     yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": False})
                     continue
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 2, "step_name": "chunk", "status": "done"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 2,
+                        "step_name": "chunk",
+                        "status": "done",
+                    }
+                )
 
                 # Step 3: Embed
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 3, "step_name": "embed", "status": "running"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 3,
+                        "step_name": "embed",
+                        "status": "running",
+                    }
+                )
                 await _asyncio.sleep(0)
                 chunk_texts = [c.text for c in chunks]
                 embeddings = await svc._embedder.embed_texts(chunk_texts)
                 embed_total_tokens += sum(len(t) // 4 for t in chunk_texts)
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 3, "step_name": "embed", "status": "done"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 3,
+                        "step_name": "embed",
+                        "status": "done",
+                    }
+                )
 
                 # Step 4: Store
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 4, "step_name": "store", "status": "running"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 4,
+                        "step_name": "store",
+                        "status": "running",
+                    }
+                )
                 await _asyncio.sleep(0)
                 chunk_dicts = [
                     {
@@ -391,12 +520,22 @@ async def ingest_documents_stream(
                 )
                 total_chunks += stored
                 files_ok += 1
-                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 4, "step_name": "store", "status": "done"})
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": fi,
+                        "step_index": 4,
+                        "step_name": "store",
+                        "status": "done",
+                    }
+                )
 
                 yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": True})
 
             # Update collection stats
             from sqlalchemy import text as sa_text
+
             async with svc._session_factory() as session:
                 await session.execute(
                     sa_text("""UPDATE rag_collections
@@ -412,10 +551,12 @@ async def ingest_documents_stream(
             try:
                 from aiflow.api.cost_recorder import record_cost
                 from aiflow.models.cost import ModelCostCalculator
+
                 embed_model = "openai/text-embedding-3-small"
                 calc = ModelCostCalculator()
                 embed_cost = calc.calculate(embed_model, embed_total_tokens, 0)
                 import uuid as _cost_uuid
+
                 await record_cost(
                     workflow_run_id=_cost_uuid.uuid4(),
                     step_name="rag_ingest_embed",
@@ -428,7 +569,15 @@ async def ingest_documents_stream(
                 pass
 
             total_ms = int((_time.perf_counter() - run_start) * 1000)
-            yield sse({"event": "complete", "files_processed": files_ok, "chunks_created": total_chunks, "duration_ms": total_ms, "errors": errors})
+            yield sse(
+                {
+                    "event": "complete",
+                    "files_processed": files_ok,
+                    "chunks_created": total_chunks,
+                    "duration_ms": total_ms,
+                    "errors": errors,
+                }
+            )
 
         except Exception as e:
             yield sse({"event": "error", "error": str(e)})
@@ -459,6 +608,7 @@ async def ingest_status(collection_id: str):
 # Query
 # ---------------------------------------------------------------------------
 
+
 @router.post("/collections/{collection_id}/query", response_model=QueryResponse)
 async def query_collection(collection_id: str, request: QueryRequest):
     """Run a RAG query against a collection."""
@@ -477,6 +627,7 @@ async def query_collection(collection_id: str, request: QueryRequest):
         if resp.cost_usd > 0 or resp.tokens_used > 0:
             try:
                 from aiflow.api.cost_recorder import record_cost
+
                 await record_cost(
                     workflow_run_id=resp.query_id,
                     step_name="rag_query",
@@ -491,12 +642,13 @@ async def query_collection(collection_id: str, request: QueryRequest):
         return resp
     except Exception as e:
         logger.error("query_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ---------------------------------------------------------------------------
 # Feedback & Stats
 # ---------------------------------------------------------------------------
+
 
 @router.post("/collections/{collection_id}/feedback", response_model=FeedbackResponse)
 async def submit_feedback(collection_id: str, request: FeedbackRequest):
@@ -526,6 +678,7 @@ async def collection_stats(collection_id: str):
 # Chunks (admin)
 # ---------------------------------------------------------------------------
 
+
 @router.get("/collections/{collection_id}/chunks", response_model=ChunkListResponse)
 async def list_chunks(
     collection_id: str,
@@ -548,7 +701,9 @@ async def list_chunks(
             ORDER BY created_at DESC
             LIMIT $2 OFFSET $3
             """,
-            coll.name, limit, offset,
+            coll.name,
+            limit,
+            offset,
         )
         total_row = await conn.fetchval(
             "SELECT COUNT(*) FROM rag_chunks WHERE collection = $1",
@@ -586,6 +741,7 @@ async def delete_chunk(collection_id: str, chunk_id: str):
 # ---------------------------------------------------------------------------
 # Collection documents (aggregated from chunks)
 # ---------------------------------------------------------------------------
+
 
 class CollectionDocItem(BaseModel):
     document_name: str
@@ -645,12 +801,14 @@ async def delete_collection_document(collection_id: str, doc_name: str):
     async with pool.acquire() as conn:
         result = await conn.execute(
             "DELETE FROM rag_chunks WHERE collection = $1 AND document_name = $2",
-            coll.name, doc_name,
+            coll.name,
+            doc_name,
         )
         if "DELETE 0" in result:
             raise HTTPException(status_code=404, detail="Document not found in collection")
     logger.info("collection_document_deleted", collection_id=collection_id, document_name=doc_name)
     from aiflow.api.audit_helper import audit_log
+
     await audit_log("delete", "rag_document", doc_name, {"collection_id": collection_id})
 
 
@@ -664,7 +822,9 @@ class BulkDeleteDocsResponse(BaseModel):
     source: str = "backend"
 
 
-@router.post("/collections/{collection_id}/documents/delete-bulk", response_model=BulkDeleteDocsResponse)
+@router.post(
+    "/collections/{collection_id}/documents/delete-bulk", response_model=BulkDeleteDocsResponse
+)
 async def delete_collection_documents_bulk(collection_id: str, request: BulkDeleteDocsRequest):
     """Delete multiple documents (and their chunks) from a collection."""
     svc = await _get_service()
@@ -678,10 +838,16 @@ async def delete_collection_documents_bulk(collection_id: str, request: BulkDele
         for doc_name in request.document_names:
             result = await conn.execute(
                 "DELETE FROM rag_chunks WHERE collection = $1 AND document_name = $2",
-                coll.name, doc_name,
+                coll.name,
+                doc_name,
             )
             count = int(result.split()[-1]) if result else 0
             total_chunks += count
 
-    logger.info("collection_documents_bulk_deleted", collection_id=collection_id, count=len(request.document_names), chunks=total_chunks)
+    logger.info(
+        "collection_documents_bulk_deleted",
+        collection_id=collection_id,
+        count=len(request.document_names),
+        chunks=total_chunks,
+    )
     return BulkDeleteDocsResponse(deleted=len(request.document_names), chunks_removed=total_chunks)

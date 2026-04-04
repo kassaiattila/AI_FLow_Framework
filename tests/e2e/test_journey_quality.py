@@ -14,6 +14,7 @@ Tests the quality/observability browsing flow.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, journey, quality, observability, playwright]
 """
+
 from __future__ import annotations
 
 from playwright.sync_api import Page, expect
@@ -44,10 +45,15 @@ class TestQualityJourney:
         has_content = any(
             w in body
             for w in [
-                "Quality", "Minoseg",
-                "Promptfoo", "Langfuse",
-                "Evaluations", "ertekeles",
-                "retry", "Ujraprob", "Failed",
+                "Quality",
+                "Minoseg",
+                "Promptfoo",
+                "Langfuse",
+                "Evaluations",
+                "ertekeles",
+                "retry",
+                "Ujraprob",
+                "Failed",
             ]
         )
         assert has_content, f"Quality page has no meaningful content: {body[:200]}"
@@ -128,10 +134,17 @@ class TestQualityJourney:
         page.wait_for_timeout(1000)
 
         real_errors = [
-            e for e in errors
-            if not any(x in e for x in [
-                "favicon", "ResizeObserver", "Failed to fetch",
-                "Failed to load resource", "Maximum update depth",
-            ])
+            e
+            for e in errors
+            if not any(
+                x in e
+                for x in [
+                    "favicon",
+                    "ResizeObserver",
+                    "Failed to fetch",
+                    "Failed to load resource",
+                    "Maximum update depth",
+                ]
+            )
         ]
         assert not real_errors, f"Console errors during observability loop: {real_errors}"

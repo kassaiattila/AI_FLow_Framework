@@ -29,16 +29,12 @@ logger = structlog.get_logger(__name__)
 class RubricResult(BaseModel):
     """Result of a rubric-based quality evaluation."""
 
-    score: float = Field(
-        ..., ge=0.0, le=1.0, description="Quality score from 0.0 to 1.0"
-    )
+    score: float = Field(..., ge=0.0, le=1.0, description="Quality score from 0.0 to 1.0")
     pass_: bool = Field(..., description="Whether the evaluation passed")
     reasoning: str = Field("", description="Explanation of the score")
     rubric: str = Field("", description="Rubric that was evaluated")
     model: str = Field("", description="Model used for evaluation")
-    evaluated_at: str = Field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    evaluated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 class QualityOverview(BaseModel):
@@ -198,9 +194,7 @@ class QualityService(BaseService):
         score = self._heuristic_score(actual, expected, rubric_text)
         passed = score >= self._quality_config.pass_threshold
 
-        reasoning = self._build_reasoning(
-            actual, expected, rubric_text, score
-        )
+        reasoning = self._build_reasoning(actual, expected, rubric_text, score)
 
         result = RubricResult(
             score=round(score, 3),
@@ -325,15 +319,9 @@ class QualityService(BaseService):
         parts.append(f"Rubric: {rubric_text[:100]}")
 
         if expected:
-            parts.append(
-                f"Scored by token overlap with expected output. "
-                f"Score: {score:.3f}"
-            )
+            parts.append(f"Scored by token overlap with expected output. Score: {score:.3f}")
         else:
-            parts.append(
-                f"Scored by response quality heuristics. "
-                f"Score: {score:.3f}"
-            )
+            parts.append(f"Scored by response quality heuristics. Score: {score:.3f}")
 
         if score >= 0.8:
             parts.append("Assessment: Good quality.")

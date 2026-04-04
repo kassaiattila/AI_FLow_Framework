@@ -190,8 +190,7 @@ class RerankerService(BaseService):
 
             ranker = Ranker()
             passages = [
-                {"text": c.get("content", ""), "meta": c.get("metadata", {})}
-                for c in candidates
+                {"text": c.get("content", ""), "meta": c.get("metadata", {})} for c in candidates
             ]
             request = RerankRequest(query=query, passages=passages)
             results = ranker.rerank(request)

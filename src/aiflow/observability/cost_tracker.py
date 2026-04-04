@@ -41,13 +41,14 @@ logger = structlog.get_logger(__name__)
 # Models
 # ---------------------------------------------------------------------------
 
+
 class BudgetAlert(str, Enum):
     """Budget alert levels."""
 
     NONE = "none"
-    WARNING = "warning"      # >= 80 %
-    CRITICAL = "critical"    # >= 95 %
-    EXCEEDED = "exceeded"    # >= 100 %
+    WARNING = "warning"  # >= 80 %
+    CRITICAL = "critical"  # >= 95 %
+    EXCEEDED = "exceeded"  # >= 100 %
 
 
 class CostRecord(BaseModel):
@@ -78,6 +79,7 @@ class BudgetStatus(BaseModel):
 # ---------------------------------------------------------------------------
 # Tracker
 # ---------------------------------------------------------------------------
+
 
 class CostTracker:
     """In-memory cost tracker with budget enforcement.
