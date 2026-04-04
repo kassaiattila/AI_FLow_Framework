@@ -603,7 +603,7 @@ S13-S14: Veglegesites ────────────── 1-2 session
 | S4 | Service Catalog + Pipeline integracio | DONE | 2026-04-04 | 238ee7f |
 | S5 | Design system teljeskoruseg | DONE | 2026-04-04 | 47992bc |
 | S6 | Meglevo oldalak UI polish + MUI torles | DONE | 2026-04-04 | b38b156 |
-| S7 | Langfuse valos integracio | TODO | — | — |
+| S7 | Langfuse valos integracio | DONE | 2026-04-04 | 6e46fed |
 | S8 | Promptfoo 5 skill config + CI/CD | TODO | — | — |
 | S9 | E2E Playwright test suite | TODO | — | — |
 | S10 | CI/CD regresszios pipeline | TODO | — | — |
@@ -620,3 +620,4 @@ S13-S14: Veglegesites ────────────── 1-2 session
 |---|----------|-----------|------------|
 | P1 | **Pipelines oldal: templates szekció** — A `/pipelines` oldal csak a DB-ből tárolt 2 pipeline-t mutatja. A 6 beépített template (`/templates/list` endpoint) NEM jelenik meg. Fix: Templates szekció hozzáadása a Pipelines.tsx-hez, "Deploy" gombbal. | HIGH | `/api/v1/pipelines/templates/list` működik (6 template, source=backend), de a UI nem hívja. |
 | P2 | **Templates endpoint route conflict** — `GET /api/v1/pipelines/templates` 500-at ad ("badly formed UUID") mert a `/{pipeline_id}` route matchel rá. Fix: route sorrend vagy explicit path. | MEDIUM | Workaround: `/templates/list` endpoint működik. |
+| P3 | **Langfuse Prompt Management** — `PromptSyncer` és `_push_to_langfuse` stub (Phase 5 placeholder). Valós Langfuse v4 `create_prompt`/`get_prompt` bekötés kell. Cél: YAML promptok → Langfuse cloud SSOT, verzionálás, A/B tesztelés, prompt teljesítmény monitoring (latency, token usage, score per prompt version). A `PromptManager._fetch_from_langfuse()` is stub — runtime prompt fetch Langfuse-ból. | MEDIUM | `src/aiflow/prompts/sync.py` + `manager.py` megvan, csak a Langfuse API hívás hiányzik. Langfuse v4: `client.create_prompt()`, `client.get_prompt()`. |
