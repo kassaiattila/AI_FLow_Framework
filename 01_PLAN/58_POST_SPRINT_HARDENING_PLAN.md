@@ -506,9 +506,9 @@ Session 22: A7+A8 (Javitasok + tag) ───── Fix + v1.2.2
 > **Branch:** `feature/v1.3.0-service-excellence`
 > **Elofeltetel:** Sprint A COMPLETE (v1.2.2), guardrail keretrendszer KESZ
 
-## B0: Keretrendszer + Metodologia — fél session
+## B0: Keretrendszer, Metodologia & Integralt Toolchain — 1 session
 
-> **Gate:** 10-pontos checklist + prompt metodologia + guardrail sablon DEFINIALT es dokumentalt.
+> **Gate:** 10-pontos checklist + integralt toolchain + prompt metodologia + guardrail sablon + 2 uj slash command KESZ.
 
 ```
 B0.1 — 10 Pontos Production Checklist (minden szolgaltatasra):
@@ -523,22 +523,111 @@ B0.1 — 10 Pontos Production Checklist (minden szolgaltatasra):
   [ ]  9. INPUT GUARDRAIL  — injection vedelem, PII, length limit (A5 FW)
   [ ] 10. OUTPUT GUARDRAIL — hallucination, scope, PII leak check (A5 FW)
 
-B0.2 — Prompt Finomhangolas Metodologia:
+B0.2 — Integralt Toolchain (Langfuse + Promptfoo + Claude Code):
+
+  A 3 eszkoz NEM kulon-kulon, hanem KOORDINALTAN mukodik — minden
+  szolgaltatas finomhangolasa soran az alabbi ciklust kovetjuk:
+
+  LANGFUSE (megfigyeles) → PROMPTFOO (teszteles) → CLAUDE CODE (vegrehajtas)
+  ───────────────────────────────────────────────────────────────────────────
+  
+  1. LANGFUSE — Megfigyeles & Baseline:
+     - Production trace-ek elemzese: mely promptok lassuk/dragak/pontatlanok?
+     - Cost dashboard: per-service koltseg, token hasznalat
+     - Minosegi scoring: user feedback + automatikus faithfulness score
+     - OUTPUT: baseline riport (koltseg, latency, minoseg metrikai)
+  
+  2. PROMPTFOO — Szisztematikus Teszteles & A/B:
+     - Baseline eval: npx promptfoo eval → jelenlegi pass rate rogzites
+     - FAIL analiz: mely test case-ek buknak? root cause azonositas
+     - A/B kiserlet: promptfoo --providers gpt-4o,gpt-4o-mini → modell osszehasonlitas
+     - Guardrail teszt: golden dataset (safe/dangerous/injection) → 100% PASS?
+     - Regresszio: minden prompt modositas utan UJRA eval → nem romlott?
+     - OUTPUT: eval riport (pass rate, regresszio, A/B eredmenyek)
+  
+  3. CLAUDE CODE — Vegrehajtas & Orchestracio:
+     - /quality-check: Promptfoo eval + Langfuse koltseg elemzes egyutt
+     - /service-test: Backend + API + UI e2e (valos adat!)
+     - /prompt-tuning (UJ): prompt YAML modositas + eval + guardrail illesztes
+     - /service-hardening (UJ): teljes 10-pontos checklist vegrehajtasa
+     - /dev-step: fejlesztes + teszt + commit (a ciklus lezarasa)
+     - OUTPUT: commit, frissitett tesztek, dokumentacio
+  
+  4. UI INTEGRACIO — Vizualizacio & Visszajelzes:
+     - Quality dashboard: Langfuse trace-ek + Promptfoo eredmenyek megjelenitese
+     - Cost dashboard: per-service koltseg trendek (Langfuse adatbol)
+     - Service Catalog: szolgaltatas allapot (10-pontos checklist vizualis)
+     - Notification: minoseg romlasrol automatikus alert (Langfuse webhook)
+
+  KOORDINACIOS CIKLUS (minden szolgaltatasra):
+  ┌──────────────────────────────────────────────────────────┐
+  │ 1. Langfuse: baseline meres (trace, cost, quality)       │
+  │ 2. Promptfoo: eval → FAIL tetelek azonositasa            │
+  │ 3. Claude Code: /prompt-tuning → prompt YAML javitas     │
+  │ 4. Promptfoo: ujra eval → 95%+?                          │
+  │    ├── IGEN → 5. Guardrail config illesztes               │
+  │    └── NEM → vissza 3. (max 3 iteracio, utana modell csere)│
+  │ 5. Langfuse: uj trace-ek → javult a minoseg/koltseg?     │
+  │ 6. UI: dashboard frissites, quality metrikak              │
+  │ 7. Claude Code: /dev-step → commit + dokumentacio         │
+  └──────────────────────────────────────────────────────────┘
+
+B0.3 — Prompt Finomhangolas Metodologia:
+  A B0.2 toolchain-re epitett 6 lepesu ciklus:
   MERES → DIAGNOZIS → JAVITAS → VALIDALAS → GUARDRAIL → DOKUMENTALAS
-  1. MERES: npx promptfoo eval → baseline pass rate rogzites
-  2. DIAGNOZIS: FAIL test case elemzes → root cause azonositas
-  3. JAVITAS: prompt YAML modositas (verziokezelt!)
+  1. MERES: Langfuse baseline + npx promptfoo eval → pass rate rogzites
+  2. DIAGNOZIS: Langfuse trace-ekbol gyenge pontok + Promptfoo FAIL elemzes
+  3. JAVITAS: prompt YAML modositas (/prompt-tuning command)
   4. VALIDALAS: promptfoo eval → 95%+? (ha NEM → ujra 2-3, max 3 iteracio)
   5. GUARDRAIL: guardrails.yaml config illesztes (A5 sablon alapjan)
-  6. DOKUMENTALAS: CHANGELOG + guardrail config megjegyzes
+  6. DOKUMENTALAS: CHANGELOG + Langfuse annotacio + UI dashboard frissites
 
-B0.3 — Prompt Guardrail Implementacios Sablon (per skill):
+B0.4 — Prompt Guardrail Implementacios Sablon (per skill):
   skills/{skill_name}/
     guardrails.yaml              # UJ: skill-specifikus guardrail config
     tests/test_guardrails.py     # UJ: 5+ guardrail teszt per skill
     tests/golden_guardrails.yaml # UJ: known-safe + known-dangerous peldak
 
-GATE: Checklist + metodologia + sablon dokumentalva, csapat altal elfogadva
+B0.5 — Uj Slash Command-ok letrehozasa:
+  .claude/commands/service-hardening.md (UJ):
+    - Input: service nev
+    - Vegrehajtas: 10-pontos checklist egyenkenti ellenorzese
+    - Output: PASS/FAIL tabla, hianyzo pontok listaja
+    - Eszkozok: pytest, curl, promptfoo, /lint-check, Playwright
+
+  .claude/commands/prompt-tuning.md (UJ):
+    - Input: skill nev
+    - Vegrehajtas: B0.2 koordinacios ciklus (Langfuse → Promptfoo → fix → eval)
+    - Output: prompt YAML diff, eval riport, guardrail config
+    - Eszkozok: npx promptfoo eval, Langfuse API, ruff check
+
+B0.6 — Operacionalizacios Artefaktumok:
+  A metodologia ujrahasznalhato formaba hozasa:
+  
+  a) Reference Guide (01_PLAN/60_SERVICE_HARDENING_GUIDE.md):
+     - Lepes-lepesu guide uj szolgaltatas magas szintre hozasahoz
+     - Integralt toolchain hasznalati utmutato (Langfuse + Promptfoo + Claude)
+     - 10-pontos checklist reszletes magyarazattal
+     - Guardrail config sablon + peldak minden skill tipusra (ai, rpa, hybrid)
+     - Prompt tuning best practices (az aszf_rag_chat/reference/ anyagbol)
+     - Troubleshooting: gyakori hibak es megoldasok
+  
+  b) Claude Code Skill-ek:
+     - /service-hardening command (B0.5)
+     - /prompt-tuning command (B0.5)
+     - Meglevo command-ok frissitese: /quality-check bovites Langfuse linkkel
+  
+  c) Template fajlok:
+     - skills/TEMPLATE/ mappa: ures skill scaffold guardrail-lal
+     - prompts/TEMPLATE/: prompt YAML sablon + promptfoo config sablon
+     - tests/TEMPLATE/: test file sablon @test_registry header-rel
+  
+  d) Quality Dashboard bovites (B6-ban):
+     - Service Catalog: 10-pontos checklist vizualis (per service zold/piros)
+     - Prompt Eval: Promptfoo eredmenyek inline (utolso eval pass rate)
+     - Cost Trend: Langfuse koltseg trend chart (utolso 30 nap)
+
+GATE: Checklist + toolchain dok + 2 uj command + reference guide vaz + sablon
 ```
 
 ---
@@ -546,8 +635,16 @@ GATE: Checklist + metodologia + sablon dokumentalva, csapat altal elfogadva
 ## B1: P0 Core AI Skill-ek + Guardrail — 2-3 session
 
 > **Gate:** aszf_rag 95%+ promptfoo, email_intent 95%+ promptfoo, mindketto guardrails.yaml KESZ.
+> **Eszkozok:** B0.2 integralt toolchain — Langfuse baseline → Promptfoo eval → /prompt-tuning → /service-hardening
 
 ```
+B1.0 — Elokeszites (mindket skill-re):
+  - Langfuse: baseline trace export (jelenlegi cost, latency, quality)
+  - Promptfoo: npx promptfoo eval → jelenlegi pass rate rogzites
+  - /service-hardening aszf_rag_chat → 10-pontos checklist audit
+  - /service-hardening email_intent_processor → 10-pontos checklist audit
+  - OUTPUT: ket baseline riport, hianyzo pontok listaja
+
 B1.1 — aszf_rag_chat (RAG Chat — legkritikusabb):
 
   KOD:
@@ -608,6 +705,7 @@ GATE: aszf_rag 95%+, email_intent 95%+, 2 guardrails.yaml KESZ, 25 unit test PAS
 ## B2: P1 Document & Diagram Skill-ek — 1-2 session
 
 > **Gate:** process_docs 95%+, invoice 95%+, doc_extractor 5 unit test PASS.
+> **Eszkozok:** B0.2 integralt toolchain — /prompt-tuning + /service-hardening
 
 ```
 B2.1 — process_documentation:
@@ -890,15 +988,16 @@ GATE: v1.3.0 tag pushed, main-en CI ZOLD
 ## Sprint B Utemterv
 
 ```
-Session 23: B0 (Keretrendszer) + B1 start (aszf_rag prompt+guardrail)
-Session 24: B1 (aszf_rag kod+teszt) + B1.2 (email_intent prompt)
-Session 25: B1.2 (email kod+teszt+guardrail) + B2.1 (process_docs)
-Session 26: B2.2 (invoice) + B2.3 (doc_extractor)
-Session 27: B3.1 (Core infra tesztek — 65 test)
-Session 28: B3.2 (v1.2.0 tesztek — 65 test)
-Session 29: B4 (cubix+qbpp) + B5 (model opt)
-Session 30: B6 (UI integracio)
-Session 31: B7 (POST-AUDIT)
+Session 23: B0 (Toolchain + metodologia + 2 uj command + reference guide)
+Session 24: B1 start (aszf_rag baseline + prompt tuning + guardrail)
+Session 25: B1 (aszf_rag kod+teszt) + B1.2 (email_intent prompt+guardrail)
+Session 26: B1.2 (email kod+teszt) + B2.1 (process_docs)
+Session 27: B2.2 (invoice) + B2.3 (doc_extractor)
+Session 28: B3.1 (Core infra tesztek — 65 test)
+Session 29: B3.2 (v1.2.0 tesztek — 65 test)
+Session 30: B4 (cubix+qbpp) + B5 (model opt)
+Session 31: B6 (UI integracio + quality dashboard)
+Session 32: B7 (POST-AUDIT)
 Session 32: B8+B9 (Javitasok + v1.3.0)
 ```
 
@@ -922,19 +1021,20 @@ S21: A6 — POST-AUDIT ──────────────── Teljes e
 S22: A7+A8 — Javitasok + v1.2.2 ──── Fix + tag
 
 === SPRINT B: Szolgaltatas Excellence (v1.3.0) ===
-S23: B0+B1 — Keretrendszer + aszf_rag prompt+guardrail
-S24: B1 — aszf_rag kod + email_intent prompt
-S25: B1+B2 — email guardrail + process_docs
-S26: B2 — invoice + doc_extractor
-S27: B3.1 — Core infra tesztek (65)
-S28: B3.2 — v1.2.0 tesztek (65)
-S29: B4+B5 — cubix + model optimization
-S30: B6 — UI integracio
-S31: B7 — POST-AUDIT
-S32: B8+B9 — Javitasok + v1.3.0
+S23: B0 — Toolchain + metodologia + reference guide + 2 command
+S24: B1 — aszf_rag baseline + prompt tuning + guardrail
+S25: B1 — aszf_rag kod + email_intent prompt+guardrail
+S26: B1+B2 — email kod + process_docs
+S27: B2 — invoice + doc_extractor
+S28: B3.1 — Core infra tesztek (65)
+S29: B3.2 — v1.2.0 tesztek (65)
+S30: B4+B5 — cubix + model optimization
+S31: B6 — UI integracio + quality dashboard
+S32: B7 — POST-AUDIT
+S33: B8+B9 — Javitasok + v1.3.0
 ```
 
-**Osszes:** ~18 session, ~5,000 LOC, ~280 uj teszt, 2 version tag, guardrail framework
+**Osszes:** ~19 session, ~5,500 LOC, ~280 uj teszt, 2 version tag, guardrail + toolchain
 
 ---
 
@@ -957,14 +1057,16 @@ S32: B8+B9 — Javitasok + v1.3.0
 
 | # | Kriterium | Mertek |
 |---|-----------|--------|
-| 1 | Service unit test | 130+ PASS |
-| 2 | Prompt minoseg | 6/6 skill 95%+ promptfoo |
-| 3 | Guardrail config | 6/6 skill guardrails.yaml + golden dataset |
-| 4 | Guardrail safety | 100% dangerous query blokkolt |
-| 5 | Koltseg csokkentes | >= 20% Langfuse riportbol |
-| 6 | Production checklist | 10/10 PASS per skill |
-| 7 | Post-audit riport | MINDEN sor PASS |
-| 8 | Version tag | v1.3.0 tag, main ZOLD |
+| 1 | Integralt toolchain | Langfuse+Promptfoo+Claude Code koordinalt |
+| 2 | Service unit test | 130+ PASS |
+| 3 | Prompt minoseg | 6/6 skill 95%+ promptfoo |
+| 4 | Guardrail config | 6/6 skill guardrails.yaml + golden dataset |
+| 5 | Guardrail safety | 100% dangerous query blokkolt |
+| 6 | Koltseg csokkentes | >= 20% Langfuse riportbol |
+| 7 | Production checklist | 10/10 PASS per skill |
+| 8 | Operacionalizacio | Reference guide + 2 command + template-ek |
+| 9 | Post-audit riport | MINDEN sor PASS |
+| 10 | Version tag | v1.3.0 tag, main ZOLD |
 
 ---
 
@@ -975,8 +1077,10 @@ S32: B8+B9 — Javitasok + v1.3.0
 | `/lint-check` | Ruff + tsc + format osszesito | A1, minden fazis vegen |
 | `/lint-check --fix` | Auto-fix safe issues | A1.1 |
 | `/regression` | Unit + E2E regresszio | A6, B7, commit elott |
-| `/quality-check` | Promptfoo + koltseg elemzes | B1-B5 |
+| `/quality-check` | Promptfoo + Langfuse koltseg elemzes | B1-B5 |
 | `/service-test` | Backend + API + UI e2e | B1-B4 |
+| `/service-hardening` | 10-pontos checklist audit (UJ, B0) | B1-B4 |
+| `/prompt-tuning` | Langfuse→Promptfoo→fix ciklus (UJ, B0) | B1-B4 |
 | `/dev-step` | Fejlesztes + teszt + commit | Minden fazis |
 
 ---
