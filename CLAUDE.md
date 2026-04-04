@@ -125,6 +125,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 
 ### Key plan documents:
 - **`01_PLAN/57_PRODUCTION_READY_SPRINT.md`** - **COMPLETE**: v1.2.1 Production Ready (S1-S14 DONE), UI+observability+quality+102 E2E+accessibility
+- **`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`** - **AKTUALIS**: v1.2.2 Hardening (H0-H7), CI/CD+ruff+security+tests+prompt tuning+model optimization
 - **`01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md`** - KESZ: v1.2.0 Pipeline as Code fo terv (C0-C20 DONE)
 - **`01_PLAN/56_EXECUTION_PLAN.md`** - KESZ: 21 ciklus (C0-C20 MIND DONE), v1.2.0 tagged
 - `01_PLAN/49-54` - Reszletes tervek (stability, RAG, doc extract, HITL, frontend, LLM quality)
