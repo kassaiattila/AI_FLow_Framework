@@ -42,6 +42,7 @@ export function Quality() {
   const [expectedOutput, setExpectedOutput] = useState("");
   const [evalLoading, setEvalLoading] = useState(false);
   const [evalResult, setEvalResult] = useState<EvalResult | null>(null);
+  const [langfuseUrl, setLangfuseUrl] = useState("https://cloud.langfuse.com");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -53,6 +54,11 @@ export function Quality() {
       ]);
       setOverview(ov);
       setRubrics(rb.rubrics);
+      // Fetch Langfuse URL from health endpoint
+      try {
+        const health = await fetchApi<{ services?: { langfuse?: { host?: string } } }>("GET", "/api/v1/health");
+        if (health.services?.langfuse?.host) setLangfuseUrl(health.services.langfuse.host);
+      } catch { /* keep default */ }
       if (!selectedRubric && Object.keys(rb.rubrics).length > 0) {
         setSelectedRubric(Object.keys(rb.rubrics)[0]);
       }
@@ -248,6 +254,65 @@ export function Quality() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* External Quality Tools */}
+      <div className="mt-6">
+        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
+          {translate("aiflow.quality.externalTools")}
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <a
+            href="http://localhost:15500"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-start gap-4 rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-brand-300 hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-brand-600 dark:hover:bg-gray-750"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium text-gray-900 group-hover:text-brand-600 dark:text-gray-100 dark:group-hover:text-brand-400">
+                Promptfoo
+              </p>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                {translate("aiflow.quality.promptfooDesc")}
+              </p>
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">localhost:15500</p>
+            </div>
+            <svg className="ml-auto h-5 w-5 shrink-0 text-gray-400 group-hover:text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+
+          <a
+            href={langfuseUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-start gap-4 rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-brand-300 hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-brand-600 dark:hover:bg-gray-750"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium text-gray-900 group-hover:text-brand-600 dark:text-gray-100 dark:group-hover:text-brand-400">
+                Langfuse
+              </p>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                {translate("aiflow.quality.langfuseDesc")}
+              </p>
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{langfuseUrl}</p>
+            </div>
+            <svg className="ml-auto h-5 w-5 shrink-0 text-gray-400 group-hover:text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
         </div>
       </div>
     </PageLayout>

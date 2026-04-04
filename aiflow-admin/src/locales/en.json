@@ -298,7 +298,10 @@
       "score": "Score",
       "pass": "Pass",
       "fail": "Fail",
-      "reasoning": "Reasoning"
+      "reasoning": "Reasoning",
+      "externalTools": "External Quality Tools",
+      "promptfooDesc": "Prompt testing & evaluation — 51 test cases, 6 skills, nightly CI/CD",
+      "langfuseDesc": "LLM observability — traces, cost monitoring, prompt versioning"
     },
     "notifications": {
       "title": "Notifications",

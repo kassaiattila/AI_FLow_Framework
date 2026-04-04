@@ -298,7 +298,10 @@
       "score": "Pontszam",
       "pass": "Sikeres",
       "fail": "Sikertelen",
-      "reasoning": "Indoklas"
+      "reasoning": "Indoklas",
+      "externalTools": "Kulso minosegi eszkozok",
+      "promptfooDesc": "Prompt teszteles es ertekeles — 51 teszt eset, 6 skill, nightly CI/CD",
+      "langfuseDesc": "LLM observability — trace-ek, koltseg monitoring, prompt verziokezeles"
     },
     "notifications": {
       "title": "Ertesitesek",
