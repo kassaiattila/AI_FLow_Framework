@@ -1,0 +1,11 @@
+name: pipeline_completed
+channel: slack
+subject: "Pipeline {{ pipeline_name }} completed"
+body: |
+  :white_check_mark: Pipeline *{{ pipeline_name }}* completed successfully.
+  - Steps: {{ step_count | default('?') }}
+  - Duration: {{ duration | default('N/A') }}
+  - Status: {{ status | default('completed') }}
+  {% if output_summary is defined %}
+  Summary: {{ output_summary }}
+  {% endif %}

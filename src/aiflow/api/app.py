@@ -99,6 +99,8 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.human_review import router as review_router
     from aiflow.api.v1.admin import router as admin_router
     from aiflow.api.v1.pipelines import router as pipelines_router
+    from aiflow.api.v1.notifications import router as notifications_router
+    from aiflow.api.v1.data_router import router as data_router_router
     app.include_router(health_router)
     app.include_router(workflows_router)
     app.include_router(chat_router)
@@ -119,6 +121,8 @@ def create_app() -> FastAPI:
     app.include_router(review_router)
     app.include_router(admin_router)
     app.include_router(pipelines_router)
+    app.include_router(notifications_router)
+    app.include_router(data_router_router)
     # Global exception handler — hides internals in production
     env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
     is_production = env in ("production", "prod")

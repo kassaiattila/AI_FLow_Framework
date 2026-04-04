@@ -52,6 +52,9 @@ dependencies = [
 
     # Scheduling
     "apscheduler>=4.0.0a5",
+
+    # Notifications
+    "aiosmtplib>=5.0",
 ]
 
 [project.optional-dependencies]

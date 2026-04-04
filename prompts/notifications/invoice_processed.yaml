@@ -1,0 +1,20 @@
+name: invoice_processed
+channel: email
+subject: "AIFlow: {{ count }} szamla feldolgozva"
+body: |
+  Tisztelt {{ recipient_name | default('Felhasznalo') }}!
+
+  Az alabbi szamlak automatikusan feldolgozasra kerultek:
+
+  {% for inv in invoices %}
+  - {{ inv.vendor_name }}: {{ inv.total_amount }} {{ inv.currency }}
+    Allapot: {{ inv.status }}
+    Konfidencia: {{ "%.0f"|format(inv.confidence * 100) }}%
+  {% endfor %}
+
+  {% if review_needed is defined and review_needed > 0 %}
+  {{ review_needed }} szamla emberi review-ra var: {{ review_url | default('#') }}
+  {% endif %}
+
+  Udvozlettel,
+  AIFlow Automatizacio
