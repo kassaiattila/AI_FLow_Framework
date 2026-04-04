@@ -244,15 +244,45 @@ docker compose up -d db redis   # Ha nem futnak
 .venv\Scripts\python.exe -B -m uvicorn aiflow.api.app:create_app --factory --port 8102
 cd aiflow-admin && npm run dev   # → localhost:5174
 
-# 6. Smoke test (szerver indulas utan)
+# 6. MCP szerverek ellenorzes
+# A kovetkezo MCP-k KELL hogy elerhetek legyenek Claude Code-ban:
+#   - playwright    → browser_navigate, browser_snapshot, browser_click, stb.
+#   - figma         → get_design_context, get_screenshot, generate_diagram
+#   - miro          → board muveletek (opcionalis)
+# Ellenorzes: probald meg hasznalni az MCP tool-t, pl.:
+#   mcp__playwright__browser_navigate → ha hiba, MCP szerver nem fut
+#   mcp__figma__whoami → ha hiba, Figma MCP nincs csatlakozva
+
+# 7. Figma kapcsolat ellenorzes (UI munkakhoz KOTELEZO!)
+# Figma MCP: official HTTP MCP (mcp.figma.com)
+# Figma design channel: hq5dlkhu
+# Ellenorzes:
+#   mcp__figma__whoami → Figma user info (ha valid, connected)
+#   mcp__ClaudeTalkToFigma__join_channel → channel: hq5dlkhu
+# Ha Figma timeout/hiba:
+#   - Ellenorizd a Figma Desktop app fut-e
+#   - Ellenorizd a Figma MCP plugin aktiv-e a Figma-ban
+#   - Restart: Figma Desktop app ujrainditasa + plugin ujraaktivalas
+
+# 8. Smoke test (szerver indulas utan)
 ./scripts/smoke_test.sh   # → ALL PASS
 ```
+
+### MCP szerver referencia:
+| MCP | Mire kell | Ellenorzes |
+|-----|-----------|------------|
+| **Playwright** | E2E tesztek, UI screenshot, browser automatizacio | `mcp__playwright__browser_navigate` |
+| **Figma (official)** | Design context, screenshot, UI tervezes | `mcp__figma__whoami` |
+| **ClaudeTalkToFigma** | Figma plugin direkt kommunikacio, real-time design | `mcp__ClaudeTalkToFigma__join_channel` (ch: `hq5dlkhu`) |
+| **Miro** | Board muveletek (opcionalis, nem kritikus) | `mcp__miro__list-boards` |
 
 ### Gyakori hibak uj session-ben:
 - **`ModuleNotFoundError: pypdfium2`** → `.venv` ujraepitesnel elveszett, ld. CLAUDE.md `.venv Dependency Safety`
 - **Port 8102 foglalt** → `PID=$(netstat -aon | grep ':8102' | grep LISTEN | awk '{print $NF}') && taskkill //PID $PID //F`
 - **Stale __pycache__** → `rm -f src/aiflow/**/__pycache__/*.pyc`
 - **aiflow-admin npm hiba** → `cd aiflow-admin && rm -rf node_modules && npm ci`
+- **Figma MCP timeout** → Figma Desktop app ujrainditasa + plugin aktivalas
+- **Playwright MCP nem valaszol** → `npx playwright install chromium` (browser binary hianyozhat)
 
 ---
 
