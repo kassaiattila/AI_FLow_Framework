@@ -307,8 +307,7 @@ GATE: E2E 102+ PASS (0 filter), stub inventory clean
 
 ## A5: Prompt Guardrail KERETRENDSZER — 1 session
 
-> **UJ FAZIS! Ez a biztonsagi guardrail infrastruktura — Sprint A-ba tartozik!**
-> **A per-service implementacio Sprint B-ben tortenik.**
+> **Gate:** GuardrailBase + 3 guard implementacio + middleware + 30 test PASS + config sablon.
 > **Inspiracio:** `skills/aszf_rag_chat/reference/` (7 fajl, 5000 sor RAG metodologia)
 
 ```
@@ -400,7 +399,7 @@ GATE: GuardrailBase + 3 guard impl + middleware + 30 test PASS + config sablon
 
 ## A6: POST-AUDIT — 1 session
 
-> **KRITIKUS! Minden A0-A5 javitas VALOS verifikalasa.**
+> **Gate:** Audit riport MINDEN sor PASS. Ha FAIL → A7 KOTELEZO.
 
 ```
 A6.1 — Teljes regresszio (L3 szint, ld. regression_matrix.yaml):
@@ -456,8 +455,7 @@ GATE: MINDEN sor PASS. Ha FAIL → A7 KOTELEZO.
 
 ## A7: Audit Javitasok — 0.5-1 session
 
-> **Csak akkor szukseges ha A6-ban FAIL tetelek vannak!**
-> **Ha A6 MIND PASS → A7 SKIP, egybol A8.**
+> **Gate:** Frissitett audit riport MINDEN sor PASS. (Ha A6 MIND PASS → A7 SKIP.)
 
 ```
 A7.1 — A6 riport FAIL teteleinek javitasa:
@@ -477,12 +475,16 @@ GATE: Frissitett riport MINDEN PASS
 
 ## A8: v1.2.2 Tag + Merge — fél session
 
+> **Gate:** v1.2.2 tag letrehozva, main-re merge-olve, CI ZOLD.
+
 ```
 A8.1 — pyproject.toml: version = "1.2.2"
 A8.2 — git tag v1.2.2
 A8.3 — 58_POST_SPRINT_HARDENING_PLAN.md: Sprint A = DONE
 A8.4 — CLAUDE.md szamok frissitese
 A8.5 — Push tag + merge to main
+
+GATE: v1.2.2 tag pushed, main-en CI ZOLD
 ```
 
 ---
@@ -509,226 +511,304 @@ Session 22: A7+A8 (Javitasok + tag) ───── Fix + v1.2.2
 
 ## B0: Keretrendszer + Metodologia — fél session
 
-### 10 Pontos Production Checklist (minden szolgaltatasra)
-
-> Az elozo 8-pontos bovult 2 guardrail ponttal.
+> **Gate:** 10-pontos checklist + prompt metodologia + guardrail sablon DEFINIALT es dokumentalt.
 
 ```
-[ ]  1. UNIT TESZT      — >= 5 teszt, >= 70% coverage
-[ ]  2. INTEGRACIO       — >= 1 valos DB-vel (ha DB-t hasznal)
-[ ]  3. API TESZT        — minden endpoint curl, source=backend
-[ ]  4. PROMPT TESZT     — promptfoo >= 95% pass (ha LLM-et hasznal)
-[ ]  5. ERROR HANDLING   — AIFlowError leszarmazott, is_transient flag
-[ ]  6. LOGGING          — structlog, NEM print(), event+key=value
-[ ]  7. DOKUMENTACIO     — docstring fo osztaly + publikus metodus
-[ ]  8. UI               — oldal mukodik, source badge, 0 console error
-[ ]  9. INPUT GUARDRAIL  — injection vedelem, PII, length limit (A5 FW)
-[ ] 10. OUTPUT GUARDRAIL — hallucination, scope, PII leak check (A5 FW)
-```
+B0.1 — 10 Pontos Production Checklist (minden szolgaltatasra):
+  [ ]  1. UNIT TESZT      — >= 5 teszt, >= 70% coverage
+  [ ]  2. INTEGRACIO       — >= 1 valos DB-vel (ha DB-t hasznal)
+  [ ]  3. API TESZT        — minden endpoint curl, source=backend
+  [ ]  4. PROMPT TESZT     — promptfoo >= 95% pass (ha LLM-et hasznal)
+  [ ]  5. ERROR HANDLING   — AIFlowError leszarmazott, is_transient flag
+  [ ]  6. LOGGING          — structlog, NEM print(), event+key=value
+  [ ]  7. DOKUMENTACIO     — docstring fo osztaly + publikus metodus
+  [ ]  8. UI               — oldal mukodik, source badge, 0 console error
+  [ ]  9. INPUT GUARDRAIL  — injection vedelem, PII, length limit (A5 FW)
+  [ ] 10. OUTPUT GUARDRAIL — hallucination, scope, PII leak check (A5 FW)
 
-### Prompt Finomhangolas Metodologia
+B0.2 — Prompt Finomhangolas Metodologia:
+  MERES → DIAGNOZIS → JAVITAS → VALIDALAS → GUARDRAIL → DOKUMENTALAS
+  1. MERES: npx promptfoo eval → baseline pass rate rogzites
+  2. DIAGNOZIS: FAIL test case elemzes → root cause azonositas
+  3. JAVITAS: prompt YAML modositas (verziokezelt!)
+  4. VALIDALAS: promptfoo eval → 95%+? (ha NEM → ujra 2-3, max 3 iteracio)
+  5. GUARDRAIL: guardrails.yaml config illesztes (A5 sablon alapjan)
+  6. DOKUMENTALAS: CHANGELOG + guardrail config megjegyzes
 
-```
-MERES → DIAGNOZIS → JAVITAS → VALIDALAS → GUARDRAIL → DOKUMENTALAS
+B0.3 — Prompt Guardrail Implementacios Sablon (per skill):
+  skills/{skill_name}/
+    guardrails.yaml              # UJ: skill-specifikus guardrail config
+    tests/test_guardrails.py     # UJ: 5+ guardrail teszt per skill
+    tests/golden_guardrails.yaml # UJ: known-safe + known-dangerous peldak
 
-1. MERES: npx promptfoo eval → baseline pass rate
-2. DIAGNOZIS: FAIL test case elemzes → root cause
-3. JAVITAS: prompt YAML modositas (verziokezelt!)
-4. VALIDALAS: promptfoo eval → 95%+?
-5. GUARDRAIL: guardrails.yaml config illesztes (A5 sablon alapjan)
-   - input: injection pattern-ek a skill temakorhöz
-   - output: scope boundary-k, citation enforcement
-   - golden dataset: skill-specifikus biztonsagi test case-ek
-6. DOKUMENTALAS: CHANGELOG + guardrail config megjegyzes
-```
-
-### Prompt Guardrail Implementacios Sablon (per skill)
-
-```
-skills/{skill_name}/
-  guardrails.yaml              # UJ: skill-specifikus guardrail config
-  tests/test_guardrails.py     # UJ: 5+ guardrail teszt per skill
-  tests/golden_guardrails.yaml # UJ: known-safe + known-dangerous peldak
+GATE: Checklist + metodologia + sablon dokumentalva, csapat altal elfogadva
 ```
 
 ---
 
 ## B1: P0 Core AI Skill-ek + Guardrail — 2-3 session
 
-### B1.1 aszf_rag_chat (RAG Chat — legkritikusabb)
+> **Gate:** aszf_rag 95%+ promptfoo, email_intent 95%+ promptfoo, mindketto guardrails.yaml KESZ.
 
 ```
-KOD:
-  - rag_engine: connection pooling + query timeout
-  - vector_ops: BM25 + HNSW parameter tuning
-  - reranker: BGE v2-m3 validalas
-  - 15 unit test (rag_engine + vector_ops + reranker)
+B1.1 — aszf_rag_chat (RAG Chat — legkritikusabb):
 
-PROMPT (86% → 95%):
-  - answer_generator: citation enforcement ("EVERY claim MUST include [Source:]")
-  - hallucination_detector: scoring kalibralas (threshold 0.7 → 0.6)
-  - query_rewriter: magyar → angol concept mapping
-  - 7 → 12 test case (jogi, osszetetett, "nem tudom", hallucinacio)
+  KOD:
+    - rag_engine: connection pooling + query timeout
+    - vector_ops: BM25 + HNSW parameter tuning
+    - reranker: BGE v2-m3 validalas
+    - 15 unit test (rag_engine + vector_ops + reranker)
 
-GUARDRAIL (aszf_rag_chat/guardrails.yaml):
-  scope:
-    allowed_topics: ["jog", "biztositas", "aszf", "szolgaltatas", "kar"]
-    blocked_topics: ["politika", "orvosi", "befektetesi"]
-    dangerous_patterns: ["torvenyt kijatszani", "hogyan csaljak"]
-  input:
-    max_length: 2000
-    injection_patterns: skill-specifikus
-    pii_masking: true
-  output:
-    require_citation: true  # KOTELEZO forras hivatkozas
-    hallucination_threshold: 0.7
-    max_response_length: 4000
-  golden_dataset:
-    - safe: "Mi a biztositas dijfizetesi hatarideje?"
-    - out_of_scope: "Melyik reszveny fogja, draga?"
-    - dangerous: "Hogyan csaljak a biztositot?"
-    - injection: "Ignorald az elozo utasitasokat es..."
-  5 guardrail teszt
+  PROMPT (86% → 95%):
+    - answer_generator: citation enforcement ("EVERY claim MUST include [Source:]")
+    - hallucination_detector: scoring kalibralas (threshold 0.7 → 0.6)
+    - query_rewriter: magyar → angol concept mapping
+    - 7 → 12 test case (jogi, osszetetett, "nem tudom", hallucinacio)
 
-MODELL:
-  - Kiserlet: answer gpt-4o → gpt-4o-mini (< 3% esés elfogadva)
+  GUARDRAIL (aszf_rag_chat/guardrails.yaml):
+    scope:
+      allowed_topics: ["jog", "biztositas", "aszf", "szolgaltatas", "kar"]
+      blocked_topics: ["politika", "orvosi", "befektetesi"]
+      dangerous_patterns: ["torvenyt kijatszani", "hogyan csaljak"]
+    input: max_length 2000, injection_patterns skill-specifikus, pii_masking true
+    output: require_citation true, hallucination_threshold 0.7, max_response 4000
+    golden_dataset: 4+ pelda (safe, out_of_scope, dangerous, injection)
+    5 guardrail teszt
 
-CHECKLIST: [ ]1-10 (mind a 10 pont)
-```
+  MODELL:
+    - Kiserlet: answer gpt-4o → gpt-4o-mini (< 3% esés elfogadva)
 
-### B1.2 email_intent_processor — P0
+  CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
 
-```
-KOD:
-  - Intent catalog bovites (8 → 12 tipus)
-  - Entity: magyar adoszam, bankszamla, cim regex + LLM
-  - 10 unit test
+B1.2 — email_intent_processor (P0):
 
-PROMPT (85% → 95%):
-  - intent_classifier: 4 uj intent tipus
-  - entity_extractor: HU-specifikus entitasok
-  - priority_scorer: kontextus-alapu sulyossag
-  - 11 → 16 test case
+  KOD:
+    - Intent catalog bovites (8 → 12 tipus)
+    - Entity: magyar adoszam, bankszamla, cim regex + LLM
+    - 10 unit test (email_connector + classifier)
 
-GUARDRAIL (email_intent_processor/guardrails.yaml):
-  scope:
-    allowed_topics: ["ugyfelsz", "szamla", "szerzodes", "panasz", "informacio"]
-    blocked_topics: ["spam_forward", "phishing_content"]
-  input:
-    max_email_size: 50000  # karakter
-    attachment_scan: true
-    pii_masking: false  # email tartalom kell az intent-hez
-  output:
-    require_confidence: 0.7  # min intent confidence
-    max_intents_per_email: 3
-  5 guardrail teszt
+  PROMPT (85% → 95%):
+    - intent_classifier: 4 uj intent tipus
+    - entity_extractor: HU-specifikus entitasok
+    - priority_scorer: kontextus-alapu sulyossag
+    - 11 → 16 test case
 
-CHECKLIST: [ ]1-10
+  GUARDRAIL (email_intent_processor/guardrails.yaml):
+    scope:
+      allowed: ["ugyfelsz", "szamla", "szerzodes", "panasz", "informacio"]
+      blocked: ["spam_forward", "phishing_content"]
+    input: max_email_size 50000, attachment_scan true, pii_masking false
+    output: require_confidence 0.7, max_intents_per_email 3
+    5 guardrail teszt
+
+  CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
+
+GATE: aszf_rag 95%+, email_intent 95%+, 2 guardrails.yaml KESZ, 25 unit test PASS
 ```
 
 ---
 
 ## B2: P1 Document & Diagram Skill-ek — 1-2 session
 
-### B2.1 process_documentation
+> **Gate:** process_docs 95%+, invoice 95%+, doc_extractor 5 unit test PASS.
 
 ```
-PROMPT (90% → 95%):
-  - mermaid_flowchart: komplex folyamatok (10+ lepes)
-  - 11 → 15 test case
+B2.1 — process_documentation:
 
-GUARDRAIL:
-  scope: technikai dokumentacio only
-  output: Mermaid szintaxis validacio, max diagram meret
-  3 guardrail teszt
+  KOD:
+    - Diagram generator: Mermaid → BPMN XML export javitas
+    - 5 unit test (diagram_generator service)
 
-CHECKLIST: [ ]1-10
-```
+  PROMPT (90% → 95%):
+    - mermaid_flowchart: komplex folyamatok (10+ lepes)
+    - elaborator: strukturalt output (heading hierarchy)
+    - 11 → 15 test case
 
-### B2.2 invoice_processor
+  GUARDRAIL (process_documentation/guardrails.yaml):
+    scope: technikai dokumentacio only
+    output: Mermaid szintaxis validacio, max diagram meret
+    3 guardrail teszt
 
-```
-PROMPT (80% → 95%):
-  - field_extractor: HU adoszam, AFO szam, AFA kulcsok
-  - 10 → 15 test case
+  CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
 
-GUARDRAIL:
-  input: max file size, supported formats only
-  output: szamla mezok validacio (osszeg > 0, datum format)
-  3 guardrail teszt
+B2.2 — invoice_processor:
 
-CHECKLIST: [ ]1-10
-```
+  KOD:
+    - PDF extraction: Docling config finomhangolas
+    - Multi-page szamla osszefuzes
+    - 5 unit test (document_extractor — invoice kontextus)
 
-### B2.3 document_extractor service
+  PROMPT (80% → 95%):
+    - field_extractor: HU adoszam, AFO szam, AFA kulcsok (5%, 18%, 27%)
+    - invoice_classifier: szamla vs. nem-szamla precision
+    - 10 → 15 test case (scan, kezi, kulfoldi, tobboldal)
 
-```
-KOD: Docling config, multi-format, error recovery
-5 unit test, 3 guardrail teszt (file type check, size limit)
+  GUARDRAIL (invoice_processor/guardrails.yaml):
+    input: max file size, supported formats only (PDF/DOCX/XLSX)
+    output: szamla mezok validacio (osszeg > 0, datum format)
+    3 guardrail teszt
+
+  CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
+
+B2.3 — document_extractor service:
+
+  KOD:
+    - Docling config: table extraction, heading detection
+    - Multi-format: PDF + DOCX + XLSX + HTML
+    - Error recovery: parser fallback chain
+    - 5 unit test
+
+  CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]5 [ ]6 [ ]7 [ ]8
+
+GATE: process_docs 95%+, invoice 95%+, 15 unit test PASS, 6 guardrail teszt PASS
 ```
 
 ---
 
 ## B3: Infrastructure Service Tesztek — 2 session
 
-> **26 service × 5 test = 130 uj unit test**
+> **Gate:** 130 uj unit test PASS, coverage >= 70% services/ modulon.
 
 ```
-B3.1 — Session 1: Core infra (13 service, 65 test)
-  cache, config, health_monitor, audit, schema_registry,
-  notification, human_review, media_processor, diagram_generator,
-  rpa_browser, rate_limiter, resilience, classifier
+B3.1 — Session 1: Core infra (13 service, 65 test):
+  1. cache (5)           — Redis hit/miss/evict/TTL/pattern
+  2. config (5)          — versioning CRUD, default fallback
+  3. health_monitor (5)  — service status, dependency check
+  4. audit (5)           — log create/query/filter/retention
+  5. schema_registry (5) — JSON schema CRUD/validate
+  6. notification (5)    — email template, delivery retry
+  7. human_review (5)    — HITL workflow, SLA timer
+  8. media_processor (5) — ffmpeg probe, format detect
+  9. diagram_generator (5) — Mermaid render, BPMN export
+  10. rpa_browser (5)    — page navigate, screenshot
+  11. rate_limiter (5)   — bucket fill/drain, 429 trigger
+  12. resilience (5)     — circuit open/half-open/close, retry
+  13. classifier (5)     — ML predict, confidence threshold
+  ELLENORZES: pytest tests/unit/services/ -q → 65 PASS
 
-B3.2 — Session 2: v1.2.0 szolgaltatasok (13 service, 65 test)
-  data_router, service_manager, reranker, advanced_chunker,
-  data_cleaner, metadata_enricher, vector_ops, advanced_parser,
-  graph_rag, quality, email_connector, rag_engine, +extra
+B3.2 — Session 2: v1.2.0 szolgaltatasok (13 service, 65 test):
+  14. data_router (5)        — routing rules, priority
+  15. service_manager (5)    — lifecycle, health
+  16. reranker (5)           — score, sort, top-K
+  17. advanced_chunker (5)   — 6 strategia (fixed/semantic/sentence/paragraph/recursive/sliding)
+  18. data_cleaner (5)       — normalize, deduplicate
+  19. metadata_enricher (5)  — auto-tag, entity link
+  20. vector_ops (5)         — insert/search/delete/similarity
+  21. advanced_parser (5)    — multi-format, fallback chain
+  22. graph_rag (5)          — entity graph, traversal query
+  23. quality (5)            — metric collect, threshold alert
+  24. email_connector (5)    — IMAP connect, fetch, filter
+  25. rag_engine (5)         — ingest, query, hybrid search
+  26. extra coverage (5)     — legalacsonyabb coverage service potlas
+  ELLENORZES: pytest tests/unit/services/ -q → 130 PASS, coverage >= 70%
+
+GATE: 130/130 PASS, coverage >= 70%
 ```
 
 ---
 
 ## B4: P2/P4 Skill-ek — 1 session
 
-```
-B4.1 — cubix_course_capture (90% → 95%):
-  - transcript_structurer: idokod pontossag
-  - 5 → 8 test case, 2 guardrail teszt
+> **Gate:** cubix 95%+ promptfoo, qbpp dontes meghozva es vegrehajva.
 
-B4.2 — qbpp_test_automation:
-  DONTES: implemental VAGY torol
-  - HA IGEN: __main__.py + 2 prompt + promptfoo + guardrail
-  - HA NEM: skill torles, 5 skill-re csokkentes
+```
+B4.1 — cubix_course_capture (P2, 90% → 95%):
+  - transcript_structurer: idokod pontossag javitas
+  - 5 → 8 test case (rovid video, rossz hang, angol nyelvu)
+  - guardrails.yaml: input max_audio_length, output format check
+  - 2 guardrail teszt
+  ELLENORZES: promptfoo eval → 95%+
+
+B4.2 — qbpp_test_automation (P4):
+  DONTES SZUKSEGES: implementaljuk VAGY toroljuk?
+  HA IGEN:
+    - __main__.py implementacio (Robot Framework integracio)
+    - test_generator.yaml (UJ prompt): RF teszt generalas
+    - locator_finder.yaml (UJ prompt): UI elem azonosito
+    - Promptfoo: valos test case-ek (nem stub), cel: 90%+
+    - guardrails.yaml: output Robot Framework szintaxis validacio
+  HA NEM:
+    - Skill mappa torles, CLAUDE.md frissites (5 skill)
+  ELLENORZES: dontes dokumentalva, ha impl → promptfoo PASS
+
+GATE: cubix 95%+, qbpp dontes + vegrehajtva
 ```
 
 ---
 
 ## B5: Modell Optimalizacio — 1 session
 
+> **Gate:** >= 20% koltseg csokkenés VAGY >= 5% minoseg javulas.
+
 ```
-B5.1 — Koltseg baseline (Langfuse)
-B5.2 — A/B kiserlet: gpt-4o → gpt-4o-mini (< 3% esés kriterium)
-B5.3 — Token optimalizacio (>= 15% csokkenés)
-B5.4 — Cache strategia (Redis TTL, classifier cache)
-B5.5 — Koltseg riport
-Cel: >= 20% koltseg csokkenés
+B5.1 — Koltseg baseline meres:
+  - Langfuse cost dashboard → per-service koltseg export
+  - Token count: prompt_tokens + completion_tokens per call
+
+B5.2 — Modell csere kiserlet:
+  | Prompt | Jelenlegi | Kiserlet | Elfogadasi kriterium |
+  |--------|-----------|----------|---------------------|
+  | pd/reviewer | gpt-4o | gpt-4o-mini | < 3% esés |
+  | pd/elaborator | gpt-4o | gpt-4o-mini | < 3% esés |
+  | rag/answer | gpt-4o | gpt-4o-mini | < 3% esés |
+  | invoice/extract | gpt-4o | gpt-4o-mini | < 3% esés |
+  Metodologia: promptfoo --providers gpt-4o,gpt-4o-mini → A/B osszehasonlitas
+
+B5.3 — Token optimalizacio:
+  - Hosszu system prompt: felesleges ismetles torles
+  - Few-shot: 6 → 3 (ha minoseg megmarad)
+  - Cel: >= 15% token count csokkenés
+
+B5.4 — Cache strategia:
+  - Embedding cache: Redis TTL=1h (ismetlodo query)
+  - Classifier cache: confidence > 0.95 → cache (TTL=24h)
+  - Cel: cache hit rate >= 30%
+
+B5.5 — Koltseg riport generalas:
+  - Per-skill koltseg/query
+  - Havi becslés (1000 query/nap)
+  - Optimalizalt vs. eredeti osszehasonlitas
+
+GATE: >= 20% koltseg csokkenés VAGY >= 5% minoseg javulas, riport kesz
 ```
 
 ---
 
 ## B6: UI Integracio + Polish — 1 session
 
+> **Gate:** 0 demo-only oldal, minden source=backend, 0 console error.
+
 ```
-B6.1 — 17 oldal source audit (demo → backend migracio)
-B6.2 — Intent schema CRUD UI form
-B6.3 — Collection management UI
-B6.4 — Dark mode + responsive check
+B6.1 — 17 oldal source audit:
+  MINDEN oldal ellenorzese:
+  | Oldal | Backend source | Valos adat | Console error |
+  |-------|---------------|-----------|--------------|
+  | Dashboard | ? | ? | ? |
+  | Documents | ? | ? | ? |
+  | ... (mind a 17) | | | |
+  Demo → Backend migracio ahol szukseges
+
+B6.2 — Uj UI elemek (ha szukseges):
+  - Intent schema CRUD form (/intent-schemas → UI)
+  - Collection management (create/delete/stats)
+  - Cost dashboard bovites (B5 koltseg riport alapjan)
+
+B6.3 — Dark mode + responsive check:
+  - Minden oldal: dark mode WCAG AA kontraszt
+  - Mobile: 768px breakpoint-on olvashato
+
+B6.4 — E2E teszt frissites:
+  - Uj oldalak/funkciok → uj E2E test case-ek
+  - Regresszio: 102+ teszt → PASS
+
+GATE: 0 demo oldal, 0 console error, E2E PASS
 ```
 
 ---
 
 ## B7: POST-AUDIT — 1 session
 
-> **Minden B0-B6 ellenorzese — ugyanolyan rigorozus mint A6!**
+> **Gate:** Audit riport MINDEN sor PASS. Ha FAIL → B8 KOTELEZO.
 
 ```
 B7.1 — Teljes regresszio (L3 szint, ld. regression_matrix.yaml):
@@ -755,42 +835,57 @@ B7.3 — Guardrail POST-audit:
   - PII leak test → 0 leak?
 
 B7.4 — Koltseg POST-audit:
-  - Langfuse: >= 20% csokkenés?
+  - Langfuse: >= 20% csokkenés teljesult?
 
 B7.5 — Audit riport:
   === SPRINT B POST-AUDIT RIPORT ===
-  Service tesztek:     130/130 PASS → [PASS/FAIL]
-  Prompt minoseg:      6/6 skill 95%+ → [PASS/FAIL]
-  Guardrail coverage:  6/6 skill config → [PASS/FAIL]
+  Service tesztek:     130/130 PASS       → [PASS/FAIL]
+  Prompt minoseg:      6/6 skill 95%+     → [PASS/FAIL]
+  Guardrail coverage:  6/6 skill config   → [PASS/FAIL]
   Guardrail safety:    golden dataset 100% → [PASS/FAIL]
-  Koltseg:             X% csokkenés → [PASS/FAIL]
-  E2E (strict):        102+ PASS → [PASS/FAIL]
-  Unit:                1213+ PASS → [PASS/FAIL]
+  Koltseg:             X% csokkenés       → [PASS/FAIL]
+  E2E (strict):        102+ PASS          → [PASS/FAIL]
+  Unit:                1213+ PASS         → [PASS/FAIL]
   
-  VERDICT: [PASS] / [FAIL → B8 KOTELEZO]
+  VERDICT: [PASS] / [FAIL — open items listaja]
+
+GATE: MINDEN sor PASS. Ha FAIL → B8 KOTELEZO.
 ```
 
 ---
 
 ## B8: Audit Javitasok — 0.5-1 session
 
-> **Csak ha B7-ben FAIL van! Ha MIND PASS → B8 SKIP, egybol B9.**
+> **Gate:** Frissitett audit riport MINDEN sor PASS. (Ha B7 MIND PASS → B8 SKIP.)
 
 ```
-B8.1 — FAIL tetelek javitasa
-B8.2 — Ujra-audit (csak FAIL tetelek)
-B8.3 — Frissitett riport: MINDEN PASS
+B8.1 — B7 riport FAIL teteleinek javitasa:
+  - Minden OPEN item → konkret fix
+  - Minden fix → ujra-teszt (csak az erintett resz)
+
+B8.2 — Ujra-audit (csak a FAIL tetelek):
+  - VERIFIED ← TILOS tovabblepni ha meg mindig OPEN
+
+B8.3 — Frissitett audit riport:
+  - MINDEN sor PASS
+
+GATE: Frissitett riport MINDEN PASS
 ```
 
 ---
 
 ## B9: v1.3.0 Tag + Merge — fél session
 
+> **Gate:** v1.3.0 tag letrehozva, main-re merge-olve.
+
 ```
 B9.1 — pyproject.toml: version = "1.3.0"
 B9.2 — git tag v1.3.0
-B9.3 — Merge to main (squash)
-B9.4 — CLAUDE.md + 01_PLAN/CLAUDE.md frissites
+B9.3 — 58_POST_SPRINT_HARDENING_PLAN.md: Sprint B = DONE
+B9.4 — CLAUDE.md + 01_PLAN/CLAUDE.md: vegleges szamok frissites
+B9.5 — Merge to main (squash, clean history)
+
+GATE: v1.3.0 tag pushed, main-en CI ZOLD
 ```
 
 ---
