@@ -34,7 +34,7 @@ def install_skill(
     """Install a skill from a manifest or package path."""
     logger.info("cli_skill_install", path=path)
     typer.echo(f"Installing skill from '{path}'...")
-    typer.echo("  [placeholder] Skill installation not yet implemented.")
+    typer.echo("  Not yet implemented — planned for v1.3.0.")
     typer.echo("  Expected: validate manifest -> copy to skills/ -> register in catalog.")
 
 
@@ -45,7 +45,7 @@ def validate_skill(
     """Validate a skill manifest and dependencies."""
     logger.info("cli_skill_validate", skill=name)
     typer.echo(f"Validating skill '{name}'...")
-    typer.echo("  [placeholder] Manifest validation not yet implemented.")
+    typer.echo("  Not yet implemented — planned for v1.3.0.")
     typer.echo("  Checks: schema, required fields, dependency resolution, test suite.")
 
 
@@ -69,4 +69,4 @@ def uninstall_skill(
             raise typer.Exit()
 
     typer.echo(f"Uninstalling skill '{name}'...")
-    typer.echo("  [placeholder] Skill removal not yet implemented.")
+    typer.echo("  Not yet implemented — planned for v1.3.0.")

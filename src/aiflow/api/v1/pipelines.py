@@ -273,9 +273,18 @@ async def list_adapters() -> AdaptersListResponse:
     return AdaptersListResponse(adapters=items, total=len(items))
 
 
+def _parse_pipeline_id(pipeline_id: str) -> uuid.UUID:
+    """Parse and validate pipeline_id as UUID. Raises 404 for non-UUID strings."""
+    try:
+        return uuid.UUID(pipeline_id)
+    except (ValueError, AttributeError) as exc:
+        raise HTTPException(status_code=404, detail="Pipeline not found") from exc
+
+
 @router.get("/{pipeline_id}")
 async def get_pipeline(pipeline_id: str) -> PipelineDetailResponse:
     """Get pipeline definition detail."""
+    pid = _parse_pipeline_id(pipeline_id)
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -283,7 +292,7 @@ async def get_pipeline(pipeline_id: str) -> PipelineDetailResponse:
                       trigger_config, input_schema, enabled, created_at,
                       updated_at, created_by
                FROM pipeline_definitions WHERE id = $1""",
-            uuid.UUID(pipeline_id),
+            pid,
         )
     if not row:
         raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -329,7 +338,7 @@ async def update_pipeline(pipeline_id: str, req: UpdatePipelineRequest) -> Pipel
     async with pool.acquire() as conn:
         existing = await conn.fetchrow(
             "SELECT id FROM pipeline_definitions WHERE id = $1",
-            uuid.UUID(pipeline_id),
+            _parse_pipeline_id(pipeline_id),
         )
         if not existing:
             raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -375,7 +384,7 @@ async def update_pipeline(pipeline_id: str, req: UpdatePipelineRequest) -> Pipel
             updates.append(f"enabled = ${idx}")
             idx += 1
 
-        params.append(uuid.UUID(pipeline_id))
+        params.append(_parse_pipeline_id(pipeline_id))
         set_clause = ", ".join(updates)
         await conn.execute(
             f"UPDATE pipeline_definitions SET {set_clause} WHERE id = ${idx}",
@@ -392,7 +401,7 @@ async def delete_pipeline(pipeline_id: str) -> None:
     async with pool.acquire() as conn:
         deleted = await conn.execute(
             "DELETE FROM pipeline_definitions WHERE id = $1",
-            uuid.UUID(pipeline_id),
+            _parse_pipeline_id(pipeline_id),
         )
     if deleted == "DELETE 0":
         raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -405,7 +414,7 @@ async def validate_pipeline(pipeline_id: str) -> ValidateResponse:
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT yaml_source, definition FROM pipeline_definitions WHERE id = $1",
-            uuid.UUID(pipeline_id),
+            _parse_pipeline_id(pipeline_id),
         )
     if not row:
         raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -448,7 +457,7 @@ async def run_pipeline(pipeline_id: str, req: RunPipelineRequest) -> RunPipeline
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT id, name, enabled FROM pipeline_definitions WHERE id = $1",
-            uuid.UUID(pipeline_id),
+            _parse_pipeline_id(pipeline_id),
         )
     if not row:
         raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -460,7 +469,7 @@ async def run_pipeline(pipeline_id: str, req: RunPipelineRequest) -> RunPipeline
 
     try:
         result = await runner.run(
-            pipeline_id=uuid.UUID(pipeline_id),
+            pipeline_id=_parse_pipeline_id(pipeline_id),
             input_data=req.input_data,
         )
     except Exception as exc:
@@ -483,7 +492,7 @@ async def list_pipeline_runs(
 ) -> RunListResponse:
     """List execution history for a pipeline."""
     pool = await get_pool()
-    pid = uuid.UUID(pipeline_id)
+    pid = _parse_pipeline_id(pipeline_id)
     async with pool.acquire() as conn:
         total = await conn.fetchval(
             "SELECT COUNT(*) FROM workflow_runs WHERE pipeline_id = $1",
@@ -525,7 +534,7 @@ async def get_pipeline_run(pipeline_id: str, run_id: str) -> RunDetailResponse:
                       output_data, error, started_at, completed_at, total_duration_ms
                FROM workflow_runs WHERE id = $1 AND pipeline_id = $2""",
             uuid.UUID(run_id),
-            uuid.UUID(pipeline_id),
+            _parse_pipeline_id(pipeline_id),
         )
         if not row:
             raise HTTPException(status_code=404, detail="Run not found")
@@ -579,7 +588,7 @@ async def export_pipeline_yaml(pipeline_id: str) -> dict[str, str]:
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT yaml_source FROM pipeline_definitions WHERE id = $1",
-            uuid.UUID(pipeline_id),
+            _parse_pipeline_id(pipeline_id),
         )
     if not row:
         raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -653,7 +662,7 @@ async def estimate_pipeline_cost(
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT name, yaml_source FROM pipeline_definitions WHERE id = $1",
-            uuid.UUID(pipeline_id),
+            _parse_pipeline_id(pipeline_id),
         )
     if not row:
         raise HTTPException(status_code=404, detail="Pipeline not found")

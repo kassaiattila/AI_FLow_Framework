@@ -557,7 +557,16 @@
     "empty": "No pipelines yet",
     "createFirst": "Create your first pipeline",
     "cancel": "Cancel",
-    "create": "Create"
+    "create": "Create",
+    "tabPipelines": "Pipelines",
+    "tabTemplates": "Templates",
+    "templateName": "Name",
+    "templateVersion": "Version",
+    "templateCategory": "Category",
+    "templateSteps": "Steps",
+    "templateDescription": "Description",
+    "templatesEmpty": "No templates available",
+    "deploy": "Deploy"
   },
   "pipelineDetail": {
     "overview": "Overview",

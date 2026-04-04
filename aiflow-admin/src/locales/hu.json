@@ -557,7 +557,16 @@
     "empty": "Meg nincs pipeline",
     "createFirst": "Hozza letre az elso pipeline-t",
     "cancel": "Megse",
-    "create": "Letrehozas"
+    "create": "Letrehozas",
+    "tabPipelines": "Pipeline-ok",
+    "tabTemplates": "Sablonok",
+    "templateName": "Nev",
+    "templateVersion": "Verzio",
+    "templateCategory": "Kategoria",
+    "templateSteps": "Lepesek",
+    "templateDescription": "Leiras",
+    "templatesEmpty": "Nincs elerheto sablon",
+    "deploy": "Telepites"
   },
   "pipelineDetail": {
     "overview": "Attekintes",

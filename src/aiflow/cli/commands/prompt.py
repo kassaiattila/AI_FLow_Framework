@@ -25,7 +25,7 @@ def list_prompts() -> None:
     typer.echo("  (none found in prompts/)")
     typer.echo("")
     typer.echo("Remote prompts (Langfuse):")
-    typer.echo("  [placeholder] Langfuse connection not configured.")
+    typer.echo("  Not yet implemented — planned for v1.3.0. Langfuse connection not configured.")
 
 
 @app.command("sync")
@@ -47,7 +47,7 @@ def sync_prompts(
 
     prefix = "[DRY RUN] " if dry_run else ""
     typer.echo(f"{prefix}Syncing prompts to Langfuse with label '{label}'...")
-    typer.echo(f"  {prefix}[placeholder] Prompt sync not yet implemented.")
+    typer.echo(f"  {prefix}Not yet implemented — planned for v1.3.0. Prompt sync not yet implemented.")
     typer.echo("  Expected: read prompts/ YAML -> push to Langfuse -> tag with label.")
 
 
@@ -65,7 +65,7 @@ def diff_prompts(
 
     target = f"prompt '{name}'" if name else "all prompts"
     typer.echo(f"Diffing {target}: local vs Langfuse remote...")
-    typer.echo("  [placeholder] Diff not yet implemented.")
+    typer.echo("  Not yet implemented — planned for v1.3.0. Diff not yet implemented.")
     typer.echo("  Expected: fetch remote versions -> compare text -> show unified diff.")
 
 
@@ -93,5 +93,5 @@ def promote_prompts(
 
     target = f"prompt '{name}'" if name else "all prompts"
     typer.echo(f"Promoting {target} from '{from_label}' to '{to_label}'...")
-    typer.echo("  [placeholder] Promotion not yet implemented.")
+    typer.echo("  Not yet implemented — planned for v1.3.0. Promotion not yet implemented.")
     typer.echo("  Expected: copy Langfuse prompt version -> re-tag with target label.")

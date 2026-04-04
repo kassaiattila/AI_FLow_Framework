@@ -1,16 +1,10 @@
-"""Kafka adapter placeholder for AIFlow event streaming.
+"""Kafka adapter — DEFERRED to post-v1.2.0.
 
-Note: The actual implementation requires the ``aiokafka`` dependency which
-is an optional install::
+STATUS: Stub only. In-memory MessageBroker is sufficient for current workloads.
+Kafka integration is planned for v1.4.0+ when multi-node deployment is needed.
 
-    pip install aiflow[kafka]
-    # or: pip install aiokafka
-
-All public classes are usable for type-checking and testing.  The
-``connect()`` methods log warnings until the real driver is wired in.
-
-Canonical location: ``aiflow.tools.kafka``
-Backward-compat re-export: ``aiflow.contrib.messaging``
+All public classes are usable for type-checking and testing.
+The ``connect()`` methods log warnings; no real Kafka connection is made.
 """
 
 from __future__ import annotations

@@ -17,7 +17,6 @@ from aiflow.evaluation.scorers import (
     exact_match,
     json_field_equals,
     json_valid,
-    llm_rubric_placeholder,
     regex_match,
     threshold_check,
 )
@@ -165,8 +164,3 @@ class TestRegexMatch:
         assert passed is False
 
 
-class TestLlmRubricPlaceholder:
-    def test_returns_neutral_score(self):
-        score, passed = llm_rubric_placeholder("any output", "any expected")
-        assert score == 0.5
-        assert passed is True

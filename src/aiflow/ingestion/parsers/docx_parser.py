@@ -1,7 +1,8 @@
-"""DOCX parser placeholder.
+"""DOCX parser — legacy interface.
 
-Actual implementation will use ``python-docx``.  This module provides the
-interface and a stub.
+DEPRECATED: Use ``aiflow.ingestion.parsers.docling_parser.DoclingParser`` instead.
+DoclingParser handles PDF, DOCX, XLSX, and HTML via a single unified interface.
+This module is retained for backward compatibility only.
 """
 
 from __future__ import annotations

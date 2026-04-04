@@ -50,7 +50,7 @@ def run_workflow(
 
     typer.echo(f"Running workflow '{name}' in {mode} mode...")
     typer.echo(f"  Input: {input_data or '{}'}")
-    typer.echo("  [placeholder] Workflow execution not yet wired.")
+    typer.echo("  Not yet implemented — planned for v1.3.0. Workflow execution not yet wired.")
 
 
 @app.command("inspect")
@@ -60,7 +60,7 @@ def inspect_workflow(
     """Show DAG details for a workflow."""
     logger.info("cli_workflow_inspect", workflow=name)
     typer.echo(f"Inspecting workflow '{name}'...")
-    typer.echo("  [placeholder] DAG visualization not yet implemented.")
+    typer.echo("  Not yet implemented — planned for v1.3.0. DAG visualization not yet implemented.")
     typer.echo("  Steps: (none loaded)")
     typer.echo("  Edges: (none loaded)")
 
@@ -89,8 +89,8 @@ def docs_workflow(
         typer.echo("graph TD")
         typer.echo(f"    A[{name} - start] --> B[{name} - end]")
         typer.echo("```")
-        typer.echo("  [placeholder] Real DAG not yet wired.")
+        typer.echo("  Not yet implemented — planned for v1.3.0. Real DAG not yet wired.")
     else:
         typer.echo(f"# Workflow: {name}")
         typer.echo("")
-        typer.echo("  [placeholder] Markdown generation not yet implemented.")
+        typer.echo("  Not yet implemented — planned for v1.3.0. Markdown generation not yet implemented.")

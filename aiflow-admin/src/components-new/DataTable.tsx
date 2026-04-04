@@ -106,16 +106,19 @@ export function DataTable<T extends Record<string, unknown>>({
     if (clearSelection !== undefined) setRowSelection({});
   }, [clearSelection]);
 
-  // Notify parent of selection changes — use ref to avoid re-render loops
+  // Notify parent of selection changes — use refs to avoid re-render loops.
+  // data is NOT in deps: re-notification only fires on actual selection change.
   const onSelectionChangeRef = useRef(onSelectionChange);
   onSelectionChangeRef.current = onSelectionChange;
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
   useEffect(() => {
     if (!onSelectionChangeRef.current || !selectable) return;
     const selectedIndices = Object.keys(rowSelection).filter((k) => rowSelection[k]);
-    const selectedItems = selectedIndices.map((idx) => data[parseInt(idx)]).filter(Boolean);
+    const selectedItems = selectedIndices.map((idx) => dataRef.current[parseInt(idx)]).filter(Boolean);
     onSelectionChangeRef.current(selectedItems);
-  }, [rowSelection, selectable, data]);
+  }, [rowSelection, selectable]);
 
   // Build columns with optional checkbox column
   const tanstackColumns = useMemo<ColumnDef<T, unknown>[]>(() => {

@@ -1,8 +1,8 @@
-"""PDF parser placeholder.
+"""PDF parser — legacy interface.
 
-Actual implementation will use ``pymupdf`` (from the ``vectorstore`` optional
-dependency group).  This module provides the interface and a stub that raises
-when the dependency is unavailable.
+DEPRECATED: Use ``aiflow.ingestion.parsers.docling_parser.DoclingParser`` instead.
+DoclingParser handles PDF, DOCX, XLSX, and HTML via a single unified interface.
+This module is retained for backward compatibility only.
 """
 
 from __future__ import annotations

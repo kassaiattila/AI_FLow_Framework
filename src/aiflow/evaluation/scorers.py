@@ -17,7 +17,6 @@ __all__ = [
     "json_field_equals",
     "threshold_check",
     "regex_match",
-    "llm_rubric_placeholder",
 ]
 
 
@@ -187,12 +186,3 @@ def regex_match(
         return (0.0, False)
 
 
-def llm_rubric_placeholder(actual: Any, expected: Any = None, **kwargs: Any) -> tuple[float, bool]:
-    """Placeholder for LLM-based rubric scoring.
-
-    Will be implemented with actual LLM calls in a future phase.
-
-    Returns:
-        (0.5, True) as a placeholder neutral score.
-    """
-    return (0.5, True)

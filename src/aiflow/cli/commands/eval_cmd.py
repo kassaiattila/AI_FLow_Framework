@@ -48,7 +48,7 @@ def run_eval(
         typer.echo("  Dataset: (using skill's default test cases)")
 
     typer.echo(f"  Concurrency: {concurrency}")
-    typer.echo("  [placeholder] Evaluation execution not yet implemented.")
+    typer.echo("  Not yet implemented — use `npx promptfoo eval` instead (planned for v1.3.0).")
     typer.echo("  Expected: load test cases -> run skill -> score outputs -> store results.")
 
 
@@ -82,5 +82,5 @@ def eval_report(
     target_run = f"run '{run_id}'" if run_id else "latest run"
     typer.echo(f"Evaluation report for skill '{skill}' ({target_run}):")
     typer.echo(f"  Format: {fmt}")
-    typer.echo("  [placeholder] Report generation not yet implemented.")
+    typer.echo("  Not yet implemented — use `npx promptfoo eval` instead (planned for v1.3.0).")
     typer.echo("  Expected: load results from DB -> compute aggregate scores -> render.")
