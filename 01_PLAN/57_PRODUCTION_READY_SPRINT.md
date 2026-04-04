@@ -575,11 +575,11 @@ S13-S14: Veglegesites ────────────── 1-2 session
 
 ## 7. Progress Tracking
 
-## Progress (utolso frissites: —)
+## Progress (utolso frissites: 2026-04-04)
 
 | Ciklus | Tartalom | Allapot | Datum | Commit |
 |--------|----------|---------|-------|--------|
-| S1 | Chat UI integracio | TODO | — | — |
+| S1 | Chat UI integracio | DONE | 2026-04-04 | (pending) |
 | S2 | In-app notifications | TODO | — | — |
 | S3 | Quality dashboard UI (7 HARD GATE) | TODO | — | — |
 | S4 | Service Catalog + Pipeline integracio | TODO | — | — |

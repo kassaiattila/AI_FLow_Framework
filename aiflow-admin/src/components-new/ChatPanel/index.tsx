@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { fetchApi } from "../../lib/api-client";
 import { useTranslate, useLocale } from "../../lib/i18n";
 import type { ChatPanelProps, QueryResponse, ChatMessage } from "./types";
@@ -36,14 +37,25 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
   const { messages, addMessage, clearHistory } = useChatHistory(selectedCol);
   const { addToHistory, navigateUp, navigateDown, resetNavigation } = usePromptHistory();
 
-  // Scroll management
+  // Virtual scroll & scroll management
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
+  // Item count: messages + optional loading indicator
+  const itemCount = messages.length + (loading ? 1 : 0);
+
+  const virtualizer = useVirtualizer({
+    count: itemCount,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 100,
+    overscan: 5,
+  });
+
   const scrollToBottom = useCallback(() => {
-    const el = containerRef.current;
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, []);
+    if (itemCount > 0) {
+      virtualizer.scrollToIndex(itemCount - 1, { align: "end", behavior: "smooth" });
+    }
+  }, [virtualizer, itemCount]);
 
   // Track scroll position
   useEffect(() => {
@@ -59,13 +71,14 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
 
   // Auto-scroll when new messages arrive (only if already at bottom)
   useEffect(() => {
-    if (isAtBottom) {
-      // Use requestAnimationFrame to ensure DOM has updated
-      requestAnimationFrame(() => scrollToBottom());
+    if (isAtBottom && itemCount > 0) {
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(itemCount - 1, { align: "end" });
+      });
     }
-  }, [messages.length, loading, isAtBottom, scrollToBottom]);
+  }, [itemCount, isAtBottom, virtualizer]);
 
-  // Scroll to bottom on initial load (history restore)
+  // Scroll to bottom on collection change (history restore)
   useEffect(() => {
     requestAnimationFrame(() => {
       const el = containerRef.current;
@@ -119,7 +132,7 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
 
   return (
     <div
-      className="relative flex flex-col rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+      className="relative flex flex-col rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 max-md:h-[calc(100dvh-64px)] max-md:rounded-none max-md:border-0"
       style={{ height: "calc(100vh - 320px)", minHeight: 400 }}
     >
       <ChatHeader
@@ -134,35 +147,60 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
         translate={translate}
       />
 
-      {/* Messages area */}
+      {/* Messages area — virtualized */}
       <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-3">
-        {messages.length === 0 && !loading && (
+        {messages.length === 0 && !loading ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-sm text-gray-400 dark:text-gray-500">
               {translate("aiflow.ragChat.empty")}
             </p>
           </div>
-        )}
+        ) : (
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const idx = virtualItem.index;
+              const isLoadingItem = idx === messages.length;
 
-        {messages.map((msg, idx) => (
-          <MessageBubble key={idx} message={msg} locale={locale} translate={translate} />
-        ))}
-
-        {/* Loading indicator */}
-        {loading && (
-          <div className="flex items-start gap-3 px-1 py-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-              <svg className="h-4 w-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-              </svg>
-            </div>
-            <div className="rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
-              <div className="flex gap-1">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400" />
-              </div>
-            </div>
+              return (
+                <div
+                  key={virtualItem.key}
+                  data-index={idx}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                >
+                  {isLoadingItem ? (
+                    <div className="flex items-start gap-3 px-1 py-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                        <svg className="h-4 w-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                        </svg>
+                      </div>
+                      <div className="rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
+                        <div className="flex gap-1">
+                          <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]" />
+                          <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]" />
+                          <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <MessageBubble message={messages[idx]} locale={locale} translate={translate} />
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -170,17 +208,19 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
       {/* Scroll to bottom button */}
       <ScrollToBottom visible={!isAtBottom && messages.length > 3} onClick={scrollToBottom} />
 
-      {/* Input */}
-      <ChatInput
-        value={input}
-        onChange={v => { setInput(v); resetNavigation(); }}
-        onSend={() => void handleSend()}
-        onNavigateUp={navigateUp}
-        onNavigateDown={navigateDown}
-        disabled={!selectedCol || loading}
-        placeholder={translate("aiflow.ragChat.placeholder")}
-        sendLabel={translate("aiflow.ragChat.send")}
-      />
+      {/* Input — sticky on mobile */}
+      <div className="max-md:sticky max-md:bottom-0 max-md:bg-white max-md:dark:bg-gray-900">
+        <ChatInput
+          value={input}
+          onChange={v => { setInput(v); resetNavigation(); }}
+          onSend={() => void handleSend()}
+          onNavigateUp={navigateUp}
+          onNavigateDown={navigateDown}
+          disabled={!selectedCol || loading}
+          placeholder={translate("aiflow.ragChat.placeholder")}
+          sendLabel={translate("aiflow.ragChat.send")}
+        />
+      </div>
     </div>
   );
 }

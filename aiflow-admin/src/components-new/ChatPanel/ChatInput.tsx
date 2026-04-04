@@ -34,9 +34,17 @@ export function ChatInput({
   useEffect(autoResize, [value, autoResize]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // Enter (without shift) or Cmd/Ctrl+Enter → submit
+    if (e.key === "Enter" && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       onSend();
+      return;
+    }
+
+    // Escape → clear input
+    if (e.key === "Escape") {
+      e.preventDefault();
+      onChange("");
       return;
     }
 

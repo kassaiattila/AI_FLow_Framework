@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ChatMessage } from "./types";
 import { SourcesBlock } from "./SourcesBlock";
+import { ChatMarkdown } from "../ChatMarkdown";
 
 /** Format timestamp as HH:mm or date+time for older messages */
 function formatTime(ts: number, locale: string): string {
@@ -95,7 +96,11 @@ export function MessageBubble({
             ? "bg-brand-50 text-gray-900 dark:bg-brand-900/20 dark:text-gray-100"
             : "bg-gray-50 text-gray-900 dark:bg-gray-800/60 dark:text-gray-100"
         }`}>
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{message.content}</p>
+          ) : (
+            <ChatMarkdown content={message.content} />
+          )}
 
           {/* Sources */}
           {!isUser && message.sources && message.sources.length > 0 && (
