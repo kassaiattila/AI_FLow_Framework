@@ -217,15 +217,22 @@ class LangfuseTracer(TracerBackend):
         return self._client is not None
 
     async def create_trace(self, name: str, metadata: dict[str, Any]) -> str:
-        trace_id = str(uuid.uuid4())
+        """Create a trace. In Langfuse v4, this creates a root observation (span).
+
+        The trace_id is set via trace_context so all child spans share the same trace.
+        Langfuse v4 requires 32 lowercase hex chars (no dashes).
+        """
+        trace_id = uuid.uuid4().hex  # 32 hex chars, no dashes
         if self._client:
             try:
-                trace = self._client.trace(
-                    id=trace_id,
+                # Langfuse v4: start_observation with trace_context creates a root span
+                root_span = self._client.start_observation(
+                    trace_context={"trace_id": trace_id, "parent_span_id": ""},
                     name=name,
+                    as_type="span",
                     metadata=metadata,
                 )
-                self._traces[trace_id] = trace
+                self._traces[trace_id] = root_span
                 logger.debug("langfuse_trace_created", trace_id=trace_id, name=name)
             except Exception as exc:
                 logger.warning("langfuse_trace_create_failed", error=str(exc), trace_id=trace_id)
@@ -234,16 +241,18 @@ class LangfuseTracer(TracerBackend):
         return trace_id
 
     async def create_span(self, trace_id: str, name: str, metadata: dict[str, Any] | None = None) -> str:
+        """Create a child span within a trace."""
         span_id = str(uuid.uuid4())
-        trace_obj = self._traces.get(trace_id)
-        if trace_obj and self._client:
+        root_span = self._traces.get(trace_id)
+        if root_span and self._client:
             try:
-                span = trace_obj.span(
-                    id=span_id,
+                # Langfuse v4: child spans are created via parent.start_observation()
+                child_span = root_span.start_observation(
                     name=name,
+                    as_type="span",
                     metadata=metadata or {},
                 )
-                self._spans[span_id] = span
+                self._spans[span_id] = child_span
                 logger.debug("langfuse_span_created", trace_id=trace_id, span_id=span_id, name=name)
             except Exception as exc:
                 logger.warning("langfuse_span_create_failed", error=str(exc), span_id=span_id)
@@ -252,10 +261,13 @@ class LangfuseTracer(TracerBackend):
         return span_id
 
     async def finish_span(self, trace_id: str, span_id: str, metadata: dict[str, Any] | None = None) -> None:
+        """End a span. Updates output metadata then ends the observation."""
         span_obj = self._spans.pop(span_id, None)
         if span_obj:
             try:
-                span_obj.end(metadata=metadata or {})
+                if metadata:
+                    span_obj.update(metadata=metadata)
+                span_obj.end()
                 logger.debug("langfuse_span_finished", trace_id=trace_id, span_id=span_id)
             except Exception as exc:
                 logger.warning("langfuse_span_finish_failed", error=str(exc), span_id=span_id)
@@ -263,17 +275,19 @@ class LangfuseTracer(TracerBackend):
             logger.info("langfuse_span_finished", trace_id=trace_id, span_id=span_id, fallback=True)
 
     async def finish_trace(self, trace_id: str, metadata: dict[str, Any] | None = None) -> None:
-        trace_obj = self._traces.pop(trace_id, None)
-        if trace_obj:
+        """End the root span of a trace and flush data to Langfuse."""
+        root_span = self._traces.pop(trace_id, None)
+        if root_span:
             try:
                 if metadata:
-                    trace_obj.update(metadata=metadata)
+                    root_span.update(metadata=metadata)
+                root_span.end()
                 logger.debug("langfuse_trace_finished", trace_id=trace_id)
             except Exception as exc:
                 logger.warning("langfuse_trace_finish_failed", error=str(exc), trace_id=trace_id)
         else:
             logger.info("langfuse_trace_finished", trace_id=trace_id, fallback=True)
-        # Flush to ensure data is sent
+        # Flush to ensure data is sent to Langfuse cloud
         if self._client:
             try:
                 self._client.flush()
@@ -289,7 +303,8 @@ class LangfuseTracer(TracerBackend):
         """Record a Langfuse score (e.g. rubric evaluation result)."""
         if self._client:
             try:
-                self._client.score(
+                # Langfuse v4: create_score (not score)
+                self._client.create_score(
                     trace_id=trace_id,
                     name=name,
                     value=value,
@@ -313,17 +328,20 @@ class LangfuseTracer(TracerBackend):
         metadata: dict[str, Any] | None = None,
     ) -> None:
         """Record an LLM generation event within a trace."""
-        trace_obj = self._traces.get(trace_id)
-        if trace_obj and self._client:
+        root_span = self._traces.get(trace_id)
+        if root_span and self._client:
             try:
-                trace_obj.generation(
+                # Langfuse v4: generation is a child observation with as_type="generation"
+                gen_span = root_span.start_observation(
                     name=name,
+                    as_type="generation",
                     model=model,
                     input=input_data,
                     output=output_data,
-                    usage=usage or {},
+                    usage_details=usage or {},
                     metadata=metadata or {},
                 )
+                gen_span.end()
                 logger.debug("langfuse_generation_recorded", trace_id=trace_id, name=name, model=model)
             except Exception as exc:
                 logger.warning("langfuse_generation_failed", error=str(exc), trace_id=trace_id)
@@ -384,13 +402,15 @@ def trace_llm_call(
             if not client:
                 return await fn(*args, **kwargs)
 
-            trace_id = str(uuid.uuid4())
+            trace_id = uuid.uuid4().hex  # 32 hex chars for Langfuse v4
             start_ts = time.monotonic()
 
             try:
-                trace = client.trace(
-                    id=trace_id,
+                # Langfuse v4: start_observation creates trace + root span
+                span = client.start_observation(
+                    trace_context={"trace_id": trace_id, "parent_span_id": ""},
                     name=trace_name,
+                    as_type="span",
                     input=_safe_serialize(args, kwargs) if capture_input else None,
                 )
             except Exception:
@@ -401,10 +421,11 @@ def trace_llm_call(
                 duration_ms = (time.monotonic() - start_ts) * 1000
 
                 try:
-                    trace.update(
+                    span.update(
                         output=_safe_serialize_output(result) if capture_output else None,
                         metadata={"duration_ms": round(duration_ms, 1)},
                     )
+                    span.end()
                     client.flush()
                 except Exception as exc:
                     logger.debug("trace_llm_call_update_failed", error=str(exc))
@@ -413,9 +434,10 @@ def trace_llm_call(
 
             except Exception as exc:
                 try:
-                    trace.update(
+                    span.update(
                         metadata={"error": str(exc), "error_type": type(exc).__name__},
                     )
+                    span.end()
                     client.flush()
                 except Exception:
                     pass

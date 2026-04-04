@@ -83,7 +83,7 @@ class TestLangfuseTracerDisabled:
 
 
 class TestLangfuseTracerConnected:
-    """Verify LangfuseTracer calls real Langfuse SDK when available."""
+    """Verify LangfuseTracer calls real Langfuse v4 SDK when available."""
 
     @pytest.fixture
     def mock_langfuse_class(self):
@@ -108,68 +108,83 @@ class TestLangfuseTracerConnected:
     @pytest.mark.asyncio
     async def test_create_trace_calls_sdk(self, mock_langfuse_class):
         tracer, mock_client = self._make_tracer(mock_langfuse_class)
-        mock_trace = MagicMock()
-        mock_client.trace.return_value = mock_trace
+        mock_root_span = MagicMock()
+        mock_client.start_observation.return_value = mock_root_span
 
         trace_id = await tracer.create_trace("pipeline:test", {"key": "val"})
         assert isinstance(trace_id, str)
-        mock_client.trace.assert_called_once()
+        # Langfuse v4: start_observation with trace_context
+        mock_client.start_observation.assert_called_once()
+        call_kwargs = mock_client.start_observation.call_args[1]
+        assert call_kwargs["name"] == "pipeline:test"
+        assert call_kwargs["trace_context"]["trace_id"] == trace_id
 
     @pytest.mark.asyncio
     async def test_create_span_calls_sdk(self, mock_langfuse_class):
         tracer, mock_client = self._make_tracer(mock_langfuse_class)
-        mock_trace = MagicMock()
-        mock_client.trace.return_value = mock_trace
-        mock_span = MagicMock()
-        mock_trace.span.return_value = mock_span
+        mock_root_span = MagicMock()
+        mock_client.start_observation.return_value = mock_root_span
+        mock_child_span = MagicMock()
+        mock_root_span.start_observation.return_value = mock_child_span
 
         trace_id = await tracer.create_trace("test", {})
         span_id = await tracer.create_span(trace_id, "step-1", {"idx": 0})
         assert isinstance(span_id, str)
-        mock_trace.span.assert_called_once()
+        # Langfuse v4: child span via root_span.start_observation()
+        mock_root_span.start_observation.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_finish_span_calls_end(self, mock_langfuse_class):
         tracer, mock_client = self._make_tracer(mock_langfuse_class)
-        mock_trace = MagicMock()
-        mock_client.trace.return_value = mock_trace
-        mock_span = MagicMock()
-        mock_trace.span.return_value = mock_span
+        mock_root_span = MagicMock()
+        mock_client.start_observation.return_value = mock_root_span
+        mock_child_span = MagicMock()
+        mock_root_span.start_observation.return_value = mock_child_span
 
         trace_id = await tracer.create_trace("test", {})
         span_id = await tracer.create_span(trace_id, "step-1")
         await tracer.finish_span(trace_id, span_id, {"status": "completed"})
-        mock_span.end.assert_called_once()
+        mock_child_span.update.assert_called_once()
+        mock_child_span.end.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_finish_trace_flushes(self, mock_langfuse_class):
         tracer, mock_client = self._make_tracer(mock_langfuse_class)
-        mock_trace = MagicMock()
-        mock_client.trace.return_value = mock_trace
+        mock_root_span = MagicMock()
+        mock_client.start_observation.return_value = mock_root_span
 
         trace_id = await tracer.create_trace("test", {})
         await tracer.finish_trace(trace_id, {"status": "completed"})
+        mock_root_span.update.assert_called_once()
+        mock_root_span.end.assert_called_once()
         mock_client.flush.assert_called()
 
     def test_score_calls_sdk(self, mock_langfuse_class):
         tracer, mock_client = self._make_tracer(mock_langfuse_class)
         tracer.score(trace_id="t1", name="accuracy", value=0.95, comment="good")
-        mock_client.score.assert_called_once_with(
+        # Langfuse v4: create_score (not score)
+        mock_client.create_score.assert_called_once_with(
             trace_id="t1", name="accuracy", value=0.95, comment="good"
         )
 
     def test_generation_calls_sdk(self, mock_langfuse_class):
         tracer, mock_client = self._make_tracer(mock_langfuse_class)
-        mock_trace = MagicMock()
-        mock_client.trace.return_value = mock_trace
-        tracer._traces["t1"] = mock_trace
+        mock_root_span = MagicMock()
+        mock_gen_span = MagicMock()
+        mock_root_span.start_observation.return_value = mock_gen_span
+        tracer._traces["t1"] = mock_root_span
 
         tracer.generation(
             trace_id="t1", name="classify", model="gpt-4o",
             input_data="hello", output_data="world",
             usage={"input": 10, "output": 5},
         )
-        mock_trace.generation.assert_called_once()
+        # Langfuse v4: generation via start_observation(as_type="generation")
+        mock_root_span.start_observation.assert_called_once()
+        call_kwargs = mock_root_span.start_observation.call_args[1]
+        assert call_kwargs["as_type"] == "generation"
+        assert call_kwargs["model"] == "gpt-4o"
+        mock_gen_span.end.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_check_health_ok(self, mock_langfuse_class):
@@ -209,10 +224,10 @@ class TestTraceLlmCallDecorator:
 
     @pytest.mark.asyncio
     async def test_decorator_traces_with_client(self):
-        """When Langfuse client exists, function is traced."""
+        """When Langfuse client exists, function is traced via v4 API."""
         mock_client = MagicMock()
-        mock_trace = MagicMock()
-        mock_client.trace.return_value = mock_trace
+        mock_span = MagicMock()
+        mock_client.start_observation.return_value = mock_span
 
         @trace_llm_call(name="test.traced")
         async def my_func(x: int) -> dict:
@@ -224,18 +239,19 @@ class TestTraceLlmCallDecorator:
         try:
             result = await my_func(4)
             assert result == {"result": 12}
-            mock_client.trace.assert_called_once()
-            mock_trace.update.assert_called_once()
+            mock_client.start_observation.assert_called_once()
+            mock_span.update.assert_called_once()
+            mock_span.end.assert_called_once()
             mock_client.flush.assert_called()
         finally:
             mod._langfuse_client = original
 
     @pytest.mark.asyncio
     async def test_decorator_handles_exception(self):
-        """When function raises, error is recorded in trace."""
+        """When function raises, error is recorded in trace via v4 API."""
         mock_client = MagicMock()
-        mock_trace = MagicMock()
-        mock_client.trace.return_value = mock_trace
+        mock_span = MagicMock()
+        mock_client.start_observation.return_value = mock_span
 
         @trace_llm_call(name="test.error")
         async def my_func() -> None:
@@ -247,10 +263,11 @@ class TestTraceLlmCallDecorator:
         try:
             with pytest.raises(ValueError, match="test error"):
                 await my_func()
-            mock_trace.update.assert_called_once()
+            mock_span.update.assert_called_once()
             # Verify error was captured in metadata
-            call_kwargs = mock_trace.update.call_args[1]
+            call_kwargs = mock_span.update.call_args[1]
             assert "error" in call_kwargs.get("metadata", {})
+            mock_span.end.assert_called_once()
         finally:
             mod._langfuse_client = original
 
