@@ -131,7 +131,28 @@ Ha BARMELY lepes sikertelen → STOP → javitas → ujra elejeirol!
 - ALWAYS use conventional commits (feat/fix/docs/refactor)
 - ALWAYS tag version after each completed phase (git tag)
 
+### 6. MANDATORY Plan Updates (SOHA NE HAGYD KI!):
+> **Session 9 tanulsag:** C7-C16 utan a tervek NEM kerultek frissitesre. Ez TILOS.
+17. **`01_PLAN/56_EXECUTION_PLAN.md`** — Progress tabla frissites:
+    - Ciklus allapot: TODO → DONE
+    - Datum: mai datum
+    - Commit: commit hash
+    - Output szekció: mit deliveralt a ciklus (fajlok, tesztek, E2E)
+18. **`01_PLAN/CLAUDE.md`** — Key numbers frissites (service, adapter, endpoint, migracio, teszt szamok)
+19. **Root `CLAUDE.md`** — Infrastruktura szamok frissites
+
+### 7. Dependency Safety Check (ha .venv epult ujra):
+> **Session 9 tanulsag:** `.venv` ujraepites torolte `pypdfium2` + `docling` → UI regresszio.
+20. `python -c "import pypdfium2; import docling; import aiosmtplib; print('deps OK')"`
+21. Ha BARMELYIK hianyzik → telepitsd MIELOTT tovabbmesz!
+
 ## Lesson from v0.9.0 development:
 > Build deep, not wide. Finish ONE feature end-to-end (real backend, real tests, real UI)
 > before starting the next. A half-working feature is worse than no feature.
 > Fake progress bars are worse than no progress bar. ALWAYS show real data.
+
+## Lesson from session 9 (C7-C16):
+> **TERV FRISSITES KOTELEZO minden ciklus vegen.** A 56_EXECUTION_PLAN.md progress tabla,
+> output szekciok, es a CLAUDE.md szamok NEM frissultek C7-C16 kozben. Ez nem fordulhat elo.
+> **DEPENDENCY SAFETY:** Ha `.venv`-t ujraepited, ELLENORIZD MINDEN dependency letezeeset
+> mielott "DONE"-nak jelolsz egy ciklust. Hianyzó dep = UI regresszio.

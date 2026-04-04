@@ -90,6 +90,22 @@ This enables: new intents/entities without code changes, per-customer customizat
 2. Check `git status` - no untracked files that should be tracked
 3. Commit message: conventional commits (`feat`, `fix`, `docs`, `refactor`)
 
+### MANDATORY: After EVERY cycle (SOHA NE HAGYD KI!)
+> **Session 9 tanulsag:** C7-C16 utan a tervek NEM kerultek frissitesre. Ez TILOS.
+1. **`01_PLAN/56_EXECUTION_PLAN.md`** — Progress tabla: ciklus allapot DONE, datum, commit hash
+2. **`01_PLAN/56_EXECUTION_PLAN.md`** — Output szekció: mit deliveralt a ciklus (fajlok, tesztek, E2E eredmenyek)
+3. **`01_PLAN/CLAUDE.md`** — Key numbers: service/adapter/endpoint/migracio/teszt szamok frissitese
+4. **Root `CLAUDE.md`** — Infrastruktura szamok frissitese (service, endpoint, router, migracio, teszt)
+5. **Meglevo UI regresszio check** — a `.venv` ujraepites NEM torolheti a fuggosegeket!
+   Ha `.venv`-t ujra kell epiteni: `uv pip install -e ".[dev]"` UTAN ellenorizd: `python -c "import pypdfium2; import docling"`
+
+### MANDATORY: .venv Dependency Safety
+> **Session 9 tanulsag:** A `.venv` ujraepites (`uv venv && uv pip install`) torolte a `pypdfium2` es `docling`
+> fuggosegeket mert nem voltak `pyproject.toml`-ben. Ez UI regressziot okozott (PDF image 500, RAG ingest fail).
+- **Ha `.venv`-t torlod/ujraepited:** MINDEN fuggoseg KELL — `uv pip install -e ".[dev]" pypdfium2 docling aiosmtplib`
+- **Ellenorzes:** `python -c "import pypdfium2; import docling; import aiosmtplib; print('OK')"`
+- **VAGY:** add hozza `pyproject.toml` dependencies-hez (preferalt megoldas)
+
 ### STRICT: Real Testing Only (SOHA NE MOCK/FAKE!)
 > **Csak valos, sikeres teszteles utan szabad tovabblepni. SOHA NE mockolt/fake adatokkal!**
 > Ez a szabaly MINDEN fejlesztesi fazisra vonatkozik (F0-F6), MINDEN modulra, MINDEN PR-re.

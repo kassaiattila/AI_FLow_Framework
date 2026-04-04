@@ -81,7 +81,7 @@ function statusBadge(doc: DocItem): { label: string; color: string } {
 
 // --- Upload Tab ---
 
-function UploadTab() {
+function UploadTab({ onUploadComplete }: { onUploadComplete?: () => void }) {
   const translate = useTranslate();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -211,6 +211,7 @@ function UploadTab() {
               setResult(`${ok}/${files.length} ${translate("aiflow.documentUpload.files")} processed`);
               setProcessing(false);
               setFileProgress(prev => prev.map(fp => ({ ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) })));
+              onUploadComplete?.();
             }
           } catch { /* ignore non-json */ }
         },
@@ -571,7 +572,7 @@ export function Documents() {
       </div>
 
       {tab === "upload" ? (
-        <UploadTab />
+        <UploadTab onUploadComplete={refetch} />
       ) : (
         <>
           {/* KPI Cards */}
