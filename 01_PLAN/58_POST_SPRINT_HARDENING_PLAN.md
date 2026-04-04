@@ -907,6 +907,10 @@ Session 32: B8+B9 (Javitasok + v1.3.0)
 
 ---
 
+# Osszesites
+
+> Az alabbi szekciok MINDKET sprintre vonatkoznak.
+
 ## Teljes Utemterv (Sprint A + B)
 
 ```
@@ -941,48 +945,48 @@ S32: B8+B9 — Javitasok + v1.3.0
 
 ### Sprint A (v1.2.2)
 
-| # | Kriterium |
-|---|-----------|
-| 1 | CI/CD 4/4 ZOLD |
-| 2 | Ruff 0 error |
-| 3 | 0 halott kod/mappa (dokumentalt inventory) |
-| 4 | 0 HIGH/MEDIUM security (post-audit verified) |
-| 5 | JWT session → UI force logout mukodik |
-| 6 | Guardrail keretrendszer: 3 guard + 30 test PASS |
-| 7 | 0 console error (strict E2E) |
-| 8 | Post-audit + javitas riport: MINDEN PASS |
+| # | Kriterium | Mertek |
+|---|-----------|--------|
+| 1 | CI/CD MIND ZOLD | 4/4 workflow PASS |
+| 2 | Ruff 0 error | `/lint-check` → CLEAN |
+| 3 | 0 halott kod/mappa | Dokumentalt inventory |
+| 4 | 0 HIGH/MEDIUM security | Post-audit verified |
+| 5 | JWT session lejarat | UI force logout mukodik |
+| 6 | Guardrail keretrendszer | 3 guard + 30 test PASS |
+| 7 | 0 console error | Strict E2E (0 filter) |
+| 8 | Post-audit riport | MINDEN sor PASS |
 
 ### Sprint B (v1.3.0)
 
-| # | Kriterium |
-|---|-----------|
-| 1 | 130+ service unit test |
-| 2 | 6/6 skill 95%+ promptfoo |
-| 3 | 6/6 skill guardrails.yaml + golden dataset |
-| 4 | Guardrail safety: 100% dangerous query blokkolt |
-| 5 | >= 20% koltseg csokkenés |
-| 6 | 10/10 checklist PASS per skill |
-| 7 | Post-audit + javitas riport: MINDEN PASS |
-| 8 | v1.3.0 tag |
+| # | Kriterium | Mertek |
+|---|-----------|--------|
+| 1 | Service unit test | 130+ PASS |
+| 2 | Prompt minoseg | 6/6 skill 95%+ promptfoo |
+| 3 | Guardrail config | 6/6 skill guardrails.yaml + golden dataset |
+| 4 | Guardrail safety | 100% dangerous query blokkolt |
+| 5 | Koltseg csokkentes | >= 20% Langfuse riportbol |
+| 6 | Production checklist | 10/10 PASS per skill |
+| 7 | Post-audit riport | MINDEN sor PASS |
+| 8 | Version tag | v1.3.0 tag, main ZOLD |
 
 ---
 
 ## Slash Command Referencia
 
-| Command | Mikor |
-|---------|-------|
-| `/lint-check` | Ruff + tsc + format (A1, es MINDEN fazis vegen) |
-| `/lint-check --fix` | Auto-fix safe issues (A1.1) |
-| `/regression` | Unit + E2E regresszio (A6, B7, commit elott) |
-| `/quality-check` | Promptfoo + koltseg (B1-B5) |
-| `/service-test` | Backend + API + UI e2e (B1-B4) |
-| `/dev-step` | Fejlesztes + teszt + commit (minden fazis) |
+| Command | Hasznalat | Sprint |
+|---------|-----------|--------|
+| `/lint-check` | Ruff + tsc + format osszesito | A1, minden fazis vegen |
+| `/lint-check --fix` | Auto-fix safe issues | A1.1 |
+| `/regression` | Unit + E2E regresszio | A6, B7, commit elott |
+| `/quality-check` | Promptfoo + koltseg elemzes | B1-B5 |
+| `/service-test` | Backend + API + UI e2e | B1-B4 |
+| `/dev-step` | Fejlesztes + teszt + commit | Minden fazis |
 
 ---
 
 ## Progress Tracking
 
-### Sprint A
+### Sprint A (v1.2.2)
 
 | Fazis | Tartalom | Allapot | Datum | Commit |
 |-------|----------|---------|-------|--------|
@@ -996,7 +1000,7 @@ S32: B8+B9 — Javitasok + v1.3.0
 | A7 | Audit javitasok | TODO | — | — |
 | A8 | v1.2.2 tag | TODO | — | — |
 
-### Sprint B
+### Sprint B (v1.3.0)
 
 | Fazis | Tartalom | Allapot | Datum | Commit |
 |-------|----------|---------|-------|--------|
