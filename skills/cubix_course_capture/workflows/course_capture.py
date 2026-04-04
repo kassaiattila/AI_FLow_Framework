@@ -39,7 +39,7 @@ from aiflow.engine.workflow import WorkflowBuilder, workflow
 
 # Robot Framework runner (optional - for RF-based RPA)
 try:
-    from aiflow.tools.robotframework_runner import RobotFrameworkRunner, RobotResult
+    from aiflow.tools.robotframework_runner import RobotFrameworkRunner
     _rf_runner = RobotFrameworkRunner()
     _RF_AVAILABLE = True
 except ImportError:
@@ -474,10 +474,7 @@ async def scan_course_structure(data: dict[str, Any]) -> dict[str, Any]:
         raw_result = await browser.evaluate_js(f"({js_code})()")
 
         # Parse JS result (may be JSON string or dict depending on platform)
-        if isinstance(raw_result, str):
-            weeks_data = json.loads(raw_result)
-        else:
-            weeks_data = raw_result
+        weeks_data = json.loads(raw_result) if isinstance(raw_result, str) else raw_result
 
         # Handle result format: may be a list of weeks or a dict with weeks key
         if isinstance(weeks_data, dict):
@@ -1219,7 +1216,7 @@ async def process_course(config: CourseConfig) -> dict[str, Any]:
     """
     output_dir = Path(config.output_base_dir) / config.course_name
     state_mgr = FileStateManager(output_dir=str(output_dir))
-    state = state_mgr.load()
+    state_mgr.load()
 
     common_data = {
         "course_name": config.course_name,

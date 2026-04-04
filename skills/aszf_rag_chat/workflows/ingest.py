@@ -432,7 +432,7 @@ async def generate_embeddings(data: dict) -> dict:
     cost_summary = _embedder._cost_tracker.summary()
 
     chunks_with_embeddings: list[dict[str, Any]] = []
-    for chunk, embedding in zip(chunks, embeddings):
+    for chunk, embedding in zip(chunks, embeddings, strict=False):
         chunks_with_embeddings.append({
             **chunk,
             "embedding": embedding,

@@ -321,7 +321,7 @@ def predict(texts, model: Pipeline = None) -> list:
     predictions = model.predict(cleaned)
 
     results = []
-    for text, pred in zip(texts, predictions):
+    for _text, pred in zip(texts, predictions, strict=False):
         results.append({
             'routing_group': pred,
             'routing_group_hu': ROUTING_DISPLAY_NAMES.get(pred, pred),
@@ -345,8 +345,8 @@ def predict_proba(texts, model: Pipeline = None) -> list:
     classes = model.classes_
 
     results = []
-    for i, text in enumerate(texts):
-        proba_dict = {cls: float(p) for cls, p in zip(classes, probas[i])}
+    for i, _text in enumerate(texts):
+        proba_dict = {cls: float(p) for cls, p in zip(classes, probas[i], strict=False)}
         sorted_classes = sorted(proba_dict.items(), key=lambda x: x[1], reverse=True)
 
         top_pred = sorted_classes[0]

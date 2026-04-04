@@ -156,7 +156,7 @@ def demo_kfold_cross_validation():
     print("\n--- 2b. StratifiedKFold (5 fold) ---")
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-    for fold_idx, (train_idx, val_idx) in enumerate(skf.split(X, y)):
+    for fold_idx, (_train_idx, val_idx) in enumerate(skf.split(X, y)):
         pos_ratio = np.mean(y[val_idx])
         print(f"  Fold {fold_idx + 1}: pozitiv arany a val-ban = {pos_ratio:.3f}")
 
@@ -198,7 +198,7 @@ def demo_timeseries_split():
     np.random.seed(42)
     n_samples = 100
     X_ts = np.arange(n_samples).reshape(-1, 1)
-    y_ts = np.sin(X_ts.ravel() / 10) + np.random.normal(0, 0.1, n_samples)
+    np.sin(X_ts.ravel() / 10) + np.random.normal(0, 0.1, n_samples)
 
     tscv = TimeSeriesSplit(n_splits=5)
     print(f"\nTimeSeriesSplit foldok ({tscv.get_n_splits()} split):")
@@ -613,7 +613,7 @@ def demo_learning_curves():
         ("Overfitting (max_depth=None)", RandomForestClassifier(n_estimators=200, max_depth=None, random_state=0)),
     ]
 
-    for ax, (title, model) in zip(axes, models):
+    for ax, (title, model) in zip(axes, models, strict=False):
         # Learning curve szamitasa
         train_sizes, train_scores, val_scores = learning_curve(
             model, X, y,
@@ -724,12 +724,12 @@ def demo_multiclass_metrics():
     # --- Tobbosztalyos ROC gorbe (One-vs-Rest strategia) ---
     # Minden osztalyra kulon ROC gorbet rajzolunk
     y_test_bin = label_binarize(y_test, classes=[0, 1, 2])
-    n_classes = y_test_bin.shape[1]
+    y_test_bin.shape[1]
 
     fig, ax = plt.subplots(figsize=(8, 6))
     colors = ["blue", "green", "red"]
 
-    for i, (color, name) in enumerate(zip(colors, class_names)):
+    for i, (color, name) in enumerate(zip(colors, class_names, strict=False)):
         fpr_i, tpr_i, _ = roc_curve(y_test_bin[:, i], y_proba[:, i])
         auc_i = roc_auc_score(y_test_bin[:, i], y_proba[:, i])
         ax.plot(fpr_i, tpr_i, color=color, lw=2, label=f"{name} (AUC = {auc_i:.3f})")

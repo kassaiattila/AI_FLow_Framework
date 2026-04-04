@@ -158,7 +158,7 @@ class SimpleVectorStore:
         """Tobb vektor hozzaadasa egyszerre."""
         if payloads is None:
             payloads = [{}] * len(ids)
-        for i, (doc_id, vec) in enumerate(zip(ids, vectors)):
+        for i, (doc_id, vec) in enumerate(zip(ids, vectors, strict=False)):
             self.add(doc_id, vec, payloads[i])
 
     def search(self, query_vector: np.ndarray, top_k: int = 5,
@@ -316,7 +316,7 @@ def demo_chromadb():
     results = collection.query(query_embeddings=[q_emb], n_results=3)
     print(f"\nKereses: '{query}'")
     for i, (doc, dist) in enumerate(zip(results["documents"][0],
-                                         results["distances"][0])):
+                                         results["distances"][0], strict=False)):
         print(f"  [{i+1}] (dist={dist:.4f}) {doc[:65]}")
 
     # Metadata filterrel
@@ -412,7 +412,7 @@ def demo_semantic_search():
     dim = 384
     store = SimpleVectorStore(dimension=dim)
     embeddings = batch_generate_embeddings(corpus, dim=dim)
-    for i, (text, emb) in enumerate(zip(corpus, embeddings)):
+    for i, (text, emb) in enumerate(zip(corpus, embeddings, strict=False)):
         store.add(f"sem_{i}", emb, {"text": text, "word_count": len(text.split())})
 
     print(f"Korpusz: {len(store)} dokumentum")
@@ -456,9 +456,7 @@ class RetrieveAndRerank:
         def filt(payload):
             if category_filter and payload.get("category") != category_filter:
                 return False
-            if min_word_count and payload.get("word_count", 0) < min_word_count:
-                return False
-            return True
+            return not (min_word_count and payload.get("word_count", 0) < min_word_count)
 
         q_emb = generate_mock_embedding(query, dim=self.store.dimension)
         return self.store.search(q_emb, top_k=top_k,
@@ -517,7 +515,7 @@ def demo_retrieve_and_rerank():
     dim = 384
     store = SimpleVectorStore(dimension=dim)
     embeddings = batch_generate_embeddings([d["text"] for d in documents], dim=dim)
-    for i, (doc, emb) in enumerate(zip(documents, embeddings)):
+    for i, (doc, emb) in enumerate(zip(documents, embeddings, strict=False)):
         store.add(f"rr_{i}", emb, doc)
 
     pipeline = RetrieveAndRerank(store)

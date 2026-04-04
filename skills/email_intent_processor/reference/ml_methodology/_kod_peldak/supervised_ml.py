@@ -225,7 +225,7 @@ def knn_pelda(cls_data, reg_data):
     knn_reg = KNeighborsRegressor(n_neighbors=5)
     knn_reg.fit(reg_data["X_train"], reg_data["y_train"])
 
-    eredmeny_reg = regresszio_kiertekeles(
+    regresszio_kiertekeles(
         knn_reg,
         reg_data["X_train"], reg_data["X_test"],
         reg_data["y_train"], reg_data["y_test"],

@@ -430,7 +430,7 @@ class TestGenerateAnswer:
             pm.get.return_value = mock_prompt
             mc.generate = AsyncMock(return_value=mock_generate_result)
 
-            result = await qmod.generate_answer({
+            await qmod.generate_answer({
                 "context": "ctx",
                 "question": "Follow-up?",
                 "sources": [],

@@ -396,7 +396,7 @@ def feature_engineering(df):
     print("\n--- 3.2 Polinomialis feature-ok (fokszam=2) ---")
     poly = PolynomialFeatures(degree=2, include_bias=False, interaction_only=False)
     numerikus_cols = ["kor", "jovedelem"]
-    poly_features = poly.fit_transform(df_fe[numerikus_cols].fillna(0))
+    poly.fit_transform(df_fe[numerikus_cols].fillna(0))
     poly_nevek = poly.get_feature_names_out(numerikus_cols)
     print(f"Eredeti feature-ok szama: {len(numerikus_cols)}")
     print(f"Polinomialis feature-ok szama: {len(poly_nevek)}")
@@ -407,7 +407,7 @@ def feature_engineering(df):
     poly_inter = PolynomialFeatures(
         degree=2, include_bias=False, interaction_only=True
     )
-    inter_features = poly_inter.fit_transform(df_fe[numerikus_cols].fillna(0))
+    poly_inter.fit_transform(df_fe[numerikus_cols].fillna(0))
     inter_nevek = poly_inter.get_feature_names_out(numerikus_cols)
     print(f"Interakcios feature-ok: {list(inter_nevek)}")
     # Pelda: kor * jovedelem -> magasabb erteku idosebb, jomodunak
@@ -489,7 +489,7 @@ def encoding_bemutatasa(df):
     print("\n--- 4.1 LabelEncoder ---")
     le = LabelEncoder()
     df_enc["nem_label"] = le.fit_transform(df_enc["nem"])
-    print(f"Nem oszlop kodolasa: {dict(zip(le.classes_, le.transform(le.classes_)))}")
+    print(f"Nem oszlop kodolasa: {dict(zip(le.classes_, le.transform(le.classes_), strict=False))}")
     print("FIGYELEM: LabelEncoder hamis sorrendet feltetelezhet az "
           "algoritmusnal!")
 
@@ -504,7 +504,7 @@ def encoding_bemutatasa(df):
         df_enc[["vegzettseg"]]
     ).astype(int)
     print("Vegzettseg ordinalis kodolasa:")
-    vegz_mapping = dict(zip(sorrend[0], range(len(sorrend[0]))))
+    vegz_mapping = dict(zip(sorrend[0], range(len(sorrend[0])), strict=False))
     print(f"  {vegz_mapping}")
 
     # --- 4.3 OneHotEncoder ---
@@ -524,7 +524,7 @@ def encoding_bemutatasa(df):
     ohe_dummy = OneHotEncoder(
         sparse_output=False, drop="first", handle_unknown="ignore"
     )
-    varos_dummy = ohe_dummy.fit_transform(df_enc[["varos"]])
+    ohe_dummy.fit_transform(df_enc[["varos"]])
     varos_dummy_nevek = ohe_dummy.get_feature_names_out(["varos"])
     print(f"Dummy oszlopok (egy kevesebbel): {list(varos_dummy_nevek)}")
 

@@ -764,7 +764,7 @@ def batch_inference(model, df):
     probabilities = []
     errors = []
 
-    for idx, row in df.iterrows():
+    for _idx, row in df.iterrows():
         row_dict = row.to_dict()
         # Target eltavolitasa, ha van
         row_dict.pop("target", None)
@@ -1212,7 +1212,7 @@ def test_artifact_save_load():
     model1 = MLModel(model_dir=model_dir)
     df = szintetikus_adat_generalas(n_samples=200)
     processed = model1.preprocessing_pipeline(df)
-    accuracy1 = model1.train_and_save_model(processed)
+    model1.train_and_save_model(processed)
 
     # Masodik modell: betoltes az elozo artifact-ekbol
     model2 = MLModel(model_dir=model_dir)

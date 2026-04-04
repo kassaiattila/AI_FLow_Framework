@@ -405,11 +405,11 @@ def cosine_demo():
     print(f"  Film Z (Drama):                  {z}")
 
     # Kezi levezetés X vs Y
-    dot = sum(a * b for a, b in zip(x, y))
+    dot = sum(a * b for a, b in zip(x, y, strict=False))
     nx = np.sqrt(sum(a**2 for a in x))
     ny = np.sqrt(sum(b**2 for b in y))
     print("\n  X vs Y levezetés:")
-    print(f"    Dot product: {' + '.join(f'{a}*{b}' for a, b in zip(x, y))} = {dot}")
+    print(f"    Dot product: {' + '.join(f'{a}*{b}' for a, b in zip(x, y, strict=False))} = {dot}")
     print(f"    ||X|| = sqrt({sum(a**2 for a in x)}) = {nx:.3f}")
     print(f"    ||Y|| = sqrt({sum(b**2 for b in y)}) = {ny:.3f}")
     print(f"    cos = {dot}/({nx:.3f}*{ny:.3f}) = {dot/(nx*ny):.4f}")

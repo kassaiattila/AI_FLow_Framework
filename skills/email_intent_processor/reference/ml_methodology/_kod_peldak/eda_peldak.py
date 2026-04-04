@@ -236,10 +236,7 @@ def univariate_elemzes(df: pd.DataFrame) -> None:
         n_rows_cat = (len(kategorikus_oszlopok) + n_cols - 1) // n_cols
         fig, axes = plt.subplots(n_rows_cat, n_cols,
                                  figsize=(5 * n_cols, 4 * n_rows_cat))
-        if n_rows_cat * n_cols == 1:
-            axes = [axes]
-        else:
-            axes = axes.flatten()
+        axes = [axes] if n_rows_cat * n_cols == 1 else axes.flatten()
 
         for i, col in enumerate(kategorikus_oszlopok):
             # Maximum 15 kategoria megjelenitese (atlathatosag)

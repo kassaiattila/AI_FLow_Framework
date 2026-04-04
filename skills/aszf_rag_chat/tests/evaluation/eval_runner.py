@@ -44,7 +44,7 @@ async def run_evaluation(collection: str, role: str, output_dir: str) -> None:
         dataset = yaml.safe_load(f)
 
     queries = dataset.get("queries", [])
-    eval_config = dataset.get("evaluation", {})
+    dataset.get("evaluation", {})
 
     print("RAG Evaluation Runner")
     print(f"Collection: {collection}")

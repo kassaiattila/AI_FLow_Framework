@@ -198,7 +198,7 @@ class MiroExporter:
         positions = self._calculate_layout(process)
 
         # 3. Create shapes -------------------------------------------
-        step_index = {s.id: s for s in process.steps}
+        {s.id: s for s in process.steps}
         shape_ids: dict[str, str] = {}
         shapes_created = 0
 

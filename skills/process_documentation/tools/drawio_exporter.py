@@ -83,7 +83,7 @@ class DrawioExporter:
         d = DrawioBuilder(process.title, max(max_x, 800), max(max_y, 600))
         d.title(f"<b>{process.title}</b>", 20, 10, max_x - 40, 35)
 
-        step_index = {s.id: s for s in process.steps}
+        {s.id: s for s in process.steps}
         cell_ids: dict[str, str] = {}
 
         # Create nodes

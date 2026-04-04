@@ -106,7 +106,7 @@ class SklearnClassifier:
 
         # Sort by probability descending
         class_proba = sorted(
-            zip(classes, probas),
+            zip(classes, probas, strict=False),
             key=lambda x: x[1],
             reverse=True,
         )

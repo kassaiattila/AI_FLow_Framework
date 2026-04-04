@@ -253,7 +253,7 @@ class IntentDiscoverer:
             logger.warning("discovery.schema_load_failed", error=str(exc))
             return comparisons
 
-        discovered_ids = {d.id for d in discovered}
+        {d.id for d in discovered}
         discovered_merged = set()
         for d in discovered:
             discovered_merged.update(d.merged_from)

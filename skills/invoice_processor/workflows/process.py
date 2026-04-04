@@ -144,7 +144,7 @@ def _parse_single_pdf_sync(pdf_path: Path) -> dict[str, Any]:
             "file_size_kb": pdf_path.stat().st_size / 1024,
         }
     except Exception as pdfium_err:
-        raise RuntimeError(f"All parsers failed for {pdf_path.name}: docling={docling_error}, pypdfium2={pdfium_err}")
+        raise RuntimeError(f"All parsers failed for {pdf_path.name}: docling={docling_error}, pypdfium2={pdfium_err}") from pdfium_err
 
 
 async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:

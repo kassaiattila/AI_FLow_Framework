@@ -151,7 +151,7 @@ def split_dataset(
     test_samples: list[TrainingExample] = []
     rng = random.Random(seed)
 
-    for intent, samples in by_intent.items():
+    for _intent, samples in by_intent.items():
         rng.shuffle(samples)
         n_test = max(1, int(len(samples) * test_ratio))
         test_samples.extend(samples[:n_test])

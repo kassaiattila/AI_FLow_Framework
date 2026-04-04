@@ -41,7 +41,6 @@ from sklearn.preprocessing import MinMaxScaler
 
 # Matplotlib - vizualizacio (opcionalis)
 try:
-    import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
     MATPLOTLIB_ELERHETO = True
 except ImportError:
@@ -126,7 +125,7 @@ def adatok_elokeszitese(df, hianyzo_arany=0.02, random_state=42):
     n_hianyzo = int(df.size * hianyzo_arany)
     hianyzo_sorok = np.random.randint(0, df.shape[0], size=n_hianyzo)
     hianyzo_oszlopok = np.random.randint(0, df.shape[1], size=n_hianyzo)
-    for s, o in zip(hianyzo_sorok, hianyzo_oszlopok):
+    for s, o in zip(hianyzo_sorok, hianyzo_oszlopok, strict=False):
         df_with_nan.iat[s, o] = np.nan
     print(f"\n[Eloeszites] Hianyzo ertekek szimulalva: {df_with_nan.isna().sum().sum()}")
 
@@ -216,7 +215,7 @@ def isolation_forest_detektio(scaled_data, contamination=0.05,
 
     # Statisztikak
     n_anomalia = (labels == -1).sum()
-    n_normalis = (labels == 1).sum()
+    (labels == 1).sum()
 
     print(f"  contamination={contamination:.2%}, n_estimators={n_estimators}")
     print(f"  Skor: [{scores.min():.4f}, {scores.max():.4f}] | "
@@ -275,7 +274,7 @@ def modszerek_osszehasonlitasa(gmm_labels, if_labels, y_true=None):
         gmm_pred = np.array([1 if x == -1 else 0 for x in gmm_labels])
         if_pred = np.array([1 if x == -1 else 0 for x in if_labels])
         consensus_pred = np.array([1 if g == -1 and i == -1 else 0
-                                   for g, i in zip(gmm_labels, if_labels)])
+                                   for g, i in zip(gmm_labels, if_labels, strict=False)])
 
         valos_anomaliak = y_true.sum()
         print(f"  Valos anomaliak szama: {valos_anomaliak}")
@@ -393,7 +392,7 @@ def anomalia_vizualizacio_2d(scaled_data, gmm_labels, if_labels, y_true=None):
         (if_arr, f"Isolation Forest (anomalia: {(if_arr == -1).sum()})"),
         (consensus, f"Consensus (anomalia: {(consensus == -1).sum()})"),
     ]
-    for ax, (labels_arr, cim) in zip(axes, cimkek_lista):
+    for ax, (labels_arr, cim) in zip(axes, cimkek_lista, strict=False):
         szinek = [anomalia_szin if x == -1 else normalis_szin for x in labels_arr]
         ax.scatter(embedding[:, 0], embedding[:, 1], c=szinek, s=10, alpha=0.6)
         if valos_mask is not None:

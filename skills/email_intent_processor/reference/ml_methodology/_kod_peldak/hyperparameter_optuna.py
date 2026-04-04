@@ -44,7 +44,7 @@ from sklearn.svm import SVC
 # külön kell telepíteni: pip install optuna
 try:
     import optuna
-    from optuna.samplers import NSGAIISampler, RandomSampler, TPESampler
+    from optuna.samplers import TPESampler
 
     OPTUNA_AVAILABLE = True
 except ImportError:
@@ -774,7 +774,7 @@ def demo_optuna_visualization(study, study_name: str = "Study"):
     # --- Optimization history ---
     # Az optimalizálás történetét mutatja: hogyan javult az eredmény trialról trialra.
     plt.sca(axes[0])
-    ax = plot_optimization_history(study)
+    plot_optimization_history(study)
     axes[0].set_title(f"{study_name} - Optimalizálás története")
 
     # --- Param importances ---
@@ -782,7 +782,7 @@ def demo_optuna_visualization(study, study_name: str = "Study"):
     # Ez segít eldönteni, melyik paraméterrel érdemes tovább foglalkozni.
     plt.sca(axes[1])
     try:
-        ax = plot_param_importances(study)
+        plot_param_importances(study)
         axes[1].set_title(f"{study_name} - Paraméter fontosság")
     except Exception as e:
         axes[1].text(
@@ -798,7 +798,7 @@ def demo_optuna_visualization(study, study_name: str = "Study"):
 
     # --- Slice plot (külön ábra) ---
     try:
-        fig2 = plt.figure(figsize=(14, 8))
+        plt.figure(figsize=(14, 8))
         plot_slice(study)
         plt.suptitle(f"{study_name} - Paraméter szelet ábrák", fontsize=14)
         plt.tight_layout()

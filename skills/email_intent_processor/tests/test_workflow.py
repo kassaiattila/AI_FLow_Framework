@@ -466,7 +466,7 @@ class TestWorkflowStepParseEmail:
         mock_parser.parse_eml.return_value = mock_result
 
         with patch.object(cmod, "email_parser", mock_parser):
-            result = await cmod.parse_email({"raw_eml_path": str(eml_file)})
+            await cmod.parse_email({"raw_eml_path": str(eml_file)})
             mock_parser.parse_eml.assert_called_once()
 
 
