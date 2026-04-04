@@ -2,6 +2,7 @@
 
 Resolution order: 1) in-memory cache, 2) Langfuse (if enabled), 3) local YAML fallback.
 Supports label-based environments: dev/test/staging/prod.
+Uses Langfuse v4 SDK get_prompt() for remote prompt resolution.
 """
 from __future__ import annotations
 
@@ -13,7 +14,7 @@ import structlog
 import yaml
 from pydantic import BaseModel
 
-from aiflow.prompts.schema import PromptDefinition
+from aiflow.prompts.schema import PromptDefinition, PromptConfig
 
 __all__ = ["PromptManager"]
 
@@ -33,7 +34,7 @@ class PromptManager:
 
     Resolution order for get():
         1. In-memory cache (if not expired)
-        2. Langfuse remote (if enabled) -- placeholder for Phase 5
+        2. Langfuse remote (if enabled, via v4 get_prompt API)
         3. Local YAML file fallback
 
     Args:
@@ -45,15 +46,18 @@ class PromptManager:
         self,
         cache_ttl: float = 300.0,
         langfuse_enabled: bool = False,
+        langfuse_client: Any = None,
     ) -> None:
         self._cache: dict[str, _CacheEntry] = {}
         self._cache_ttl = cache_ttl
         self._langfuse_enabled = langfuse_enabled
+        self._langfuse_client = langfuse_client
         self._yaml_registry: dict[str, Path] = {}  # prompt_name -> yaml_path
         logger.info(
             "prompt_manager.init",
             cache_ttl=cache_ttl,
             langfuse_enabled=langfuse_enabled,
+            has_langfuse_client=langfuse_client is not None,
         )
 
     # --- Public API ---
@@ -84,7 +88,7 @@ class PromptManager:
             logger.debug("prompt_manager.cache_hit", prompt=prompt_name, label=label)
             return entry.prompt
 
-        # 2. Langfuse lookup (placeholder for Phase 5)
+        # 2. Langfuse lookup (real v4 API)
         if self._langfuse_enabled:
             langfuse_prompt = self._fetch_from_langfuse(prompt_name, label)
             if langfuse_prompt is not None:
@@ -211,15 +215,70 @@ class PromptManager:
     def _fetch_from_langfuse(
         self, prompt_name: str, label: str
     ) -> PromptDefinition | None:
-        """Fetch prompt from Langfuse API (placeholder for Phase 5).
+        """Fetch prompt from Langfuse v4 API.
 
-        Returns:
-            PromptDefinition if found, None otherwise.
+        Retrieves a chat prompt from Langfuse and converts it back to a
+        PromptDefinition. Falls back to None if not found or client unavailable.
         """
-        logger.debug(
-            "prompt_manager.langfuse_placeholder",
-            prompt=prompt_name,
-            label=label,
-            note="Langfuse integration will be implemented in Phase 5",
-        )
-        return None
+        client = self._langfuse_client
+        if not client:
+            # Try global client as fallback
+            try:
+                from aiflow.observability.tracing import get_langfuse_client
+                client = get_langfuse_client()
+            except ImportError:
+                pass
+
+        if not client:
+            logger.debug("prompt_manager.langfuse_no_client", prompt=prompt_name)
+            return None
+
+        try:
+            remote = client.get_prompt(name=prompt_name, label=label, type="chat")
+            # ChatPromptClient: name, version, config, labels, prompt are direct attributes
+
+            # Reconstruct PromptDefinition from Langfuse chat prompt
+            system_text = ""
+            user_text = ""
+            messages = remote.prompt  # list of message dicts
+            if isinstance(messages, list):
+                for msg in messages:
+                    if isinstance(msg, dict):
+                        if msg.get("role") == "system":
+                            system_text = msg.get("content", "")
+                        elif msg.get("role") == "user":
+                            user_text = msg.get("content", "")
+
+            # Reconstruct config from Langfuse config field
+            remote_config = remote.config or {}
+            config = PromptConfig(
+                model=remote_config.get("model", "gpt-4o"),
+                temperature=remote_config.get("temperature", 0.7),
+                max_tokens=remote_config.get("max_tokens", 2048),
+                response_format=remote_config.get("response_format"),
+            )
+
+            prompt_def = PromptDefinition(
+                name=remote.name,
+                version=remote_config.get("yaml_version", str(remote.version)),
+                description=remote_config.get("description", ""),
+                system=system_text,
+                user=user_text,
+                config=config,
+            )
+
+            logger.info(
+                "prompt_manager.langfuse_fetch_ok",
+                prompt=prompt_name,
+                label=label,
+                version=prompt_def.version,
+            )
+            return prompt_def
+
+        except Exception as exc:
+            error_str = str(exc)
+            if "not found" in error_str.lower() or "404" in error_str:
+                logger.debug("prompt_manager.langfuse_not_found", prompt=prompt_name, label=label)
+            else:
+                logger.warning("prompt_manager.langfuse_fetch_failed", prompt=prompt_name, error=error_str)
+            return None
