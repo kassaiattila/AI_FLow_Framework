@@ -125,19 +125,16 @@ This enables: new intents/entities without code changes, per-customer customizat
 - **Service tesztek (F0+):** Valos Redis cache hit/miss, valos rate limit ellenorzes, valos config versioning CRUD
 - **Egy feature CSAK AKKOR "KESZ" ha Playwright-tal end-to-end vegig teszteltuk**
 - **Ha egy teszt sikertelen, NEM lepunk tovabb** — elobb javitjuk, ujra teszteljuk
-- **Fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul** (ld. 42_SERVICE_GENERALIZATION_PLAN.md Section 8)
+- **Fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul**
 
 ### Key plan documents:
-- **`01_PLAN/57_PRODUCTION_READY_SPRINT.md`** - **COMPLETE**: v1.2.1 Production Ready (S1-S14 DONE), UI+observability+quality+102 E2E+accessibility
-- **`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`** - Sprint A **COMPLETE** (v1.2.2, A0-A8 DONE), Sprint B **AKTUALIS** (v1.3.0 service excellence B0-B9)
-- **`01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md`** - KESZ: v1.2.0 Pipeline as Code fo terv (C0-C20 DONE)
-- **`01_PLAN/56_EXECUTION_PLAN.md`** - KESZ: 21 ciklus (C0-C20 MIND DONE), v1.2.0 tagged
+- **`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`** - **FO TERV**: Sprint A DONE (v1.2.2), Sprint B AKTUALIS (v1.3.0, B0-B11)
+- **`01_PLAN/README.md`** - Plan mappa index (aktualis + archiv fajlok)
 - `01_PLAN/49-54` - Reszletes tervek (stability, RAG, doc extract, HITL, frontend, LLM quality)
-- `01_PLAN/55_CLAUDE_CODE_CONFIGURATION.md` - Claude iranyitas konfiguracio terv
-- `01_PLAN/43_UI_RATIONALIZATION_PLAN.md` - KESZ: UI migracio (F6, v1.1.4)
-- `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` - KESZ: Service generalizalas (F0-F5, v1.0.0)
-- `01_PLAN/22_API_SPECIFICATION.md` - API specifikacio (112+ endpoint, 19 router)
+- `01_PLAN/22_API_SPECIFICATION.md` - API specifikacio (142 endpoint, 25 router)
 - `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist
+- `01_PLAN/DEVELOPMENT_ROADMAP.md` - Feature roadmap
+- **Archiv:** `01_PLAN/archive/` — befejezett sprintek, regi tervek, session promptok (git history megmarad)
 
 ### Database:
 - PostgreSQL pgvector @ localhost:5433 (Docker: `docker compose up -d db`)

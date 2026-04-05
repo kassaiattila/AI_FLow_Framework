@@ -15,30 +15,19 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - **17-19**: Dev rules (git, testing, RPA)
 - **20-27**: Security, deployment, API spec, config, testing/regression, test structure, Claude Code setup, dev environment
 - **28**: Modular Deployment (Skill Instance architecture, multi-customer deployment)
-- **42**: Service Generalization Plan (F0-F5 KESZ, v1.0.0)
-- **43**: UI Rationalization Plan (F6.0-F6.6, v1.1.0)
-- **48-56**: **v1.2.0 Orchestrable Service Architecture** (AKTUALIS):
-  - **48**: Fo terv (Pipeline as Code, Tier 1-3, 8 fazis)
-  - **49**: Stability & Regression (API compat, DB safety, L0-L4 tesztek)
-  - **50**: RAG & Context-as-a-Service (OCR, chunking, reranking, VectorOps, GraphRAG)
-  - **51**: Document Extraction & Intent (param. doc tipusok, szamla use case)
-  - **52**: Human-in-the-Loop & Notification (review, email/Slack/webhook)
-  - **53**: Frontend Design System (Untitled UI, chat UI, user journey, PWA)
-  - **54**: LLM Quality & Cost (Promptfoo CI/CD, rubric scoring)
-  - **55**: Claude Code Configuration (CLAUDE.md, commands, MCP)
-  - **56**: Execution Plan (20 ciklus, session sablon, progress)
-- **AIFLOW_MASTER_PLAN.md**: Integrated overview of everything
-- **IMPLEMENTATION_PLAN.md**: Step-by-step execution guide (Phase 1-7 KESZ, Fazis 0-5 → ld. 42_)
-- **SKILL_DEVELOPMENT.md**: How to create new skills
+- **58**: **FO TERV** — Sprint A DONE (v1.2.2) + Sprint B AKTUALIS (v1.3.0, B0-B11)
+- **49-54**: v1.2.0 reszletes tervek (stability, RAG, doc extract, HITL, frontend, quality)
+- **README.md**: Plan mappa index (aktualis + archiv)
+- **DEVELOPMENT_ROADMAP.md**: Feature roadmap
+- **Archiv:** `archive/` — befejezett sprintek (42,43,48,56,57), session promptok, regi UI tervek, referencia dok
 
 ## When editing plan documents
 - Keep the Hungarian-English mixed style (Hungarian explanations, English technical terms)
 - Use consistent terminology: Step, Workflow, Skill, Agent, Prompt, ExecutionContext
 - Cross-references use relative links: `[text](filename.md)` (all files are in same directory)
 - DB table names must match 03_DATABASE_SCHEMA.md exactly
-- Phase numbers and week ranges must match 04_IMPLEMENTATION_PHASES.md (legacy) and 42_SERVICE_GENERALIZATION_PLAN.md (aktualis)
-- API endpoints must match 22_API_SPECIFICATION.md (+ 42_ tervezett service endpointok)
-- 6 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, invoice_processor, qbpp_test_automation (cfpb_complaint_router merged into email_intent_processor)
+- API endpoints must match 22_API_SPECIFICATION.md
+- 5 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, invoice_processor (qbpp TOROLVE v1.3.0-ban)
 
 ## Key numbers to keep consistent
 - 45 DB tables, 6 views, 29 Alembic migracio (001-029, mind letezik), 60+ indexes
