@@ -6,7 +6,7 @@ Arguments: $ARGUMENTS
 > **GATE 1 a 7 HARD GATE pipeline-bol. Ez MINDIG az ELSO lepes.**
 > SEMMILYEN UI munka NEM indulhat el enelkul. Sem /ui-design, sem /ui-page, sem /ui-component.
 > A journey definialja: milyen API kell → mi a Figma design → mi a UI implementacio → mi a teszt.
-> **OUTPUT ARTEFAKTUM:** Journey dokumentacio a `01_PLAN/archive/completed_sprints/42_SERVICE_GENERALIZATION_PLAN.md`-ben
+> **OUTPUT ARTEFAKTUM:** Journey dokumentacio a `01_PLAN/63_UI_USER_JOURNEYS.md`-ben
 > VAGY onallo fajl a `01_PLAN/` konyvtarban. Enelkul a kovetkezo gate FAIL.
 
 ## Steps:
@@ -62,11 +62,11 @@ Oszefoglald a szukseges munkakat:
 
 ### 5. OUTPUT
 Mentsd el a journey dokumentaciot:
-- Ha uj journey: hozzaadni `01_PLAN/archive/completed_sprints/42_SERVICE_GENERALIZATION_PLAN.md` Section 11.2-hoz
+- Ha uj journey: mentsd `01_PLAN/63_UI_USER_JOURNEYS.md`-be (vagy uj fajl `01_PLAN/` ala)
 - Ha letezo journey modositas: frissiteni a meglevo bejegyzest
 
 ## FONTOS SZABALYOK:
 - **API-First:** Ha API hianyzik, ELOSZOR backend, AZTAN design, AZTAN UI
 - **Figma-First:** Ha API letezik de design nincs, ELOSZOR Figma, AZTAN UI kod
 - **Valos teszt:** Journey CSAK AKKOR "KESZ" ha Playwright E2E teszten atment valos backend-del
-- **42_ plan reference:** Minden journey a megfelelo fazishoz (F0-F5) tartozik
+- **Sprint B:** Journey-k a `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` B6-B8 fazisaihoz tartoznak

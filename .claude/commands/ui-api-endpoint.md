@@ -2,7 +2,7 @@ Generate a FastAPI endpoint that the AIFlow admin UI will consume.
 
 ## Context
 The backend API is at `src/aiflow/api/v1/` using FastAPI.
-The admin UI (`aiflow-admin/`) calls these via Vite proxy: `/api` → `localhost:8100`.
+The admin UI (`aiflow-admin/`) calls these via Vite proxy: `/api` → `localhost:8102`.
 Data provider: `aiflow-admin/src/dataProvider.ts` maps resources to API endpoints.
 Existing routers: health, auth, workflows, chat_completions, feedback, runs, costs,
 skills_api, documents, emails, process_docs, cubix (12 router files).
@@ -12,7 +12,7 @@ skills_api, documents, emails, process_docs, cubix (12 router files).
 2. HTTP method (GET/POST/PUT/DELETE)
 3. Request/response models (Pydantic)
 4. Data source (database query, service call, file-based)
-5. Whether it's a new service endpoint (check 42_SERVICE_GENERALIZATION_PLAN.md)
+5. Whether it's a new service endpoint (check existing routers in `src/aiflow/api/v1/`)
 
 ## Rules:
 - Use FastAPI router pattern (match existing endpoints in api/v1/)
@@ -40,7 +40,7 @@ skills_api, documents, emails, process_docs, cubix (12 router files).
 ## VALOS teszteles (SOHA ne mock/fake!):
 - **curl hivás KOTELEZO** — NEM csak `200 OK`, hanem a valasz TARTALMAT ellenorizd!
   ```bash
-  curl -s http://localhost:8100/api/v1/{endpoint} | python -m json.tool
+  curl -s http://localhost:8102/api/v1/{endpoint} | python -m json.tool
   ```
 - **source mezo:** A valasz `"source": "backend"` kell legyen — ha `"demo"` jon, az NEM elfogadhato
 - **Ha DB-t hasznal:** valos PostgreSQL query, valos adat a valaszban

@@ -47,7 +47,7 @@ Rules:
 - Temperature should be LOW (0.1-0.3) for classification/extraction
 - ALWAYS include examples in the YAML
 - JSON output MUST use response_format: {"type": "json_object"}
-- **If service generalization**: check `01_PLAN/archive/completed_sprints/42_SERVICE_GENERALIZATION_PLAN.md` — prompt a megfelelo service-hez tartozik?
+- **Service alignment**: check the prompt belongs to the correct skill/service in `skills/*/prompts/`
 
 ## VALOS teszteles kovetelmeny (SOHA ne mock/fake!):
 - **Promptfoo eval:** Minimum 10 valos LLM teszt (4 pozitiv, 2 negativ, 2 edge, 1 adversarial, 1 nyelvi) — valos gpt-4o-mini hivassal, NEM hardcoded response

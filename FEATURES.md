@@ -110,7 +110,7 @@
 | Promptfoo tesztek | 54 test case |
 | Ruff lint | 0 hiba |
 | TypeScript | 0 hiba |
-| DB tablak | 45 |
+| DB tablak | 46 |
 | Alembic migraciok | 29 |
 
 ## Verziok

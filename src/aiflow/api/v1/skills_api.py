@@ -66,13 +66,6 @@ _SKILLS: list[SkillInfoItem] = [
         skill_type="ai",
         description="PDF invoice data extraction (Docling + GPT-4o)",
     ),
-    SkillInfoItem(
-        name="qbpp_test_automation",
-        display_name="QBPP Test Automation",
-        status="stub",
-        skill_type="rpa",
-        description="Insurance calculator test automation",
-    ),
 ]
 
 

@@ -30,19 +30,19 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - 5 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, invoice_processor (qbpp TOROLVE v1.3.0-ban)
 
 ## Key numbers to keep consistent
-- 45 DB tables, 6 views, 29 Alembic migracio (001-029, mind letezik), 60+ indexes
+- 46 DB tables, 6 views, 29 Alembic migracio (001-029, mind letezik), 60+ indexes
 - Framework: 22 weeks, 7 phases (Phase 1-7 KESZ)
 - Service Generalization: Fazis 0-5 KESZ (v1.0.0, 2026-04-02)
 - UI Modernization: F6 KESZ (v1.1.4, 2026-04-03)
 - **v1.2.0 Orchestration: COMPLETE (C0-C20, tag v1.2.0)**
 - **v1.2.1 Production Ready Sprint: COMPLETE (S1-S14, 2026-04-04) — UI integracio, observability, quality, 102 E2E teszt, v1.2.1 tag**
 - **v1.2.2: Sprint A COMPLETE (A0-A8, 2026-04-05) — infra+security+guardrails+audit**
-- **v1.3.0: `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint B: service excellence (B0-B9)**
-- 26 service, 162 endpoint (25 router), 46 DB tabla, 29 Alembic migracio
+- **v1.3.0: `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint B: service excellence (B0-B11)**
+- 26 service, 165 endpoint (25 router), 46 DB tabla, 29 Alembic migracio
 - 18 pipeline adapter, 6 pipeline template
 - 1164 unit test, 76 guardrail teszt, 97 security teszt, 157 skill test, 102 E2E, 54 promptfoo test case
 - v1.2.2 Sprint A COMPLETE (A0-A8, 2026-04-05)
-- 6 skill (qbpp → B0-ban torlesre kerul → 5 skill), 22 UI oldal
+- 5 skill (qbpp TOROLVE v1.3.0 B0-ban), 22 UI oldal
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/
 - Step + SkillRunner architecture (agents/ module removed, llm/ → models/ atnevezve)

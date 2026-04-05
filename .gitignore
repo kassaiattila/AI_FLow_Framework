@@ -97,5 +97,8 @@ aiflow-admin/figma-sync/reference/
 deprecated/
 rxconfig.py
 
-# === Claude Code local (session data, NOT commands/settings) ===
-# .claude/commands/ and .claude/settings.local.json ARE committed
+# === Claude Code — 5 retegu architektura ===
+# COMMITTED (csapat szintu): settings.json, commands/, skills/, agents/
+# NOT COMMITTED (szemelyes): CLAUDE.local.md, settings.local.json
+CLAUDE.local.md
+.claude/settings.local.json

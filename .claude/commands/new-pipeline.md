@@ -8,7 +8,7 @@ $ARGUMENTS — natural language description of the pipeline (e.g., "email szamla
 ### 1. Discover Available Adapters
 - Read `src/aiflow/pipeline/adapters/` directory
 - List each adapter's `service_name`, `method_name`, `input_schema`, `output_schema`
-- If the adapter directory does not exist yet, list planned adapters from `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md`
+- If the adapter directory does not exist yet, check `src/aiflow/pipeline/adapters/` for available patterns
 
 ### 2. Match Services to Description
 - Identify required services for the described workflow
@@ -17,7 +17,7 @@ $ARGUMENTS — natural language description of the pipeline (e.g., "email szamla
 - Identify `condition` needs (branching)
 
 ### 3. Generate Pipeline YAML
-Follow the schema from `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` Phase 2:
+Follow the pipeline YAML schema (see existing templates in `src/aiflow/pipeline/builtin_templates/`):
 
 ```yaml
 name: <pipeline_name>
