@@ -634,11 +634,13 @@ FAZIS 1 — ALAPOK (S19-S21): 3 session
   B1: LLM guardrail promptok (4 YAML) + per-skill guardrails.yaml
       TESZTELES: 20+ Promptfoo, 25 guardrail unit test, golden dataset
 
-FAZIS 2 — E2E SZOLGALTATASOK (S22-S28): 7 session
+FAZIS 2 — E2E SZOLGALTATASOK (S22-S29): 8 session
   B2: Service unit tesztek (130 teszt, Tier-based)
       TESZTELES: 130/130 PASS, coverage >= 70%
   B3: Invoice Finder — valos E2E szolgaltatas (UI-bol inditva, Docker-ready!)
       TESZTELES: valos postafiok, valos szamlak, valos LLM, pipeline vegigfut
+  B3.5: KONFIDENCIA SCORING HARDENING — megbizhato ertekek + auto-routing
+      TESZTELES: kalibraciot teszt (predicted vs actual), routing E2E teszt
   B4: Skill hardening (5 skill, 95%+ promptfoo)
       TESZTELES: Promptfoo eval, guardrail teszt, /service-test
   B5: Diagram pipeline + Spec writer szolgaltatas + koltseg baseline
@@ -1051,6 +1053,175 @@ GATE: Pipeline vegigfut valos adatokkal, promptfoo 95%+, riport helyes, fajlok m
 
 ---
 
+## B3.5: Konfidencia Scoring Hardening — 1 session (S25.5 — B3 utan, B4 elott)
+
+> **Gate:** Konfidencia ertekek kalibralt, megbizhato, per-field, es confidence→review routing MUKODIK.
+> **KRITIKUS:** A konfidencia ertekek drivoljak a user interakciokat (mi kerul human review-ra,
+> mi lesz auto-approved). Megbizhatatlan ertek = rossz user experience + hibas dontes.
+
+```
+B3.5.1 — Konfidencia Scoring Audit Eredmenyek (MEGLEVO ALLAPOT):
+
+  === PROBLEMA TERKEP ===
+
+  KRITIKUS (routing-ot befolyasol):
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ #1: Confidence→Review routing NEM LETEZIK                      │
+  │     HumanReviewService kész, de SEMMI nem hívja automatikusan  │
+  │     Tervezett küszöbök (>0.90 auto, >0.70 review, <0.50 reject)│
+  │     de NINCS bekötve a kódban!                                 │
+  ├───���─────────────────────────���───────────────────────────────────┤
+  │ #2: LLM self-report konfidencia MEGBIZHATATLAN                 │
+  │     4 komponens vakon bízik: classifier, doc_extractor,        │
+  │     entity_extractor, free_text. Az LLM 0.9-et mond de        │
+  │     a valós pontosság lehet 60%.                               │
+  ├──────────��───────────────────────────��──────────────────────────┤
+  │ #3: NINCS per-field konfidencia                                │
+  │     Dokumentum extrakciónál csak 1 összesített szám van.       │
+  │     A user NEM TUDJA melyik mező lehet hibás.                  │
+  └───────────────���─────────────────────────────────────────────────┘
+
+  KOZEPES (minoseg):
+  - BM25 nem normalizalt (0.6*cosine + 0.4*BM25 > 1.0 lehetseges)
+  - SequenceMatcher hallucination scoring (karakter, nem szemantikus)
+  - Hardcoded entity confidence (regex=0.9, LLM=0.8) — nem kontextus-fuggő
+  - Classifier ensemble "magic number" (0.1 agreement bonus)
+
+  JOL MUKODO (megtartando minta):
+  - AttachmentProcessor quality score: 5-faktor sulyozott atlag — MINTA!
+  - CalibratedClassifierCV: sklearn predict_proba — megbizhato
+  - Invoice validator: szabaly-alapu (1.0 - buntetesek) — determinisztikus
+
+B3.5.2 — Konfidencia Szamitas Javitas (3 retegu megkozelites):
+
+  RETEG 1: Rule-based Konfidencia (determinisztikus, megbizhato)
+    Az AttachmentProcessor 5-faktor mintat kell kovetni MINDENHOL.
+
+    Document Extraction per-field confidence:
+    ┌─────────────────────────────────────────────────────────┐
+    │ Per-mezo konfidencia szamitas:                          │
+    │                                                         │
+    │ field_confidence = w1 * format_match                    │
+    │                  + w2 * regex_validation                │
+    │                  + w3 * cross_field_consistency          │
+    │                  + w4 * source_quality                   │
+    │                                                         │
+    │ format_match (0.30): datum format? szam format? adoszam │
+    │   11 jegy? bankszamla 8 jegy? email valid?              │
+    │ regex_validation (0.25): mezo-specifikus regex illesztes │
+    �� cross_field_consistency (0.25): netto+afa=brutto?        │
+    │   datum1 < datum2? kiallito match adoszam prefix?        │
+    │ source_quality (0.20): Docling vs Azure DI vs OCR?      │
+    │   Tiszta PDF=1.0, scan=0.7, keziras=0.4                │
+    └────────��────────────────────────────────────��───────────┘
+
+    Document overall confidence:
+    - overall = weighted_mean(field_confidences) * structural_penalty
+    - structural_penalty: ha kotelezo mezo hianyzik → -0.2/mezo
+    - SOHA NE LLM self-report!
+
+  RETEG 2: Kalibraciot Reteg (LLM confidence korrekcioja)
+    Ha LLM konfidenciat is hasznalunk (pl. classifier ensemble):
+    - Kalibracios tabla: LLM reported 0.9 → valós 0.72 (mért, nem becsült)
+    - Hogyan merjuk: 100+ pelda → LLM confidence vs human ground truth
+    - Sigmoid kalibraciot fuggveny: calibrated = sigmoid(a * raw + b)
+    - a, b parameterek a meresi adatokbol illesztve
+    - EZ A PROMPTFOO EVAL RESZE: "reported confidence" vs "actual correctness"
+
+  RETEG 3: Ensemble Konfidencia (tobb forras kombinalasa)
+    | Forras | Suly | Miert |
+    |--------|------|-------|
+    | Rule-based (regex, format, cross) | 0.50 | Determinisztikus, megbizhato |
+    | Kalibralt LLM confidence | 0.30 | Eros de kalibralas KELL |
+    | Source quality (parser tipus) | 0.20 | Docling vs Azure DI vs OCR |
+
+B3.5.3 — Confidence→Review Routing Bekotes (KRITIKUS!):
+
+  Vegre osszekotjuk a konfidenciat a Human Review-val!
+
+  IMPLEMENTACIO:
+  ```python
+  # src/aiflow/engine/confidence_router.py (UJ fajl)
+
+  async def route_by_confidence(
+      result: ExtractionResult,
+      config: ConfidenceRoutingConfig,
+      review_service: HumanReviewService,
+  ) -> RoutingDecision:
+      score = result.overall_confidence
+
+      if score >= config.auto_approve_threshold:     # default 0.90
+          return RoutingDecision.AUTO_APPROVED
+
+      elif score >= config.review_threshold:          # default 0.70
+          await review_service.create_review(
+              entity_type="extraction",
+              entity_id=result.document_id,
+              title=f"Review: {result.document_title}",
+              priority="normal",
+              metadata={"confidence": score, "low_confidence_fields": result.low_fields},
+          )
+          return RoutingDecision.SENT_TO_REVIEW
+
+      else:                                           # < 0.50 (reject_threshold)
+          await review_service.create_review(
+              entity_type="extraction",
+              entity_id=result.document_id,
+              title=f"LOW CONFIDENCE: {result.document_title}",
+              priority="high",
+              metadata={"confidence": score, "reason": "below_reject_threshold"},
+          )
+          return RoutingDecision.REJECTED_FOR_REVIEW
+  ```
+
+  KONFIGURACIO (per-skill):
+  ```yaml
+  # skills/invoice_finder/confidence_config.yaml
+  routing:
+    auto_approve_threshold: 0.90    # >= 0.90: automatikusan elfogadva
+    review_threshold: 0.70          # 0.70-0.89: human review kell
+    reject_threshold: 0.50          # < 0.50: elutasitva, ujra-feldolgozas
+
+  field_weights:
+    invoice_number: 0.15
+    date: 0.10
+    amount: 0.20              # penzugyi mezo magasabb suly!
+    tax_number: 0.15
+    vendor_name: 0.10
+    line_items: 0.20          # tetelek konzisztenciaja
+    payment_due: 0.10
+  ```
+
+B3.5.4 — BM25 Normalizalas (RAG search fix):
+  - BM25 score normalizalasa [0,1] tartomanyba
+  - avg_dl szamitasa a valos collection statisztikabol (NEM hardcoded 200)
+  - combined_score = 0.6*cosine + 0.4*normalized_bm25 → mindig [0,1]
+
+B3.5.5 — Hallucination Scoring Javitas:
+  - SequenceMatcher → embedding-based semantic similarity (elso lepes)
+  - B1.3 hallucination_evaluator.yaml LLM prompt (masodik reteg, ha bizonytalan)
+  - Promptfoo factuality scorer integracio (harmadik reteg, CI/CD)
+
+B3.5.6 — Per-Field Confidence UI Megjelenites:
+  - Verification Page (B7) hasznalat: minden mezo mellett konfidencia szin
+  - Zold (>=0.90): valoszinuleg helyes
+  - Sarga (0.70-0.89): ellenorizd
+  - Piros (<0.70): valoszinuleg hibas → kiemelt megjelenites
+  - A user eloszor a PIROS mezokre fokuszal → hatekonyabb review
+
+B3.5.7 — Teszteles:
+  - 20 valos szamla (scan, digitalis, keziras, kulfoldi, tobboldal)
+  - Per-field confidence vs human ground truth osszehasonlitas
+  - Kalibraciot teszt: predicted confidence → actual accuracy gorbek
+  - Routing teszt: 0.95 → auto, 0.75 → review, 0.40 → reject (E2E)
+  - Regresszio: meglevo AttachmentProcessor quality score NEM romolhat
+
+GATE: Per-field confidence mukodik, routing bekotve (auto/review/reject),
+      kalibracios teszt lefutott, Verification Page szines mezojeloles kesz
+```
+
+---
+
 ## B4: Skill Hardening (5 skill) — 2 session (S26-S27)
 
 > **Gate:** 5/5 skill 95%+ promptfoo, 5/5 guardrails.yaml KESZ, 5/5 checklist 8+/10.
@@ -1431,24 +1602,25 @@ S19: B0 — Guardrail per-function + qbpp torles + Claude↔AIFlow koncepcio + c
 S20: B1.1 — LLM guardrail promptok (4 YAML + Promptfoo) + llm_guards.py
 S21: B1.2 — Per-skill guardrails.yaml (5 skill) + golden dataset
 
-=== FAZIS 2: E2E SZOLGALTATASOK (S22-S28) ===
+=== FAZIS 2: E2E SZOLGALTATASOK (S22-S29) ===
 S22: B2.1 — Core infra service tesztek (65 test)
 S23: B2.2 — v1.2.0 service tesztek (65 test)
-S24: B3.1 — Invoice Finder pipeline: design + email search + doc acquisition
-S25: B3.2 — Invoice Finder: extraction + report + notification (valos adat!)
-S26: B4.1 — Skill hardening: aszf_rag + email_intent (prompt + guardrail)
-S27: B4.2 — Skill hardening: process_docs + invoice + cubix + diagram integralas
-S28: B5 — Spec writer prototipus + diagram pipeline + koltseg baseline
+S24: B3.1 — Invoice Finder: pipeline design + email + doc acquisition
+S25: B3.2 — Invoice Finder: extract + report + notification (valos adat!)
+S26: B3.5 — KONFIDENCIA SCORING HARDENING + confidence→review routing
+S27: B4.1 — Skill hardening: aszf_rag + email_intent
+S28: B4.2 — Skill hardening: process_docs + invoice + cubix + diagram
+S29: B5 — Spec writer + diagram pipeline + koltseg baseline
 
-=== FAZIS 3: UI EXCELLENCE (S29-S31) ===
-S29: B6 — UI Journey audit + 4 fo journey tervezes + navigacio redesign terv
-S30: B7 — Verification Page v2 (bounding box, edit diff, perzisztencia)
-S31: B8 — UI Journey implementacio (top 3 journey + dark mode + responsive)
+=== FAZIS 3: UI EXCELLENCE (S30-S32) ===
+S30: B6 — UI Journey audit + 4 journey tervezes + navigacio redesign
+S31: B7 — Verification Page v2 (bounding box, diff, per-field confidence szin)
+S32: B8 — UI Journey implementacio (top 3 journey + dark mode)
 
-=== FAZIS 4: RELEASE (S32-S34) ===
-S32: B9 — Claude↔AIFlow mukodo prototipus (/find-invoices, /generate-diagram, /write-spec)
-S33: B10 — POST-AUDIT + javitasok
-S34: B11 — v1.3.0 tag + merge
+=== FAZIS 4: DEPLOY & RELEASE (S33-S35) ===
+S33: B9 — Docker containerization + UI pipeline trigger + deploy teszt
+S34: B10 — POST-AUDIT + javitasok
+S35: B11 — v1.3.0 tag + merge
 ```
 
 ---
@@ -1477,24 +1649,26 @@ S22: B2.1 ─ Core infra service tesztek (65 test, Tier 1)
 S23: B2.2 ─ v1.2.0 service tesztek (65 test, Tier 2)
 S24: B3.1 ─ Invoice Finder: pipeline design + email + doc acquisition
 S25: B3.2 ─ Invoice Finder: extract + report + notification (valos adat!)
-S26: B4.1 ─ Skill hardening: aszf_rag + email_intent
-S27: B4.2 ─ Skill hardening: process_docs + invoice + cubix + diagram
-S28: B5 ─── Spec writer + diagram pipeline + koltseg baseline
+S26: B3.5 ─ Konfidencia scoring hardening + confidence→review routing
+S27: B4.1 ─ Skill hardening: aszf_rag + email_intent
+S28: B4.2 ─ Skill hardening: process_docs + invoice + cubix + diagram
+S29: B5 ─── Spec writer + diagram pipeline + koltseg baseline
 
---- Fazis 3: UI Excellence (S29-S31) ---
-S29: B6 ─── UI Journey audit + 4 journey tervezes + navigacio redesign
-S30: B7 ─── Verification Page v2 (bounding box, diff, perzisztencia)
-S31: B8 ─── UI Journey implementacio (top 3 journey + dark mode)
+--- Fazis 3: UI Excellence (S30-S32) ---
+S30: B6 ─── UI Journey audit + 4 journey tervezes + navigacio redesign
+S31: B7 ─── Verification Page v2 (bounding box, diff, per-field confidence szin)
+S32: B8 ─── UI Journey implementacio (top 3 journey + dark mode)
 
---- Fazis 4: Release (S32-S34) ---
-S32: B9 ─── Docker containerization + UI pipeline trigger + deploy teszt
-S33: B10 ── POST-AUDIT + javitasok
-S34: B11 ── v1.3.0 tag + merge
+--- Fazis 4: Deploy & Release (S33-S35) ---
+S33: B9 ─── Docker containerization + UI pipeline trigger + deploy teszt
+S34: B10 ── POST-AUDIT + javitasok
+S35: B11 ── v1.3.0 tag + merge
 ```
 
-**Osszes:** Sprint A 4 + Sprint B 16 = **20 session**, ~8,000 LOC, ~400+ uj teszt,
+**Osszes:** Sprint A 4 + Sprint B 17 = **21 session**, ~9,000 LOC, ~420+ uj teszt,
 2 version tag (v1.2.2 DONE + v1.3.0), 1 uj E2E pipeline (Invoice Finder),
-Verification Page v2, Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
+konfidencia hardening + auto-routing, Verification Page v2 per-field confidence,
+Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 
 ---
 
@@ -1522,6 +1696,7 @@ Verification Page v2, Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ pro
 | 3 | **UI Journey** | 3/4 fo journey mukodik end-to-end, navigacio redesign LIVE |
 | 4 | **Guardrail per-function** | 5/5 skill guardrails.yaml, PII config skill-specifikus |
 | 5 | **LLM Guardrail** | 4/4 prompt 95%+ Promptfoo, rule→LLM fallback mukodik |
+| 5.5 | **Konfidencia scoring** | Per-field confidence, kalibralt, confidence→review routing mukodik |
 | 6 | **Service tesztek** | 130+ uj unit test PASS, coverage >= 70% services/ |
 | 7 | **Skill minoseg** | 5/5 skill 95%+ promptfoo |
 | 8 | **Diagram + Spec** | Diagram pipeline E2E + spec writer szolgaltatas mukodik |
@@ -1571,7 +1746,8 @@ Verification Page v2, Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ pro
 | B1 | LLM guardrail promptok + per-skill config | S20-S21 | TODO | — | — |
 | B2 | Service unit tesztek (130 test, Tier-based) | S22-S23 | TODO | — | — |
 | B3 | **Invoice Finder E2E pipeline** (valos adat!) | S24-S25 | TODO | — | — |
-| B4 | Skill hardening (5 skill, 95%+ promptfoo) | S26-S27 | TODO | — | — |
+| B3.5 | **Konfidencia scoring hardening** + review routing | S26 | TODO | — | — |
+| B4 | Skill hardening (5 skill, 95%+ promptfoo) | S27-S28 | TODO | — | — |
 | B5 | Diagram pipeline + Spec writer + koltseg baseline | S28 | TODO | — | — |
 | B6 | UI Journey audit + 4 journey tervezes | S29 | TODO | — | — |
 | B7 | **Verification Page v2** (bounding box, diff, DB) | S30 | TODO | — | — |
