@@ -568,6 +568,61 @@ Session 22: A7+A8 (Javitasok + tag) ───── Fix + v1.2.2
 > - **Docker container-ready**: minden szolgaltatas ugyfél-kesz megoldas
 > - **TESZTELES explicit fazis** minden fejlesztesi lepesben
 > - Koltseg optimalizalas: NEM prioritas (dev fazis), csak baseline meres
+> - **MEGLEVO KERETRENDSZER HASZNALATA** — NEM ujraepitjuk ami mar letezik!
+> - **Claude learnings gyujtes** — sprint kozben tanulsagok, javaslatok gyujtese
+>
+> ## MEGLEVO KERETRENDSZER — SPRINT B-BEN FELHASZNALANDO
+>
+> **NEM KELL MEGEPITENI (mar letezik es mukodik):**
+>
+> | Komponens | Hol | Mit tud | Sprint B hasznalja |
+> |-----------|-----|---------|-------------------|
+> | PipelineRunner + Compiler | pipeline/ | YAML → DAG → vegrehajtas, Langfuse, cost tracking | B3 Invoice Finder |
+> | 19 Adapter | pipeline/adapters/ | email, document, classifier, notification, stb. | B3, B4, B5 |
+> | 6 Pipeline Template | pipeline/builtin_templates/ | invoice_v1, invoice_v2, email_triage, rag_ingest, contract, kb_update | B3 (invoice_v1/v2 KÉSZ!) |
+> | DocumentRegistry | documents/ | Lifecycle (draft→active→archived), versioning, freshness | B3, B7 |
+> | document_type_configs tabla | state/ (migration 015) | Extraction mezok definialasa per doku tipus | B3 (szamla mezo config!) |
+> | invoices + line_items tablak | state/ (migration 016) | Szamla es teteleinek tarolasa | B3 |
+> | human_reviews tabla | state/ (migration 022) | Pending→approve/reject workflow | B7 Verification |
+> | HumanReviewService | services/human_review/ | Review queue CRUD, prioritas, reviewer | B7 |
+> | notification_channels + log | state/ (migration 028) | Multi-channel (email, Slack, webhook, in-app) | B3, B8 |
+> | NotificationService | services/notification/ | Jinja2 template, kuldes, log | B3 |
+> | cost_records + nezetek | state/ (migration 006) | Per-step LLM koltseg, v_daily_team_costs | B5 |
+> | JobQueue + Worker | execution/ | Async pipeline vegrehajtas, prioritas, DLQ | B3 |
+> | Scheduler | execution/ | Cron trigger pipeline-okra | B3 |
+> | DoclingParser | ingestion/parsers/ | PDF/DOCX/XLSX/HTML universal parse | B3, B4 |
+> | SemanticChunker | ingestion/ | Dokumentum darabolás RAG-hoz | B4 |
+> | 142 API endpoint (25 router) | api/v1/ | pipelines/*, documents/*, runs/*, notifications/* | B3, B8, B9 |
+> | StateRepository | state/repository.py | workflow_run + step_run CRUD, checkpoint, resume | B3 |
+>
+> **B3 INVOICE FINDER KULCSFONTOSSAGU:** Az invoice_automation_v1.yaml es v2.yaml
+> pipeline template-ek MAR LETEZNEK! A B3 feladata: OSSZEKOTNI es TESZTELNI,
+> NEM ujraepiteni. UI trigger + valos adat + verification workflow.
+>
+> ## CLAUDE LEARNINGS GYUJTES (Sprint B teljes idotartamara)
+>
+> **Cel:** Sprint vegen megalapozott Claude MD + command + skill konfiguracio javaslat.
+>
+> **Gyujtes helye:** `.claude/sprint_b_learnings/` mappa (ELKULONITETT a valos command-oktol!)
+>
+> ```
+> .claude/sprint_b_learnings/
+>   README.md                    # Mi ez a mappa, hogyan hasznald
+>   claude_md_proposals.md       # CLAUDE.md modositasi javaslatok
+>   command_proposals.md         # Uj/modositott slash command otletek
+>   skill_proposals.md           # Claude Code skill definicio otletek
+>   mcp_notes.md                 # MCP plugin tapasztalatok (Playwright, PostgreSQL, Figma)
+>   workflow_patterns.md         # Bevalt fejlesztesi mintak (ami jol mukodott)
+>   anti_patterns.md             # Ami NEM mukodott / kerulendo
+>   testing_insights.md          # Tesztelesi tanulsagok
+> ```
+>
+> **Szabalyok:**
+> - Minden session vegen: ami tanulsag volt → ide kerul
+> - NEM a valos .claude/commands/-ba — ELKULONITETT gyujtes
+> - Sprint vegen (B10): osszesites + javaslat a vegleges konfiguraciora
+> - B10 POST-AUDIT resze: Claude config javaslat review
+> - Sprint KOZBEN is kiprobalhatok az otletek (de a vegleges CSAK B10-ben kerul at)
 
 ## Sprint B Fazisok — Attekintes
 
@@ -780,10 +835,11 @@ GATE: 130/130 PASS, coverage >= 70%
 
 ---
 
-## B3: Invoice Finder — Elso Valos E2E AIFlow Pipeline — 2 session (S24-S25)
+## B3: Invoice Finder — Elso Valos E2E AIFlow Szolgaltatas — 2 session (S24-S25)
 
 > **Gate:** Teljes pipeline mukodik valos adatokkal: email → szamla → extract → report → ertesites.
-> **Ez az elso VALOS, vegig mukodo AIFlow — minden alapozo szolgaltatast validál.**
+> **Ez az elso VALOS, vegig mukodo AIFlow — a MEGLEVO keretrendszerre epit!**
+> **FONTOS:** invoice_automation_v1/v2.yaml MAR LETEZIK! A feladat: osszekotes + prompt + UI trigger + teszt.
 
 ```
 B3.1 — Pipeline Design + Email/Acquisition Steps (S24):
@@ -839,15 +895,44 @@ B3.2 — Extraction + Report + Notification (S25):
     - Csatolmany: invoices.csv
     - OUTPUT: email elkuldve + log
 
+  MEGLEVO FRAMEWORK HASZNALAT:
+    - pipeline/builtin_templates/invoice_automation_v1.yaml → KIINDULAS
+    - email_adapter (pipeline/adapters/) → email kereses
+    - document_adapter → Docling parse
+    - classifier_adapter → szamla osztalyozas
+    - notification_adapter → email riport kuldes
+    - invoices + line_items tablak (migration 016) → adat tarolás
+    - document_type_configs (migration 015) → szamla mezo definiciok
+    - cost_records → pipeline koltseg tracking
+    - StateRepository → workflow_run + step_run perzisztencia
+    - PipelineRunner → orchestracio (YAML → DAG → vegrehajtas)
+
+  PROMPT FEJLESZTES + TESZTELES (B3 KRITIKUS RESZE!):
+    UJ/MODOSITOTT PROMPT YAML-ok:
+    - invoice_email_scanner.yaml — email body → szamla relevancia scoring
+    - invoice_field_extractor.yaml — PDF → strukturalt szamla adatok (szam, datum, osszeg, adoszam)
+    - invoice_classifier.yaml — szamla vs. nem-szamla (precision-optimalizalt)
+    - invoice_payment_status.yaml — fizetett/lejart megallpitas
+    - invoice_report_generator.yaml — osszefoglalo riport generalas
+
+    PROMPTFOO TESZTELES (KOTELEZO!):
+    - skills/invoice_finder/tests/promptfooconfig.yaml
+    - 5 prompt × 3+ test case = 15+ Promptfoo test case
+    - Valos szamla peldak: magyar, angol, scan, digitalis, tobboldal
+    - GATE: 95%+ pass rate MINDEN prompt-ra
+
   E2E TESZT (valos adat!):
     - 1 valos postafiok (dev/test mailbox)
     - 3-5 valos szamla PDF (kulonbozo formatumok)
     - Pipeline vegigfut → riport + mentett fajlok ellenorzese
     - NEM mock — valos IMAP + valos Docling + valos LLM
+    - UI-bol inditva: "Scan Mailbox" gomb → POST /api/v1/pipelines/run
+    - Eredmeny megjelenitese UI-ban (riport, szamla lista)
 
-  CLI: python -m skills.invoice_finder --mailbox dev@bestix.hu --output ./invoices/
+  CLI (fejlesztesi/teszt cel): python -m skills.invoice_finder --mailbox dev@bestix.hu --output ./invoices/
+  UI (uzemeltetesi cel): aiflow-admin → Invoice Finder oldal → "Scan" gomb
 
-GATE: Pipeline vegigfut valos adatokkal, riport helyes, fajlok mentve, email elkuldve
+GATE: Pipeline vegigfut valos adatokkal, promptfoo 95%+, riport helyes, fajlok mentve, email elkuldve, UI-bol inditható
 ```
 
 ---
@@ -901,18 +986,27 @@ GATE: 5/5 skill 95%+ promptfoo, 5/5 checklist 8+/10
 ```
 B5.1 — Diagram Generalo Integralas:
   KONTEXTUS: Mar van Mermaid/BPMN/DrawIO + Kroki render + Python kodok.
+  MEGLEVO: diagram_adapter (pipeline/adapters/), diagram_generator service, Kroki Docker.
   CEL: Egysegesi interface amivel jol vezerelheto diagramok keszulnek.
 
   - Meglevo Python diagram kodok osszegyujtese (skills/process_documentation/)
   - Egysegesi DiagramRequest → DiagramResult Pydantic interface
   - Tamogatott tipusok: Mermaid flowchart, sequence, BPMN swimlane, DrawIO
-  - LLM prompt: szoveges leiras → strukturalt diagram (Mermaid syntax)
-  - Kroki render: Mermaid → SVG/PNG
-  - Pipeline: diagram_generator_v1.yaml
-  - 5 unit teszt + 3 E2E (szoveges leiras → renderelt kep)
+  - Pipeline: diagram_generator_v1.yaml (diagram_adapter HASZNALATA)
+  - UI oldal: szoveges leiras input → "Generate" gomb → renderelt kep
 
-B5.2 — Specifikacio Iro AIFlow Prototipus:
-  CEL: Szobeli/vazlatos leiras → strukturalt specifikacio.
+  PROMPT FEJLESZTES + TESZTELES:
+    UJ/MODOSITOTT PROMPT YAML-ok:
+    - diagram_planner.yaml — leiras → diagram tipus + struktura valasztas
+    - mermaid_generator.yaml — struktura → Mermaid syntax (javitott, komplex flow)
+    - diagram_reviewer.yaml — szintaxis validacio + javitas
+    Promptfoo: 5+ test case (flowchart, sequence, BPMN, komplex, hibas input)
+    GATE: 95%+ pass rate
+
+  5 unit teszt + 3 E2E (szoveges leiras → renderelt kep)
+
+B5.2 — Specifikacio Iro AIFlow Szolgaltatas:
+  CEL: Szobeli/vazlatos leiras → strukturalt specifikacio (ugyfel-ready szolgaltatas).
 
   Pipeline: spec_writer_v1.yaml
   STEP 1 — Input Analysis: szabad szoveges leiras strukturalas
@@ -921,9 +1015,16 @@ B5.2 — Specifikacio Iro AIFlow Prototipus:
   STEP 4 — Review Questions: "Ezekre a kerdesekre meg valasz kell..."
   STEP 5 — Final Output: Markdown specifikacio
 
-  Prompt YAML: spec_analyzer.yaml, spec_generator.yaml, spec_reviewer.yaml
-  3 Promptfoo test case (feature spec, API spec, user story)
-  CLI: python -m skills.spec_writer --input "leiras..." --type feature --output spec.md
+  PROMPT FEJLESZTES + TESZTELES:
+    UJ PROMPT YAML-ok:
+    - spec_analyzer.yaml — leiras → strukturalt kovetelemeny
+    - spec_generator.yaml — kovetelemeny → specifikacio sablon kitoltes
+    - spec_reviewer.yaml — minoseg ellenorzes + hianyzo reszek azonositas
+    Promptfoo: 5+ test case (feature spec, API spec, user story, HU+EN, hibas input)
+    GATE: 90%+ pass rate (prototipus, 95% Sprint C-ben)
+
+  UI oldal: szoveg input → tipus valasztas → "Write Spec" gomb → specifikacio output
+  CLI (dev cel): python -m skills.spec_writer --input "leiras..." --type feature --output spec.md
 
 B5.3 — Langfuse Koltseg Baseline (egyszerusitett):
   - Per-service koltseg export Langfuse-bol
