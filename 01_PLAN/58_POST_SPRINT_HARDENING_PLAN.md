@@ -1137,58 +1137,49 @@ B3.5.3 — Confidence→Review Routing Bekotes (KRITIKUS!):
 
   Vegre osszekotjuk a konfidenciat a Human Review-val!
 
-  IMPLEMENTACIO:
-  ```python
-  # src/aiflow/engine/confidence_router.py (UJ fajl)
+  IMPLEMENTACIO (src/aiflow/engine/confidence_router.py — UJ fajl):
 
-  async def route_by_confidence(
-      result: ExtractionResult,
-      config: ConfidenceRoutingConfig,
-      review_service: HumanReviewService,
-  ) -> RoutingDecision:
-      score = result.overall_confidence
+    async def route_by_confidence(result, config, review_service):
+        score = result.overall_confidence
 
-      if score >= config.auto_approve_threshold:     # default 0.90
-          return RoutingDecision.AUTO_APPROVED
+        if score >= config.auto_approve_threshold:     # default 0.90
+            return RoutingDecision.AUTO_APPROVED
 
-      elif score >= config.review_threshold:          # default 0.70
-          await review_service.create_review(
-              entity_type="extraction",
-              entity_id=result.document_id,
-              title=f"Review: {result.document_title}",
-              priority="normal",
-              metadata={"confidence": score, "low_confidence_fields": result.low_fields},
-          )
-          return RoutingDecision.SENT_TO_REVIEW
+        elif score >= config.review_threshold:          # default 0.70
+            await review_service.create_review(
+                entity_type="extraction",
+                entity_id=result.document_id,
+                title=f"Review: {result.document_title}",
+                priority="normal",
+                metadata={"confidence": score, "low_confidence_fields": ...},
+            )
+            return RoutingDecision.SENT_TO_REVIEW
 
-      else:                                           # < 0.50 (reject_threshold)
-          await review_service.create_review(
-              entity_type="extraction",
-              entity_id=result.document_id,
-              title=f"LOW CONFIDENCE: {result.document_title}",
-              priority="high",
-              metadata={"confidence": score, "reason": "below_reject_threshold"},
-          )
-          return RoutingDecision.REJECTED_FOR_REVIEW
-  ```
+        else:                                           # < 0.50
+            await review_service.create_review(
+                entity_type="extraction",
+                entity_id=result.document_id,
+                title=f"LOW CONFIDENCE: {result.document_title}",
+                priority="high",
+                metadata={"confidence": score, "reason": "below_reject_threshold"},
+            )
+            return RoutingDecision.REJECTED_FOR_REVIEW
 
-  KONFIGURACIO (per-skill):
-  ```yaml
-  # skills/invoice_finder/confidence_config.yaml
-  routing:
-    auto_approve_threshold: 0.90    # >= 0.90: automatikusan elfogadva
-    review_threshold: 0.70          # 0.70-0.89: human review kell
-    reject_threshold: 0.50          # < 0.50: elutasitva, ujra-feldolgozas
+  KONFIGURACIO (skills/invoice_finder/confidence_config.yaml):
 
-  field_weights:
-    invoice_number: 0.15
-    date: 0.10
-    amount: 0.20              # penzugyi mezo magasabb suly!
-    tax_number: 0.15
-    vendor_name: 0.10
-    line_items: 0.20          # tetelek konzisztenciaja
-    payment_due: 0.10
-  ```
+    routing:
+      auto_approve_threshold: 0.90    # >= 0.90: automatikusan elfogadva
+      review_threshold: 0.70          # 0.70-0.89: human review kell
+      reject_threshold: 0.50          # < 0.50: elutasitva, ujra-feldolgozas
+
+    field_weights:
+      invoice_number: 0.15
+      date: 0.10
+      amount: 0.20              # penzugyi mezo magasabb suly!
+      tax_number: 0.15
+      vendor_name: 0.10
+      line_items: 0.20          # tetelek konzisztenciaja
+      payment_due: 0.10
 
 B3.5.4 — BM25 Normalizalas (RAG search fix):
   - BM25 score normalizalasa [0,1] tartomanyba
