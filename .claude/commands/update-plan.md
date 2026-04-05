@@ -51,16 +51,20 @@ After ALL edits are done, run these automated checks:
 ### 3.1 Key Numbers Check
 Grep ALL .md files for these numbers and verify consistency:
 ```bash
-# DB tables count (canonical: 36 tabla)
-grep -rn "3[0-9] tabla\|3[0-9] table" 01_PLAN/*.md CLAUDE.md
-# Views count (canonical: 13 view)
-grep -rn "1[0-9] view" 01_PLAN/*.md CLAUDE.md
-# Migration count (canonical: 13 letezo migracio fajl, 001-013)
+# DB tables count (canonical: 46 tabla)
+grep -rn "4[0-9] tabla\|4[0-9] table" 01_PLAN/*.md CLAUDE.md
+# Views count (canonical: 6 view)
+grep -rn "[0-9]* view" 01_PLAN/*.md CLAUDE.md
+# Migration count (canonical: 29 migracio fajl, 001-029)
 grep -rn "[0-9]* migra" 01_PLAN/*.md CLAUDE.md
 # Week count (canonical: 22 het — framework Phase 1-7, KESZ)
 grep -rn "22 het\|21 het\|22 week" 01_PLAN/*.md CLAUDE.md
-# Skill count (canonical: 6 skill → 5 after B0 qbpp deletion)
-grep -rn "6 skill\|5 skill\|6 db skill" 01_PLAN/*.md CLAUDE.md
+# Skill count (canonical: 5 skill — after B0 qbpp deletion)
+grep -rn "5 skill\|6 skill" 01_PLAN/*.md CLAUDE.md
+# Endpoint count (canonical: 165 endpoint, 25 router)
+grep -rn "16[0-9] endpoint\|25 router" 01_PLAN/*.md CLAUDE.md
+# Service count (canonical: 26 service)
+grep -rn "2[0-9] service" 01_PLAN/*.md CLAUDE.md
 # Phase week ranges (legacy framework Phase 1-7)
 grep -rn "Het 10-1[0-9]\|Het 14-1[0-9]\|Het 17-1[0-9]\|Het 20-2[0-9]" 01_PLAN/*.md
 # Fazis system (service gen F0-F5 vertikalis szeletek) — ne keveredjen Phase 1-7-tel

@@ -21,8 +21,14 @@ from aiflow.guardrails.base import (
     ScopeVerdict,
     Severity,
 )
-from aiflow.guardrails.config import GuardrailConfig, load_guardrail_config
+from aiflow.guardrails.config import GuardrailConfig, LLMFallbackConfig, load_guardrail_config
 from aiflow.guardrails.input_guard import InputGuard
+from aiflow.guardrails.llm_guards import (
+    LLMContentSafetyClassifier,
+    LLMHallucinationEvaluator,
+    LLMPIIDetector,
+    LLMScopeClassifier,
+)
 from aiflow.guardrails.output_guard import OutputGuard
 from aiflow.guardrails.scope_guard import ScopeGuard
 
@@ -34,11 +40,17 @@ __all__ = [
     "PIIMatch",
     "Severity",
     "ScopeVerdict",
-    # Guards
+    # Rule-based guards
     "InputGuard",
     "OutputGuard",
     "ScopeGuard",
+    # LLM-based guards
+    "LLMHallucinationEvaluator",
+    "LLMContentSafetyClassifier",
+    "LLMScopeClassifier",
+    "LLMPIIDetector",
     # Config
     "GuardrailConfig",
+    "LLMFallbackConfig",
     "load_guardrail_config",
 ]

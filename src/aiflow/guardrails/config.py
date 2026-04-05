@@ -49,12 +49,30 @@ class OutputConfig(BaseModel):
     require_citation: bool = False
 
 
+class LLMFallbackConfig(BaseModel):
+    """LLM-based guardrail fallback configuration.
+
+    When rule-based guards are uncertain, LLM guards provide
+    a more precise (but slower/$) second opinion.
+    """
+
+    enabled: bool = False
+    hallucination_evaluator: bool = False
+    content_safety_classifier: bool = False
+    scope_classifier: bool = False
+    pii_detector: bool = False
+    confidence_threshold: float = 0.7
+    model: str = "openai/gpt-4o-mini"
+    timeout: int = 15
+
+
 class GuardrailConfig(BaseModel):
     """Top-level guardrail configuration (maps to YAML structure)."""
 
     scope: ScopeConfig = Field(default_factory=ScopeConfig)
     input: InputConfig = Field(default_factory=InputConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
+    llm_fallback: LLMFallbackConfig = Field(default_factory=LLMFallbackConfig)
 
     def build_input_guard(self) -> InputGuard:
         """Instantiate an InputGuard from this configuration."""

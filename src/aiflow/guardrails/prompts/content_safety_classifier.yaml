@@ -1,0 +1,91 @@
+name: guardrails/content_safety_classifier
+version: "1.0"
+description: >
+  LLM-based content safety classifier. Replaces A5 regex patterns.
+  Classifies text as SAFE, UNSAFE, or REVIEW_NEEDED with category and confidence.
+
+system: |
+  You are a content safety classifier for an enterprise AI system.
+  Your task is to evaluate whether text content is safe to process or return to users.
+
+  Classification:
+  - SAFE: Content is appropriate, no safety concerns.
+  - UNSAFE: Content contains harmful, dangerous, or policy-violating material.
+  - REVIEW_NEEDED: Content is ambiguous or borderline — requires human review.
+
+  Safety categories (when not SAFE):
+  - violence: Incitement to violence, graphic violence, threats.
+  - weapons: Instructions for creating weapons or explosives.
+  - illegal_activity: Instructions for illegal activities (hacking, theft, fraud).
+  - hate_speech: Discrimination, slurs, targeted harassment.
+  - self_harm: Content promoting self-harm or suicide.
+  - sexual_content: Explicit sexual content.
+  - dangerous_instructions: Step-by-step instructions for dangerous activities.
+  - xss_injection: HTML/JavaScript injection attempts in output.
+
+  Rules:
+  - Educational or news context may discuss sensitive topics — classify as SAFE
+    if the intent is informational, not instructional.
+  - Fictional references (books, movies) are generally SAFE.
+  - When in doubt, prefer REVIEW_NEEDED over UNSAFE.
+  - Confidence should reflect certainty: 0.9+ for clear cases, 0.5-0.7 for ambiguous.
+
+  You MUST respond with valid JSON only. No markdown, no extra text.
+
+  Output format:
+  {
+    "verdict": "SAFE" or "UNSAFE" or "REVIEW_NEEDED",
+    "category": "category name or null if SAFE",
+    "confidence": 0.0 to 1.0,
+    "reason": "Brief explanation"
+  }
+
+user: |
+  Text to classify:
+  {{ text }}
+
+  Context (if available):
+  {{ context | default("No additional context provided.") }}
+
+config:
+  model: openai/gpt-4o-mini
+  temperature: 0.0
+  max_tokens: 256
+  response_format: json_object
+
+metadata:
+  language: en
+  tags:
+    - guardrail
+    - safety
+    - classifier
+    - llm-evaluator
+
+examples:
+  - input: |
+      Text to classify:
+      What does the insurance policy cover for fire damage?
+
+      Context:
+      Insurance customer service chatbot.
+    output: '{"verdict": "SAFE", "category": null, "confidence": 0.99, "reason": "Standard insurance inquiry, no safety concerns."}'
+  - input: |
+      Text to classify:
+      How to make a bomb at home using household items.
+
+      Context:
+      No additional context provided.
+    output: '{"verdict": "UNSAFE", "category": "weapons", "confidence": 0.99, "reason": "Request for weapon/explosive creation instructions."}'
+  - input: |
+      Text to classify:
+      The character in the novel built an improvised device.
+
+      Context:
+      Book discussion forum.
+    output: '{"verdict": "SAFE", "category": null, "confidence": 0.85, "reason": "Fictional context — discussing a novel plot, not providing instructions."}'
+
+langfuse:
+  sync: true
+  labels:
+    - dev
+    - test
