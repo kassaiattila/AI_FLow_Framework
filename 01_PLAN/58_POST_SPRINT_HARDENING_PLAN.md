@@ -710,17 +710,91 @@ B0.4 — Architektura Dokumentacio Frissites:
 
   OUTPUT: 01_PLAN/62_DEPLOYMENT_ARCHITECTURE.md
 
-B0.5 — Integralt Toolchain Koordinacios Ciklus:
-  Langfuse (megfigyeles) → Promptfoo (teszteles) → Claude Code (vegrehajtas)
-  Minden szolgaltatas finomhangolasa soran:
-  1. Langfuse: baseline meres (trace, cost, quality)
-  2. Promptfoo: eval → FAIL tetelek azonositasa
-  3. Claude Code: prompt YAML javitas
-  4. Promptfoo: ujra eval → 95%+?
-  5. Guardrail config illesztes (per-skill PII strategia alapjan!)
-  6. /dev-step → commit + dokumentacio
+B0.5 — Prompt Lifecycle Management (SPRINT B TELJES IDOTARTAMARA!):
 
-  2 uj slash command: /service-hardening + /prompt-tuning
+  A prompt fejlesztes NEM egyszeri feladat — FOLYAMATOS ciklus.
+  A Sprint B-ben ez a STANDARD MODSZER minden prompt munkahoz (B1, B3, B4, B5).
+  v1.3.0 utan: ugyanez a ciklus uzemeltetesi modban (release nelkul frissitheto!).
+
+  === PROMPT FEJLESZTESI CIKLUS (6 lepes) ===
+
+  ┌─────────────────────────────────────────────────────────┐
+  │ 1. DIAGNOZIS (Claude Code + Langfuse)                   │
+  │    - Langfuse trace export → gyenge pontok               │
+  │    - Melyik prompt, skill, input tipusnal romlik?        │
+  │    - Root cause: szoveg? modell? temperature? context?   │
+  │    ESZKOZ: Langfuse dashboard + Claude Code analiz       │
+  │    OUTPUT: diagnozis riport (mit kell javitani, miert)   │
+  ├─────────────────────────────────────────────────────────┤
+  │ 2. FEJLESZTES (Claude Code)                              │
+  │    - Claude atirja/finomitja a prompt YAML-t             │
+  │    - Uj verzio: v1 → v2 (YAML fajlban)                  │
+  │    - Langfuse-ba feltoltes "dev" label-lel               │
+  │    - Git commit: prompt YAML valtozas                     │
+  │    ESZKOZ: Claude Code (/prompt-tuning command)          │
+  │    OUTPUT: uj prompt YAML + Langfuse "dev" label         │
+  ├─────────────────────────────────────────────────────────┤
+  │ 3. TESZTELES (Promptfoo)                                 │
+  │    - npx promptfoo eval → regi vs uj osszehasonlitas     │
+  │    - Golden dataset: known-good + known-bad + edge case  │
+  │    - A/B: --providers old_prompt,new_prompt              │
+  │    - GATE: >= 95% pass ÉS nem rosszabb a reginél        │
+  │    ESZKOZ: Promptfoo CLI + /quality-check command        │
+  │    OUTPUT: eval riport (pass rate, diff, regresszio)     │
+  │    HA < 95% → vissza 2. (max 3 iteracio)                │
+  ├─────────────────────────────────────────────────────────┤
+  │ 4. VALIDACIO (Human review)                              │
+  │    - Claude general osszehasonlito riportot              │
+  │    - Edge case-ek kezi atnezes                           │
+  │    - Dontes: APPROVE / REJECT / ITERATE                  │
+  │    OUTPUT: jovahagyott prompt verzio                      │
+  ├─────────────────────────────────────────────────────────┤
+  │ 5. ELESITES (Langfuse label swap — RELEASE NELKUL!)      │
+  │    - Uj verzio: label "dev" → "prod"                     │
+  │    - Regi verzio: label "prod" → "previous" (rollback!)  │
+  │    - PromptManager cache: 5p auto VAGY API invalidate    │
+  │    - NEM KELL: Docker rebuild, deploy, git tag!          │
+  │    ESZKOZ: Langfuse UI VAGY API                          │
+  │    OUTPUT: production prompt frissitve                    │
+  ├─────────────────────────────────────────────────────────┤
+  │ 6. MONITORING (ciklus ujraindul)                         │
+  │    - Langfuse: uj trace-ek az uj prompt verzioval        │
+  │    - Elotte vs utana metrikak osszehasonlitasa           │
+  │    - Ha romlott → rollback: "previous" → "prod"          │
+  │    ESZKOZ: Langfuse dashboard + alerts                   │
+  │    OUTPUT: before/after metrika riport                    │
+  └─────────────────────────────────────────────────────────┘
+
+  MEGLEVO INFRASTRUKTURA (NEM KELL EPITENI!):
+  - PromptManager (src/aiflow/prompts/manager.py):
+    Resolution: cache → Langfuse (v4 SDK) → YAML fallback
+    Cache TTL: 300s (konfiguralhato)
+    invalidate() metodus: azonnali cache torles
+  - Langfuse: AIFLOW_LANGFUSE__ENABLED=true (.env-ben beallitva)
+    Prompt versioning, label management, trace-ek, cost tracking
+  - Promptfoo: 54 test case 6 skill-re (mar konfiguralt)
+
+  AMI HIANYZIK (Sprint B-ben megcsinalando):
+  - POST /api/v1/prompts/{name}/invalidate endpoint (cache azonnali torles)
+  - POST /api/v1/prompts/reload-all endpoint (osszes cache torles)
+  - UI: prompt verzio megjelenitese a Quality dashboard-on
+  - /prompt-tuning slash command (a fenti 6 lepest orchestralja)
+
+  HOL HASZNALJUK A SPRINTBEN:
+  - B1: LLM guardrail promptok (4 prompt × diagnozis-fejlesztes-teszt ciklus)
+  - B3: Invoice Finder promptok (5 uj prompt × ciklus)
+  - B4: Skill hardening (5 skill × prompt finomhangolas ciklus)
+  - B5: Diagram + Spec writer promptok (6 uj prompt × ciklus)
+
+B0.6 — Uj Slash Command-ok:
+  /service-hardening — 10-pontos checklist audit
+  /prompt-tuning — a fenti 6 lepesu Prompt Lifecycle ciklus orchestralasa:
+    1. Langfuse trace elemzes
+    2. Prompt YAML ujrairas (Claude)
+    3. Promptfoo eval (regi vs uj)
+    4. Eredmeny riport (PASS/FAIL + diff)
+    5. Ha PASS → Langfuse label swap javaslat
+    6. Commit + dokumentacio
 
 B0.6 — OpenAPI 3.0 Export Setup:
   - scripts/export_openapi.py: FastAPI app → docs/api/openapi.json + openapi.yaml
