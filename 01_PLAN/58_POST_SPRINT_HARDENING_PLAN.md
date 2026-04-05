@@ -1066,21 +1066,20 @@ B3.5.1 — Konfidencia Scoring Audit Eredmenyek (MEGLEVO ALLAPOT):
   === PROBLEMA TERKEP ===
 
   KRITIKUS (routing-ot befolyasol):
-  ┌─────────────────────────────────────────────────────────────────┐
-  │ #1: Confidence→Review routing NEM LETEZIK                      │
-  │     HumanReviewService kész, de SEMMI nem hívja automatikusan  │
-  │     Tervezett küszöbök (>0.90 auto, >0.70 review, <0.50 reject)│
-  │     de NINCS bekötve a kódban!                                 │
-  ├───���─────────────────────────���───────────────────────────────────┤
-  │ #2: LLM self-report konfidencia MEGBIZHATATLAN                 │
-  │     4 komponens vakon bízik: classifier, doc_extractor,        │
-  │     entity_extractor, free_text. Az LLM 0.9-et mond de        │
-  │     a valós pontosság lehet 60%.                               │
-  ├──────────��───────────────────────────��──────────────────────────┤
-  │ #3: NINCS per-field konfidencia                                │
-  │     Dokumentum extrakciónál csak 1 összesített szám van.       │
-  │     A user NEM TUDJA melyik mező lehet hibás.                  │
-  └───────────────���─────────────────────────────────────────────────┘
+
+  #1: Confidence->Review routing NEM LETEZIK
+      HumanReviewService kesz, de SEMMI nem hivja automatikusan.
+      Tervezett kuszobok (>0.90 auto, >0.70 review, <0.50 reject)
+      de NINCS bekotve a kodban!
+
+  #2: LLM self-report konfidencia MEGBIZHATATLAN
+      4 komponens vakon bizik: classifier, doc_extractor,
+      entity_extractor, free_text. Az LLM 0.9-et mond de
+      a valos pontossag lehet 60%.
+
+  #3: NINCS per-field konfidencia
+      Dokumentum extrakcional csak 1 osszesitett szam van.
+      A user NEM TUDJA melyik mezo lehet hibas.
 
   KOZEPES (minoseg):
   - BM25 nem normalizalt (0.6*cosine + 0.4*BM25 > 1.0 lehetseges)
@@ -1099,22 +1098,20 @@ B3.5.2 — Konfidencia Szamitas Javitas (3 retegu megkozelites):
     Az AttachmentProcessor 5-faktor mintat kell kovetni MINDENHOL.
 
     Document Extraction per-field confidence:
-    ┌─────────────────────────────────────────────────────────┐
-    │ Per-mezo konfidencia szamitas:                          │
-    │                                                         │
-    │ field_confidence = w1 * format_match                    │
-    │                  + w2 * regex_validation                │
-    │                  + w3 * cross_field_consistency          │
-    │                  + w4 * source_quality                   │
-    │                                                         │
-    │ format_match (0.30): datum format? szam format? adoszam │
-    │   11 jegy? bankszamla 8 jegy? email valid?              │
-    │ regex_validation (0.25): mezo-specifikus regex illesztes │
-    �� cross_field_consistency (0.25): netto+afa=brutto?        │
-    │   datum1 < datum2? kiallito match adoszam prefix?        │
-    │ source_quality (0.20): Docling vs Azure DI vs OCR?      │
-    │   Tiszta PDF=1.0, scan=0.7, keziras=0.4                │
-    └────────��────────────────────────────────────��───────────┘
+    Per-mezo konfidencia szamitas:
+
+    field_confidence = w1 * format_match
+                     + w2 * regex_validation
+                     + w3 * cross_field_consistency
+                     + w4 * source_quality
+
+    format_match (0.30): datum format? szam format? adoszam
+      11 jegy? bankszamla 8 jegy? email valid?
+    regex_validation (0.25): mezo-specifikus regex illesztes
+    cross_field_consistency (0.25): netto+afa=brutto?
+      datum1 < datum2? kiallito match adoszam prefix?
+    source_quality (0.20): Docling vs Azure DI vs OCR?
+      Tiszta PDF=1.0, scan=0.7, keziras=0.4
 
     Document overall confidence:
     - overall = weighted_mean(field_confidences) * structural_penalty
@@ -1376,43 +1373,40 @@ B6.1 — Portal Struktura Audit (22 oldal jelenlegi allapot):
 B6.2 — Portal Information Architecture Ujratervezes:
 
   UJ NAVIGACIO (felhasznaloi cel alapu):
-  ┌──────────────────────────────────────────────────────────────┐
-  │                                                              │
-  ��� 📊 DASHBOARD (fo attekintes)                                │
-  │     4 journey kartya + KPI + aktiv pipeline-ok              │
-  │                                                              │
-  │ 📄 DOKUMENTUM FELDOLGOZAS                                   │
-  │     Szamla Kereso (Invoice Finder trigger)                  │
-  │     Dokumentum Upload + Extrakció                           │
-  │     Verifikacio (human review)                              │
-  │     Email Scan (postafiok keresés)                          │
-  │     Mentett Dokumentumok (lista + kereses)                  │
-  │                                                              │
-  │ 💬 TUDASBAZIS (RAG)                                         │
-  │     Kollekcio Kezeles (create + stats)                      │
-  │     Dokumentum Feltoltes + Ingest                           │
-  │     Chat Interface                                          │
-  │     Visszajelzes + Statisztika                              │
-  │                                                              │
-  │ 📐 GENERALAS                                                │
-  │     Diagram Generalas (Mermaid, BPMN, DrawIO)              │
-  │     Specifikacio Iras                                       │
-  │     Media Feldolgozas (STT, video)                          │
-  │                                                              │
-  │ 📊 MONITORING                                               │
-  │     Pipeline Futasok + Statusz                              │
-  │     Koltsegek (per-service, trend)                          │
-  │     Szolgaltatas Egeszseg                                   │
-  │     LLM Minoseg (Promptfoo + Langfuse)                     │
-  │     Audit Naplo                                             │
-  │                                                              │
-  │ ⚙️  BEALLITASOK                                             │
-  │     Felhasznalok + API Kulcsok                              │
-  │     Pipeline Sablonok                                       │
-  │     Szolgaltatas Konfiguracio                               │
-  ��     Email Connector Beallitasok                             │
-  │                                                              │
-  └──────────────────────────────────────────────────────────────┘
+
+  DASHBOARD (fo attekintes)
+    - 4 journey kartya + KPI + aktiv pipeline-ok
+
+  DOKUMENTUM FELDOLGOZAS
+    - Szamla Kereso (Invoice Finder trigger)
+    - Dokumentum Upload + Extrakció
+    - Verifikacio (human review)
+    - Email Scan (postafiok kereses)
+    - Mentett Dokumentumok (lista + kereses)
+
+  TUDASBAZIS (RAG)
+    - Kollekcio Kezeles (create + stats)
+    - Dokumentum Feltoltes + Ingest
+    - Chat Interface
+    - Visszajelzes + Statisztika
+
+  GENERALAS
+    - Diagram Generalas (Mermaid, BPMN, DrawIO)
+    - Specifikacio Iras
+    - Media Feldolgozas (STT, video)
+
+  MONITORING
+    - Pipeline Futasok + Statusz
+    - Koltsegek (per-service, trend)
+    - Szolgaltatas Egeszseg
+    - LLM Minoseg (Promptfoo + Langfuse)
+    - Audit Naplo
+
+  BEALLITASOK
+    - Felhasznalok + API Kulcsok
+    - Pipeline Sablonok
+    - Szolgaltatas Konfiguracio
+    - Email Connector Beallitasok
 
   VALTOZASOK:
   - OPERATIONS + DATA + AI SERVICES → DOKUMENTUM FELDOLGOZAS + TUDASBAZIS + GENERALAS
@@ -1423,30 +1417,28 @@ B6.2 — Portal Information Architecture Ujratervezes:
 
 B6.3 — Holisztikus User Journey Terkep (az egesz portal egy kepben):
 
-  ┌─────────────────────────────────────────────────────────────────┐
-  │                        DASHBOARD                                │
-  │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
-  │   │ Szamla   │  │ Tudas-   │  │ Generálas│  │Monitoring│     │
-  │   │ Feldolg. │  │ bazis    │  │          │  │          │     │
-  │   │ (3 aktiv)│  │ (2 koll.)│  │ (1 fut)  │  │ (OK)     │     │
-  │   └─────┬────┘  └─────┬────┘  └─────┬────┘  └─────┬────┘     │
-  │         │              │              │              │          │
-  │         ▼              ▼              ▼              ▼          │
-  │   JOURNEY 1      JOURNEY 3      JOURNEY 4      JOURNEY 2      │
-  │                                                                 │
-  │   Email scan     Collection     Diagram input   Pipeline runs  │
-  │       ↓          letrehozas        ↓                ↓          │
-  │   Szamla         Dok upload     Tipus valasztas  Koltseg trend │
-  │   detektalas         ↓              ↓                ↓          │
-  │       ↓          Ingest         LLM generalas    Service health│
-  │   Extrakció          ↓              ↓                ↓          │
-  │       ↓          Chat           Preview+Edit     LLM quality   │
-  │   Verifikacio    interface          ↓                ↓          │
-  │   (confidence!)      ↓          Export           Audit naplo   │
-  │       ↓          Feedback                                      │
-  │   Jelentes                                                     │
-  │   kuldes                                                       │
-  └─────────────────────────────────────────────────────────────────┘
+  DASHBOARD
+  +------------+  +------------+  +------------+  +------------+
+  | Szamla     |  | Tudas-     |  | Generalas  |  | Monitoring |
+  | Feldolg.   |  | bazis      |  |            |  |            |
+  | (3 aktiv)  |  | (2 koll.)  |  | (1 fut)    |  | (OK)       |
+  +-----+------+  +-----+------+  +-----+------+  +-----+------+
+        |                |                |                |
+        v                v                v                v
+  JOURNEY 1        JOURNEY 3        JOURNEY 4        JOURNEY 2
+
+  Email scan       Collection       Diagram input    Pipeline runs
+      |            letrehozas           |                 |
+  Szamla               |            Tipus valasztas   Koltseg trend
+  detektalas       Dok upload           |                 |
+      |                |            LLM generalas     Service health
+  Extrakció        Ingest               |                 |
+      |                |            Preview+Edit      LLM quality
+  Verifikacio      Chat                 |                 |
+  (confidence!)    interface         Export            Audit naplo
+      |                |
+  Jelentes         Feedback
+  kuldes
 
 B6.4 — Reszletes User Journey Definiciok (per use-case):
 
@@ -1730,7 +1722,7 @@ GATE: docker compose up → healthy → UI-bol pipeline PASS → E2E PASS
 
 ---
 
-## B10: POST-AUDIT + Javitasok — 1 session (S33)
+## B10: POST-AUDIT + Javitasok — 1 session (S34)
 
 > **Gate:** Audit riport MINDEN sor PASS.
 
@@ -1788,7 +1780,7 @@ GATE: Audit riport MINDEN PASS
 
 ---
 
-## B11: v1.3.0 Tag + Merge — fel session (S34)
+## B11: v1.3.0 Tag + Merge — fel session (S35)
 
 > **Gate:** v1.3.0 tag, main-en CI ZOLD.
 
