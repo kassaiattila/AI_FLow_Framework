@@ -15,20 +15,20 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - **Skill Instance** = configured deployment of a Skill template per customer
 - **VectorStore** = pgvector hybrid search (vector HNSW + BM25 tsvector + RRF)
 
-## Current Phase: v1.2.1 COMPLETE (Production Ready Sprint)
-**Fo terv:** `01_PLAN/57_PRODUCTION_READY_SPRINT.md` — S1-S14 MIND DONE (2026-04-04)
-**Elozo terv:** `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` (v1.2.0 COMPLETE)
+## Current Phase: v1.2.2 COMPLETE (Infrastructure & Security Sprint)
+**Fo terv:** `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint A DONE (A0-A8, 2026-04-05), Sprint B next (v1.3.0)
+**Elozo terv:** `01_PLAN/57_PRODUCTION_READY_SPRINT.md` (v1.2.1 COMPLETE)
 
-> **v1.2.1 COMPLETE** (S1-S14, 2026-04-04) — UI integracio, Langfuse, Promptfoo, 102 E2E teszt, accessibility.
-> 26 service, 165 API endpoint (25 router), 17 UI oldal, 45 DB tabla, 29 Alembic migracio.
-> 19 pipeline adapter, 6 pipeline template, 369 unit test, 102 E2E teszt, 51 promptfoo test case.
+> **v1.2.2 COMPLETE** (Sprint A: A0-A8, 2026-04-05) — CI/CD, ruff 0, dead code, security hardening, stub cleanup, guardrail framework, post-audit.
+> 26 service, 158 API endpoint (24 router), 17 UI oldal, 45 DB tabla, 29 Alembic migracio.
+> 19 pipeline adapter, 6 pipeline template, 1164 unit test, 76 guardrail teszt, 97 security teszt, 102 E2E teszt, 51 promptfoo test case.
 
-**v1.2.1 fo celok:**
-- **UI integracio** — ChatMarkdown bekotes, Quality dashboard, in-app notifications, design tokens
-- **Observability** — Langfuse valos integracio, pipeline cost tracking
-- **Quality assurance** — 6/6 skill Promptfoo config, E2E Playwright suite, CI/CD nightly
-- **Hianyzo funkciok** — free text extraction, SLA eszkalacio, intent schema CRUD, cost estimation
-- **UI polish** — MUI eltavolitas, dark mode, responsive, accessibility, PWA teszteles
+**v1.2.2 deliverables (Sprint A):**
+- **CI/CD** — GitHub Actions 4/4 green, ruff 1234 → 0 hiba
+- **Security** — JWT RS256, CORS hardening, rate limiting, security headers, session monitor, secure upload
+- **Dead code** — contrib/ torolve, stub inventory → roadmap, halott kod archivalva
+- **Guardrails** — InputGuard (14 injection, 7 PII), OutputGuard (hallucination), ScopeGuard (3-tier), YAML config
+- **Post-audit** — 7/7 security verified, 4/4 guardrail pass, 1164/1164 unit test pass
 
 **Tier-ek:**
 - Tier 1 (Core): P1 Adapter → P2 Schema → P3 Runner+DB → P4 API → P5 UI
@@ -129,7 +129,7 @@ This enables: new intents/entities without code changes, per-customer customizat
 
 ### Key plan documents:
 - **`01_PLAN/57_PRODUCTION_READY_SPRINT.md`** - **COMPLETE**: v1.2.1 Production Ready (S1-S14 DONE), UI+observability+quality+102 E2E+accessibility
-- **`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`** - **AKTUALIS**: Sprint A (v1.2.2 infra+security A0-A6) + Sprint B (v1.3.0 service excellence B0-B7)
+- **`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`** - Sprint A **COMPLETE** (v1.2.2, A0-A8 DONE), Sprint B **AKTUALIS** (v1.3.0 service excellence B0-B9)
 - **`01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md`** - KESZ: v1.2.0 Pipeline as Code fo terv (C0-C20 DONE)
 - **`01_PLAN/56_EXECUTION_PLAN.md`** - KESZ: 21 ciklus (C0-C20 MIND DONE), v1.2.0 tagged
 - `01_PLAN/49-54` - Reszletes tervek (stability, RAG, doc extract, HITL, frontend, LLM quality)

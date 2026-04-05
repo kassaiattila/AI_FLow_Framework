@@ -47,13 +47,15 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - UI Modernization: F6 KESZ (v1.1.4, 2026-04-03)
 - **v1.2.0 Orchestration: COMPLETE (C0-C20, tag v1.2.0)**
 - **v1.2.1 Production Ready Sprint: COMPLETE (S1-S14, 2026-04-04) — UI integracio, observability, quality, 102 E2E teszt, v1.2.1 tag**
-- **v1.2.2+v1.3.0: `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint A: infra+security (A0-A6, v1.2.2), Sprint B: service excellence (B0-B7, v1.3.0)**
+- **v1.2.2: Sprint A COMPLETE (A0-A8, 2026-04-05) — infra+security+guardrails+audit**
+- **v1.3.0: `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint B: service excellence (B0-B9)**
 - 26 service (15 eredeti + 11 uj v1.2.0: notification, data_router, service_manager, reranker, advanced_chunker, data_cleaner, metadata_enricher, vector_ops, advanced_parser, graph_rag, quality)
 - 165 endpoint (25 router, pontosan szamolva @router decorator-okbol)
 - 19 pipeline adapter (7 eredeti + 3 Tier 2 + 7 Tier 3 + 1 Tier 4 + 1 free_text)
 - 25 API router (19 eredeti + pipelines + notifications + data_router + rag_advanced + quality + intent_schemas)
 - 6 pipeline templates (v1, v2, kb_update, email_triage, advanced_rag, contract)
-- 332+37 unit test, 102 E2E Playwright teszt, 51 promptfoo test case (6 skill), S1-S14 ciklus DONE, v1.2.1 COMPLETE
+- 1164 unit test, 76 guardrail teszt, 97 security teszt, 157 skill test, 102 E2E Playwright teszt, 51 promptfoo test case (6 skill)
+- v1.2.1 COMPLETE (S1-S14), v1.2.2 Sprint A COMPLETE (A0-A8, 2026-04-05)
 - 6 skills, src/aiflow/ 19 alkonyvtar (+pipeline/ az uj modul)
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/

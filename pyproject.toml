@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aiflow"
-version = "1.2.1"
+version = "1.2.2"
 description = "Enterprise AI Automation Framework"
 requires-python = ">=3.12"
 license = {text = "MIT"}

@@ -4,7 +4,8 @@
 > **Elozmeny:** v1.2.1 COMPLETE (S1-S14, 2026-04-04) — UI, observability, quality, 102 E2E
 > **Cel:** Ket sprint: (A) infrastruktura+biztonsag+halott kod+guardrail keretrendszer, (B) szolgaltatas excellence+prompt guardrail implementacio
 > **Becsult idotartam:** Sprint A ~8 session, Sprint B ~10 session
-> **Infrastruktura:** 26 service, 165 endpoint (25 router), 45 DB tabla, 29 migracio, 19 adapter
+> **Infrastruktura:** 26 service, 158 endpoint (24 router), 45 DB tabla, 29 migracio, 19 adapter
+> **Sprint A: COMPLETE** (A0-A8 DONE, v1.2.2, 2026-04-05) — CI, ruff, dead code, security, stubs, guardrails, audit
 
 ---
 
@@ -1195,9 +1196,9 @@ S33: B8+B9 — Javitasok + v1.3.0
 | A3 | Security + JWT session | DONE | 2026-04-04 | 176f137 |
 | A4 | Stubs + alapfunkciok | DONE | 2026-04-04 | 87b896e |
 | A5 | Guardrail keretrendszer | DONE | 2026-04-04 | ba8d6c8 |
-| A6 | POST-AUDIT | TODO | — | — |
-| A7 | Audit javitasok | TODO | — | — |
-| A8 | v1.2.2 tag | TODO | — | — |
+| A6 | POST-AUDIT | DONE | 2026-04-05 | — |
+| A7 | Audit javitasok (4 fix) | DONE | 2026-04-05 | — |
+| A8 | v1.2.2 tag | DONE | 2026-04-05 | — |
 
 ### Sprint B (v1.3.0)
 

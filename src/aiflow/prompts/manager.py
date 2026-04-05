@@ -68,7 +68,7 @@ class PromptManager:
 
         Resolution order:
             1. In-memory cache (if not expired)
-            2. Langfuse (if enabled) -- placeholder
+            2. Langfuse (if enabled, via v4 get_prompt API)
             3. Local YAML fallback
 
         Args:
