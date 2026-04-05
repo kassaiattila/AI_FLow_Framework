@@ -135,7 +135,7 @@ Ha BARMELY lepes sikertelen → STOP → javitas → ujra elejeirol!
 
 ### 6. MANDATORY Plan Updates (SOHA NE HAGYD KI!):
 > **Session 9 tanulsag:** C7-C16 utan a tervek NEM kerultek frissitesre. Ez TILOS.
-17. **`01_PLAN/56_EXECUTION_PLAN.md`** — Progress tabla frissites:
+17. **`01_PLAN/archive/completed_sprints/56_EXECUTION_PLAN.md`** — Progress tabla frissites:
     - Ciklus allapot: TODO → DONE
     - Datum: mai datum
     - Commit: commit hash

@@ -29,7 +29,7 @@ Then generate:
 
 5. **After generating**, run `/regression` to verify nothing broke
 
-6. **If new service module**: check `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 3-4 — illik-e a tervezett service architekturaba?
+6. **If new service module**: check `01_PLAN/archive/completed_sprints/42_SERVICE_GENERALIZATION_PLAN.md` Section 3-4 — illik-e a tervezett service architekturaba?
 
 7. **VALOS teszteles** (SOHA ne mock/fake!):
    - Ha DB-t hasznal: valos PostgreSQL (Docker), `alembic upgrade head` + `downgrade -1` + `upgrade head`

@@ -32,7 +32,7 @@ STEP 6: Unit teszt + regression
 --- BACKEND COMMIT PONT (git commit) ---
   ↓
 STEP 7: /ui-journey — User Journey dokumentacio
-  GATE CHECK: grep "Journey:" 01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md VAGY
+  GATE CHECK: grep "Journey:" 01_PLAN/archive/completed_sprints/42_SERVICE_GENERALIZATION_PLAN.md VAGY
               ls 01_PLAN/*journey* — DOKUMENTACIO FAJL LETEZIK
   *** HA NEM LETEZIK → STOP — ird meg a journey-t ELOSZOR! ***
   ↓
@@ -74,7 +74,7 @@ curl -s http://localhost:5174 | head -1
 ```
 
 ## STEP 2: FAZIS TERV BEOLVASAS
-Olvasd el `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 5 — az aktualis fazis teljes leirasa.
+Olvasd el `01_PLAN/archive/completed_sprints/42_SERVICE_GENERALIZATION_PLAN.md` Section 5 — az aktualis fazis teljes leirasa.
 Keszits TaskCreate-tel feladatlistat a fazis MINDEN lepesebol.
 
 ## STEP 3: ALEMBIC MIGRACIO

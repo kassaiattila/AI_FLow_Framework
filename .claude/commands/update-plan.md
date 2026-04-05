@@ -59,7 +59,7 @@ grep -rn "1[0-9] view" 01_PLAN/*.md CLAUDE.md
 grep -rn "[0-9]* migra" 01_PLAN/*.md CLAUDE.md
 # Week count (canonical: 22 het — framework Phase 1-7, KESZ)
 grep -rn "22 het\|21 het\|22 week" 01_PLAN/*.md CLAUDE.md
-# Skill count (canonical: 6 skill)
+# Skill count (canonical: 6 skill → 5 after B0 qbpp deletion)
 grep -rn "6 skill\|5 skill\|6 db skill" 01_PLAN/*.md CLAUDE.md
 # Phase week ranges (legacy framework Phase 1-7)
 grep -rn "Het 10-1[0-9]\|Het 14-1[0-9]\|Het 17-1[0-9]\|Het 20-2[0-9]" 01_PLAN/*.md

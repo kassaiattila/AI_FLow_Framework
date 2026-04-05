@@ -6,9 +6,10 @@ Check all documents in 01_PLAN/ for:
    - DB table names match between 03_DATABASE_SCHEMA.md and all other docs
    - Directory paths match between 02_DIRECTORY_STRUCTURE.md and all other docs
    - **Phase systems:** Phase 1-7 (framework, Het 1-22, KESZ) es Fazis 0-5 (service gen, AKTUALIS) — ne keveredjenek!
-   - Skill names consistent (6 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, invoice_processor, qbpp_test_automation)
-   - **DB szamok:** 36 tabla, 13 view, 13 letezo migracio (001-013), 11 tervezett (014-024)
-   - **Directory:** src/aiflow/ 18 alkonyvtar (core, engine, models, prompts, services[tervezett], execution, evaluation, skill_system, tools, vectorstore, documents, ingestion, state, security, api, observability, cli, contrib)
+   - Skill names consistent (6 pre-B0, 5 after qbpp deletion: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, invoice_processor)
+   - **DB szamok:** 46 tabla, 6 view, 29 migracio (001-029)
+   - **Infra szamok:** 26 service, 162 endpoint (25 router), 18 adapter, 6 pipeline template
+   - **Archiv fajlok:** 01_PLAN/archive/ — ELLENORIZD hogy a hivatkozott fajl nem archivalt-e!
    - **Atnevezesek:** llm/ → models/ (MINDENHOL models/ kell legyen), agents/ → torolve
 
 2. **Broken links**:

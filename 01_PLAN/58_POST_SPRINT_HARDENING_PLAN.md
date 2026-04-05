@@ -4,7 +4,7 @@
 > **Elozmeny:** v1.2.1 COMPLETE (S1-S14, 2026-04-04) — UI, observability, quality, 102 E2E
 > **Cel:** Ket sprint: (A) infrastruktura+biztonsag+halott kod+guardrail keretrendszer, (B) szolgaltatas excellence+prompt guardrail implementacio
 > **Becsult idotartam:** Sprint A ~8 session, Sprint B ~10 session
-> **Infrastruktura:** 26 service, 158 endpoint (24 router), 45 DB tabla, 29 migracio, 19 adapter
+> **Infrastruktura:** 26 service, 162 endpoint (25 router), 46 DB tabla, 29 migracio, 18 adapter
 > **Sprint A: COMPLETE** (A0-A8 DONE, v1.2.2, 2026-04-05) — CI, ruff, dead code, security, stubs, guardrails, audit
 
 ---
@@ -578,7 +578,7 @@ Session 22: A7+A8 (Javitasok + tag) ───── Fix + v1.2.2
 > | Komponens | Hol | Mit tud | Sprint B hasznalja |
 > |-----------|-----|---------|-------------------|
 > | PipelineRunner + Compiler | pipeline/ | YAML → DAG → vegrehajtas, Langfuse, cost tracking | B3 Invoice Finder |
-> | 19 Adapter | pipeline/adapters/ | email, document, classifier, notification, stb. | B3, B4, B5 |
+> | 18 Adapter | pipeline/adapters/ | email, document, classifier, notification, stb. | B3, B4, B5 |
 > | 6 Pipeline Template | pipeline/builtin_templates/ | invoice_v1, invoice_v2, email_triage, rag_ingest, contract, kb_update | B3 (invoice_v1/v2 KÉSZ!) |
 > | DocumentRegistry | documents/ | Lifecycle (draft→active→archived), versioning, freshness | B3, B7 |
 > | document_type_configs tabla | state/ (migration 015) | Extraction mezok definialasa per doku tipus | B3 (szamla mezo config!) |
@@ -720,7 +720,19 @@ B0.5 — Integralt Toolchain Koordinacios Ciklus:
 
   2 uj slash command: /service-hardening + /prompt-tuning
 
-GATE: PII strategia dok + qbpp torolve + checklist + architektura dok + 2 command
+B0.6 — OpenAPI 3.0 Export Setup:
+  - scripts/export_openapi.py: FastAPI app → docs/api/openapi.json + openapi.yaml
+  - docs/api/CHANGELOG.md: API valtozasok verziokent
+  - Elso export: 142 endpoint dokumentalva
+  - CLAUDE.md szabaly: tag elott + API valtozas utan KOTELEZO ujrageneralas
+
+B0.7 — Dokumentacios Szabalyok Egysegesitese:
+  - CLAUDE.md: 01_PLAN/ mappa kezeles, archivalas, README/FEATURES kotelezo frissites
+  - FEATURES.md: elso verzio (v1.2.2 aktualis allapot)
+  - 01_PLAN/README.md: plan index aktualizalasa
+  - Sprint B learnings mappa: .claude/sprint_b_learnings/
+
+GATE: PII strategia dok + qbpp torolve + checklist + architektura dok + 2 command + OpenAPI export + dok szabalyok
 ```
 
 ---

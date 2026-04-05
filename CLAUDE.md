@@ -20,8 +20,8 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 **Elozo terv:** `01_PLAN/57_PRODUCTION_READY_SPRINT.md` (v1.2.1 COMPLETE)
 
 > **v1.2.2 COMPLETE** (Sprint A: A0-A8, 2026-04-05) — CI/CD, ruff 0, dead code, security hardening, stub cleanup, guardrail framework, post-audit.
-> 26 service, 158 API endpoint (24 router), 17 UI oldal, 45 DB tabla, 29 Alembic migracio.
-> 19 pipeline adapter, 6 pipeline template, 1164 unit test, 76 guardrail teszt, 97 security teszt, 102 E2E teszt, 51 promptfoo test case.
+> 26 service, 162 API endpoint (25 router), 22 UI oldal, 46 DB tabla, 29 Alembic migracio.
+> 18 pipeline adapter, 6 pipeline template, 1164 unit test, 76 guardrail teszt, 97 security teszt, 102 E2E teszt, 54 promptfoo test case.
 
 **v1.2.2 deliverables (Sprint A):**
 - **CI/CD** — GitHub Actions 4/4 green, ruff 1234 → 0 hiba
@@ -98,12 +98,96 @@ This enables: new intents/entities without code changes, per-customer customizat
 
 ### MANDATORY: After EVERY cycle (SOHA NE HAGYD KI!)
 > **Session 9 tanulsag:** C7-C16 utan a tervek NEM kerultek frissitesre. Ez TILOS.
-1. **`01_PLAN/56_EXECUTION_PLAN.md`** — Progress tabla: ciklus allapot DONE, datum, commit hash
-2. **`01_PLAN/56_EXECUTION_PLAN.md`** — Output szekció: mit deliveralt a ciklus (fajlok, tesztek, E2E eredmenyek)
-3. **`01_PLAN/CLAUDE.md`** — Key numbers: service/adapter/endpoint/migracio/teszt szamok frissitese
-4. **Root `CLAUDE.md`** — Infrastruktura szamok frissitese (service, endpoint, router, migracio, teszt)
-5. **Meglevo UI regresszio check** — a `.venv` ujraepites NEM torolheti a fuggosegeket!
+1. **`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`** — Progress tabla: fazis allapot DONE, datum, commit hash
+2. **`01_PLAN/CLAUDE.md`** — Key numbers: service/adapter/endpoint/migracio/teszt szamok frissitese
+3. **Root `CLAUDE.md`** — Infrastruktura szamok frissitese (service, endpoint, router, migracio, teszt)
+4. **Meglevo UI regresszio check** — a `.venv` ujraepites NEM torolheti a fuggosegeket!
    Ha `.venv`-t ujra kell epiteni: `uv pip install -e ".[dev]"` UTAN ellenorizd: `python -c "import pypdfium2; import docling"`
+5. **Claude learnings** — tanulsagok, javaslatok → `.claude/sprint_b_learnings/` (Sprint B alatt)
+
+### MANDATORY: Dokumentacios Szabalyok
+
+#### 01_PLAN/ Mappa Kezeles
+> **A 01_PLAN/ mappa MINDIG atkintheto kell legyen. Regi fajlok → archive/.**
+
+```
+01_PLAN/
+  README.md                    # INDEX — mindig aktualis! Kategorizalt fajllista.
+  58_POST_SPRINT_HARDENING_PLAN.md  # AKTUALIS sprint terv
+  CLAUDE.md                    # Plan-szintu Claude config
+  DEVELOPMENT_ROADMAP.md       # Feature roadmap
+  01-05, 17, 20-22, 24, 27, 30  # Alapdokumentacio (referencia)
+  49-54                        # v1.2.0 reszletes tervek (Sprint B referencia)
+  F1-F6_*_JOURNEY.md           # User Journey dokumentumok (B6 input)
+  archive/                     # ARCHIV — befejezett sprintek, regi tervek
+    sessions/                  # Session promptok
+    ui_legacy/                 # Regi UI tervek
+    completed_sprints/         # Befejezett sprint tervek
+    status_reports/            # Audit/status riportok
+    reference/                 # Elavult referencia dokumentumok
+```
+
+**Szabalyok:**
+- **Sprint/fazis DONE → archivalas:** Ha egy sprint befejezodik (tag + merge), a fo terv
+  fajl MARAD top-level-en, de a reszletes session promptok → `archive/sessions/`
+- **Uj sprint inditasakor:** `01_PLAN/README.md` frissitese KOTELEZO
+- **Soha ne torolj terv fajlt** — `git mv` az `archive/` megfelelo almappajaba
+- **Session promptok:** MINDIG `01_PLAN/session_{N}_{topic}.md` VAGY Sprint vegen → archive/sessions/
+- **Uj tervdokumentum:** Kovetkezo szabad szam (pl. 59, 60, 61...) VAGY leiro nev
+
+#### Verzio Dokumentacio (main push-oknal KOTELEZO!)
+> **Minden main-re merge-olt verzional TELJES dokumentacio kell.**
+
+**README.md (projekt gyoker) — MINDIG AKTUALIS:**
+- Projekt leiras, architektura osszefoglalo
+- Telepitesi utmutato (3 lepes: clone, setup, run)
+- Aktualis feature lista (mi mukodik VALOJABAN)
+- API attekintes (fo endpointok)
+- Docker hasznalat (`docker compose up`)
+- Verzio tortenet (CHANGELOG szekció)
+
+**FEATURES.md (projekt gyoker) — FEATURE LISTA:**
+- Funkcionalis lista: mi mukodik, mi demo, mi fejlesztes alatt
+- Per-skill allapot (production/development/stub)
+- Per-service allapot
+- UI oldalak listaja + allapot
+- Pipeline-ok listaja + allapot
+- Utolso frissites datuma
+
+#### API Dokumentacio (OpenAPI 3.0)
+```
+docs/
+  api/
+    openapi.json           # Generalt OpenAPI 3.0 schema (FastAPI-bol)
+    openapi.yaml           # YAML verzio (olvashatobb)
+    CHANGELOG.md           # API valtozasok verziokent
+```
+- **Generalas:** `python scripts/export_openapi.py` → docs/api/openapi.json + .yaml
+- **Mikor frissul:** Tag letrehozas elott + ha API endpoint valtozik
+- **Git diff:** Az openapi.json diff mutatja az API valtozasokat verziok kozott
+- **Swagger UI:** FastAPI beepitett: http://localhost:8102/docs (fejlesztes kozben)
+
+**Kikenyszerites:**
+- `/dev-step` command ELLENORZI: README.md es FEATURES.md utolso frissites datuma
+  Ha > 5 commit ota nem frissult → FIGYELMEZTETES
+- **Tag letrehozas ELOTT** (A8, B11): README.md + FEATURES.md + docs/api/openapi.json KOTELEZO frissites
+- **main merge ELOTT**: `01_PLAN/README.md` index AKTUALIS
+- **API endpoint valtozas UTAN**: `python scripts/export_openapi.py` futtatasa
+
+#### Claude Learnings Gyujtes (Sprint B)
+```
+.claude/sprint_b_learnings/
+  README.md                    # Mi ez, hogyan hasznald
+  claude_md_proposals.md       # CLAUDE.md modositasi javaslatok
+  command_proposals.md         # Slash command uj/modositott otletek
+  mcp_notes.md                 # MCP plugin tapasztalatok (Playwright, PostgreSQL, Figma)
+  workflow_patterns.md         # Bevalt fejlesztesi mintak
+  anti_patterns.md             # Kerulendo megoldasok
+  testing_insights.md          # Tesztelesi tanulsagok
+```
+- ELKULONITETT a valos `.claude/commands/`-tol!
+- Minden session vegen: ami tanulsag → ide
+- B10 POST-AUDIT: osszesites → vegleges Claude config javaslat
 
 ### MANDATORY: .venv Dependency Safety
 > **Session 9 tanulsag:** A `.venv` ujraepites (`uv venv && uv pip install`) torolte a `pypdfium2` es `docling`

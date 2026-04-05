@@ -17,7 +17,7 @@ Arguments: $ARGUMENTS
 
 ## Steps:
 
-1. Read `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 5 for phase definition
+1. Read `01_PLAN/archive/completed_sprints/42_SERVICE_GENERALIZATION_PLAN.md` Section 5 for phase definition
 2. Check which service directories exist:
    ```bash
    ls -la src/aiflow/services/ 2>/dev/null

@@ -72,7 +72,7 @@ skills/{name}/
 - Run `pytest` after generating - must pass
 - If RAG skill: follow `01_PLAN/30_RAG_PRODUCTION_PLAN.md` checklist
 - If DB needed: create Alembic migration, not raw SQL
-- **If service generalization**: check `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` — skill a megfelelo service-bol epitkezik?
+- **If service generalization**: check `01_PLAN/archive/completed_sprints/42_SERVICE_GENERALIZATION_PLAN.md` — skill a megfelelo service-bol epitkezik?
 
 ## VALOS teszteles (SOHA ne mock/fake!):
 - **CLI teszt:** `python -m skills.{name} --input test_data --output ./out` — valos output ellenorzes
