@@ -591,6 +591,8 @@ Session 22: A7+A8 (Javitasok + tag) ───── Fix + v1.2.2
 > | JobQueue + Worker | execution/ | Async pipeline vegrehajtas, prioritas, DLQ | B3 |
 > | Scheduler | execution/ | Cron trigger pipeline-okra | B3 |
 > | DoclingParser | ingestion/parsers/ | PDF/DOCX/XLSX/HTML universal parse | B3, B4 |
+> | **AzureDocIntelligence** | tools/azure_doc_intelligence.py | **Scan/OCR/keziras — 3-retegu fallback lanc 2. retege** | **B3 (azure_enabled=true!)** |
+> | AttachmentProcessor | tools/attachment_processor.py | Minoseg-alapu routing Docling→Azure DI→LLM Vision | B3 |
 > | SemanticChunker | ingestion/ | Dokumentum darabolás RAG-hoz | B4 |
 > | 142 API endpoint (25 router) | api/v1/ | pipelines/*, documents/*, runs/*, notifications/* | B3, B8, B9 |
 > | StateRepository | state/repository.py | workflow_run + step_run CRUD, checkpoint, resume | B3 |
@@ -918,6 +920,32 @@ B3.2 — Extraction + Report + Notification (S25):
     - cost_records → pipeline koltseg tracking
     - StateRepository → workflow_run + step_run perzisztencia
     - PipelineRunner → orchestracio (YAML → DAG → vegrehajtas)
+
+  AZURE DOCUMENT INTELLIGENCE INTEGRACIO (MAR MUKODIK!):
+    A rendszerben 3-retegu dokumentum feldolgozo lanc van:
+    ┌─────────────────────────────────────────────────────────┐
+    │ RETEG 1: Docling (helyi, ingyenes, gyors)              │
+    │   PDF/DOCX/XLSX/HTML — max 50 oldal                    │
+    │   Ha hiba VAGY minoseg < 0.5 → RETEG 2                │
+    ├─────────────────────────────────────────────────────────┤
+    │ RETEG 2: Azure DI (cloud, fizetos, pontos)             │
+    │   Scan/OCR/keziras/pecsét/osszetett layout             │
+    │   Endpoint: AZURE_DI_ENDPOINT + AZURE_DI_API_KEY       │
+    │   JELENLEG: azure_enabled=false a skill config-okban!  │
+    │   INVOICE FINDER-NEL: azure_enabled=TRUE KELL!         │
+    ├─────────────────────────────────────────────────────────┤
+    │ RETEG 3: pypdfium2 / LLM Vision (fallback)             │
+    │   Oldalonkenti szoveg kivonas / kep ertelmezes         │
+    └─────────────────────────────────────────────────────────┘
+
+    MEGLEVO KOD (NEM kell ujrairni!):
+    - src/aiflow/tools/azure_doc_intelligence.py — async REST kliens
+    - src/aiflow/ingestion/parsers/docling_parser.py:112-151 — fallback logika
+    - src/aiflow/tools/attachment_processor.py:77-187 — minoseg-alapu routing
+    - .env: AZURE_DI_ENDPOINT + AZURE_DI_API_KEY (beallitva, mukodik)
+
+    B3 TEENDO: skills/invoice_finder/skill_config.yaml → azure_enabled: true
+    Indok: szamlak gyakran scanneltek, keziras, pecset → Azure DI sokkal jobb
 
   PROMPT FEJLESZTES + TESZTELES (B3 KRITIKUS RESZE!):
     UJ/MODOSITOTT PROMPT YAML-ok:
