@@ -512,7 +512,7 @@ Session 22: A7+A8 (Javitasok + tag) ───── Fix + v1.2.2
 > **Branch:** `feature/v1.3.0-service-excellence`
 > **Elofeltetel:** Sprint A COMPLETE (v1.2.2), guardrail keretrendszer KESZ
 > **Fo elv:** Minden alapozo funkcio → valos E2E AIFlow-val validalva. NEM tervezunk, EPITUNK.
-> **Becsult:** ~16 session (S19-S34)
+> **Becsult:** ~17 session (S19-S35)
 >
 > ## ARCHITEKTURA — KULCSFONTOSSAGU MEGKULONBOZTETES
 >
@@ -594,7 +594,7 @@ Session 22: A7+A8 (Javitasok + tag) ───── Fix + v1.2.2
 > | **AzureDocIntelligence** | tools/azure_doc_intelligence.py | **Scan/OCR/keziras — 3-retegu fallback lanc 2. retege** | **B3 (azure_enabled=true!)** |
 > | AttachmentProcessor | tools/attachment_processor.py | Minoseg-alapu routing Docling→Azure DI→LLM Vision | B3 |
 > | SemanticChunker | ingestion/ | Dokumentum darabolás RAG-hoz | B4 |
-> | 142 API endpoint (25 router) | api/v1/ | pipelines/*, documents/*, runs/*, notifications/* | B3, B8, B9 |
+> | 162 API endpoint (25 router) | api/v1/ | pipelines/*, documents/*, runs/*, notifications/* | B3, B8, B9 |
 > | StateRepository | state/repository.py | workflow_run + step_run CRUD, checkpoint, resume | B3 |
 >
 > **B3 INVOICE FINDER KULCSFONTOSSAGU:** Az invoice_automation_v1.yaml es v2.yaml
@@ -646,18 +646,19 @@ FAZIS 2 — E2E SZOLGALTATASOK (S22-S29): 8 session
   B5: Diagram pipeline + Spec writer szolgaltatas + koltseg baseline
       TESZTELES: E2E diagram render, spec writer output validacio
 
-FAZIS 3 — UI EXCELLENCE (S29-S31): 3 session
-  B6: UI Journey audit + 4 journey tervezes + navigacio redesign
-  B7: Verification Page v2 (bounding box, diff, perzisztencia)
+FAZIS 3 — UI EXCELLENCE (S30-S32): 3 session
+  B6: Portal struktura ujragondolas + 4 journey tervezes (S30)
+  B7: Verification Page v2 (bounding box, per-field confidence, diff) (S31)
       TESZTELES: Playwright E2E (upload→extract→verify→save→retrieve)
-  B8: UI Journey implementacio (top 3 journey)
+      FUGG: B3.5 per-field confidence adat!
+  B8: UI Journey implementacio (top 3 journey) (S32)
       TESZTELES: Playwright E2E minden journey-re, 0 console error
 
-FAZIS 4 — DEPLOY & RELEASE (S32-S34): 3 session
-  B9: Docker containerization + ugyfel-ready deploy teszteles
+FAZIS 4 — DEPLOY & RELEASE (S33-S35): 3 session
+  B9: Docker containerization + ugyfel-ready deploy teszteles (S33)
       TESZTELES: docker compose up → MINDEN szolgaltatas fut → E2E PASS
-  B10: POST-AUDIT + javitasok
-  B11: v1.3.0 tag + merge
+  B10: POST-AUDIT + javitasok (S34)
+  B11: v1.3.0 tag + merge (S35)
 ```
 
 ---
@@ -801,7 +802,7 @@ B0.6 — Uj Slash Command-ok:
 B0.6 — OpenAPI 3.0 Export Setup:
   - scripts/export_openapi.py: FastAPI app → docs/api/openapi.json + openapi.yaml
   - docs/api/CHANGELOG.md: API valtozasok verziokent
-  - Elso export: 142 endpoint dokumentalva
+  - Elso export: 162 endpoint dokumentalva
   - CLAUDE.md szabaly: tag elott + API valtozas utan KOTELEZO ujrageneralas
 
 B0.7 — Dokumentacios Szabalyok Egysegesitese:
@@ -1053,7 +1054,7 @@ GATE: Pipeline vegigfut valos adatokkal, promptfoo 95%+, riport helyes, fajlok m
 
 ---
 
-## B3.5: Konfidencia Scoring Hardening — 1 session (S25.5 — B3 utan, B4 elott)
+## B3.5: Konfidencia Scoring Hardening — 1 session (S26)
 
 > **Gate:** Konfidencia ertekek kalibralt, megbizhato, per-field, es confidence→review routing MUKODIK.
 > **KRITIKUS:** A konfidencia ertekek drivoljak a user interakciokat (mi kerul human review-ra,
@@ -1222,7 +1223,7 @@ GATE: Per-field confidence mukodik, routing bekotve (auto/review/reject),
 
 ---
 
-## B4: Skill Hardening (5 skill) — 2 session (S26-S27)
+## B4: Skill Hardening (5 skill) — 2 session (S27-S28)
 
 > **Gate:** 5/5 skill 95%+ promptfoo, 5/5 guardrails.yaml KESZ, 5/5 checklist 8+/10.
 > **Eszkozok:** /service-hardening + /prompt-tuning (B0-bol)
@@ -1264,7 +1265,7 @@ GATE: 5/5 skill 95%+ promptfoo, 5/5 checklist 8+/10
 
 ---
 
-## B5: Diagram Integralas + Specifikacio Iro AIFlow — 1 session (S28)
+## B5: Diagram Integralas + Specifikacio Iro AIFlow — 1 session (S29)
 
 > **Gate:** Diagram pipeline mukodik, spec writer prototipus mukodik.
 
@@ -1321,68 +1322,256 @@ GATE: Diagram pipeline E2E mukodik, spec writer prototipus fut, koltseg baseline
 
 ---
 
-## B6: UI User Journey — Alapoktol Ujragondolas — 1 session (S29)
+## B6: Portal Struktura Ujragondolas + User Journey Tervezes — 1 session (S30)
 
-> **Gate:** Teljes journey audit kesz, 4 fo journey definialt es tervezett, ujratervezett navigacio.
-> **Ez NEM kozmetikai polish — ez az egesz UI hasznalhatosaganak ujragondolasa.**
+> **Gate:** Portal IA (Information Architecture) ujratervezett, 4 journey reszletesen definialt,
+> navigacio + wireframe KESZ. Ez az egesz UI strategiai ujratervezese.
+> **Ez NEM 1 oldal javitasa — ez a TELJES portal szerkezetenek ujragondolasa!**
 
 ```
-B6.1 — 17 Oldal Audit (MI MUKODIK VALOJABAN?):
-  MINDEN oldal:
-  | Oldal | Cel | Mi mukodik | Mi NEM mukodik | Kategoria |
-  |-------|-----|-----------|----------------|-----------|
-  | Dashboard | Attekintes | ? | ? | A/B/C/D |
-  | Documents | Doku kezeles | ? | ? | A/B/C/D |
-  | Emails | Email feldolg | ? | ? | A/B/C/D |
-  | ... (mind a 17) | | | | |
+B6.1 — Portal Struktura Audit (22 oldal jelenlegi allapot):
+
+  JELENLEGI NAVIGACIO (technikai csoportositas):
+  ┌─────────────────────────────────────────────────┐
+  │ OPERATIONS:   /runs, /costs, /monitoring, /quality │
+  │ DATA:         /documents, /emails                   │
+  │ AI SERVICES:  /rag, /process-docs, /media, /rpa     │
+  │ ORCHESTRATION: /services, /pipelines                │
+  │ ADMIN:        /admin, /audit, /reviews              │
+  └─────────────────────────────────────────────────┘
+  PROBLEMA: A user NEM "operaciokat" vagy "szolgaltatasokat" akar latni,
+  hanem FELADATOT akar vegezni: "szamlat keresek", "dokumentumot generalok".
+
+  22 oldal audit tabla:
+  | # | Oldal | Route | Cel | Mi mukodik | Mi NEM | Kategoria | Journey |
+  |---|-------|-------|-----|-----------|--------|-----------|---------|
+  | 1 | Dashboard | / | Attekintes | KPI kartyak | Pipeline triggering | B | Monitoring |
+  | 2 | Documents | /documents | Doku lista | Upload, lista | Extrakció trigger | B | Invoice |
+  | 3 | DocumentDetail | /documents/:id/show | Detail | Megjelenit | Limitalt | B | Invoice |
+  | 4 | Verification | /documents/:id/verify | Ellenorzes | Alap editor | Bounding box, diff | B | Invoice |
+  | 5 | Emails | /emails | Email | Lista, upload, connectors | Scan trigger | B | Invoice |
+  | 6 | Runs | /runs | Pipeline futasok | Lista, filter | Drill-down | A | Monitoring |
+  | 7 | Costs | /costs | Koltsegek | KPI, breakdown | Trend, alert | B | Monitoring |
+  | 8 | Monitoring | /monitoring | Egeszseg | Status kartyak | Valos metrikak | C | Monitoring |
+  | 9 | Quality | /quality | LLM minoseg | Rubric eval | Trend, alerting | B | Monitoring |
+  | 10 | Rag | /rag | RAG chat | Kollekcio + chat | Ingest workflow | B | RAG |
+  | 11 | RagDetail | /rag/:id | Kollekcio detail | Chat, chunks | Feedback loop | B | RAG |
+  | 12 | ProcessDocs | /process-docs | Diagram | Mermaid gen | Tobbi diagram tipus | B | Generation |
+  | 13 | Media | /media | Media | Upload, STT | Teljes workflow | C | Generation |
+  | 14 | Rpa | /rpa | RPA | Config lista | Valos vegrehajtás | C | — |
+  | 15 | Reviews | /reviews | Human review | Pending/history | Confidence routing | B | Invoice |
+  | 16 | Cubix | /cubix | Cubix kurzus | Szekcio viewer | Limitalt | C | — |
+  | 17 | Services | /services | Szolg. katalogus | Lista | Pipeline integralas | B | Monitoring |
+  | 18 | Pipelines | /pipelines | Pipeline kezeles | YAML letrehozas | UI trigger | B | Monitoring |
+  | 19 | PipelineDetail | /pipelines/:id | Pipeline detail | YAML + run lista | Vizualizacio | B | Monitoring |
+  | 20 | Admin | /admin | Admin | User + API key | Reszletes | A | Admin |
+  | 21 | Audit | /audit | Audit trail | Naplo lista | Filter, export | A | Monitoring |
+  | 22 | Login | /login | Auth | JWT login | — | A | — |
 
   Kategoriak:
-  A) Mukodik end-to-end (ritka)
-  B) UI van, backend reszleges
-  C) UI van, backend stub/demo
-  D) Nem ertelmes jelenlegi formaban
+  A) Mukodik end-to-end
+  B) UI van, backend reszleges → B8-ban javitando
+  C) UI van, backend stub/demo → Sprint C-re halasztva VAGY B8-ban minimum
+  
+B6.2 — Portal Information Architecture Ujratervezes:
 
-B6.2 — 4 Fo User Journey Definialas:
-  JOURNEY 1: "Szamla Feldolgozas"
-    Email scan → szamla azonositas → extract → verify → save → report
-    Oldalak: Emails → Documents → Verification → Dashboard (KPI)
-    Backend: email_connector → invoice_processor → Invoice Finder pipeline
+  UJ NAVIGACIO (felhasznaloi cel alapu):
+  ┌──────────────────────────────────────────────────────────────┐
+  │                                                              │
+  ��� 📊 DASHBOARD (fo attekintes)                                │
+  │     4 journey kartya + KPI + aktiv pipeline-ok              │
+  │                                                              │
+  │ 📄 DOKUMENTUM FELDOLGOZAS                                   │
+  │     Szamla Kereso (Invoice Finder trigger)                  │
+  │     Dokumentum Upload + Extrakció                           │
+  │     Verifikacio (human review)                              │
+  │     Email Scan (postafiok keresés)                          │
+  │     Mentett Dokumentumok (lista + kereses)                  │
+  │                                                              │
+  │ 💬 TUDASBAZIS (RAG)                                         │
+  │     Kollekcio Kezeles (create + stats)                      │
+  │     Dokumentum Feltoltes + Ingest                           │
+  │     Chat Interface                                          │
+  │     Visszajelzes + Statisztika                              │
+  │                                                              │
+  │ 📐 GENERALAS                                                │
+  │     Diagram Generalas (Mermaid, BPMN, DrawIO)              │
+  │     Specifikacio Iras                                       │
+  │     Media Feldolgozas (STT, video)                          │
+  │                                                              │
+  │ 📊 MONITORING                                               │
+  │     Pipeline Futasok + Statusz                              │
+  │     Koltsegek (per-service, trend)                          │
+  │     Szolgaltatas Egeszseg                                   │
+  │     LLM Minoseg (Promptfoo + Langfuse)                     │
+  │     Audit Naplo                                             │
+  │                                                              │
+  │ ⚙️  BEALLITASOK                                             │
+  │     Felhasznalok + API Kulcsok                              │
+  │     Pipeline Sablonok                                       │
+  │     Szolgaltatas Konfiguracio                               │
+  ��     Email Connector Beallitasok                             │
+  │                                                              │
+  └──────────────────────────────────────────────────────────────┘
 
-  JOURNEY 2: "Dokumentum Generalas"
-    Szoveges leiras → diagram valasztas → render → review → export
-    Oldalak: ProcessDocs → DiagramViewer → Export
-    Backend: process_documentation skill
+  VALTOZASOK:
+  - OPERATIONS + DATA + AI SERVICES → DOKUMENTUM FELDOLGOZAS + TUDASBAZIS + GENERALAS
+  - /emails integralva a Dokumentum Feldolgozas journey-be (nem kulon csoport)
+  - /reviews integralva a Verifikacio-ba (nem kulon "admin" feature)
+  - /services + /pipelines → BEALLITASOK (nem "orchestration" — az a hatterben tortenik)
+  - RPA es Cubix → almenukent, NEM fo navigacios elem (ritkabban hasznalt)
 
-  JOURNEY 3: "RAG Chat"
-    Collection letrehozas → dokumentum ingest → chat → feedback
-    Oldalak: RAGCollections → RAGIngest → RAGChat → RAGStats
-    Backend: rag_engine + vector_ops
+B6.3 — Holisztikus User Journey Terkep (az egesz portal egy kepben):
 
-  JOURNEY 4: "Monitoring & Governance"
-    Dashboard → alerts → drill-down → action
-    Oldalak: Dashboard → Quality → AuditLog → Services
-    Backend: health_monitor + quality + audit + Langfuse
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                        DASHBOARD                                │
+  │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
+  │   │ Szamla   │  │ Tudas-   │  │ Generálas│  │Monitoring│     │
+  │   │ Feldolg. │  │ bazis    │  │          │  │          │     │
+  │   │ (3 aktiv)│  │ (2 koll.)│  │ (1 fut)  │  │ (OK)     │     │
+  │   └─────┬────┘  └─────┬────┘  └─────┬────┘  └─────┬────┘     │
+  │         │              │              │              │          │
+  │         ▼              ▼              ▼              ▼          │
+  │   JOURNEY 1      JOURNEY 3      JOURNEY 4      JOURNEY 2      │
+  │                                                                 │
+  │   Email scan     Collection     Diagram input   Pipeline runs  │
+  │       ↓          letrehozas        ↓                ↓          │
+  │   Szamla         Dok upload     Tipus valasztas  Koltseg trend │
+  │   detektalas         ↓              ↓                ↓          │
+  │       ↓          Ingest         LLM generalas    Service health│
+  │   Extrakció          ↓              ↓                ↓          │
+  │       ↓          Chat           Preview+Edit     LLM quality   │
+  │   Verifikacio    interface          ↓                ↓          │
+  │   (confidence!)      ↓          Export           Audit naplo   │
+  │       ↓          Feedback                                      │
+  │   Jelentes                                                     │
+  │   kuldes                                                       │
+  └─────────────────────────────────────────────────────────────────┘
 
-  Per journey: belépesi pont → lepesek → kilepes → eredmeny
-  OUTPUT: 01_PLAN/63_UI_USER_JOURNEYS.md (reszletes journey terkep)
+B6.4 — Reszletes User Journey Definiciok (per use-case):
 
-B6.3 — Navigacios Redesign:
-  - Menu struktura a 4 journey-re epitett (nem onallo oldalak halmaza)
-  - Dashboard: 4 journey "kartyakent" a fo attekintesen
-  - Sidebar: journey-based csoportositas
-  - Breadcrumb: hol vagyok a journey-ben?
+  === JOURNEY 1: Szamla Feldolgozas (Invoice Finder) ===
+  Cel: Postafiokbol szamlak keresese, kiolvasasa, ellenorzese, jelentese.
+  Felhasznalo: Penztaros, konyvelo, vezeto
+  
+  Lepes 1: EMAIL SCAN (Emails oldal)
+    - User valaszt postafiokot (connector config)
+    - "Scan inditasa" gomb → POST /api/v1/pipelines/run (invoice_finder_v1)
+    - Varakozo allapot → pipeline status kijelzes
+    - Eredmeny: talalt szamlak listaja
+  
+  Lepes 2: SZAMLA LISTA (Documents oldal, szurt nezet)
+    - Talalt szamlak kártyái (kiskep + fo adatok)
+    - Per-szamla: konfidencia badge (🟢🟡🔴)
+    - Szures: csak Invoice Finder eredmenyei
+    - Rendezés: konfidencia → alacsony elol (ami review-ra var)
+  
+  Lepes 3: VERIFIKACIO (Verification Page v2 — B7!)
+    - Bal oldal: eredeti PDF bounding box-okkal
+    - Jobb oldal: kinyert adatok per-field confidence szinnel
+    - Piros mezok → user ellenorzi/javitja
+    - "Elfogadas" / "Elutasitas" gomb
+    - Diff perzisztencia (mi volt → mi lett)
+  
+  Lepes 4: JELENTES (Report oldal / email)
+    - Osszefoglalo: X szamla, Y fizetetlen, Z Ft osszeg
+    - Export: CSV/Excel
+    - Email kuldes (notification service)
+  
+  Backend: email_connector → classifier → document_extractor → invoice_processor
+           → confidence_router → human_review → notification
+  Oldalak: /emails → /documents (filtered) → /documents/:id/verify → /reports
+  
+  === JOURNEY 2: Monitoring & Governance ===
+  Cel: Rendszer egeszseg, koltsegek, minoseg attekintese es beavatkozas.
+  Felhasznalo: Admin, DevOps, vezeto
+  
+  Lepes 1: DASHBOARD (/ fo oldal)
+    - 4 KPI kartya: aktiv pipeline-ok, mai koltseg, service health, LLM quality
+    - Utolso 5 pipeline futás (status badge)
+    - Alert banner ha valami nincs rendben
+  
+  Lepes 2: DRILL-DOWN (specifikus terulet)
+    - Pipeline futasok → /runs (szures, reszletek)
+    - Koltsegek → /costs (per-service, trend, havi)
+    - Service health → /monitoring (ping, latency)
+    - LLM quality → /quality (promptfoo eredmenyek, Langfuse trace)
+  
+  Lepes 3: BEAVATKOZAS
+    - Pipeline ujrainditasa (ha FAILED)
+    - Service ujrainditasa (ha DOWN)
+    - Prompt verzio visszaallitasa (Langfuse label swap)
+    - Audit naplo: ki mit csinalt, mikor
+  
+  Backend: health_monitor + quality + audit + Langfuse + cost_records
+  Oldalak: / → /runs|/costs|/monitoring|/quality → /audit
+  
+  === JOURNEY 3: Tudasbazis (RAG Chat) ===
+  Cel: Dokumentum-alapu tudasbazis epitese es hasznalata.
+  Felhasznalo: Szaktanácsadó, jogi, HR
+  
+  Lepes 1: KOLLEKCIO (Rag oldal)
+    - Meglevo kollekcio valasztas VAGY uj letrehozas
+    - Kollekcio statisztikak: dok szam, chunk szam, utolso ingest
+  
+  Lepes 2: DOKUMENTUM FELTOLTES (RagDetail / ingest tab)
+    - Drag-and-drop PDF/DOCX/XLSX upload
+    - Docling parse → chunking → embedding
+    - Folyamatjelzo (progress bar)
+  
+  Lepes 3: CHAT (RagDetail / chat tab)
+    - Chat interface (SSE streaming)
+    - Valasz + forras hivatkozas (citation)
+    - Relevancia score megjelenitese
+  
+  Lepes 4: VISSZAJELZES + FINOMHANGOLAS
+    - 👍/👎 feedback per valasz
+    - "Miert hibas?" szabad szoveg
+    - Kollekcio statisztika: hit rate, avg relevance
+  
+  Backend: rag_engine + vector_ops + reranker + advanced_chunker
+  Oldalak: /rag → /rag/:id (tabbed: ingest / chat / stats)
+  
+  === JOURNEY 4: Generalas (Diagram + Spec) ===
+  Cel: Vizualis vagy szoveges output generalasa AI-val.
+  Felhasznalo: Fejleszto, uzleti elemzo, PM
+  
+  Lepes 1: INPUT (ProcessDocs / Spec Writer oldal)
+    - Szabad szoveges leiras VAGY fajl upload
+    - Tipus valasztas: flowchart / sequence / BPMN / spec
+  
+  Lepes 2: GENERALAS
+    - LLM → Mermaid syntax / Markdown spec
+    - Preview: renderelt diagram VAGY formatalt spec
+    - Iteracio: "add hozzá ezt" → ujrageneralas
+  
+  Lepes 3: EXPORT
+    - Diagram: SVG/PNG letoltes, Mermaid forras masolás
+    - Spec: Markdown/DOCX export
+    - Mentes: dokumentum registry-be
+  
+  Backend: diagram_generator + process_documentation skill + spec_writer
+  Oldalak: /process-docs (diagram tab + spec tab) → export
 
-B6.4 — Demo → Backend Migracio Terv:
+B6.5 — Navigacios Wireframe + Oldalterv:
+  - Figma MCP: uj navigacio wireframe (journey-based sidebar)
+  - Dashboard kartya-tervezes (4 journey indito)
+  - Breadcrumb komponens tervezes (hol vagyok a journey-ben?)
+  - Responsive: mobil navigacio (hamburger menu + journey kartyak)
+
+B6.6 — Demo → Backend Migracio Terv:
   - MINDEN oldal: source=backend VAGY "Meg nem mukodik" felirat
-  - SOHA NE demo adat lasd ugy mintha valos lenne
-  - Prioritas: a 4 journey-hez tartozo oldalak ELSOBBSEGET kapnak
+  - Journey 1 + 2 oldalai: PRIORITAS (B8-ban implementalas)
+  - Journey 3 + 4: meglevo funkciok osszekotese
+  - C kategoriaju oldalak (RPA, Cubix): "Hamarosan" felirat
 
-GATE: 17 oldal audit tabla KESZ, 4 journey definialt, navigacio terv, 63_UI_USER_JOURNEYS.md
+GATE: 22 oldal audit KESZ, 4 journey reszletesen definialt (belepesi pont → lepesek → eredmeny),
+      uj navigacios IA dokumentalva, wireframe KESZ, 01_PLAN/63_UI_USER_JOURNEYS.md KESZ
 ```
 
 ---
 
-## B7: Verification Page v2 — Kiemelt UI Feature — 1 session (S30)
+## B7: Verification Page v2 — Kiemelt UI Feature — 1 session (S31)
 
 > **Gate:** Verification page v2 mukodik: bounding box, edit diff, perzisztencia, audit trail.
 > **Ez a projekt "showcase" felulete — a leheto legprofibb megoldas kell.**
@@ -1440,45 +1629,66 @@ GATE: Verification page v2 mukodik valos szamlaval, edit+save+retrieve PASS
 
 ---
 
-## B8: UI Journey Implementacio — Top 3 Journey — 1 session (S31)
+## B8: UI Journey Implementacio — 1 session (S32)
 
-> **Gate:** 3/4 journey mukodik end-to-end, 0 console error, navigation redesign LIVE.
+> **Gate:** Uj navigacio LIVE, Journey 1 (Invoice) + Journey 2 (Monitoring) E2E mukodik,
+> Journey 3 + 4 meglevo funkciok osszekotve, 0 console error.
 
 ```
-B8.1 — Navigacios Redesign Implementacio:
-  - Sidebar: journey-based csoportositas (B6.3 terv alapjan)
-  - Dashboard: 4 journey kartya fo attekintesen
-  - Breadcrumb komponens
+B8.1 — Portal Navigacio Atepites:
+  Sidebar.tsx ujrairas B6.2 terv alapjan:
+  REGI: Operations | Data | AI Services | Orchestration | Admin
+  UJ:   Dashboard | Dokum. Feldolg. | Tudasbazis | Generalas | Monitoring | Beallitasok
 
-B8.2 — Journey 1 Implementacio: "Szamla Feldolgozas":
-  - Emails oldal: postafiok scan trigger, szamla-talatat lista
-  - Documents oldal: feldolgozott szamlak, statusz badge
-  - Verification oldal: B7-bol (mar kesz!)
-  - Dashboard: fizetetlen szamlak KPI
-  - Backend: Invoice Finder pipeline (B3-bol) → UI integration
+  Implementalas:
+  - Sidebar.tsx: uj csoport struktura (6 journey-based csoport)
+  - Dashboard.tsx: 4 journey kartya (kattinthato, statisztikakkal)
+  - Breadcrumb.tsx (UJ): "Dashboard > Dokumentum Feldolgozas > Verifikacio"
+  - router.tsx: route csoportositas frissitese (route-ok NEM valtoznak, csak a menu)
+  - TESZTELES: Playwright navigacio teszt (minden menuelem elerheto)
 
-B8.3 — Journey 2 Implementacio: "Dokumentum Generalas":
-  - ProcessDocs oldal: input form + diagram tipus valasztas
-  - Diagram viewer: renderelt kimenet (SVG/PNG)
-  - Export: letoltes + masolás
+B8.2 — Journey 1 Implementacio: "Szamla Feldolgozas" (KIEMELT!):
+  Ez a B3 (Invoice Finder) + B3.5 (Confidence) + B7 (Verification) osszekotese UI-ban.
 
-B8.4 — Journey 3 Implementacio: "RAG Chat":
-  - Collection lista + letrehozas
-  - Ingest: fajl upload → vektor DB
-  - Chat: kerdes-valasz (valos backend!)
-  - Feedback: hasznos/nem hasznos
+  Uj/modositott oldalak:
+  - Emails oldal: "Szamla Scan Inditasa" gomb → pipeline trigger
+  - Documents oldal: szurt nezet (Invoice Finder eredmenyei), confidence badge
+  - Verification: B7-bol mar KESZ (bounding box + per-field confidence szin)
+  - Reports: (UJ aloldal) osszefoglalo tabla + CSV export + email kuldes gomb
+  - Dashboard: "Fizetetlen szamlak" KPI kartya
 
-B8.5 — Dark Mode + Responsive + i18n:
-  - Minden uj/modositott oldal: dark mode WCAG AA
-  - 768px breakpoint: olvashato
-  - HU/EN: minden uj string translate()
+  E2E TESZT: Playwright — Email scan trigger → szamla talalt → verify → report
+  TESZTELES: valos szamla PDF-ekkel, NEM mock adattal
 
-GATE: 3 journey E2E mukodik, 0 console error, navigation uj, i18n PASS
+B8.3 — Journey 2 Implementacio: "Monitoring & Governance":
+  Meglevo oldalak osszekotese koherens journey-be:
+  - Dashboard: alert banner (ha service DOWN / quality LOW)
+  - Runs: pipeline detail-bol "Ujrainditás" gomb
+  - Costs: trend chart (utolso 30 nap, per-service)
+  - Monitoring: service health pill-ek (zold/piros)
+  - Quality: Langfuse trace link + promptfoo eredmeny inline
+  - Audit: filter bovites (user, action, date range)
+
+  E2E TESZT: Dashboard → drill-down costs → vissza dashboard
+
+B8.4 — Journey 3+4 Osszekotes (meglevo funkciok):
+  RAG: /rag → /rag/:id tabbed (ingest / chat / stats) — mar MUKODIK, finomhangolas
+  Generalas: /process-docs (diagram tab mar mukodik), spec tab uj (B5-bol)
+
+B8.5 — Cross-cutting UI Javitasok:
+  - Dark mode: WCAG AA kontraszt minden uj/modositott oldalon
+  - Responsive: 768px breakpoint — sidebar collapse, kartya stack
+  - i18n: minden uj string translate() (HU/EN toggle)
+  - source badge: MINDEN oldal mutatja "Backend" / "Demo" / "Offline"
+  - 0 console error: Playwright browser_console_messages ellenorzes
+
+GATE: Uj navigacio elo, Journey 1+2 E2E PASS, Journey 3+4 osszekotve, 0 console error,
+      dark mode + responsive + i18n PASS, Playwright E2E minden journey-re
 ```
 
 ---
 
-## B9: Docker Containerization + Ugyfel-Ready Deploy — 1 session (S32)
+## B9: Docker Containerization + Ugyfel-Ready Deploy — 1 session (S33)
 
 > **Gate:** `docker compose up` → MINDEN szolgaltatas fut → UI-bol pipeline inditható → E2E PASS.
 > **A nap vegen: Docker-ben futo, ugyfel-ready AIFlow megoldas.**
@@ -1748,10 +1958,10 @@ Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 | B3 | **Invoice Finder E2E pipeline** (valos adat!) | S24-S25 | TODO | — | — |
 | B3.5 | **Konfidencia scoring hardening** + review routing | S26 | TODO | — | — |
 | B4 | Skill hardening (5 skill, 95%+ promptfoo) | S27-S28 | TODO | — | — |
-| B5 | Diagram pipeline + Spec writer + koltseg baseline | S28 | TODO | — | — |
-| B6 | UI Journey audit + 4 journey tervezes | S29 | TODO | — | — |
-| B7 | **Verification Page v2** (bounding box, diff, DB) | S30 | TODO | — | — |
-| B8 | UI Journey implementacio (top 3 journey) | S31 | TODO | — | — |
-| B9 | **Docker deploy** + UI pipeline trigger | S32 | TODO | — | — |
-| B10 | POST-AUDIT + javitasok | S33 | TODO | — | — |
-| B11 | v1.3.0 tag + merge | S34 | TODO | — | — |
+| B5 | Diagram pipeline + Spec writer + koltseg baseline | S29 | TODO | — | — |
+| B6 | **Portal struktura** + 4 journey tervezes | S30 | TODO | — | — |
+| B7 | **Verification Page v2** (bounding box, confidence, diff) | S31 | TODO | — | — |
+| B8 | UI Journey implementacio (navigacio + 3 journey) | S32 | TODO | — | — |
+| B9 | **Docker deploy** + UI pipeline trigger | S33 | TODO | — | — |
+| B10 | POST-AUDIT + javitasok | S34 | TODO | — | — |
+| B11 | v1.3.0 tag + merge | S35 | TODO | — | — |
