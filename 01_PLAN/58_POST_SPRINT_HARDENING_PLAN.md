@@ -507,17 +507,129 @@ Session 22: A7+A8 (Javitasok + tag) ───── Fix + v1.2.2
 
 ---
 
-# SPRINT B: Szolgaltatas Excellence + Guardrail Implementacio (v1.3.0)
+# SPRINT B: E2E Szolgaltatas Excellence (v1.3.0)
 
 > **Branch:** `feature/v1.3.0-service-excellence`
 > **Elofeltetel:** Sprint A COMPLETE (v1.2.2), guardrail keretrendszer KESZ
+> **Fo elv:** Minden alapozo funkcio → valos E2E AIFlow-val validalva. NEM tervezunk, EPITUNK.
+> **Becsult:** ~16 session (S19-S34)
+>
+> ## ARCHITEKTURA — KULCSFONTOSSAGU MEGKULONBOZTETES
+>
+> ```
+> ┌────────────────────────────────────────────────────────────┐
+> │ FEJLESZTESI IDO (Claude Code tamogatja)                   │
+> │                                                            │
+> │ Tervezes → Fejlesztes → TESZTELES → Karbantartas → Debug  │
+> │ Claude: /dev-step, /regression, /service-test, /new-skill │
+> │                                                            │
+> │ Claude Code SZEREPE:                                       │
+> │   - Tervezi es fejleszti a keretrendszert                 │
+> │   - Fejleszti a service-eket es pipeline-okat             │
+> │   - TESZTELI (unit, integration, E2E, prompt, Playwright) │
+> │   - Karbantartja, hibaelharitja                            │
+> │   - Specifikaciot ir, dokumental                           │
+> │                                                            │
+> │ Claude Code NEM futtatja uzemszerun az AIFlow-kat!        │
+> └──────────────┬───────────────────────────────────────────┘
+>                │ deploy (Docker)
+>                ▼
+> ┌────────────────────────────────────────────────────────────┐
+> │ UZEMELTETESI IDO (Docker containers, ugyfél-ready)        │
+> │ Claude Code NEM SZUKSEGES — minden ONALLOAN fut!          │
+> │                                                            │
+> │ ┌──────────────────────────────────────────────────────┐  │
+> │ │ aiflow-admin UI                                      │  │
+> │ │  - Pipeline trigger (user inditja az Invoice Findert)│  │
+> │ │  - User interakcio (Verification Page, Chat, stb.)   │  │
+> │ │  - Monitoring (Dashboard, Alerts, Audit)              │  │
+> │ └────────────────────┬─────────────────────────────────┘  │
+> │                      │ API call                            │
+> │ ┌────────────────────▼─────────────────────────────────┐  │
+> │ │ FastAPI + AIFlow Engine                               │  │
+> │ │  - Pipeline Runner (YAML-bol vezerelt)                │  │
+> │ │  - Service orchestration + Guardrails                 │  │
+> │ │  - Notification (email riport automatikusan)          │  │
+> │ └────────────────────┬─────────────────────────────────┘  │
+> │                      │                                     │
+> │ ┌────────────────────▼─────────────────────────────────┐  │
+> │ │ Infrastructure (Docker Compose)                       │  │
+> │ │  PostgreSQL + Redis + Kroki + LLM API-k              │  │
+> │ └──────────────────────────────────────────────────────┘  │
+> └────────────────────────────────────────────────────────────┘
+> ```
+>
+> **Iranyelvek:**
+> - qbpp_test_automation: TOROLVE (5 skill marad)
+> - Guardrail: per-function PII kezeles (invoice-nal PII masking OFF!)
+> - UI: user journey alapoktol ujragondolva, verification page v2
+> - E2E: Invoice Finder mint elso valos, Docker-ready AIFlow szolgaltatas
+> - **UI triggereli a pipeline-okat** — NEM Claude Code
+> - **Docker container-ready**: minden szolgaltatas ugyfél-kesz megoldas
+> - **TESZTELES explicit fazis** minden fejlesztesi lepesben
+> - Koltseg optimalizalas: NEM prioritas (dev fazis), csak baseline meres
 
-## B0: Keretrendszer, Metodologia & Integralt Toolchain — 1 session
-
-> **Gate:** 10-pontos checklist + integralt toolchain + prompt metodologia + guardrail sablon + 2 uj slash command KESZ.
+## Sprint B Fazisok — Attekintes
 
 ```
-B0.1 — 10 Pontos Production Checklist (minden szolgaltatasra):
+FAZIS 1 — ALAPOK (S19-S21): 3 session
+  B0: Guardrail per-function + qbpp torles + architektura dok
+  B1: LLM guardrail promptok (4 YAML) + per-skill guardrails.yaml
+      TESZTELES: 20+ Promptfoo, 25 guardrail unit test, golden dataset
+
+FAZIS 2 — E2E SZOLGALTATASOK (S22-S28): 7 session
+  B2: Service unit tesztek (130 teszt, Tier-based)
+      TESZTELES: 130/130 PASS, coverage >= 70%
+  B3: Invoice Finder — valos E2E szolgaltatas (UI-bol inditva, Docker-ready!)
+      TESZTELES: valos postafiok, valos szamlak, valos LLM, pipeline vegigfut
+  B4: Skill hardening (5 skill, 95%+ promptfoo)
+      TESZTELES: Promptfoo eval, guardrail teszt, /service-test
+  B5: Diagram pipeline + Spec writer szolgaltatas + koltseg baseline
+      TESZTELES: E2E diagram render, spec writer output validacio
+
+FAZIS 3 — UI EXCELLENCE (S29-S31): 3 session
+  B6: UI Journey audit + 4 journey tervezes + navigacio redesign
+  B7: Verification Page v2 (bounding box, diff, perzisztencia)
+      TESZTELES: Playwright E2E (upload→extract→verify→save→retrieve)
+  B8: UI Journey implementacio (top 3 journey)
+      TESZTELES: Playwright E2E minden journey-re, 0 console error
+
+FAZIS 4 — DEPLOY & RELEASE (S32-S34): 3 session
+  B9: Docker containerization + ugyfel-ready deploy teszteles
+      TESZTELES: docker compose up → MINDEN szolgaltatas fut → E2E PASS
+  B10: POST-AUDIT + javitasok
+  B11: v1.3.0 tag + merge
+```
+
+---
+
+## B0: Guardrail Per-Function + Alapok — 1 session (S19)
+
+> **Gate:** Per-skill PII strategia dok KESZ, qbpp TOROLVE, architektura dok frissitve, 10-pontos checklist KESZ.
+
+```
+B0.1 — Per-Skill PII Strategia Tervdokumentum:
+  FONTOS: A fix PII masking MEGHIUSITJA az uzleti funkciokat!
+  Pl. invoice processing-nel adoszam/bankszamla KELL az LLM prompt-ban.
+
+  Per-skill PII config terv:
+  | Skill | pii_masking | allowed_pii | Indoklas |
+  |-------|-------------|-------------|----------|
+  | aszf_rag_chat | ON (full) | [] | Chat — SEMMI PII |
+  | email_intent | PARTIAL | [email, name, company] | Routing-hoz kell |
+  | invoice_processor | OFF | [ALL] | Szamla mezok = PII |
+  | process_docs | ON | [] | Doku generalas — nincs PII |
+  | cubix_course_capture | ON | [] | Video transcript — nincs PII |
+
+  OUTPUT: 01_PLAN/61_GUARDRAIL_PII_STRATEGY.md
+
+B0.2 — qbpp_test_automation TORLES:
+  - skills/qbpp_test_automation/ mappa torles
+  - Minden hivatkozas frissites (CLAUDE.md, 01_PLAN/CLAUDE.md): 6 → 5 skill
+  - Promptfoo config torlese
+  - ELLENORZES: pytest, ruff → PASS
+
+B0.3 — 10 Pontos Production Checklist:
   [ ]  1. UNIT TESZT      — >= 5 teszt, >= 70% coverage
   [ ]  2. INTEGRACIO       — >= 1 valos DB-vel (ha DB-t hasznal)
   [ ]  3. API TESZT        — minden endpoint curl, source=backend
@@ -526,365 +638,141 @@ B0.1 — 10 Pontos Production Checklist (minden szolgaltatasra):
   [ ]  6. LOGGING          — structlog, NEM print(), event+key=value
   [ ]  7. DOKUMENTACIO     — docstring fo osztaly + publikus metodus
   [ ]  8. UI               — oldal mukodik, source badge, 0 console error
-  [ ]  9. INPUT GUARDRAIL  — injection vedelem, PII, length limit (A5 FW)
-  [ ] 10. OUTPUT GUARDRAIL — hallucination, scope, PII leak check (A5 FW)
+  [ ]  9. INPUT GUARDRAIL  — injection + PII (per-skill config!)
+  [ ] 10. OUTPUT GUARDRAIL — hallucination, scope, PII leak check
 
-B0.2 — Integralt Toolchain (Langfuse + Promptfoo + Claude Code):
+B0.4 — Architektura Dokumentacio Frissites:
+  FONTOS: Claude Code = FEJLESZTOI eszkoz (tervezes, fejlesztes, TESZTELES, karbantartas).
+  AIFlow szolgaltatasok = Docker container-ben, UI-bol vezerelve, ugyfel-ready.
 
-  A 3 eszkoz NEM kulon-kulon, hanem KOORDINALTAN mukodik — minden
-  szolgaltatas finomhangolasa soran az alabbi ciklust kovetjuk:
+  Dokumentalandó:
+  - Fejlesztesi ciklus: Claude Code hogyan tamogatja (slash commands, teszteles)
+  - Uzemeltetesi architektura: Docker Compose, UI → FastAPI → Pipeline → Services
+  - Deploy folyamat: dev → staging → production
+  - UI mint pipeline vezerlo: hogyan inditja a user az Invoice Findert, stb.
 
-  LANGFUSE (megfigyeles) → PROMPTFOO (teszteles) → CLAUDE CODE (vegrehajtas)
-  ───────────────────────────────────────────────────────────────────────────
-  
-  1. LANGFUSE — Megfigyeles & Baseline:
-     - Production trace-ek elemzese: mely promptok lassuk/dragak/pontatlanok?
-     - Cost dashboard: per-service koltseg, token hasznalat
-     - Minosegi scoring: user feedback + automatikus faithfulness score
-     - OUTPUT: baseline riport (koltseg, latency, minoseg metrikai)
-  
-  2. PROMPTFOO — Szisztematikus Teszteles & A/B:
-     - Baseline eval: npx promptfoo eval → jelenlegi pass rate rogzites
-     - FAIL analiz: mely test case-ek buknak? root cause azonositas
-     - A/B kiserlet: promptfoo --providers gpt-4o,gpt-4o-mini → modell osszehasonlitas
-     - Guardrail teszt: golden dataset (safe/dangerous/injection) → 100% PASS?
-     - Regresszio: minden prompt modositas utan UJRA eval → nem romlott?
-     - OUTPUT: eval riport (pass rate, regresszio, A/B eredmenyek)
-  
-  3. CLAUDE CODE — Vegrehajtas & Orchestracio:
-     - /quality-check: Promptfoo eval + Langfuse koltseg elemzes egyutt
-     - /service-test: Backend + API + UI e2e (valos adat!)
-     - /prompt-tuning (UJ): prompt YAML modositas + eval + guardrail illesztes
-     - /service-hardening (UJ): teljes 10-pontos checklist vegrehajtasa
-     - /dev-step: fejlesztes + teszt + commit (a ciklus lezarasa)
-     - OUTPUT: commit, frissitett tesztek, dokumentacio
-  
-  4. UI INTEGRACIO — Vizualizacio & Visszajelzes:
-     - Quality dashboard: Langfuse trace-ek + Promptfoo eredmenyek megjelenitese
-     - Cost dashboard: per-service koltseg trendek (Langfuse adatbol)
-     - Service Catalog: szolgaltatas allapot (10-pontos checklist vizualis)
-     - Notification: minoseg romlasrol automatikus alert (Langfuse webhook)
+  OUTPUT: 01_PLAN/62_DEPLOYMENT_ARCHITECTURE.md
 
-  KOORDINACIOS CIKLUS (minden szolgaltatasra):
-  ┌──────────────────────────────────────────────────────────┐
-  │ 1. Langfuse: baseline meres (trace, cost, quality)       │
-  │ 2. Promptfoo: eval → FAIL tetelek azonositasa            │
-  │ 3. Claude Code: /prompt-tuning → prompt YAML javitas     │
-  │ 4. Promptfoo: ujra eval → 95%+?                          │
-  │    ├── IGEN → 5. Guardrail config illesztes               │
-  │    └── NEM → vissza 3. (max 3 iteracio, utana modell csere)│
-  │ 5. Langfuse: uj trace-ek → javult a minoseg/koltseg?     │
-  │ 6. UI: dashboard frissites, quality metrikak              │
-  │ 7. Claude Code: /dev-step → commit + dokumentacio         │
-  └──────────────────────────────────────────────────────────┘
+B0.5 — Integralt Toolchain Koordinacios Ciklus:
+  Langfuse (megfigyeles) → Promptfoo (teszteles) → Claude Code (vegrehajtas)
+  Minden szolgaltatas finomhangolasa soran:
+  1. Langfuse: baseline meres (trace, cost, quality)
+  2. Promptfoo: eval → FAIL tetelek azonositasa
+  3. Claude Code: prompt YAML javitas
+  4. Promptfoo: ujra eval → 95%+?
+  5. Guardrail config illesztes (per-skill PII strategia alapjan!)
+  6. /dev-step → commit + dokumentacio
 
-B0.3 — Prompt Finomhangolas Metodologia:
-  A B0.2 toolchain-re epitett 6 lepesu ciklus:
-  MERES → DIAGNOZIS → JAVITAS → VALIDALAS → GUARDRAIL → DOKUMENTALAS
-  1. MERES: Langfuse baseline + npx promptfoo eval → pass rate rogzites
-  2. DIAGNOZIS: Langfuse trace-ekbol gyenge pontok + Promptfoo FAIL elemzes
-  3. JAVITAS: prompt YAML modositas (/prompt-tuning command)
-  4. VALIDALAS: promptfoo eval → 95%+? (ha NEM → ujra 2-3, max 3 iteracio)
-  5. GUARDRAIL: guardrails.yaml config illesztes (A5 sablon alapjan)
-  6. DOKUMENTALAS: CHANGELOG + Langfuse annotacio + UI dashboard frissites
+  2 uj slash command: /service-hardening + /prompt-tuning
 
-B0.4 — Prompt Guardrail Implementacios Sablon (per skill):
-  skills/{skill_name}/
-    guardrails.yaml              # UJ: skill-specifikus guardrail config
-    tests/test_guardrails.py     # UJ: 5+ guardrail teszt per skill
-    tests/golden_guardrails.yaml # UJ: known-safe + known-dangerous peldak
-
-  Framework-szintu LLM guardrail promptok (B1.3-ban implementalva):
-  prompts/guardrails/
-    hallucination_evaluator.yaml   # LLM grounding: valasz vs. forrasok
-    content_safety_classifier.yaml # LLM safety scoring (tobb retegu)
-    scope_classifier.yaml          # LLM 3-tier scope doentes
-    freetext_pii_detector.yaml     # LLM szabad szoveges PII felismeres
-  tests/guardrails/
-    promptfooconfig.yaml           # 20+ Promptfoo test case (4 prompt × 5+)
-
-B0.5 — Uj Slash Command-ok letrehozasa:
-  .claude/commands/service-hardening.md (UJ):
-    - Input: service nev
-    - Vegrehajtas: 10-pontos checklist egyenkenti ellenorzese
-    - Output: PASS/FAIL tabla, hianyzo pontok listaja
-    - Eszkozok: pytest, curl, promptfoo, /lint-check, Playwright
-
-  .claude/commands/prompt-tuning.md (UJ):
-    - Input: skill nev
-    - Vegrehajtas: B0.2 koordinacios ciklus (Langfuse → Promptfoo → fix → eval)
-    - Output: prompt YAML diff, eval riport, guardrail config
-    - Eszkozok: npx promptfoo eval, Langfuse API, ruff check
-
-B0.6 — Operacionalizacios Artefaktumok:
-  A metodologia ujrahasznalhato formaba hozasa:
-  
-  a) Reference Guide (01_PLAN/60_SERVICE_HARDENING_GUIDE.md):
-     - Lepes-lepesu guide uj szolgaltatas magas szintre hozasahoz
-     - Integralt toolchain hasznalati utmutato (Langfuse + Promptfoo + Claude)
-     - 10-pontos checklist reszletes magyarazattal
-     - Guardrail config sablon + peldak minden skill tipusra (ai, rpa, hybrid)
-     - Prompt tuning best practices (az aszf_rag_chat/reference/ anyagbol)
-     - Troubleshooting: gyakori hibak es megoldasok
-  
-  b) Claude Code Skill-ek:
-     - /service-hardening command (B0.5)
-     - /prompt-tuning command (B0.5)
-     - Meglevo command-ok frissitese: /quality-check bovites Langfuse linkkel
-  
-  c) Template fajlok:
-     - skills/TEMPLATE/ mappa: ures skill scaffold guardrail-lal
-     - prompts/TEMPLATE/: prompt YAML sablon + promptfoo config sablon
-     - tests/TEMPLATE/: test file sablon @test_registry header-rel
-  
-  d) Quality Dashboard bovites (B6-ban):
-     - Service Catalog: 10-pontos checklist vizualis (per service zold/piros)
-     - Prompt Eval: Promptfoo eredmenyek inline (utolso eval pass rate)
-     - Cost Trend: Langfuse koltseg trend chart (utolso 30 nap)
-
-GATE: Checklist + toolchain dok + 2 uj command + reference guide vaz + sablon
+GATE: PII strategia dok + qbpp torolve + checklist + architektura dok + 2 command
 ```
 
 ---
 
-## B1: P0 Core AI Skill-ek + LLM Guardrail Promptok — 2-3 session
+## B1: LLM Guardrail Promptok + Per-Skill Config — 2 session (S20-S21)
 
-> **Gate:** aszf_rag 95%+ promptfoo, email_intent 95%+ promptfoo, mindketto guardrails.yaml KESZ, 4 LLM guardrail prompt + 20 Promptfoo test case PASS.
-> **Eszkozok:** B0.2 integralt toolchain — Langfuse baseline → Promptfoo eval → /prompt-tuning → /service-hardening
+> **Gate:** 4 LLM guardrail prompt + 20 Promptfoo test case PASS, 5 skill guardrails.yaml KESZ.
 
 ```
-B1.0 — Elokeszites (mindket skill-re):
-  - Langfuse: baseline trace export (jelenlegi cost, latency, quality)
-  - Promptfoo: npx promptfoo eval → jelenlegi pass rate rogzites
-  - /service-hardening aszf_rag_chat → 10-pontos checklist audit
-  - /service-hardening email_intent_processor → 10-pontos checklist audit
-  - OUTPUT: ket baseline riport, hianyzo pontok listaja
+B1.1 — 4 LLM Guardrail Prompt Implementacio:
 
-B1.1 — aszf_rag_chat (RAG Chat — legkritikusabb):
-
-  KOD:
-    - rag_engine: connection pooling + query timeout
-    - vector_ops: BM25 + HNSW parameter tuning
-    - reranker: BGE v2-m3 validalas
-    - 15 unit test (rag_engine + vector_ops + reranker)
-
-  PROMPT (86% → 95%):
-    - answer_generator: citation enforcement ("EVERY claim MUST include [Source:]")
-    - hallucination_detector: scoring kalibralas (threshold 0.7 → 0.6)
-    - query_rewriter: magyar → angol concept mapping
-    - 7 → 12 test case (jogi, osszetetett, "nem tudom", hallucinacio)
-
-  GUARDRAIL (aszf_rag_chat/guardrails.yaml):
-    scope:
-      allowed_topics: ["jog", "biztositas", "aszf", "szolgaltatas", "kar"]
-      blocked_topics: ["politika", "orvosi", "befektetesi"]
-      dangerous_patterns: ["torvenyt kijatszani", "hogyan csaljak"]
-    input: max_length 2000, injection_patterns skill-specifikus, pii_masking true
-    output: require_citation true, hallucination_threshold 0.7, max_response 4000
-    golden_dataset: 4+ pelda (safe, out_of_scope, dangerous, injection)
-    5 guardrail teszt
-
-  MODELL:
-    - Kiserlet: answer gpt-4o → gpt-4o-mini (< 3% esés elfogadva)
-
-  CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
-
-B1.2 — email_intent_processor (P0):
-
-  KOD:
-    - Intent catalog bovites (8 → 12 tipus)
-    - Entity: magyar adoszam, bankszamla, cim regex + LLM
-    - 10 unit test (email_connector + classifier)
-
-  PROMPT (85% → 95%):
-    - intent_classifier: 4 uj intent tipus
-    - entity_extractor: HU-specifikus entitasok
-    - priority_scorer: kontextus-alapu sulyossag
-    - 11 → 16 test case
-
-  GUARDRAIL (email_intent_processor/guardrails.yaml):
-    scope:
-      allowed: ["ugyfelsz", "szamla", "szerzodes", "panasz", "informacio"]
-      blocked: ["spam_forward", "phishing_content"]
-    input: max_email_size 50000, attachment_scan true, pii_masking false
-    output: require_confidence 0.7, max_intents_per_email 3
-    5 guardrail teszt
-
-  CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
-
-B1.3 — LLM-based Guardrail Promptok (A5 rule-based reteg FELETT):
-
-  KONTEXTUS:
-    Az A5-ben megepitett rule-based guardrail keretrendszer (regex, heurisztika)
-    gyors es olcso elso szurot biztosit. A B1.3 LLM-alapu promptok PRECIZEBB,
-    masodik reteget adnak — CSAK AKKOR futnak ha a rule-based reteg nem donti el
-    egyertelmuen a kerdest (pl. alacsony confidence, hataresetek).
-
-    Architektura: Rule-based (gyors, $0) → ha bizonytalan → LLM (preciz, $$)
+  Architektura: Rule-based A5 (gyors, $0) → ha bizonytalan → LLM (preciz, $$)
 
   PROMPT 1 — hallucination_evaluator.yaml:
-    Cserel: A5 SequenceMatcher (naiv szoveg-overlap, ~60% pontossag)
-    Prompt: "Ertekeld, hogy a valasz MINDEN allitasa megalapozott-e a megadott forrasokban.
-             Pontozd 0-1 skalan. Jelold meg a megalapozatlan allitasokat."
-    Input: {response, sources[]}
-    Output: {grounding_score: float, ungrounded_claims: list[str]}
-    Modell: gpt-4o-mini (olcso, gyors, eleg preciz grounding-re)
-    Hasznalja: OutputGuard.check() — ha A5 SequenceMatcher score < 0.5 (bizonytalan zona)
-    Promptfoo: 5+ test case (well-grounded, hallucinated, mixed, empty source, HU+EN)
+    A5 SequenceMatcher csereje. Grounding scoring LLM-mel.
+    Input: {response, sources[]} → Output: {grounding_score, ungrounded_claims[]}
+    Modell: gpt-4o-mini | 5+ Promptfoo test case
 
   PROMPT 2 — content_safety_classifier.yaml:
-    Cserel: A5 4 regex pattern (csak explicit kifejezeseket fog)
-    Prompt: "Osztalyozd a tartalmat: SAFE / UNSAFE / REVIEW_NEEDED.
-             Ha UNSAFE, add meg a kategoriat (violence, self-harm, illegal, harassment)."
-    Input: {text, context: "input"|"output"}
-    Output: {verdict: str, category: str|null, confidence: float}
-    Modell: gpt-4o-mini
-    Hasznalja: InputGuard/OutputGuard — ha nincs regex match DE a szoveg "gyanús"
-               (pl. hosszu, sok felkialto jel, idegen nyelvu beagyazas)
-    Promptfoo: 5+ test case (safe, violent, borderline, coded language, HU context)
+    A5 4 regex csereje. SAFE / UNSAFE / REVIEW_NEEDED osztalyozas.
+    Input: {text, context} → Output: {verdict, category, confidence}
+    Modell: gpt-4o-mini | 5+ Promptfoo test case
 
   PROMPT 3 — scope_classifier.yaml:
-    Cserel: A5 keyword matching (csak explicit topic szavakat fog)
-    Prompt: "A felhasznalo kerdese a kovetkezo temakba tartozik-e: {allowed_topics}?
-             Osztalyozd: IN_SCOPE / OUT_OF_SCOPE / DANGEROUS.
-             Indokold egy mondatban."
-    Input: {query, allowed_topics[], blocked_topics[], skill_description}
-    Output: {verdict: ScopeVerdict, reason: str, confidence: float}
-    Modell: gpt-4o-mini
-    Hasznalja: ScopeGuard.check() — ha NEM egyertelmu keyword match
-               (pl. "mit fedez a kotveny?" — nincs benne "biztositas" szo, de in-scope)
-    Promptfoo: 5+ test case (clear in-scope, clear out-of-scope, ambiguous, dangerous, HU)
+    A5 keyword matching csereje. 3-tier scope dontes kontextussal.
+    Input: {query, allowed_topics[], skill_description}
+    Output: {verdict: ScopeVerdict, reason, confidence}
+    Modell: gpt-4o-mini | 5+ Promptfoo test case
 
   PROMPT 4 — freetext_pii_detector.yaml:
-    UJ: regex NEM tudja — szabad szoveges PII detektio
-    Prompt: "Azonositsd a szovegben talalhato szemelyes adatokat:
-             nevek, cimek, munkahelyek, rokonsagi kapcsolatok, egyeb azonosito info.
-             Add meg a talalt PII-t tipussal es pozicioval."
-    Input: {text}
-    Output: {pii_items: list[{type, text, start, end}]}
-    Modell: gpt-4o-mini
-    Hasznalja: InputGuard — MINDIG a regex PII detektio UTAN (kiegeszites)
-    Pelda ami regex-et elkerul: "a szomszédom Kiss János az OTP-nél dolgozik"
-    Promptfoo: 5+ test case (nev, cim, munkahely, HU nevek, teves pozitiv kontroll)
+    UJ — regex NEM tudja: "a szomszédom Kiss János az OTP-nél dolgozik"
+    Input: {text} → Output: {pii_items: [{type, text, start, end}]}
+    Modell: gpt-4o-mini | 5+ Promptfoo test case
 
-  INTEGRACIOS PATTERN (src/aiflow/guardrails/ bovites):
-    - base.py: LLMGuardrailBase ABC (async check_with_llm())
-    - llm_guards.py: 4 LLM guard osztaly (prompt YAML + ModelClient hivas)
-    - config.py bovites: llm_fallback: true/false per guard, confidence_threshold
-    - Dontes logika: rule_result.confidence < threshold → LLM guardrail fut
+  KOD:
+    src/aiflow/guardrails/llm_guards.py — 4 LLM guard osztaly
+    config.py bovites: llm_fallback per guard, confidence_threshold
+    10+ unit test (mock LLM + valos eval)
 
-  FAJLOK:
-    prompts/guardrails/
-      hallucination_evaluator.yaml
-      content_safety_classifier.yaml
-      scope_classifier.yaml
-      freetext_pii_detector.yaml
-    src/aiflow/guardrails/
-      llm_guards.py                  # UJ: 4 LLM guard implementacio
-    tests/guardrails/
-      promptfooconfig.yaml           # 20+ test case
-      test_llm_guards.py             # 10+ unit test (mock LLM + valos eval)
+B1.2 — Per-Skill Guardrails.yaml (5 skill):
 
-  GATE: 4 prompt YAML + 20 Promptfoo test case (MIND PASS) + llm_guards.py + 10 unit test
+  KRITIKUS: A PII config skill-specifikus! (B0.1 strategia alapjan)
 
-FINAL GATE: aszf_rag 95%+, email_intent 95%+, 2 guardrails.yaml KESZ, 4 LLM guardrail prompt PASS, 35+ unit test PASS
+  skills/aszf_rag_chat/guardrails.yaml:
+    input: {pii_masking: true, max_length: 2000, injection_check: true}
+    output: {require_citation: true, hallucination_threshold: 0.7}
+    scope: {allowed: [jog, biztositas, aszf], blocked: [politika, orvosi]}
+
+  skills/email_intent_processor/guardrails.yaml:
+    input: {pii_masking: partial, allowed_pii: [email, name, company]}
+    output: {require_confidence: 0.7, max_intents: 3}
+
+  skills/invoice_processor/guardrails.yaml:
+    input: {pii_masking: false, pii_logging: true}  # SZAMLA: PII KELL!
+    output: {validate_amounts: true, validate_dates: true}
+
+  skills/process_documentation/guardrails.yaml:
+    input: {pii_masking: true}
+    output: {mermaid_syntax_check: true, max_diagram_nodes: 50}
+
+  skills/cubix_course_capture/guardrails.yaml:
+    input: {pii_masking: true, max_audio_length: 7200}
+    output: {format_check: true}
+
+  Per-skill: 5 guardrail teszt + golden_guardrails.yaml (safe/dangerous/injection)
+
+GATE: 4 prompt YAML, 20+ Promptfoo PASS, 5 guardrails.yaml, 25 guardrail teszt, 10+ unit
 ```
 
 ---
 
-## B2: P1 Document & Diagram Skill-ek — 1-2 session
-
-> **Gate:** process_docs 95%+, invoice 95%+, doc_extractor 5 unit test PASS.
-> **Eszkozok:** B0.2 integralt toolchain — /prompt-tuning + /service-hardening
-
-```
-B2.1 — process_documentation:
-
-  KOD:
-    - Diagram generator: Mermaid → BPMN XML export javitas
-    - 5 unit test (diagram_generator service)
-
-  PROMPT (90% → 95%):
-    - mermaid_flowchart: komplex folyamatok (10+ lepes)
-    - elaborator: strukturalt output (heading hierarchy)
-    - 11 → 15 test case
-
-  GUARDRAIL (process_documentation/guardrails.yaml):
-    scope: technikai dokumentacio only
-    output: Mermaid szintaxis validacio, max diagram meret
-    3 guardrail teszt
-
-  CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
-
-B2.2 — invoice_processor:
-
-  KOD:
-    - PDF extraction: Docling config finomhangolas
-    - Multi-page szamla osszefuzes
-    - 5 unit test (document_extractor — invoice kontextus)
-
-  PROMPT (80% → 95%):
-    - field_extractor: HU adoszam, AFO szam, AFA kulcsok (5%, 18%, 27%)
-    - invoice_classifier: szamla vs. nem-szamla precision
-    - 10 → 15 test case (scan, kezi, kulfoldi, tobboldal)
-
-  GUARDRAIL (invoice_processor/guardrails.yaml):
-    input: max file size, supported formats only (PDF/DOCX/XLSX)
-    output: szamla mezok validacio (osszeg > 0, datum format)
-    3 guardrail teszt
-
-  CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
-
-B2.3 — document_extractor service:
-
-  KOD:
-    - Docling config: table extraction, heading detection
-    - Multi-format: PDF + DOCX + XLSX + HTML
-    - Error recovery: parser fallback chain
-    - 5 unit test
-
-  CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]5 [ ]6 [ ]7 [ ]8
-
-GATE: process_docs 95%+, invoice 95%+, 15 unit test PASS, 6 guardrail teszt PASS
-```
-
----
-
-## B3: Infrastructure Service Tesztek — 2 session
+## B2: Service Unit Tesztek — 2 session (S22-S23)
 
 > **Gate:** 130 uj unit test PASS, coverage >= 70% services/ modulon.
+> **TIER-BASED felosztás (szubjektiv prioritas helyett)**
 
 ```
-B3.1 — Session 1: Core infra (13 service, 65 test):
+B2.1 — Session 1: Core infra szolgaltatasok (13 service, 65 test):
   1. cache (5)           — Redis hit/miss/evict/TTL/pattern
-  2. config (5)          — versioning CRUD, default fallback
-  3. health_monitor (5)  — service status, dependency check
-  4. audit (5)           — log create/query/filter/retention
-  5. schema_registry (5) — JSON schema CRUD/validate
-  6. notification (5)    — email template, delivery retry
-  7. human_review (5)    — HITL workflow, SLA timer
-  8. media_processor (5) — ffmpeg probe, format detect
-  9. diagram_generator (5) — Mermaid render, BPMN export
-  10. rpa_browser (5)    — page navigate, screenshot
-  11. rate_limiter (5)   — bucket fill/drain, 429 trigger
-  12. resilience (5)     — circuit open/half-open/close, retry
-  13. classifier (5)     — ML predict, confidence threshold
+  2. rate_limiter (5)    — bucket fill/drain, 429 trigger
+  3. resilience (5)      — circuit open/half-open/close, retry
+  4. health_monitor (5)  — service status, dependency check
+  5. audit (5)           — log create/query/filter/retention
+  6. schema_registry (5) — JSON schema CRUD/validate
+  7. notification (5)    — email template, delivery retry
+  8. human_review (5)    — HITL workflow, SLA timer
+  9. media_processor (5) — ffmpeg probe, format detect
+  10. diagram_generator (5) — Mermaid render, BPMN export
+  11. rpa_browser (5)    — page navigate, screenshot
+  12. classifier (5)     — ML predict, confidence threshold
+  13. email_connector (5) — IMAP connect, fetch, filter
   ELLENORZES: pytest tests/unit/services/ -q → 65 PASS
 
-B3.2 — Session 2: v1.2.0 szolgaltatasok (13 service, 65 test):
+B2.2 — Session 2: v1.2.0 szolgaltatasok (12 service + extra, 65 test):
   14. data_router (5)        — routing rules, priority
   15. service_manager (5)    — lifecycle, health
   16. reranker (5)           — score, sort, top-K
-  17. advanced_chunker (5)   — 6 strategia (fixed/semantic/sentence/paragraph/recursive/sliding)
+  17. advanced_chunker (5)   — 6 strategia
   18. data_cleaner (5)       — normalize, deduplicate
   19. metadata_enricher (5)  — auto-tag, entity link
   20. vector_ops (5)         — insert/search/delete/similarity
   21. advanced_parser (5)    — multi-format, fallback chain
   22. graph_rag (5)          — entity graph, traversal query
   23. quality (5)            — metric collect, threshold alert
-  24. email_connector (5)    — IMAP connect, fetch, filter
-  25. rag_engine (5)         — ingest, query, hybrid search
-  26. extra coverage (5)     — legalacsonyabb coverage service potlas
+  24. rag_engine (5)         — ingest, query, hybrid search
+  25. document_extractor (5) — field extract, OCR fallback
+  26. extra coverage (5)     — legalacsonyabb coverage potlas
   ELLENORZES: pytest tests/unit/services/ -q → 130 PASS, coverage >= 70%
 
 GATE: 130/130 PASS, coverage >= 70%
@@ -892,194 +780,430 @@ GATE: 130/130 PASS, coverage >= 70%
 
 ---
 
-## B4: P2/P4 Skill-ek — 1 session
+## B3: Invoice Finder — Elso Valos E2E AIFlow Pipeline — 2 session (S24-S25)
 
-> **Gate:** cubix 95%+ promptfoo, qbpp dontes meghozva es vegrehajva.
-
-```
-B4.1 — cubix_course_capture (P2, 90% → 95%):
-  - transcript_structurer: idokod pontossag javitas
-  - 5 → 8 test case (rovid video, rossz hang, angol nyelvu)
-  - guardrails.yaml: input max_audio_length, output format check
-  - 2 guardrail teszt
-  ELLENORZES: promptfoo eval → 95%+
-
-B4.2 — qbpp_test_automation (P4):
-  DONTES SZUKSEGES: implementaljuk VAGY toroljuk?
-  HA IGEN:
-    - __main__.py implementacio (Robot Framework integracio)
-    - test_generator.yaml (UJ prompt): RF teszt generalas
-    - locator_finder.yaml (UJ prompt): UI elem azonosito
-    - Promptfoo: valos test case-ek (nem stub), cel: 90%+
-    - guardrails.yaml: output Robot Framework szintaxis validacio
-  HA NEM:
-    - Skill mappa torles, CLAUDE.md frissites (5 skill)
-  ELLENORZES: dontes dokumentalva, ha impl → promptfoo PASS
-
-GATE: cubix 95%+, qbpp dontes + vegrehajtva
-```
-
----
-
-## B5: Modell Optimalizacio — 1 session
-
-> **Gate:** >= 20% koltseg csokkenés VAGY >= 5% minoseg javulas.
+> **Gate:** Teljes pipeline mukodik valos adatokkal: email → szamla → extract → report → ertesites.
+> **Ez az elso VALOS, vegig mukodo AIFlow — minden alapozo szolgaltatast validál.**
 
 ```
-B5.1 — Koltseg baseline meres:
-  - Langfuse cost dashboard → per-service koltseg export
-  - Token count: prompt_tokens + completion_tokens per call
+B3.1 — Pipeline Design + Email/Acquisition Steps (S24):
 
-B5.2 — Modell csere kiserlet:
-  | Prompt | Jelenlegi | Kiserlet | Elfogadasi kriterium |
-  |--------|-----------|----------|---------------------|
-  | pd/reviewer | gpt-4o | gpt-4o-mini | < 3% esés |
-  | pd/elaborator | gpt-4o | gpt-4o-mini | < 3% esés |
-  | rag/answer | gpt-4o | gpt-4o-mini | < 3% esés |
-  | invoice/extract | gpt-4o | gpt-4o-mini | < 3% esés |
-  Metodologia: promptfoo --providers gpt-4o,gpt-4o-mini → A/B osszehasonlitas
+  Pipeline: invoice_finder_v1.yaml (src/aiflow/pipeline/builtin_templates/)
 
-B5.3 — Token optimalizacio:
-  - Hosszu system prompt: felesleges ismetles torles
-  - Few-shot: 6 → 3 (ha minoseg megmarad)
-  - Cel: >= 15% token count csokkenés
+  STEP 1 — Email Search (email_connector service):
+    - IMAP/O365 postafiok scan
+    - Intent-based kereses: "szamla", "invoice", "fizetesi felszolitas"
+    - Subject + body + csatolmany-nev alapu szures
+    - OUTPUT: email lista (id, subject, from, date, has_attachment, body_snippet)
 
-B5.4 — Cache strategia:
-  - Embedding cache: Redis TTL=1h (ismetlodo query)
-  - Classifier cache: confidence > 0.95 → cache (TTL=24h)
-  - Cel: cache hit rate >= 30%
+  STEP 2 — Document Acquisition (document_extractor + uj logika):
+    - HA csatolmany VAN → letoltes + Docling parse
+    - HA csatolmany NINCS → link kereses email body-ban → HTTP letoltes → parse
+    - Multi-format: PDF, DOCX, XLSX, kepek (scan szamla)
+    - OUTPUT: parsed dokumentum lista (raw_text, tables, metadata)
 
-B5.5 — Koltseg riport generalas:
-  - Per-skill koltseg/query
-  - Havi becslés (1000 query/nap)
-  - Optimalizalt vs. eredeti osszehasonlitas
+  STEP 3 — Invoice Classification (classifier service):
+    - Szamla vs. nem-szamla (ML + LLM hybrid)
+    - Confidence threshold: >= 0.8 → auto-accept, < 0.8 → human review
+    - OUTPUT: classified lista (is_invoice, confidence, doc_type)
 
-GATE: >= 20% koltseg csokkenés VAGY >= 5% minoseg javulas, riport kesz
-```
+  Adapter-ek: email_search_adapter, doc_acquire_adapter, invoice_classify_adapter
+  Unit tesztek: 3 × 5 = 15 teszt
+  Guardrail: PII masking OFF (szamla kontextus — B0.1 strategia!)
 
----
+B3.2 — Extraction + Report + Notification (S25):
 
-## B6: UI Integracio + Polish — 1 session
+  STEP 4 — Data Extraction (invoice_processor):
+    - Szamla mezok: szam, datum, hatarido, kiallito, osszeg, AFA, adoszam
+    - HU-specifikus: AFO szam, AFA kulcsok (5%, 18%, 27%)
+    - OUTPUT: structured InvoiceData (Pydantic model)
 
-> **Gate:** 0 demo-only oldal, minden source=backend, 0 console error.
+  STEP 5 — Payment Status (UJ step):
+    - Lejarat vs. mai datum → fizetett / lejart / 30 napon belul
+    - Opcionalis: bank CSV osszevetes (ha elerheto)
+    - OUTPUT: InvoiceData + payment_status field
 
-```
-B6.1 — 17 oldal source audit:
-  MINDEN oldal ellenorzese:
-  | Oldal | Backend source | Valos adat | Console error |
-  |-------|---------------|-----------|--------------|
-  | Dashboard | ? | ? | ? |
-  | Documents | ? | ? | ? |
-  | ... (mind a 17) | | | |
-  Demo → Backend migracio ahol szukseges
+  STEP 6 — File Organization:
+    - Nevkonvencio: {YYYYMMDD}_{Kiallito}_{SzamlaSzam}_{Osszeg_FT}.pdf
+    - Mentes: output/{ev}/{honap}/ strukturalt mappa
+    - OUTPUT: fajl utvonalak lista
 
-B6.2 — Uj UI elemek (ha szukseges):
-  - Intent schema CRUD form (/intent-schemas → UI)
-  - Collection management (create/delete/stats)
-  - Cost dashboard bovites (B5 koltseg riport alapjan)
+  STEP 7 — Report Generation:
+    - Osszefoglalo: hany szamla, mennyi fizetetlen, ossz osszeg
+    - Reszletes tablaazat: szamlankenti adat
+    - Format: Markdown + CSV/Excel export
+    - OUTPUT: report.md + invoices.csv
 
-B6.3 — Dark mode + responsive check:
-  - Minden oldal: dark mode WCAG AA kontraszt
-  - Mobile: 768px breakpoint-on olvashato
+  STEP 8 — Email Notification (notification service):
+    - Jinja2 template: invoice_report_notification.yaml
+    - Csatolmany: invoices.csv
+    - OUTPUT: email elkuldve + log
 
-B6.4 — E2E teszt frissites:
-  - Uj oldalak/funkciok → uj E2E test case-ek
-  - Regresszio: 102+ teszt → PASS
+  E2E TESZT (valos adat!):
+    - 1 valos postafiok (dev/test mailbox)
+    - 3-5 valos szamla PDF (kulonbozo formatumok)
+    - Pipeline vegigfut → riport + mentett fajlok ellenorzese
+    - NEM mock — valos IMAP + valos Docling + valos LLM
 
-GATE: 0 demo oldal, 0 console error, E2E PASS
+  CLI: python -m skills.invoice_finder --mailbox dev@bestix.hu --output ./invoices/
+
+GATE: Pipeline vegigfut valos adatokkal, riport helyes, fajlok mentve, email elkuldve
 ```
 
 ---
 
-## B7: POST-AUDIT — 1 session
+## B4: Skill Hardening (5 skill) — 2 session (S26-S27)
 
-> **Gate:** Audit riport MINDEN sor PASS. Ha FAIL → B8 KOTELEZO.
+> **Gate:** 5/5 skill 95%+ promptfoo, 5/5 guardrails.yaml KESZ, 5/5 checklist 8+/10.
+> **Eszkozok:** /service-hardening + /prompt-tuning (B0-bol)
 
 ```
-B7.1 — Teljes regresszio (L3 szint, ld. regression_matrix.yaml):
+B4.1 — aszf_rag_chat + email_intent (S26):
+
+  aszf_rag_chat (86% → 95%):
+    - Prompt tuning: citation enforcement, hallucination kalibralas
+    - 7 → 12 promptfoo test case
+    - Guardrail: guardrails.yaml (B1.2-bol) finomhangolva valos trace-ek alapjan
+    - CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
+
+  email_intent_processor (85% → 95%):
+    - Intent catalog bovites (8 → 12 tipus)
+    - Entity: HU adoszam, bankszamla, cim
+    - 11 → 16 promptfoo test case
+    - CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
+
+B4.2 — process_docs + invoice + cubix (S27):
+
+  process_documentation (90% → 95%):
+    - Diagram generator: Mermaid + BPMN + meglevo Python kodok integralasa
+    - Meglevo diagram generalo kodok osszegyujtese + egysegesi interface
+    - 11 → 15 promptfoo test case
+    - CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
+
+  invoice_processor (80% → 95%):
+    - Multi-page + scan szamla + kulfoldi formatum
+    - 10 → 15 promptfoo test case
+    - CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
+
+  cubix_course_capture (90% → 95%):
+    - 5 → 8 promptfoo test case
+    - CHECKLIST: [ ]1 [ ]2 [ ]3 [ ]4 [ ]5 [ ]6 [ ]7 [ ]8 [ ]9 [ ]10
+
+GATE: 5/5 skill 95%+ promptfoo, 5/5 checklist 8+/10
+```
+
+---
+
+## B5: Diagram Integralas + Specifikacio Iro AIFlow — 1 session (S28)
+
+> **Gate:** Diagram pipeline mukodik, spec writer prototipus mukodik.
+
+```
+B5.1 — Diagram Generalo Integralas:
+  KONTEXTUS: Mar van Mermaid/BPMN/DrawIO + Kroki render + Python kodok.
+  CEL: Egysegesi interface amivel jol vezerelheto diagramok keszulnek.
+
+  - Meglevo Python diagram kodok osszegyujtese (skills/process_documentation/)
+  - Egysegesi DiagramRequest → DiagramResult Pydantic interface
+  - Tamogatott tipusok: Mermaid flowchart, sequence, BPMN swimlane, DrawIO
+  - LLM prompt: szoveges leiras → strukturalt diagram (Mermaid syntax)
+  - Kroki render: Mermaid → SVG/PNG
+  - Pipeline: diagram_generator_v1.yaml
+  - 5 unit teszt + 3 E2E (szoveges leiras → renderelt kep)
+
+B5.2 — Specifikacio Iro AIFlow Prototipus:
+  CEL: Szobeli/vazlatos leiras → strukturalt specifikacio.
+
+  Pipeline: spec_writer_v1.yaml
+  STEP 1 — Input Analysis: szabad szoveges leiras strukturalas
+  STEP 2 — Template Selection: milyen tipus? (feature spec, API spec, DB spec, user story)
+  STEP 3 — Draft Generation: LLM → sablon kitoltes
+  STEP 4 — Review Questions: "Ezekre a kerdesekre meg valasz kell..."
+  STEP 5 — Final Output: Markdown specifikacio
+
+  Prompt YAML: spec_analyzer.yaml, spec_generator.yaml, spec_reviewer.yaml
+  3 Promptfoo test case (feature spec, API spec, user story)
+  CLI: python -m skills.spec_writer --input "leiras..." --type feature --output spec.md
+
+B5.3 — Langfuse Koltseg Baseline (egyszerusitett):
+  - Per-service koltseg export Langfuse-bol
+  - Riport: melyik service mennyibe kerul (nem optimalizacio, csak meres!)
+  - OUTPUT: 01_PLAN/COST_BASELINE_REPORT.md
+
+GATE: Diagram pipeline E2E mukodik, spec writer prototipus fut, koltseg baseline kesz
+```
+
+---
+
+## B6: UI User Journey — Alapoktol Ujragondolas — 1 session (S29)
+
+> **Gate:** Teljes journey audit kesz, 4 fo journey definialt es tervezett, ujratervezett navigacio.
+> **Ez NEM kozmetikai polish — ez az egesz UI hasznalhatosaganak ujragondolasa.**
+
+```
+B6.1 — 17 Oldal Audit (MI MUKODIK VALOJABAN?):
+  MINDEN oldal:
+  | Oldal | Cel | Mi mukodik | Mi NEM mukodik | Kategoria |
+  |-------|-----|-----------|----------------|-----------|
+  | Dashboard | Attekintes | ? | ? | A/B/C/D |
+  | Documents | Doku kezeles | ? | ? | A/B/C/D |
+  | Emails | Email feldolg | ? | ? | A/B/C/D |
+  | ... (mind a 17) | | | | |
+
+  Kategoriak:
+  A) Mukodik end-to-end (ritka)
+  B) UI van, backend reszleges
+  C) UI van, backend stub/demo
+  D) Nem ertelmes jelenlegi formaban
+
+B6.2 — 4 Fo User Journey Definialas:
+  JOURNEY 1: "Szamla Feldolgozas"
+    Email scan → szamla azonositas → extract → verify → save → report
+    Oldalak: Emails → Documents → Verification → Dashboard (KPI)
+    Backend: email_connector → invoice_processor → Invoice Finder pipeline
+
+  JOURNEY 2: "Dokumentum Generalas"
+    Szoveges leiras → diagram valasztas → render → review → export
+    Oldalak: ProcessDocs → DiagramViewer → Export
+    Backend: process_documentation skill
+
+  JOURNEY 3: "RAG Chat"
+    Collection letrehozas → dokumentum ingest → chat → feedback
+    Oldalak: RAGCollections → RAGIngest → RAGChat → RAGStats
+    Backend: rag_engine + vector_ops
+
+  JOURNEY 4: "Monitoring & Governance"
+    Dashboard → alerts → drill-down → action
+    Oldalak: Dashboard → Quality → AuditLog → Services
+    Backend: health_monitor + quality + audit + Langfuse
+
+  Per journey: belépesi pont → lepesek → kilepes → eredmeny
+  OUTPUT: 01_PLAN/63_UI_USER_JOURNEYS.md (reszletes journey terkep)
+
+B6.3 — Navigacios Redesign:
+  - Menu struktura a 4 journey-re epitett (nem onallo oldalak halmaza)
+  - Dashboard: 4 journey "kartyakent" a fo attekintesen
+  - Sidebar: journey-based csoportositas
+  - Breadcrumb: hol vagyok a journey-ben?
+
+B6.4 — Demo → Backend Migracio Terv:
+  - MINDEN oldal: source=backend VAGY "Meg nem mukodik" felirat
+  - SOHA NE demo adat lasd ugy mintha valos lenne
+  - Prioritas: a 4 journey-hez tartozo oldalak ELSOBBSEGET kapnak
+
+GATE: 17 oldal audit tabla KESZ, 4 journey definialt, navigacio terv, 63_UI_USER_JOURNEYS.md
+```
+
+---
+
+## B7: Verification Page v2 — Kiemelt UI Feature — 1 session (S30)
+
+> **Gate:** Verification page v2 mukodik: bounding box, edit diff, perzisztencia, audit trail.
+> **Ez a projekt "showcase" felulete — a leheto legprofibb megoldas kell.**
+
+```
+B7.1 — Eredeti Dokumentum + Pozicio Jeloles:
+  - A kivalasztott mezo az EREDETI PDF-en/kepen HIGHLIGHT-olva
+  - Docling koordinatak felhasznalasa (bounding box)
+  - PDF viewer komponens: react-pdf vagy pdf.js
+  - Bounding box overlay: canvas-ra rajzolt teglalap
+  - Zoom + pan + oldalvaltás
+  - Kattintas a mezon → ugras a mezo poziciojara az eredeti dokumentumban
+
+B7.2 — Edit Workflow:
+  - User modosit egy mezot → "modositott" badge (arany keret)
+  - Diff megjlenites: "Eredeti: 127.500 Ft → Modositott: 127.500,- Ft"
+  - Undo/redo (Ctrl+Z/Y)
+  - Mezo tipusu validacio: osszeg → szam, datum → datum format, adoszam → 8/11 jegy
+  - Batch approve: "Minden rendben" gomb (ha nincs modositas)
+
+B7.3 — Perzisztencia (DB):
+  Alembic migracio: verification_edits tabla
+  | Mezo | Tipus | Leiras |
+  |------|-------|--------|
+  | id | UUID PK | |
+  | document_id | FK → documents | Melyik dokumentum |
+  | field_name | VARCHAR | Melyik mezo (pl. "invoice_number") |
+  | original_value | TEXT | Eredeti (LLM altal kiolvasott) |
+  | edited_value | TEXT | User altal modositott |
+  | editor_user_id | FK → users | Ki modositotta |
+  | edited_at | TIMESTAMP | Mikor |
+  | status | ENUM | pending/approved/rejected |
+  | comment | TEXT | Opcionals megjegyzes |
+
+  API endpoint-ok:
+  - POST /api/v1/documents/{id}/verifications — mentés
+  - GET /api/v1/documents/{id}/verifications — visszakeresheto audit trail
+  - GET /api/v1/verifications/history?user=X — felhasznaloi szures
+
+B7.4 — Elfogas + Statusz:
+  - "Elfogadas" gomb → veglegesites (status → approved)
+  - "Elutasitas" gomb → ujra-feldolgozas keres + indoklas
+  - Export: CSV/JSON a veglegesitett adatokkal
+  - Statisztika: hany dokumentum elfogadva/elutasitva/fuggobe
+
+B7.5 — E2E Teszt:
+  - Upload PDF szamla → LLM extract → verification page megjelenes
+  - Mezo kivalasztas → eredeti PDF-en highlight
+  - Mezo modositas → diff lathato → mentes
+  - Visszakereses: /api/v1/documents/{id}/verifications → helyes adat
+  - Playwright: screenshot + interaction test
+
+GATE: Verification page v2 mukodik valos szamlaval, edit+save+retrieve PASS
+```
+
+---
+
+## B8: UI Journey Implementacio — Top 3 Journey — 1 session (S31)
+
+> **Gate:** 3/4 journey mukodik end-to-end, 0 console error, navigation redesign LIVE.
+
+```
+B8.1 — Navigacios Redesign Implementacio:
+  - Sidebar: journey-based csoportositas (B6.3 terv alapjan)
+  - Dashboard: 4 journey kartya fo attekintesen
+  - Breadcrumb komponens
+
+B8.2 — Journey 1 Implementacio: "Szamla Feldolgozas":
+  - Emails oldal: postafiok scan trigger, szamla-talatat lista
+  - Documents oldal: feldolgozott szamlak, statusz badge
+  - Verification oldal: B7-bol (mar kesz!)
+  - Dashboard: fizetetlen szamlak KPI
+  - Backend: Invoice Finder pipeline (B3-bol) → UI integration
+
+B8.3 — Journey 2 Implementacio: "Dokumentum Generalas":
+  - ProcessDocs oldal: input form + diagram tipus valasztas
+  - Diagram viewer: renderelt kimenet (SVG/PNG)
+  - Export: letoltes + masolás
+
+B8.4 — Journey 3 Implementacio: "RAG Chat":
+  - Collection lista + letrehozas
+  - Ingest: fajl upload → vektor DB
+  - Chat: kerdes-valasz (valos backend!)
+  - Feedback: hasznos/nem hasznos
+
+B8.5 — Dark Mode + Responsive + i18n:
+  - Minden uj/modositott oldal: dark mode WCAG AA
+  - 768px breakpoint: olvashato
+  - HU/EN: minden uj string translate()
+
+GATE: 3 journey E2E mukodik, 0 console error, navigation uj, i18n PASS
+```
+
+---
+
+## B9: Docker Containerization + Ugyfel-Ready Deploy — 1 session (S32)
+
+> **Gate:** `docker compose up` → MINDEN szolgaltatas fut → UI-bol pipeline inditható → E2E PASS.
+> **A nap vegen: Docker-ben futo, ugyfel-ready AIFlow megoldas.**
+
+```
+B9.1 — Docker Compose Frissites:
+  docker-compose.yml / docker-compose.prod.yml:
+  - FastAPI app container (src/aiflow/ + skills/)
+  - arq worker container (async pipeline vegrehajtashoz)
+  - aiflow-admin UI container (Vite build → nginx)
+  - PostgreSQL + pgvector
+  - Redis
+  - Kroki (diagram render)
+  Egyetlen `docker compose up` → MINDEN fut.
+
+B9.2 — UI Pipeline Trigger Integracio:
+  FONTOS: A USER az UI-bol inditja a pipeline-okat, NEM Claude-bol!
+  - Invoice Finder: UI oldal → "Scan Mailbox" gomb → POST /api/v1/pipelines/run
+  - Diagram Generator: UI oldal → szoveg input → "Generate" gomb → API hivas
+  - Spec Writer: UI oldal → leiras input → "Write Spec" gomb → API hivas
+  - Pipeline status: UI polling / WebSocket → futasi allapot megjelenitese
+  - Eredmeny: UI-ban megjelenitett output (riport, diagram, spec)
+
+B9.3 — Deploy Teszteles:
+  a) `docker compose build` → HIBA NELKUL
+  b) `docker compose up -d` → minden container healthy
+  c) UI elerheto: http://localhost:5174 → bejelentkezes
+  d) Invoice Finder: UI-bol inditva → pipeline vegigfut → riport megjelen
+  e) Health endpoint: /health → MINDEN check "ok"
+  f) Playwright E2E: Docker-ben futo rendszer ellen
+
+B9.4 — Dokumentacio:
+  - README.md: "Igy inditsd el Docker-ben" (3 lepesu guide)
+  - 01_PLAN/62_DEPLOYMENT_ARCHITECTURE.md: vegleges architektura diagram
+  - .env.example: minden szukseges konfiguracio
+
+GATE: docker compose up → healthy → UI-bol pipeline PASS → E2E PASS
+```
+
+---
+
+## B10: POST-AUDIT + Javitasok — 1 session (S33)
+
+> **Gate:** Audit riport MINDEN sor PASS.
+
+```
+B10.1 — Teljes regresszio (L3):
   a) pytest tests/unit/ -q --cov=aiflow → ALL PASS, coverage >= 80%
-  b) pytest tests/e2e/ -v → ALL PASS (strict 0 filter)
-  c) tsc --noEmit → 0, /lint-check → 0
-  d) npx promptfoo eval → 6/6 skill 95%+
-  e) Coverage NEM csokkenhet a v1.2.2 szinthez kepest!
+  b) pytest tests/e2e/ -v → ALL PASS
+  c) tsc --noEmit → 0, ruff → 0
+  d) npx promptfoo eval → 5/5 skill 95%+
+  e) Coverage NEM csokkenhet v1.2.2-hoz kepest!
 
-B7.2 — Szolgaltatas erettseg POST-audit:
-  | Szolgaltatas | Checklist 10pt | Promptfoo | Guardrail | Status |
-  |-------------|---------------|-----------|-----------|--------|
-  | aszf_rag | ?/10 | ?% | ? config | ? |
-  | email_intent | ?/10 | ?% | ? config | ? |
-  | process_docs | ?/10 | ?% | ? config | ? |
-  | invoice | ?/10 | ?% | ? config | ? |
-  | cubix | ?/10 | ?% | ? config | ? |
-  | qbpp | ?/10 | ?% | ? config | ? |
+B10.2 — Szolgaltatas erettseg audit:
+  | Szolgaltatas | Checklist | Promptfoo | Guardrail | E2E | Status |
+  |-------------|-----------|-----------|-----------|-----|--------|
+  | aszf_rag | ?/10 | ?% | ? | ? | ? |
+  | email_intent | ?/10 | ?% | ? | ? | ? |
+  | process_docs | ?/10 | ?% | ? | ? | ? |
+  | invoice | ?/10 | ?% | ? | ? | ? |
+  | cubix | ?/10 | ?% | ? | ? | ? |
+  | invoice_finder | ?/10 | — | ? | ? | ? |
 
-B7.3 — Guardrail POST-audit:
-  Rule-based reteg (A5):
-  - MINDEN skill guardrails.yaml → helyes schema?
-  - Golden dataset → MINDEN dangerous query BLOKKOLT?
-  - Injection test → MIND DETEKTALT?
-  - PII leak test (regex) → 0 leak?
-  LLM-based reteg (B1.3):
-  - 4 guardrail prompt Promptfoo eval → 95%+ PASS?
-  - hallucination_evaluator → grounding score kalibralt?
-  - content_safety_classifier → false positive rate < 5%?
-  - scope_classifier → ambiguous query-k helyes osztalyozasa?
-  - freetext_pii_detector → szabad szoveges PII felismeres mukodik?
-  - Fallback architektura: rule-based → LLM lancolt mukodes OK?
+B10.3 — Guardrail POST-audit:
+  - Per-skill PII config helyes? (invoice: OFF, chat: ON)
+  - LLM guardrail 4/4 prompt 95%+?
+  - Rule→LLM fallback lanc mukodik?
 
-B7.4 — Koltseg POST-audit:
-  - Langfuse: >= 20% csokkenés teljesult?
+B10.4 — UI POST-audit:
+  - 3/4 journey E2E mukodik?
+  - Verification page v2: valos szamlaval tesztelve?
+  - 0 console error, 0 demo oldal a fo journey-kben?
 
-B7.5 — Audit riport:
+B10.5 — Audit riport:
   === SPRINT B POST-AUDIT RIPORT ===
-  Service tesztek:     130/130 PASS       → [PASS/FAIL]
-  Prompt minoseg:      6/6 skill 95%+     → [PASS/FAIL]
-  Guardrail rule-based: 6/6 skill config  → [PASS/FAIL]
-  Guardrail LLM-based: 4/4 prompt 95%+   → [PASS/FAIL]
-  Guardrail safety:    golden dataset 100% → [PASS/FAIL]
-  Koltseg:             X% csokkenés       → [PASS/FAIL]
-  E2E (strict):        102+ PASS          → [PASS/FAIL]
-  Unit:                1213+ PASS         → [PASS/FAIL]
-  
-  VERDICT: [PASS] / [FAIL — open items listaja]
+  Service tesztek:      130/130 PASS        → [PASS/FAIL]
+  Prompt minoseg:       5/5 skill 95%+      → [PASS/FAIL]
+  Guardrail (rule):     5/5 skill config    → [PASS/FAIL]
+  Guardrail (LLM):      4/4 prompt 95%+     → [PASS/FAIL]
+  Guardrail (PII):      per-skill helyes    → [PASS/FAIL]
+  Invoice Finder E2E:   pipeline vegigfut   → [PASS/FAIL]
+  Verification Page:    edit+save+retrieve  → [PASS/FAIL]
+  UI Journey:           3/4 mukodik         → [PASS/FAIL]
+  Docker deploy:        compose up → healthy → [PASS/FAIL]
+  UI pipeline trigger:  UI-bol inditva PASS → [PASS/FAIL]
+  Unit tesztek:         ~1400+ PASS         → [PASS/FAIL]
+  E2E tesztek:          102+ PASS           → [PASS/FAIL]
 
-GATE: MINDEN sor PASS. Ha FAIL → B8 KOTELEZO.
+  VERDICT: [PASS] / [FAIL — open items]
+
+B10.6 — Javitasok (ha FAIL):
+  - Minden FAIL tetel → konkret fix
+  - Ujra-audit csak FAIL tetelek
+
+GATE: Audit riport MINDEN PASS
 ```
 
 ---
 
-## B8: Audit Javitasok — 0.5-1 session
+## B11: v1.3.0 Tag + Merge — fel session (S34)
 
-> **Gate:** Frissitett audit riport MINDEN sor PASS. (Ha B7 MIND PASS → B8 SKIP.)
-
-```
-B8.1 — B7 riport FAIL teteleinek javitasa:
-  - Minden OPEN item → konkret fix
-  - Minden fix → ujra-teszt (csak az erintett resz)
-
-B8.2 — Ujra-audit (csak a FAIL tetelek):
-  - VERIFIED ← TILOS tovabblepni ha meg mindig OPEN
-
-B8.3 — Frissitett audit riport:
-  - MINDEN sor PASS
-
-GATE: Frissitett riport MINDEN PASS
-```
-
----
-
-## B9: v1.3.0 Tag + Merge — fél session
-
-> **Gate:** v1.3.0 tag letrehozva, main-re merge-olve.
+> **Gate:** v1.3.0 tag, main-en CI ZOLD.
 
 ```
-B9.1 — pyproject.toml: version = "1.3.0"
-B9.2 — git tag v1.3.0
-B9.3 — 58_POST_SPRINT_HARDENING_PLAN.md: Sprint B = DONE
-B9.4 — CLAUDE.md + 01_PLAN/CLAUDE.md: vegleges szamok frissites
-B9.5 — Merge to main (squash, clean history)
+B11.1 — pyproject.toml + _version.py: version = "1.3.0"
+B11.2 — git tag v1.3.0
+B11.3 — 58_POST_SPRINT_HARDENING_PLAN.md: Sprint B = DONE
+B11.4 — CLAUDE.md + 01_PLAN/CLAUDE.md: vegleges szamok
+B11.5 — Merge to main (squash)
 
-GATE: v1.3.0 tag pushed, main-en CI ZOLD
+GATE: v1.3.0 tag pushed, main CI ZOLD
 ```
 
 ---
@@ -1087,17 +1211,29 @@ GATE: v1.3.0 tag pushed, main-en CI ZOLD
 ## Sprint B Utemterv
 
 ```
-Session 23: B0 (Toolchain + metodologia + 2 uj command + reference guide)
-Session 24: B1 start (aszf_rag baseline + prompt tuning + guardrail) + B1.3 LLM guardrail promptok
-Session 25: B1 (aszf_rag kod+teszt) + B1.2 (email_intent prompt+guardrail) + B1.3 Promptfoo eval
-Session 26: B1.2 (email kod+teszt) + B2.1 (process_docs)
-Session 27: B2.2 (invoice) + B2.3 (doc_extractor)
-Session 28: B3.1 (Core infra tesztek — 65 test)
-Session 29: B3.2 (v1.2.0 tesztek — 65 test)
-Session 30: B4 (cubix+qbpp) + B5 (model opt)
-Session 31: B6 (UI integracio + quality dashboard)
-Session 32: B7 (POST-AUDIT)
-Session 32: B8+B9 (Javitasok + v1.3.0)
+=== FAZIS 1: ALAPOK (S19-S21) ===
+S19: B0 — Guardrail per-function + qbpp torles + Claude↔AIFlow koncepcio + checklist
+S20: B1.1 — LLM guardrail promptok (4 YAML + Promptfoo) + llm_guards.py
+S21: B1.2 — Per-skill guardrails.yaml (5 skill) + golden dataset
+
+=== FAZIS 2: E2E SZOLGALTATASOK (S22-S28) ===
+S22: B2.1 — Core infra service tesztek (65 test)
+S23: B2.2 — v1.2.0 service tesztek (65 test)
+S24: B3.1 — Invoice Finder pipeline: design + email search + doc acquisition
+S25: B3.2 — Invoice Finder: extraction + report + notification (valos adat!)
+S26: B4.1 — Skill hardening: aszf_rag + email_intent (prompt + guardrail)
+S27: B4.2 — Skill hardening: process_docs + invoice + cubix + diagram integralas
+S28: B5 — Spec writer prototipus + diagram pipeline + koltseg baseline
+
+=== FAZIS 3: UI EXCELLENCE (S29-S31) ===
+S29: B6 — UI Journey audit + 4 fo journey tervezes + navigacio redesign terv
+S30: B7 — Verification Page v2 (bounding box, edit diff, perzisztencia)
+S31: B8 — UI Journey implementacio (top 3 journey + dark mode + responsive)
+
+=== FAZIS 4: RELEASE (S32-S34) ===
+S32: B9 — Claude↔AIFlow mukodo prototipus (/find-invoices, /generate-diagram, /write-spec)
+S33: B10 — POST-AUDIT + javitasok
+S34: B11 — v1.3.0 tag + merge
 ```
 
 ---
@@ -1109,31 +1245,41 @@ Session 32: B8+B9 (Javitasok + v1.3.0)
 ## Teljes Utemterv (Sprint A + B)
 
 ```
-=== SPRINT A: Infrastruktura & Biztonsag (v1.2.2) ===
-S15: A0 — CI/CD Green ─────────────── BLOKKOLO
-S16: A1 — Ruff 1,234 → 0 ─────────── /lint-check --fix
-S17: A2 — Halott kod audit+archiv ─── Torles + dokumentum
-S18: A3 — Security + JWT session ──── RS256 + force logout
-S19: A4 — Stubs + alapfunkciok ────── P1, P2, DataTable
-S20: A5 — Guardrail keretrendszer ─── InputGuard + OutputGuard + ScopeGuard
-S21: A6 — POST-AUDIT ──────────────── Teljes ellenorzes
-S22: A7+A8 — Javitasok + v1.2.2 ──── Fix + tag
+=== SPRINT A: Infrastruktura & Biztonsag (v1.2.2) — DONE (4 session) ===
+S15: A0+A1+A2 — CI/CD + Ruff + Dead code ── DONE (2026-04-04)
+S16: A3+A4 ─── Security + Stubs ──────────── DONE (2026-04-04)
+S17: A5 ─────── Guardrail keretrendszer ───── DONE (2026-04-04)
+S18: A6+A7+A8 — POST-AUDIT + v1.2.2 tag ─── DONE (2026-04-05)
 
-=== SPRINT B: Szolgaltatas Excellence (v1.3.0) ===
-S23: B0 — Toolchain + metodologia + reference guide + 2 command
-S24: B1 — aszf_rag baseline + prompt tuning + guardrail + B1.3 LLM guardrail promptok
-S25: B1 — aszf_rag kod + email_intent prompt+guardrail + B1.3 Promptfoo eval
-S26: B1+B2 — email kod + process_docs
-S27: B2 — invoice + doc_extractor
-S28: B3.1 — Core infra tesztek (65)
-S29: B3.2 — v1.2.0 tesztek (65)
-S30: B4+B5 — cubix + model optimization
-S31: B6 — UI integracio + quality dashboard
-S32: B7 — POST-AUDIT
-S33: B8+B9 — Javitasok + v1.3.0
+=== SPRINT B: E2E Szolgaltatas Excellence (v1.3.0) — 16 session ===
+--- Fazis 1: Alapok (S19-S21) ---
+S19: B0 ─── Guardrail per-function + qbpp torles + Claude↔AIFlow koncepcio
+S20: B1.1 ─ LLM guardrail promptok (4 YAML + Promptfoo + llm_guards.py)
+S21: B1.2 ─ Per-skill guardrails.yaml (5 skill) + golden dataset
+
+--- Fazis 2: E2E Szolgaltatasok (S22-S28) ---
+S22: B2.1 ─ Core infra service tesztek (65 test, Tier 1)
+S23: B2.2 ─ v1.2.0 service tesztek (65 test, Tier 2)
+S24: B3.1 ─ Invoice Finder: pipeline design + email + doc acquisition
+S25: B3.2 ─ Invoice Finder: extract + report + notification (valos adat!)
+S26: B4.1 ─ Skill hardening: aszf_rag + email_intent
+S27: B4.2 ─ Skill hardening: process_docs + invoice + cubix + diagram
+S28: B5 ─── Spec writer + diagram pipeline + koltseg baseline
+
+--- Fazis 3: UI Excellence (S29-S31) ---
+S29: B6 ─── UI Journey audit + 4 journey tervezes + navigacio redesign
+S30: B7 ─── Verification Page v2 (bounding box, diff, perzisztencia)
+S31: B8 ─── UI Journey implementacio (top 3 journey + dark mode)
+
+--- Fazis 4: Release (S32-S34) ---
+S32: B9 ─── Docker containerization + UI pipeline trigger + deploy teszt
+S33: B10 ── POST-AUDIT + javitasok
+S34: B11 ── v1.3.0 tag + merge
 ```
 
-**Osszes:** ~19 session, ~5,500 LOC, ~280 uj teszt, 2 version tag, guardrail + toolchain
+**Osszes:** Sprint A 4 + Sprint B 16 = **20 session**, ~8,000 LOC, ~400+ uj teszt,
+2 version tag (v1.2.2 DONE + v1.3.0), 1 uj E2E pipeline (Invoice Finder),
+Verification Page v2, Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 
 ---
 
@@ -1152,20 +1298,22 @@ S33: B8+B9 — Javitasok + v1.3.0
 | 7 | 0 console error | Strict E2E (0 filter) |
 | 8 | Post-audit riport | MINDEN sor PASS |
 
-### Sprint B (v1.3.0)
+### Sprint B (v1.3.0) — E2E Szolgaltatas Excellence
 
 | # | Kriterium | Mertek |
 |---|-----------|--------|
-| 1 | Integralt toolchain | Langfuse+Promptfoo+Claude Code koordinalt |
-| 2 | Service unit test | 130+ PASS |
-| 3 | Prompt minoseg | 6/6 skill 95%+ promptfoo |
-| 4 | Guardrail config | 6/6 skill guardrails.yaml + golden dataset |
-| 5 | Guardrail safety | 100% dangerous query blokkolt |
-| 6 | Koltseg csokkentes | >= 20% Langfuse riportbol |
-| 7 | Production checklist | 10/10 PASS per skill |
-| 8 | Operacionalizacio | Reference guide + 2 command + template-ek |
-| 9 | Post-audit riport | MINDEN sor PASS |
-| 10 | Version tag | v1.3.0 tag, main ZOLD |
+| 1 | **Invoice Finder E2E** | Pipeline vegigfut valos adatokkal (email→extract→report→notify) |
+| 2 | **Verification Page v2** | Bounding box + edit diff + DB perzisztencia + audit trail |
+| 3 | **UI Journey** | 3/4 fo journey mukodik end-to-end, navigacio redesign LIVE |
+| 4 | **Guardrail per-function** | 5/5 skill guardrails.yaml, PII config skill-specifikus |
+| 5 | **LLM Guardrail** | 4/4 prompt 95%+ Promptfoo, rule→LLM fallback mukodik |
+| 6 | **Service tesztek** | 130+ uj unit test PASS, coverage >= 70% services/ |
+| 7 | **Skill minoseg** | 5/5 skill 95%+ promptfoo |
+| 8 | **Diagram + Spec** | Diagram pipeline E2E + spec writer szolgaltatas mukodik |
+| 9 | **Docker deploy** | `docker compose up` → healthy → UI-bol pipeline inditható |
+| 10 | **UI pipeline trigger** | User az UI-bol indit pipeline-t, eredmeny megjelen |
+| 11 | **Post-audit** | Audit riport MINDEN sor PASS |
+| 12 | **Version tag** | v1.3.0 tag, main ZOLD |
 
 ---
 
@@ -1174,13 +1322,13 @@ S33: B8+B9 — Javitasok + v1.3.0
 | Command | Hasznalat | Sprint |
 |---------|-----------|--------|
 | `/lint-check` | Ruff + tsc + format osszesito | A1, minden fazis vegen |
-| `/lint-check --fix` | Auto-fix safe issues | A1.1 |
-| `/regression` | Unit + E2E regresszio | A6, B7, commit elott |
+| `/regression` | Unit + E2E regresszio | A6, B10, commit elott |
 | `/quality-check` | Promptfoo + Langfuse koltseg elemzes | B1-B5 |
-| `/service-test` | Backend + API + UI e2e | B1-B4 |
-| `/service-hardening` | 10-pontos checklist audit (UJ, B0) | B1-B4 |
-| `/prompt-tuning` | Langfuse→Promptfoo→fix ciklus (UJ, B0) | B1-B4 |
+| `/service-test` | Backend + API + UI e2e | B2-B4 |
+| `/service-hardening` | 10-pontos checklist audit (UJ, B0) | B4 |
+| `/prompt-tuning` | Langfuse→Promptfoo→fix ciklus (UJ, B0) | B4 |
 | `/dev-step` | Fejlesztes + teszt + commit | Minden fazis |
+| `/pipeline-test` | Pipeline E2E teszt (valos futatas) | B3 |
 
 ---
 
@@ -1200,17 +1348,19 @@ S33: B8+B9 — Javitasok + v1.3.0
 | A7 | Audit javitasok (4 fix) | DONE | 2026-04-05 | — |
 | A8 | v1.2.2 tag | DONE | 2026-04-05 | — |
 
-### Sprint B (v1.3.0)
+### Sprint B (v1.3.0) — E2E Szolgaltatas Excellence
 
-| Fazis | Tartalom | Allapot | Datum | Commit |
-|-------|----------|---------|-------|--------|
-| B0 | Keretrendszer + metodologia | TODO | — | — |
-| B1 | P0 skill-ek + LLM guardrail promptok | TODO | — | — |
-| B2 | P1 skill-ek + guardrail | TODO | — | — |
-| B3 | Infrastructure tesztek (130) | TODO | — | — |
-| B4 | P2/P4 skill-ek | TODO | — | — |
-| B5 | Modell optimalizacio | TODO | — | — |
-| B6 | UI integracio | TODO | — | — |
-| B7 | POST-AUDIT | TODO | — | — |
-| B8 | Audit javitasok | TODO | — | — |
-| B9 | v1.3.0 tag | TODO | — | — |
+| Fazis | Tartalom | Session | Allapot | Datum | Commit |
+|-------|----------|---------|---------|-------|--------|
+| B0 | Guardrail per-function + qbpp torles + koncepcio | S19 | TODO | — | — |
+| B1 | LLM guardrail promptok + per-skill config | S20-S21 | TODO | — | — |
+| B2 | Service unit tesztek (130 test, Tier-based) | S22-S23 | TODO | — | — |
+| B3 | **Invoice Finder E2E pipeline** (valos adat!) | S24-S25 | TODO | — | — |
+| B4 | Skill hardening (5 skill, 95%+ promptfoo) | S26-S27 | TODO | — | — |
+| B5 | Diagram pipeline + Spec writer + koltseg baseline | S28 | TODO | — | — |
+| B6 | UI Journey audit + 4 journey tervezes | S29 | TODO | — | — |
+| B7 | **Verification Page v2** (bounding box, diff, DB) | S30 | TODO | — | — |
+| B8 | UI Journey implementacio (top 3 journey) | S31 | TODO | — | — |
+| B9 | **Docker deploy** + UI pipeline trigger | S32 | TODO | — | — |
+| B10 | POST-AUDIT + javitasok | S33 | TODO | — | — |
+| B11 | v1.3.0 tag + merge | S34 | TODO | — | — |
