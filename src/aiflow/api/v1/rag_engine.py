@@ -61,6 +61,7 @@ class QueryRequest(BaseModel):
     question: str
     role: str = "expert"
     top_k: int = 5
+    model: str | None = None  # override answer model (e.g. "openai/gpt-4o-mini")
 
 class QueryResponse(BaseModel):
     query_id: str
@@ -71,6 +72,7 @@ class QueryResponse(BaseModel):
     response_time_ms: float = 0
     cost_usd: float = 0
     tokens_used: int = 0
+    model_used: str | None = None
     source: str = "backend"
 
 class FeedbackRequest(BaseModel):
@@ -202,6 +204,30 @@ async def delete_collection(collection_id: str):
         raise HTTPException(status_code=404, detail="Collection not found")
 
 
+class BulkDeleteCollectionsRequest(BaseModel):
+    ids: list[str]
+
+
+class BulkDeleteCollectionsResponse(BaseModel):
+    deleted: int = 0
+    source: str = "backend"
+
+
+@router.post("/collections/delete-bulk", response_model=BulkDeleteCollectionsResponse)
+async def delete_collections_bulk(request: BulkDeleteCollectionsRequest):
+    """Delete multiple collections by UUID list."""
+    svc = await _get_service()
+    total = 0
+    for cid in request.ids:
+        ok = await svc.delete_collection(cid)
+        if ok:
+            total += 1
+    logger.info("collections_bulk_deleted", count=total, ids=request.ids)
+    from aiflow.api.audit_helper import audit_log
+    await audit_log("bulk_delete", "rag_collection", details={"count": total})
+    return BulkDeleteCollectionsResponse(deleted=total)
+
+
 # ---------------------------------------------------------------------------
 # Ingestion
 # ---------------------------------------------------------------------------
@@ -220,9 +246,11 @@ async def ingest_documents(
     if not coll:
         raise HTTPException(status_code=404, detail="Collection not found")
 
-    # Save uploaded files to temp directory
+    # Save uploaded files to persistent directory (not temp!)
     saved_paths: list[Path] = []
-    upload_dir = Path(tempfile.mkdtemp(prefix="rag_ingest_"))
+    project_root = Path(__file__).parent.parent.parent.parent.parent
+    upload_dir = project_root / "data" / "uploads" / "rag" / collection_id
+    upload_dir.mkdir(parents=True, exist_ok=True)
     try:
         for f in files:
             dest = upload_dir / (f.filename or "unnamed.pdf")
@@ -239,6 +267,175 @@ async def ingest_documents(
     except Exception as e:
         logger.error("ingest_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/collections/{collection_id}/ingest-stream")
+async def ingest_documents_stream(
+    collection_id: str,
+    files: list[UploadFile] = File(...),
+    language: str | None = Query(None),
+):
+    """Upload and ingest documents with SSE progress streaming.
+
+    Events: step_start, step_done, error, complete.
+    Steps: upload, parse, chunk, embed, store.
+    """
+    import json as _json
+    import time as _time
+    from fastapi.responses import StreamingResponse
+
+    svc = await _get_service()
+    coll = await svc.get_collection(collection_id)
+    if not coll:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    async def event_stream():
+        import asyncio as _asyncio
+        run_start = _time.perf_counter()
+        errors: list[str] = []
+        total_chunks = 0
+        files_ok = 0
+        embed_total_tokens = 0
+        step_names = ["upload", "parse", "chunk", "embed", "store"]
+        total_files = len(files)
+
+        def sse(obj: dict) -> str:
+            return f"data: {_json.dumps(obj)}\n\n"
+
+        yield sse({"event": "init", "total_files": total_files, "steps": step_names})
+
+        try:
+            project_root = Path(__file__).parent.parent.parent.parent.parent
+            upload_dir = project_root / "data" / "uploads" / "rag" / collection_id
+            upload_dir.mkdir(parents=True, exist_ok=True)
+
+            from aiflow.ingestion.parsers.docling_parser import DoclingParser
+            from aiflow.ingestion.chunkers.recursive_chunker import RecursiveChunker, ChunkingConfig
+            import uuid as _uuid
+            parser = DoclingParser()
+            chunker = RecursiveChunker(ChunkingConfig(
+                chunk_size=svc._ext_config.default_chunk_size,
+                chunk_overlap=svc._ext_config.default_chunk_overlap,
+            ))
+
+            for fi, f in enumerate(files):
+                fname = f.filename or f"file_{fi}.pdf"
+                yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total_files})
+                await _asyncio.sleep(0)
+
+                # Step 0: Upload (save to disk)
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "upload", "status": "running"})
+                await _asyncio.sleep(0)
+                dest = upload_dir / fname
+                content = await f.read()
+                dest.write_bytes(content)
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 0, "step_name": "upload", "status": "done"})
+
+                # Step 1: Parse
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 1, "step_name": "parse", "status": "running"})
+                await _asyncio.sleep(0)
+                try:
+                    doc = parser.parse(dest)
+                    doc_text = doc.markdown or doc.text
+                    if not doc_text.strip():
+                        raise ValueError("empty document")
+                except Exception as e:
+                    errors.append(f"{fname}: parse error: {e}")
+                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": "parse", "error": str(e)})
+                    yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": False})
+                    continue
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 1, "step_name": "parse", "status": "done"})
+
+                # Step 2: Chunk
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 2, "step_name": "chunk", "status": "running"})
+                await _asyncio.sleep(0)
+                chunks = chunker.chunk_text(doc_text, metadata={
+                    "document_name": doc.file_name or fname,
+                    "file_type": doc.file_type,
+                    "language": language or coll.language,
+                })
+                if not chunks:
+                    errors.append(f"{fname}: no chunks produced")
+                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": "chunk", "error": "no chunks"})
+                    yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": False})
+                    continue
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 2, "step_name": "chunk", "status": "done"})
+
+                # Step 3: Embed
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 3, "step_name": "embed", "status": "running"})
+                await _asyncio.sleep(0)
+                chunk_texts = [c.text for c in chunks]
+                embeddings = await svc._embedder.embed_texts(chunk_texts)
+                embed_total_tokens += sum(len(t) // 4 for t in chunk_texts)
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 3, "step_name": "embed", "status": "done"})
+
+                # Step 4: Store
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 4, "step_name": "store", "status": "running"})
+                await _asyncio.sleep(0)
+                chunk_dicts = [
+                    {
+                        "id": str(_uuid.uuid4()),
+                        "content": c.text,
+                        "metadata": {**c.metadata, "chunk_index": c.index},
+                        "document_name": c.metadata.get("document_name", fname),
+                    }
+                    for c in chunks
+                ]
+                stored = await svc._vector_store.upsert_chunks(
+                    collection=coll.name,
+                    skill_name="rag_engine",
+                    chunks=chunk_dicts,
+                    embeddings=embeddings,
+                )
+                total_chunks += stored
+                files_ok += 1
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": 4, "step_name": "store", "status": "done"})
+
+                yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": True})
+
+            # Update collection stats
+            from sqlalchemy import text as sa_text
+            async with svc._session_factory() as session:
+                await session.execute(
+                    sa_text("""UPDATE rag_collections
+                        SET document_count = document_count + :docs,
+                            chunk_count = chunk_count + :chunks,
+                            last_ingest_at = NOW(), updated_at = NOW()
+                        WHERE id = :id"""),
+                    {"docs": files_ok, "chunks": total_chunks, "id": collection_id},
+                )
+                await session.commit()
+
+            # Record embedding cost
+            try:
+                from aiflow.api.cost_recorder import record_cost
+                from aiflow.models.cost import ModelCostCalculator
+                embed_model = "openai/text-embedding-3-small"
+                calc = ModelCostCalculator()
+                embed_cost = calc.calculate(embed_model, embed_total_tokens, 0)
+                import uuid as _cost_uuid
+                await record_cost(
+                    workflow_run_id=_cost_uuid.uuid4(),
+                    step_name="rag_ingest_embed",
+                    model=embed_model,
+                    input_tokens=embed_total_tokens,
+                    output_tokens=0,
+                    cost_usd=embed_cost,
+                )
+            except Exception:
+                pass
+
+            total_ms = int((_time.perf_counter() - run_start) * 1000)
+            yield sse({"event": "complete", "files_processed": files_ok, "chunks_created": total_chunks, "duration_ms": total_ms, "errors": errors})
+
+        except Exception as e:
+            yield sse({"event": "error", "error": str(e)})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/collections/{collection_id}/ingest-status", response_model=IngestStatusResponse)
@@ -270,8 +467,26 @@ async def query_collection(collection_id: str, request: QueryRequest):
             question=request.question,
             role=request.role,
             top_k=request.top_k,
+            model=request.model,
         )
-        return QueryResponse(**result.model_dump())
+        resp = QueryResponse(**result.model_dump())
+
+        # Persist cost to cost_records (best-effort)
+        if resp.cost_usd > 0 or resp.tokens_used > 0:
+            try:
+                from aiflow.api.cost_recorder import record_cost
+                await record_cost(
+                    workflow_run_id=resp.query_id,
+                    step_name="rag_query",
+                    model=resp.model_used or "openai/gpt-4o",
+                    input_tokens=resp.tokens_used,
+                    output_tokens=0,
+                    cost_usd=resp.cost_usd,
+                )
+            except Exception:
+                pass
+
+        return resp
     except Exception as e:
         logger.error("query_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
@@ -364,3 +579,107 @@ async def delete_chunk(collection_id: str, chunk_id: str):
         )
         if "DELETE 0" in deleted:
             raise HTTPException(status_code=404, detail="Chunk not found")
+
+
+# ---------------------------------------------------------------------------
+# Collection documents (aggregated from chunks)
+# ---------------------------------------------------------------------------
+
+class CollectionDocItem(BaseModel):
+    document_name: str
+    chunk_count: int
+    first_ingested: str | None = None
+
+
+class CollectionDocsResponse(BaseModel):
+    documents: list[CollectionDocItem] = []
+    total: int = 0
+    source: str = "backend"
+
+
+@router.get("/collections/{collection_id}/documents", response_model=CollectionDocsResponse)
+async def list_collection_documents(collection_id: str):
+    """List distinct documents ingested into a collection (aggregated from chunks)."""
+    svc = await _get_service()
+    coll = await svc.get_collection(collection_id)
+    if not coll:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT document_name, COUNT(*) AS chunk_count, MIN(created_at) AS first_ingested
+            FROM rag_chunks
+            WHERE collection = $1 AND document_name IS NOT NULL
+            GROUP BY document_name
+            ORDER BY MIN(created_at) DESC
+            """,
+            coll.name,
+        )
+
+    return CollectionDocsResponse(
+        documents=[
+            CollectionDocItem(
+                document_name=r["document_name"],
+                chunk_count=r["chunk_count"],
+                first_ingested=r["first_ingested"].isoformat() if r["first_ingested"] else None,
+            )
+            for r in rows
+        ],
+        total=len(rows),
+    )
+
+
+@router.delete("/collections/{collection_id}/documents/{doc_name:path}", status_code=204)
+async def delete_collection_document(collection_id: str, doc_name: str):
+    """Delete all chunks belonging to a specific document in a collection."""
+    svc = await _get_service()
+    coll = await svc.get_collection(collection_id)
+    if not coll:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "DELETE FROM rag_chunks WHERE collection = $1 AND document_name = $2",
+            coll.name, doc_name,
+        )
+        if "DELETE 0" in result:
+            raise HTTPException(status_code=404, detail="Document not found in collection")
+    logger.info("collection_document_deleted", collection_id=collection_id, document_name=doc_name)
+    from aiflow.api.audit_helper import audit_log
+    await audit_log("delete", "rag_document", doc_name, {"collection_id": collection_id})
+
+
+class BulkDeleteDocsRequest(BaseModel):
+    document_names: list[str]
+
+
+class BulkDeleteDocsResponse(BaseModel):
+    deleted: int = 0
+    chunks_removed: int = 0
+    source: str = "backend"
+
+
+@router.post("/collections/{collection_id}/documents/delete-bulk", response_model=BulkDeleteDocsResponse)
+async def delete_collection_documents_bulk(collection_id: str, request: BulkDeleteDocsRequest):
+    """Delete multiple documents (and their chunks) from a collection."""
+    svc = await _get_service()
+    coll = await svc.get_collection(collection_id)
+    if not coll:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    pool = await get_pool()
+    total_chunks = 0
+    async with pool.acquire() as conn:
+        for doc_name in request.document_names:
+            result = await conn.execute(
+                "DELETE FROM rag_chunks WHERE collection = $1 AND document_name = $2",
+                coll.name, doc_name,
+            )
+            count = int(result.split()[-1]) if result else 0
+            total_chunks += count
+
+    logger.info("collection_documents_bulk_deleted", collection_id=collection_id, count=len(request.document_names), chunks=total_chunks)
+    return BulkDeleteDocsResponse(deleted=len(request.document_names), chunks_removed=total_chunks)

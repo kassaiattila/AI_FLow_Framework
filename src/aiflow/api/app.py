@@ -54,8 +54,31 @@ def create_app() -> FastAPI:
     async def lifespan(app: FastAPI):
         # Startup: pool/engine created lazily on first use
         logger.info("app_startup")
+
+        # Initialize Langfuse tracer (global singleton)
+        langfuse_tracer = None
+        try:
+            from aiflow.observability.tracing import LangfuseTracer
+            pk = os.getenv("AIFLOW_LANGFUSE__PUBLIC_KEY", "")
+            sk = os.getenv("AIFLOW_LANGFUSE__SECRET_KEY", "")
+            host = os.getenv("AIFLOW_LANGFUSE__HOST", "https://cloud.langfuse.com")
+            enabled = os.getenv("AIFLOW_LANGFUSE__ENABLED", "false").lower() in ("true", "1", "yes")
+            if pk and sk:
+                langfuse_tracer = LangfuseTracer(
+                    public_key=pk,
+                    secret_key=sk,
+                    host=host,
+                    enabled=enabled,
+                )
+                app.state.langfuse_tracer = langfuse_tracer
+        except Exception as exc:
+            logger.warning("langfuse_init_skipped", error=str(exc))
+
         yield
-        # Shutdown: close shared DB connections
+
+        # Shutdown: flush Langfuse and close shared DB connections
+        if langfuse_tracer:
+            langfuse_tracer.shutdown()
         from aiflow.api.deps import close_all
         await close_all()
         logger.info("app_shutdown")
@@ -98,6 +121,12 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.rpa_browser import router as rpa_router
     from aiflow.api.v1.human_review import router as review_router
     from aiflow.api.v1.admin import router as admin_router
+    from aiflow.api.v1.pipelines import router as pipelines_router
+    from aiflow.api.v1.notifications import router as notifications_router
+    from aiflow.api.v1.data_router import router as data_router_router
+    from aiflow.api.v1.rag_advanced import router as rag_advanced_router
+    from aiflow.api.v1.quality import router as quality_router
+    from aiflow.api.v1.intent_schemas import router as intent_schemas_router
     app.include_router(health_router)
     app.include_router(workflows_router)
     app.include_router(chat_router)
@@ -117,6 +146,12 @@ def create_app() -> FastAPI:
     app.include_router(rpa_router)
     app.include_router(review_router)
     app.include_router(admin_router)
+    app.include_router(pipelines_router)
+    app.include_router(notifications_router)
+    app.include_router(data_router_router)
+    app.include_router(rag_advanced_router)
+    app.include_router(quality_router)
+    app.include_router(intent_schemas_router)
     # Global exception handler — hides internals in production
     env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
     is_production = env in ("production", "prod")
@@ -136,7 +171,7 @@ def create_app() -> FastAPI:
         # Dev/test: include traceback for debugging
         return JSONResponse(
             status_code=500,
-            content={"detail": str(exc), "error_id": error_id, "traceback": tb[:1000]},
+            content={"detail": str(exc), "error_id": error_id, "traceback": tb[:5000]},
         )
 
     logger.info("app_created", version=__version__)

@@ -1,0 +1,90 @@
+# Contract Analysis Pipeline
+# Chain: parse contract -> extract entities -> enrich metadata -> chunk -> RAG ingest
+# End-to-end document intelligence for legal/contract documents.
+#
+# Prerequisites:
+#   - RAG collection exists (collection_id)
+#   - Contract file accessible on the server
+#   - Advanced parser, graph RAG, chunker, enricher services running
+#
+# Usage:
+#   POST /api/v1/pipelines  (create with this YAML)
+#   POST /api/v1/pipelines/{id}/run  {"input_data": {"collection_id": "...", "file_path": "..."}}
+
+name: contract_analysis
+version: "1.0.0"
+description: "Parse contract -> extract entities -> enrich metadata -> build graph -> RAG ingest"
+
+trigger:
+  type: manual
+
+input_schema:
+  collection_id:
+    type: string
+    required: true
+    description: "Target RAG collection ID"
+  file_path:
+    type: string
+    required: true
+    description: "Path to the contract document"
+
+steps:
+  - name: parse_contract
+    service: advanced_parser
+    method: parse
+    config:
+      file_path: "{{ input.file_path }}"
+      parser: "auto"
+    retry:
+      max_retries: 2
+      backoff_base: 2.0
+      backoff_max: 20.0
+    timeout: 180
+
+  - name: extract_entities
+    service: graph_rag
+    method: extract_entities
+    depends_on: [parse_contract]
+    config:
+      text: "{{ parse_contract.output.text }}"
+    retry:
+      max_retries: 2
+      backoff_base: 1.0
+      backoff_max: 10.0
+    timeout: 120
+
+  - name: enrich_metadata
+    service: metadata_enricher
+    method: enrich
+    depends_on: [parse_contract]
+    config:
+      text: "{{ parse_contract.output.text }}"
+    timeout: 120
+
+  - name: chunk_contract
+    service: advanced_chunker
+    method: chunk
+    depends_on: [parse_contract]
+    config:
+      text: "{{ parse_contract.output.text }}"
+      strategy: "document_aware"
+    timeout: 120
+
+  - name: store_vectors
+    service: rag_engine
+    method: ingest
+    depends_on: [chunk_contract, enrich_metadata]
+    config:
+      collection_id: "{{ input.collection_id }}"
+      file_paths: []
+    retry:
+      max_retries: 2
+      backoff_base: 2.0
+      backoff_max: 30.0
+    timeout: 300
+
+metadata:
+  author: "AIFlow"
+  category: "legal"
+  tier: "4"
+  cycle: "C19"

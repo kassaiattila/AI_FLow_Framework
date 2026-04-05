@@ -73,7 +73,78 @@ _SKILLS: list[SkillInfoItem] = [
 ]
 
 
+class SkillSummaryItem(BaseModel):
+    """Skill with run statistics for dashboard."""
+    name: str
+    display_name: str
+    status: str
+    skill_type: str
+    description: str
+    run_count: int = 0
+    last_run_at: str | None = None
+    success_rate: float = 0.0
+
+
+class SkillSummaryResponse(BaseModel):
+    """Skills with run stats for dashboard cards."""
+    skills: list[SkillSummaryItem]
+    total: int
+    source: str = "backend"
+
+
 @router.get("", response_model=SkillListResponse)
 async def list_skills() -> SkillListResponse:
     """List all installed skills."""
     return SkillListResponse(skills=_SKILLS, total=len(_SKILLS))
+
+
+@router.get("/summary", response_model=SkillSummaryResponse)
+async def get_skills_summary() -> SkillSummaryResponse:
+    """Get skills with run statistics for dashboard skill cards."""
+    from aiflow.api.deps import get_pool
+
+    # Start with static skill data
+    skill_stats: dict[str, dict] = {}
+
+    try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT
+                    skill_name,
+                    COUNT(*) AS run_count,
+                    MAX(started_at) AS last_run_at,
+                    ROUND(
+                        COUNT(*) FILTER (WHERE status = 'completed')::numeric
+                        / NULLIF(COUNT(*), 0) * 100, 1
+                    ) AS success_rate
+                FROM workflow_runs
+                WHERE skill_name IS NOT NULL
+                GROUP BY skill_name
+                """
+            )
+            for row in rows:
+                skill_stats[row["skill_name"]] = {
+                    "run_count": row["run_count"],
+                    "last_run_at": row["last_run_at"].isoformat() if row["last_run_at"] else None,
+                    "success_rate": float(row["success_rate"] or 0),
+                }
+    except Exception as e:
+        logger.warning("skill_summary_db_failed", error=str(e))
+
+    items = []
+    for s in _SKILLS:
+        stats = skill_stats.get(s.name, {})
+        items.append(SkillSummaryItem(
+            name=s.name,
+            display_name=s.display_name,
+            status=s.status,
+            skill_type=s.skill_type,
+            description=s.description,
+            run_count=stats.get("run_count", 0),
+            last_run_at=stats.get("last_run_at"),
+            success_rate=stats.get("success_rate", 0.0),
+        ))
+
+    return SkillSummaryResponse(skills=items, total=len(items))

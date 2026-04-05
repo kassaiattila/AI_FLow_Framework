@@ -2,9 +2,36 @@
 
 > **Version:** 1.0.0 (v1.0.0-rc1 → v1.0.0 final)
 > **Framework:** FastAPI (Python 3.12+)
-> **Utolso frissites:** 2026-04-02
+> **Utolso frissites:** 2026-04-03
 > **Megjegyzes:** Ez a dokumentum az AIFlow framework teljes REST API specifikaciojat tartalmazza.
-> **Statisztika:** 114 endpoint, 19 router, auth middleware minden /api/v1/* endpoint-on.
+> **Statisztika:** 112+ endpoint, 19 router, 6 SSE streaming endpoint, auth middleware minden /api/v1/* endpoint-on.
+
+### SSE Streaming Endpoints (v1.1.4+)
+
+A kovetkezo endpointok Server-Sent Events (SSE) format-ban streamelnek per-file progress-t.
+Egyseges event format: `init`, `file_start`, `file_step`, `file_done`, `file_error`, `complete`.
+
+| Endpoint | Router | Pipeline lepesek |
+|----------|--------|-----------------|
+| `POST /api/v1/documents/process-stream` | documents | parse → classify → extract → validate → store |
+| `POST /api/v1/rag/collections/{id}/ingest-stream` | rag_engine | upload → parse → chunk → embed → store |
+| `POST /api/v1/process-docs/generate-stream` | process_docs | classify → elaborate → extract → review → generate → export |
+| `POST /api/v1/emails/upload-and-process-stream` | emails | upload → parse → classify → extract → priority → route |
+| `POST /api/v1/emails/fetch-and-process-stream` | emails | fetch → parse → classify → extract → priority → route |
+| `POST /api/v1/emails/process-batch-stream` | emails | parse → classify → extract → priority → route |
+
+**Email Export:**
+| Endpoint | Metodus | Leiras |
+|----------|---------|--------|
+| `GET /api/v1/emails/export/csv` | GET | Feldolgozott emailek CSV exportja |
+
+**Email Connector Providers:**
+| Provider | Ertek | Leiras |
+|----------|-------|--------|
+| IMAP | `imap` | Standard IMAP4/SSL (basic auth — O365-on NEM mukodik) |
+| O365 Graph | `o365_graph` | Microsoft Graph API OAuth2 |
+| Gmail | `gmail` | Nem implementalt |
+| Outlook COM | `outlook_com` | Helyi Windows Outlook COM/MAPI (v1.1.4+) |
 
 ---
 
@@ -1438,7 +1465,136 @@ Hibrid kereses (semantic + keyword) a dokumentum kollekciokon.
 }
 ```
 
-### 10.4 GET /api/v1/collections
+### 10.4 POST /api/v1/documents/process-stream
+
+Dokumentumok feldolgozasa SSE streaming progress-szel (parse → classify → extract → validate → store → export).
+
+- **Auth required:** Igen
+- **Status codes:** `200` (SSE stream), `401`
+
+**Request:**
+```json
+{
+  "files": ["invoice_001.pdf", "invoice_002.pdf"],
+  "output_dir": null,
+  "config_name": "invoice-hu"
+}
+```
+
+**Response (SSE stream):**
+```
+data: {"event": "step_start", "step": 1, "name": "parse", "file": "invoice_001.pdf"}
+data: {"event": "step_done", "step": 1, "name": "parse", "file": "invoice_001.pdf"}
+data: {"event": "step_start", "step": 2, "name": "classify", "file": "invoice_001.pdf"}
+...
+data: {"event": "complete", "results": [{"file": "invoice_001.pdf", "status": "ok"}]}
+```
+
+### 10.5 GET /api/v1/documents/by-id/{invoice_id}
+
+Egyedi dokumentum lekerese adatbazis UUID alapjan.
+
+- **Auth required:** Igen
+- **Status codes:** `200`, `404`
+
+**Response (200):**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "source_file": "invoice_001.pdf",
+  "direction": "incoming",
+  "vendor": { "name": "Szallito Kft", "tax_number": "12345678-2-42" },
+  "buyer": { "name": "Vevo Kft", "tax_number": "87654321-2-42" },
+  "header": { "invoice_number": "INV-2024-001", "invoice_date": "2024-01-15" },
+  "totals": { "net_total": 100000, "vat_total": 27000, "gross_total": 127000 },
+  "extraction_confidence": 0.95,
+  "source": "backend"
+}
+```
+
+### 10.6 GET /api/v1/documents/extractor/configs
+
+Elerheto dokumentum feldolgozo konfiguraciok listaja.
+
+- **Auth required:** Igen
+- **Status codes:** `200`
+
+**Response (200):**
+```json
+{
+  "configs": [
+    {
+      "name": "invoice-hu",
+      "display_name": "Magyar szamla",
+      "document_type": "invoice",
+      "field_count": 14,
+      "enabled": true
+    }
+  ],
+  "total": 1,
+  "source": "backend"
+}
+```
+
+### 10.7 POST /api/v1/documents/extractor/configs
+
+Uj dokumentum feldolgozo konfiguracio letrehozasa.
+
+- **Auth required:** Igen
+- **Status codes:** `201`, `400`
+
+**Request:**
+```json
+{
+  "name": "contract-hu",
+  "display_name": "Magyar szerzodes",
+  "document_type": "contract",
+  "parser": "docling",
+  "extraction_model": "openai/gpt-4o",
+  "fields": [{ "name": "parties", "type": "list", "required": true }],
+  "validation_rules": [],
+  "output_formats": ["json"]
+}
+```
+
+**Response (201):**
+```json
+{
+  "created": true,
+  "name": "contract-hu",
+  "source": "backend"
+}
+```
+
+### 10.8 GET /api/v1/documents/export/csv
+
+Osszes dokumentum exportalasa CSV fajlkent (letoltes).
+
+- **Auth required:** Igen
+- **Status codes:** `200`
+- **Content-Type:** `text/csv`
+- **Content-Disposition:** `attachment; filename=aiflow_invoices_export.csv`
+
+CSV oszlopok: `source_file, direction, vendor_name, vendor_tax_number, buyer_name, buyer_tax_number, invoice_number, invoice_date, due_date, currency, net_total, vat_total, gross_total, is_valid, confidence_score, created_at`
+
+### 10.9 GET /api/v1/documents/export/json
+
+Osszes dokumentum exportalasa JSON fajlkent (letoltes).
+
+- **Auth required:** Igen
+- **Status codes:** `200`
+- **Content-Type:** `application/json`
+- **Content-Disposition:** `attachment; filename=aiflow_invoices_export.json`
+
+### 10.10 DELETE /api/v1/documents/delete/{invoice_id}
+
+Dokumentum torlese UUID alapjan (kaszkad: invoice_line_items is torlodik).
+
+- **Auth required:** Igen
+- **Status codes:** `204`, `404`
+- **Response:** Ures body (204 No Content) vagy `{"detail": "Document not found"}` (404)
+
+### 10.11 GET /api/v1/collections
 
 Elerheto dokumentum kollekcio-k listaja.
 
@@ -1463,7 +1619,7 @@ Elerheto dokumentum kollekcio-k listaja.
 }
 ```
 
-### 10.5 GET /api/v1/conversations
+### 10.12 GET /api/v1/conversations
 
 Beszelgetesek listazasa skill es felhasznalo szerint.
 
@@ -1487,7 +1643,7 @@ Beszelgetesek listazasa skill es felhasznalo szerint.
 }
 ```
 
-### 10.6 POST /api/v1/conversations/{id}/messages
+### 10.13 POST /api/v1/conversations/{id}/messages
 
 Uj uzenet kuldese egy beszelgetesbe, streaming valasszal.
 
@@ -1504,7 +1660,7 @@ Uj uzenet kuldese egy beszelgetesbe, streaming valasszal.
 
 **Response:** Streaming (SSE) -- lasd [WS /ws/chat/{conversation_id}](#112-ws-wschatconversation_id) a reszletes streaming formatumert.
 
-### 10.7 POST /api/v1/feedback
+### 10.14 POST /api/v1/feedback
 
 Felhasznaloi visszajelzes rogzitese egy beszelgetes uzenethez.
 

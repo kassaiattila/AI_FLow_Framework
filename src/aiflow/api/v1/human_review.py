@@ -118,3 +118,60 @@ async def reject_review(review_id: str, request: ReviewDecisionRequest):
     if not item:
         raise HTTPException(status_code=404, detail="Review not found or already decided")
     return ReviewResponse(**item.model_dump(), source="backend")
+
+
+# ---------------------------------------------------------------------------
+# SLA Escalation endpoints (S12)
+# ---------------------------------------------------------------------------
+
+
+class EscalateRequest(BaseModel):
+    reason: str = "Manual escalation"
+
+
+class SlaCheckRequest(BaseModel):
+    sla_hours: float = 24.0
+
+
+class SlaCheckResponse(BaseModel):
+    overdue_count: int
+    escalated_count: int
+    escalated_ids: list[str] = Field(default_factory=list)
+    source: str = "backend"
+
+
+@router.post("/{review_id}/escalate", response_model=ReviewResponse)
+async def escalate_review(review_id: str, request: EscalateRequest):
+    """Manually escalate a pending review — bumps priority."""
+    svc = _get_service()
+    item = await svc.escalate(review_id, reason=request.reason)
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="Review not found or already decided",
+        )
+    return ReviewResponse(**item.model_dump(), source="backend")
+
+
+@router.get("/sla/overdue", response_model=ReviewListResponse)
+async def list_overdue_reviews(sla_hours: float = 24.0):
+    """List pending reviews that have exceeded their SLA deadline."""
+    svc = _get_service()
+    items = await svc.check_sla_deadlines(sla_hours=sla_hours)
+    return ReviewListResponse(
+        reviews=[ReviewResponse(**i.model_dump(), source="backend") for i in items],
+        total=len(items),
+    )
+
+
+@router.post("/sla/check-and-escalate", response_model=SlaCheckResponse)
+async def check_and_escalate(request: SlaCheckRequest):
+    """Check SLA deadlines and auto-escalate overdue reviews."""
+    svc = _get_service()
+    overdue = await svc.check_sla_deadlines(sla_hours=request.sla_hours)
+    escalated = await svc.check_and_escalate(sla_hours=request.sla_hours)
+    return SlaCheckResponse(
+        overdue_count=len(overdue),
+        escalated_count=len(escalated),
+        escalated_ids=[r.id for r in escalated],
+    )

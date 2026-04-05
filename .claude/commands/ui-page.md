@@ -10,53 +10,63 @@ Generate a new page for the AIFlow admin dashboard.
 # GATE CHECK 1: Journey fajl FIZIKAILAG LETEZIK? (ONALLO FAJL, NEM grep!)
 ls 01_PLAN/F*_*JOURNEY*.md 2>/dev/null || echo "GATE 1 FAIL: Journey fajl HIANYZIK!"
 # Ha NINCS FAJL → **STOP** — futtasd `/ui-journey` ELOSZOR!
-# NEM eleg grep-pelni a generalizacios tervet — ONALLO journey fajl KELL!
 
 # GATE CHECK 2: PAGE_SPECS.md LETEZIK az oldalhoz + FIGMA REFERENCIA van benne?
 grep -c "## Page.*{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md || echo "GATE 4 FAIL: PAGE_SPECS entry HIANYZIK!"
 # Ha 0 → **STOP** — futtasd `/ui-design` (valos Figma MCP design!) ELOSZOR!
-# Manuálisan írt PAGE_SPECS entry Figma design NÉLKÜL NEM ELFOGADHATÓ!
 
 # GATE CHECK 3: API endpoint valos adatot ad?
-curl -sf http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', 'NO BACKEND'" || echo "GATE 2-3 FAIL: API nem ad valos adatot!"
-# Ha NEM "backend" → **STOP** — implementald az API-t ELOSZOR!
+curl -sf http://localhost:8101/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', 'NO BACKEND'" || echo "GATE 2-3 FAIL: API nem ad valos adatot!"
 ```
 **Mind a 3 GATE PASS kell mielott BARMILYEN UI kodot generalnal!**
 **Ha barmelyik FAIL → STOP → megoldas → ujra ellenorzes → AZTAN generálas.**
 **NEM kerhetsz engedelyt a gate kihagyasara — NINCS kiveteles.**
 
 ## Context
-The UI project is at `aiflow-admin/` using Vite + React Admin + React 19 + MUI + TypeScript.
-Pages are in `aiflow-admin/src/pages/`. Resources in `src/resources/`.
-Data flows through `src/dataProvider.ts` → FastAPI `/api/v1/*` endpoints.
+The UI project is at `aiflow-admin/` using Vite + Untitled UI + React 19 + Tailwind v4 + TypeScript.
+Pages are in `aiflow-admin/src/pages/`.
+Layout components in `aiflow-admin/src/layout/` (AppShell, Sidebar, TopBar, PageLayout).
+Reusable components in `aiflow-admin/src/components/` (DataTable, EmptyState, LoadingState, ErrorState, StatusBadge, TabLayout, etc.).
+Data flows through `src/lib/api-client.ts` (`fetchApi<T>()`) → FastAPI `/api/v1/*` endpoints.
+Auth via `src/lib/auth.ts`, i18n via `src/lib/i18n.ts`.
 Proxy config in `vite.config.ts` (NOT proxy.ts or middleware.ts).
 Design specs in `aiflow-admin/figma-sync/PAGE_SPECS.md`.
 
 ## Ask me for:
-1. Page route (e.g., `/costs`, `/invoices`)
+1. Page route (e.g., `/costs`, `/documents`)
 2. Page title and description
-3. Data source (which `/api/v1/` endpoint via dataProvider)
+3. Data source (which `/api/v1/` endpoint via fetchApi)
 4. Key sections (KPI cards, tables, charts, detail views)
 
 ## MANDATORY Rules:
-- **i18n**: `useTranslate()` from react-admin for ALL text
-- **Data via dataProvider**: NEVER direct `fetch("/data/...")` — use react-admin hooks or dataProvider
-- **3 states required**: Loading (spinner), Error (message + retry), Empty (helpful text)
+- **i18n**: `useTranslate()` from `src/lib/i18n` for ALL text
+- **Data via fetchApi**: `const { data, loading, error } = useApi<T>("/api/v1/runs")` — NEM dataProvider, NEM useGetList
+- **Styling**: Tailwind utility classes (`className="p-4 text-sm"`) — NEM MUI sx prop, NEM emotion
+- **Components**: Untitled UI primitives — NEM `@mui/material`
+- **Icons**: `@untitledui/icons` — NEM `@mui/icons-material`
+- **Layout**: Wrap content in `<PageLayout>` component
+- **Tables**: `<DataTable>` from `src/components-new/DataTable.tsx` (TanStack Table) — KOTELEZO lista oldalaknal. Sort, search, pagination beepitett. NEM szabad kezi `<table>` markup-ot irni.
+- **3 states required**: Loading (`<LoadingState />`), Error (`<ErrorState />`), Empty (`<EmptyState />`)
 - **No hardcoded `localhost` URLs** — use relative `/api/` paths via Vite proxy
 - **No localStorage/sessionStorage in useState** — defer to useEffect
-- Responsive, dark mode compatible (MUI theme)
+- Responsive via Tailwind breakpoints (`sm:`, `md:`, `lg:`)
+- Dark mode via Tailwind `dark:` variant
 
 ## Anti-patterns (FORBIDDEN):
-- `fetch("/data/runs.json")` → use `useGetList("runs")` or dataProvider
+- `import { Button } from "@mui/material"` → import from Untitled UI or use Tailwind styled HTML
+- `sx={{ p: 2, color: "text.secondary" }}` → `className="p-4 text-gray-500 dark:text-gray-400"`
+- `useGetList("runs")` → `useApi<RunsResponse>("/api/v1/runs")`
+- `import { Typography } from "@mui/material"` → semantic HTML (`<h2>`, `<p>`) with Tailwind
 - Hardcoded `"Betoltes..."` → `translate("common.loading")`
-- `useState(loadFromSession())` → `useState(null)` + `useEffect`
+- `<CircularProgress />` → `<LoadingState />` component
 - Feature marked "KESZ" without Playwright E2E test → Test first!
 
 ## Checklist (verify BEFORE marking done):
 - [ ] All strings use `translate()` — click HU/EN toggle to verify
-- [ ] Data from dataProvider / `/api/v1/` endpoints
-- [ ] Loading / Error / Empty states
-- [ ] Dark mode
+- [ ] Data from `fetchApi()` / `useApi()` hook / `/api/v1/` endpoints
+- [ ] Loading / Error / Empty states (using reusable components)
+- [ ] StatusBadge (Live/Demo) visible
+- [ ] Dark mode (Tailwind `dark:` variant)
 - [ ] `cd aiflow-admin && npx tsc --noEmit` pass
 - [ ] Playwright E2E: navigate → snapshot → click → screenshot → console check
 

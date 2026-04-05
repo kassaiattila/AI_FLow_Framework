@@ -1,0 +1,151 @@
+# Promptfoo evaluation config for Cubix Course Capture
+# Run: npx promptfoo eval -c skills/cubix_course_capture/tests/promptfooconfig.yaml
+# View: npx promptfoo view
+
+description: "Cubix Course Capture - transcript structuring & summarization"
+
+providers:
+  - id: openai:gpt-4o-mini
+    label: "gpt-4o-mini (transcript structurer)"
+    config:
+      temperature: 0
+      response_format:
+        type: json_object
+
+prompts:
+  - label: "transcript_structurer"
+    raw: |
+      You are a lecture transcript structurer for Hungarian tech courses.
+
+      Task:
+      1. Clean the transcript (fix spelling, remove filler words like "ugye", "hát", "tehát").
+      2. Identify thematic sections with approximate timestamps.
+      3. Generate a summary and list of key topics.
+      4. Extract vocabulary terms with definitions.
+
+      Respond with valid JSON:
+      {
+        "summary": "1-2 sentence course summary",
+        "key_topics": ["topic1", "topic2"],
+        "sections": [
+          {"title": "...", "start_time": "00:00", "end_time": "05:00", "summary": "..."}
+        ],
+        "vocabulary": [
+          {"term": "...", "definition": "..."}
+        ]
+      }
+
+      Course: {{course_title}}
+      Duration: {{duration_minutes}} minutes
+
+      Transcript:
+      {{transcript_text}}
+
+tests:
+  # --- ML basics lecture ---
+  - vars:
+      course_title: "Gépi tanulás alapjai"
+      duration_minutes: 45
+      transcript_text: |
+        [00:00] Üdvözlök mindenkit a gépi tanulás alapjai kurzuson. Ma a supervised learning-ről fogunk beszélni, ugye ez a felügyelt tanulás.
+        [05:00] Tehát a supervised learning lényege, hogy van egy labeled dataset-ünk, hát vagyis címkézett adathalmazunk.
+        [10:00] A legegyszerűbb példa a lineáris regresszió. Ugye itt egy egyenest illesztünk az adatpontokra.
+        [20:00] Most nézzük a classification-t, tehát az osztályozást. A logistic regression egy nagyon fontos algoritmus.
+        [30:00] A decision tree, vagyis a döntési fa, egy könnyen értelmezhető modell.
+        [40:00] Összefoglalva: supervised learning = labeled data + model + training. Köszönöm a figyelmet.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).key_topics?.length >= 3"
+      - type: javascript
+        value: "JSON.parse(output).sections?.length >= 3"
+      - type: javascript
+        value: "JSON.parse(output).vocabulary?.length >= 2"
+      - type: javascript
+        value: "JSON.parse(output).summary?.length > 20"
+      - type: llm-rubric
+        value: "The output should identify supervised learning, linear regression, classification, and decision trees as key topics"
+
+  # --- Docker / DevOps lecture ---
+  - vars:
+      course_title: "Docker konténerizáció"
+      duration_minutes: 30
+      transcript_text: |
+        [00:00] Ma a Docker-ről tanulunk. A Docker egy konténerizációs platform, hát ami lehetővé teszi, hogy alkalmazásainkat izoláltan futtassuk.
+        [08:00] Ugye a Dockerfile az az, amiben leírjuk, hogyan épüljön fel az image. A FROM, RUN, COPY, CMD parancsokat fogjuk használni.
+        [15:00] A docker-compose pedig arra való, tehát hogy több konténert egyszerre kezeljünk. Yaml fájlban definiáljuk a service-eket.
+        [25:00] Best practice: mindig használjunk multi-stage build-et a kisebb image méret érdekében.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).key_topics?.some(t => t.toLowerCase().includes('docker'))"
+      - type: javascript
+        value: "JSON.parse(output).vocabulary?.some(v => v.term?.toLowerCase().includes('dockerfile') || v.term?.toLowerCase().includes('docker'))"
+
+  # --- Short segment (edge case) ---
+  - vars:
+      course_title: "Python bevezető"
+      duration_minutes: 5
+      transcript_text: |
+        [00:00] A Python egy interpretált, magas szintű programozási nyelv.
+        [02:00] A változók dinamikusan típusosak, tehát nem kell típust megadni.
+        [04:00] Ennyi volt a mai rövid bevezető.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).sections?.length >= 1"
+      - type: javascript
+        value: "JSON.parse(output).summary?.length > 10"
+
+  # --- Data science lecture ---
+  - vars:
+      course_title: "Adatelemzés Pandas-szal"
+      duration_minutes: 60
+      transcript_text: |
+        [00:00] A Pandas a Python legfontosabb adatelemző könyvtára. A DataFrame a központi adatstruktúra.
+        [10:00] Ugye az adatbetöltés a read_csv, read_excel függvényekkel történik.
+        [20:00] A szűrés és szelekció: loc és iloc indexereket használunk, hát ez nagyon fontos.
+        [30:00] Aggregáció: groupby, tehát csoportosítás, majd sum, mean, count műveletek.
+        [40:00] Vizualizáció: a matplotlib és seaborn könyvtárakkal ábrázolhatjuk az adatokat.
+        [50:00] Missing data kezelés: fillna, dropna. Ugye az isnull() segít az áttekintésben.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).sections?.length >= 4"
+      - type: javascript
+        value: "JSON.parse(output).vocabulary?.length >= 3"
+      - type: llm-rubric
+        value: "The vocabulary should include DataFrame, groupby, and at least one visualization library"
+
+  # --- Filler word cleanup test ---
+  - vars:
+      course_title: "JavaScript ES6+"
+      duration_minutes: 15
+      transcript_text: |
+        [00:00] Szóval hát ugye a JavaScript-ben az arrow function-ök, tehát hát a nyíl függvények, ugye ezek nagyon hasznosak.
+        [05:00] Tehát ugye a const és let, hát ezek az új változó deklarációk, szóval ezeket használjuk a var helyett.
+        [10:00] Hát a destructuring, ugye ez arra jó, tehát hogy objektumokból és tömbökből kinyerjük az értékeket.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "!(JSON.parse(output).summary || '').includes('ugye')"
+      - type: llm-rubric
+        value: "The output should clean up filler words (ugye, hát, tehát, szóval) from the content while preserving the technical meaning about arrow functions, const/let, and destructuring"
+
+  # --- English transcript ---
+  - vars:
+      course_title: "React Hooks Deep Dive"
+      duration_minutes: 20
+      transcript_text: |
+        [00:00] Today we'll cover React hooks. useState is the most basic hook for managing state.
+        [05:00] useEffect handles side effects — API calls, subscriptions, DOM manipulation.
+        [10:00] Custom hooks let you extract reusable logic. Always prefix with "use".
+        [15:00] useCallback and useMemo are for performance optimization.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).key_topics?.length >= 3"
+      - type: javascript
+        value: "JSON.parse(output).vocabulary?.some(v => v.term?.toLowerCase().includes('usestate') || v.term?.toLowerCase().includes('hook'))"
+
+outputPath: test_output/promptfoo/cubix_results.json

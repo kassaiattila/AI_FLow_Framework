@@ -43,6 +43,7 @@ class ConnectorProvider(str, Enum):
     IMAP = "imap"
     O365_GRAPH = "o365_graph"
     GMAIL = "gmail"
+    OUTLOOK_COM = "outlook_com"  # Local Outlook via COM/MAPI (Windows only)
 
 
 class EmailAttachment(BaseModel):
@@ -285,6 +286,8 @@ class EmailConnectorService(BaseService):
                 result = await self._test_imap_connection(cfg)
             elif provider == ConnectorProvider.O365_GRAPH.value:
                 result = await self._test_o365_connection(cfg)
+            elif provider == ConnectorProvider.OUTLOOK_COM.value:
+                result = await self._test_outlook_com_connection(cfg)
             elif provider == ConnectorProvider.GMAIL.value:
                 return {
                     "success": False,
@@ -339,6 +342,8 @@ class EmailConnectorService(BaseService):
                 fetched = await self._fetch_imap(cfg, limit, since_date)
             elif provider == ConnectorProvider.O365_GRAPH.value:
                 fetched = await self._fetch_o365(cfg, limit, since_date)
+            elif provider == ConnectorProvider.OUTLOOK_COM.value:
+                fetched = await self._fetch_outlook_com(cfg, limit, since_date)
             elif provider == ConnectorProvider.GMAIL.value:
                 raise NotImplementedError("Gmail provider not yet implemented")
             else:
@@ -461,7 +466,10 @@ class EmailConnectorService(BaseService):
                     "message": f"Could not select mailbox '{mailbox}'",
                 }
             except imaplib.IMAP4.error as exc:
-                return {"success": False, "message": f"IMAP error: {exc}"}
+                msg = f"IMAP error: {exc}"
+                if "LOGIN failed" in str(exc) and "office365" in host.lower():
+                    msg += " — Microsoft 365 disabled basic auth in 2022. Use the O365 Graph API provider instead (provider='o365_graph' with tenant_id:client_id:client_secret:user_email credentials)."
+                return {"success": False, "message": msg}
 
         return await asyncio.to_thread(_test)
 
@@ -547,6 +555,21 @@ class EmailConnectorService(BaseService):
             return emails
 
         return await asyncio.to_thread(_fetch)
+
+    # =========================================================================
+    # Outlook COM/MAPI provider (Windows — local Outlook)
+    # =========================================================================
+
+    async def _test_outlook_com_connection(
+        self, cfg: dict[str, Any]
+    ) -> dict[str, Any]:
+        return await _test_outlook_com_connection_impl(cfg)
+
+    async def _fetch_outlook_com(
+        self, cfg: dict[str, Any], limit: int, since_date: date | None
+    ) -> list[FetchedEmail]:
+        upload_dir = Path(self._ext_config.upload_dir) / "outlook"
+        return await _fetch_outlook_com_impl(cfg, limit, since_date, upload_dir)
 
     # =========================================================================
     # O365 Graph API provider implementation
@@ -1033,3 +1056,203 @@ def _parse_o365_message(msg: dict[str, Any]) -> FetchedEmail:
         body_html=body_html,
         attachments=attachments,
     )
+
+
+# ---------------------------------------------------------------------------
+# Outlook COM/MAPI provider (Windows only — requires running Outlook)
+# ---------------------------------------------------------------------------
+
+async def _test_outlook_com_connection_impl(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Test Outlook COM connection (blocking, runs in thread)."""
+    import sys
+    if sys.platform != "win32":
+        return {"success": False, "message": "Outlook COM only available on Windows"}
+
+    def _test() -> dict[str, Any]:
+        try:
+            import pythoncom
+            pythoncom.CoInitialize()
+        except Exception:
+            pass
+        try:
+            import win32com.client
+        except ImportError:
+            return {"success": False, "message": "pywin32 not installed (pip install pywin32)"}
+
+        try:
+            outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+            stores = []
+            for store in outlook.Stores:
+                stores.append(store.DisplayName)
+            if not stores:
+                return {"success": False, "message": "No Outlook accounts found"}
+
+            account = cfg.get("mailbox") or cfg.get("credentials_encrypted") or ""
+            matched = None
+            for s in stores:
+                if account.lower() in s.lower() if account else True:
+                    matched = s
+                    break
+
+            if matched:
+                return {
+                    "success": True,
+                    "message": f"Connected to Outlook — account: {matched}",
+                    "folders": stores,
+                }
+            return {
+                "success": True,
+                "message": f"Outlook connected. Available: {', '.join(stores)}",
+                "folders": stores,
+            }
+        except Exception as e:
+            return {"success": False, "message": f"Outlook COM error: {e}"}
+
+    return await asyncio.to_thread(_test)
+
+
+async def _fetch_outlook_com_impl(
+    cfg: dict[str, Any],
+    limit: int,
+    since_date: date | None,
+    upload_dir: Path,
+) -> list[FetchedEmail]:
+    """Fetch emails from local Outlook via COM/MAPI."""
+    import sys
+    if sys.platform != "win32":
+        raise RuntimeError("Outlook COM only available on Windows")
+
+    def _fetch() -> list[FetchedEmail]:
+        try:
+            import pythoncom
+            pythoncom.CoInitialize()
+        except Exception:
+            pass
+        import win32com.client
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.base import MIMEBase
+        from email import encoders
+
+        outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+
+        # Find account by mailbox/credentials field
+        account_filter = cfg.get("mailbox") or cfg.get("credentials_encrypted") or ""
+        folder_name = cfg.get("filters", {}).get("folder", "Inbox") if isinstance(cfg.get("filters"), dict) else "Inbox"
+
+        target_folder = None
+        if account_filter:
+            for store in outlook.Stores:
+                if account_filter.lower() in store.DisplayName.lower():
+                    try:
+                        root = store.GetRootFolder()
+                        for folder in root.Folders:
+                            if folder_name.lower() in folder.Name.lower():
+                                target_folder = folder
+                                break
+                    except Exception:
+                        continue
+                if target_folder:
+                    break
+
+        if not target_folder:
+            target_folder = outlook.GetDefaultFolder(6)  # 6 = Inbox
+
+        # Date filter
+        from datetime import datetime as dt, timedelta
+        if since_date:
+            cutoff = since_date
+        else:
+            cutoff = (dt.now() - timedelta(days=7)).date()
+        cutoff_str = cutoff.strftime("%m/%d/%Y")
+
+        items = target_folder.Items
+        items.Sort("[ReceivedTime]", True)
+        items = items.Restrict(f"[ReceivedTime] >= '{cutoff_str}'")
+
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        attach_dir = upload_dir / "attachments"
+        attach_dir.mkdir(exist_ok=True)
+
+        results: list[FetchedEmail] = []
+        count = 0
+
+        for item in items:
+            if count >= limit:
+                break
+            try:
+                subject = getattr(item, "Subject", "no_subject") or "no_subject"
+                sender = getattr(item, "SenderEmailAddress", "") or ""
+                received = getattr(item, "ReceivedTime", None)
+                body = getattr(item, "Body", "") or ""
+                html_body = getattr(item, "HTMLBody", "") or ""
+                msg_id = getattr(item, "EntryID", "") or ""
+
+                # Safe filename
+                safe_subject = "".join(c if c.isalnum() or c in "-_ " else "_" for c in subject[:60]).strip()
+                date_str = received.strftime("%Y%m%d_%H%M") if received else "nodate"
+                base_name = f"{date_str}_{safe_subject}"
+
+                # Build .eml
+                msg = MIMEMultipart()
+                msg["From"] = sender
+                msg["To"] = getattr(item, "To", "") or ""
+                msg["Subject"] = subject
+                msg["Date"] = str(received) if received else ""
+                msg.attach(MIMEText(body, "plain", "utf-8"))
+
+                # Attachments
+                att_list: list[EmailAttachment] = []
+                attachments_com = getattr(item, "Attachments", None)
+                if attachments_com:
+                    for i in range(1, attachments_com.Count + 1):
+                        att = attachments_com.Item(i)
+                        att_name = att.FileName or f"attachment_{i}"
+                        att_path = attach_dir / f"{base_name}_{att_name}"
+                        try:
+                            att.SaveAsFile(str(att_path))
+                            att_list.append(EmailAttachment(
+                                filename=att_name,
+                                mime_type="application/octet-stream",
+                                size=att_path.stat().st_size if att_path.exists() else 0,
+                            ))
+                            with open(att_path, "rb") as af:
+                                part = MIMEBase("application", "octet-stream")
+                                part.set_payload(af.read())
+                                encoders.encode_base64(part)
+                                part.add_header("Content-Disposition", f"attachment; filename={att_name}")
+                                msg.attach(part)
+                        except Exception:
+                            pass
+
+                # Save .eml
+                eml_path = upload_dir / f"{base_name}.eml"
+                eml_path.write_bytes(msg.as_bytes())
+
+                received_dt = None
+                if received:
+                    try:
+                        received_dt = dt(received.year, received.month, received.day,
+                                         received.hour, received.minute, received.second)
+                    except Exception:
+                        pass
+
+                results.append(FetchedEmail(
+                    message_id=msg_id,
+                    subject=subject,
+                    sender=sender,
+                    recipients=[r.strip() for r in (getattr(item, "To", "") or "").split(";") if r.strip()],
+                    date=received_dt,
+                    body_text=body,
+                    body_html=html_body,
+                    attachments=att_list,
+                    raw_eml_path=str(eml_path),
+                ))
+                count += 1
+            except Exception as e:
+                logger.warning("outlook_com_item_error", error=str(e))
+                continue
+
+        return results
+
+    return await asyncio.to_thread(_fetch)

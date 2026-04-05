@@ -16,7 +16,7 @@
 Szolgaltatas-szintu health check → aggregalt dashboard → riasztasok.
 
 ### Steps
-1. Monitoring Dashboard oldal megnyitasa (`/admin/monitoring`)
+1. Monitoring Dashboard oldal megnyitasa (`/monitoring`, v1.1: `/admin/monitoring` → `/monitoring`)
 2. Szolgaltatasok allapotanak megtekintese (zold/sarga/piros)
 3. Egyedi szolgaltatas reszletek (latency, success rate, uptime)
 4. Riasztasi szabalyok konfiguracio
@@ -52,7 +52,7 @@ Szolgaltatas-szintu health check → aggregalt dashboard → riasztasok.
 Immutable audit log → szures/export → adattorles (GDPR).
 
 ### Steps
-1. Audit Log oldal megnyitasa (`/admin/audit`)
+1. Audit Log oldal megnyitasa (`/audit`, v1.1: `/admin/audit` → `/audit`)
 2. Muveletek szurese (idoszak, tipus, felhasznalo)
 3. Reszletek megtekintese
 4. Export (CSV/JSON)

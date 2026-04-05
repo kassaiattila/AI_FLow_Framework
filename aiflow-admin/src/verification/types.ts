@@ -60,19 +60,6 @@ export function getConfidenceLevel(confidence: number): "high" | "medium" | "low
   return "low";
 }
 
-// MUI color mappings
-export const CONFIDENCE_MUI_COLOR: Record<string, "success" | "warning" | "error"> = {
-  high: "success",
-  medium: "warning",
-  low: "error",
-};
-
-export const STATUS_MUI_COLOR: Record<VerificationStatus, "default" | "info" | "success"> = {
-  auto: "default",
-  corrected: "info",
-  confirmed: "success",
-};
-
 export const CATEGORY_ORDER: DataPointCategory[] = [
   "document_meta", "vendor", "buyer", "header", "line_item", "totals",
 ];

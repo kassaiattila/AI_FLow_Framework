@@ -11,6 +11,7 @@ import os
 import tempfile
 import shutil
 import time as _time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -175,7 +176,7 @@ async def list_documents(
                     validation_errors = json.loads(validation_errors)
 
                 documents.append(DocumentItem(
-                    id=row["source_file"],  # Use source_file as ID for compatibility
+                    id=str(row["id"]),  # Use real DB UUID as ID
                     source_file=row["source_file"],
                     direction=row["direction"] or "",
                     vendor={
@@ -281,60 +282,140 @@ async def process_documents_stream(request: ProcessRequest) -> StreamingResponse
             yield f"data: {json.dumps({'event': 'error', 'step': 0, 'name': 'import', 'error': str(e)})}\n\n"
         return StreamingResponse(error_stream(), media_type="text/event-stream")
 
-    pipeline = [
+    # Per-file pipeline (parse through store); export runs once at the end.
+    per_file_steps = [
         ("parse", parse_invoice),
         ("classify", classify_invoice),
         ("extract", extract_invoice_data),
         ("validate", validate_invoice),
         ("store", store_invoice),
-        ("export", export_invoice),
     ]
+    step_names = [s[0] for s in per_file_steps]
 
     async def event_stream():
-        # Pass specific file path if a single file was requested,
-        # otherwise the parse step would process ALL files in the directory.
-        if len(file_list) == 1:
-            source = str(upload_dir / file_list[0])
-        else:
-            source = str(upload_dir)
+        def sse(obj: dict[str, Any]) -> str:
+            return f"data: {json.dumps(obj)}\n\n"
 
-        data: dict[str, Any] = {
-            "source_path": source,
-            "output_dir": str(output_dir),
-            "format": "all",
-        }
+        total_files = len(file_list)
+        yield sse({"event": "init", "total_files": total_files, "steps": step_names})
 
-        for i, (name, step_fn) in enumerate(pipeline):
-            yield f"data: {json.dumps({'event': 'step_start', 'step': i, 'name': name})}\n\n"
-            # Ensure the step_start event flushes before blocking step runs
+        run_id = str(uuid.uuid4())
+        run_start = _time.perf_counter()
+        all_step_records: list[dict[str, Any]] = []
+        all_files_data: list[dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
+        run_status = "running"
+        run_error: str | None = None
+
+        for fi, fname in enumerate(file_list):
+            source = str(upload_dir / fname)
+            file_data: dict[str, Any] = {
+                "source_path": source,
+                "output_dir": str(output_dir),
+                "format": "all",
+            }
+
+            yield sse({"event": "file_start", "file": fname, "file_index": fi, "total_files": total_files})
             await asyncio.sleep(0)
-            t = _time.perf_counter()
+
+            file_ok = True
+            for si, (name, step_fn) in enumerate(per_file_steps):
+                yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": name, "status": "running"})
+                await asyncio.sleep(0)
+                t = _time.perf_counter()
+                try:
+                    file_data = await step_fn({**file_data} if si == 0 else file_data)
+                    elapsed_ms = int((_time.perf_counter() - t) * 1000)
+                    all_step_records.append({"name": f"{fname}:{name}", "status": "completed", "duration_ms": elapsed_ms})
+                    yield sse({"event": "file_step", "file": fname, "file_index": fi, "step_index": si, "step_name": name, "status": "done", "elapsed_ms": elapsed_ms})
+                except Exception as e:
+                    elapsed_ms = int((_time.perf_counter() - t) * 1000)
+                    all_step_records.append({"name": f"{fname}:{name}", "status": "failed", "duration_ms": elapsed_ms, "error": str(e)})
+                    run_status = "failed"
+                    run_error = str(e)
+                    logger.error("process_stream_file_step_failed", file=fname, step=name, error=str(e))
+                    yield sse({"event": "file_error", "file": fname, "file_index": fi, "step_name": name, "error": str(e), "elapsed_ms": elapsed_ms})
+                    file_ok = False
+                    break
+
+            if file_ok:
+                for f in file_data.get("files", []):
+                    all_files_data.append(f)
+                    results.append({
+                        "source_file": f.get("filename", ""),
+                        "vendor": f.get("vendor", {}).get("name", ""),
+                        "gross_total": f.get("totals", {}).get("gross_total", 0),
+                        "is_valid": f.get("validation", {}).get("is_valid", False),
+                        "confidence": f.get("validation", {}).get("confidence_score", 0),
+                    })
+            else:
+                results.append({"source_file": fname, "error": run_error})
+
+            yield sse({"event": "file_done", "file": fname, "file_index": fi, "ok": file_ok})
+
+        # Run export on all successfully processed files
+        if all_files_data:
             try:
-                if i == 0:
-                    data = await step_fn({**data})
-                else:
-                    data = await step_fn(data)
-                elapsed_ms = int((_time.perf_counter() - t) * 1000)
-                yield f"data: {json.dumps({'event': 'step_done', 'step': i, 'name': name, 'elapsed_ms': elapsed_ms})}\n\n"
+                export_data: dict[str, Any] = {"files": all_files_data, "output_dir": str(output_dir), "format": "all"}
+                await export_invoice(export_data)
             except Exception as e:
-                elapsed_ms = int((_time.perf_counter() - t) * 1000)
-                logger.error("process_stream_step_failed", step=name, error=str(e))
-                yield f"data: {json.dumps({'event': 'error', 'step': i, 'name': name, 'error': str(e), 'elapsed_ms': elapsed_ms})}\n\n"
-                return
+                logger.warning("export_step_failed", error=str(e))
 
-        # Build final result
-        results = []
-        for f in data.get("files", []):
-            results.append({
-                "source_file": f.get("filename", ""),
-                "vendor": f.get("vendor", {}).get("name", ""),
-                "gross_total": f.get("totals", {}).get("gross_total", 0),
-                "is_valid": f.get("validation", {}).get("is_valid", False),
-                "confidence": f.get("validation", {}).get("confidence_score", 0),
-                "error": f.get("error"),
-            })
+        total_duration_ms = int((_time.perf_counter() - run_start) * 1000)
+        if run_status == "running":
+            run_status = "completed"
 
-        yield f"data: {json.dumps({'event': 'complete', 'results': results})}\n\n"
+        # Calculate LLM cost from token usage and persist to cost_records
+        total_cost_usd = 0.0
+        try:
+            from aiflow.models.cost import ModelCostCalculator
+            from aiflow.api.cost_recorder import record_cost
+            calc = ModelCostCalculator()
+            for f in all_files_data:
+                inp = f.get("_llm_total_input_tokens", 0)
+                out = f.get("_llm_total_output_tokens", 0)
+                model = f.get("_llm_model", "openai/gpt-4o")
+                if inp or out:
+                    file_cost = calc.calculate(model, inp, out)
+                    total_cost_usd += file_cost
+                    await record_cost(
+                        workflow_run_id=run_id,
+                        step_name="extract",
+                        model=model,
+                        input_tokens=inp,
+                        output_tokens=out,
+                        cost_usd=file_cost,
+                    )
+        except Exception:
+            pass  # cost calculation is best-effort
+
+        # Persist workflow_run + step_runs to DB for Runs/Costs tracking
+        try:
+            pool = await get_pool()
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    """INSERT INTO workflow_runs
+                       (id, workflow_name, workflow_version, skill_name, status, input_data,
+                        started_at, completed_at, total_duration_ms, total_cost_usd, error)
+                       VALUES ($1, $2, $3, $4, $5, $6,
+                               NOW() - MAKE_INTERVAL(secs := $7::float / 1000),
+                               NOW(), $7, $8, $9)""",
+                    uuid.UUID(run_id), "invoice_processing", "1.0", "invoice_processor",
+                    run_status, json.dumps({"files": file_list}),
+                    float(total_duration_ms), total_cost_usd, run_error,
+                )
+                for idx, sr in enumerate(all_step_records):
+                    await conn.execute(
+                        """INSERT INTO step_runs
+                           (id, workflow_run_id, step_name, step_index, status, duration_ms)
+                           VALUES ($1, $2, $3, $4, $5, $6)""",
+                        uuid.uuid4(), uuid.UUID(run_id), sr["name"], idx,
+                        sr["status"], float(sr["duration_ms"]),
+                    )
+        except Exception as e:
+            logger.warning("workflow_run_persist_failed", error=str(e), run_id=run_id)
+
+        yield sse({"event": "complete", "results": results})
 
     return StreamingResponse(
         event_stream(),
@@ -359,10 +440,17 @@ async def render_pdf_page(source_file: str, page: int = 1) -> StreamingResponse:
     Returns a cached PNG image of the requested page.
     """
     upload_dir = _upload_dir()
-    pdf_path = upload_dir / source_file
+    # Normalize: if source_file contains a path, extract just the filename
+    clean_name = Path(source_file).name if ("/" in source_file or "\\" in source_file) else source_file
+    pdf_path = upload_dir / clean_name
 
     if not pdf_path.exists():
-        raise HTTPException(status_code=404, detail=f"PDF not found: {source_file}")
+        # Try the original path as-is (in case it's a relative path from project root)
+        alt_path = Path(source_file)
+        if alt_path.exists():
+            pdf_path = alt_path
+        else:
+            raise HTTPException(status_code=404, detail=f"PDF not found: {clean_name}")
 
     try:
         import pypdfium2 as pdfium
@@ -600,7 +688,8 @@ async def get_document_by_id(invoice_id: str) -> DocumentDetailResponse:
         result = await svc.get_invoice(invoice_id)
         if not result:
             raise HTTPException(status_code=404, detail=f"Invoice not found: {invoice_id}")
-        return DocumentDetailResponse(**result, source="backend")
+        result["source"] = "backend"
+        return DocumentDetailResponse(**result)
     finally:
         await svc.stop()
 
@@ -677,6 +766,194 @@ async def create_extractor_config(request: CreateConfigRequest) -> CreateConfigR
     except Exception as e:
         logger.error("create_config_failed", error=str(e))
         raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        await svc.stop()
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/documents/export/csv — Export all invoices as CSV
+# ---------------------------------------------------------------------------
+
+@router.get("/export/csv")
+async def export_documents_csv():
+    """Export all invoices as downloadable CSV file."""
+    import csv
+    import io
+
+    result = await list_documents(limit=1000, offset=0)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "source_file", "direction", "vendor_name", "vendor_tax_number",
+        "buyer_name", "buyer_tax_number", "invoice_number", "invoice_date",
+        "due_date", "currency", "net_total", "vat_total", "gross_total",
+        "is_valid", "confidence_score", "created_at",
+    ])
+    for doc in result.documents:
+        writer.writerow([
+            doc.source_file,
+            doc.direction,
+            doc.vendor.get("name", "") if doc.vendor else "",
+            doc.vendor.get("tax_number", "") if doc.vendor else "",
+            doc.buyer.get("name", "") if doc.buyer else "",
+            doc.buyer.get("tax_number", "") if doc.buyer else "",
+            doc.header.get("invoice_number", "") if doc.header else "",
+            doc.header.get("invoice_date", "") if doc.header else "",
+            doc.header.get("due_date", "") if doc.header else "",
+            doc.header.get("currency", "HUF") if doc.header else "HUF",
+            doc.totals.get("net_total", "") if doc.totals else "",
+            doc.totals.get("vat_total", "") if doc.totals else "",
+            doc.totals.get("gross_total", "") if doc.totals else "",
+            doc.validation.get("is_valid", "") if doc.validation else "",
+            doc.extraction_confidence or "",
+            doc.created_at or "",
+        ])
+
+    from fastapi.responses import StreamingResponse
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=aiflow_invoices_export.csv"},
+    )
+
+
+@router.get("/export/json")
+async def export_documents_json():
+    """Export all invoices as downloadable JSON file."""
+    result = await list_documents(limit=1000, offset=0)
+    data = [doc.model_dump() for doc in result.documents]
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        content=data,
+        headers={"Content-Disposition": "attachment; filename=aiflow_invoices_export.json"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/v1/documents/delete/{invoice_id} — delete a document
+# ---------------------------------------------------------------------------
+
+@router.delete("/delete/{invoice_id}", status_code=204)
+async def delete_document(invoice_id: str):
+    """Delete a document by UUID."""
+    from aiflow.api.deps import get_engine
+    from sqlalchemy import text
+
+    engine = await get_engine()
+    async with engine.begin() as conn:
+        # Delete line items first (FK cascade might not work with raw SQL)
+        await conn.execute(text("DELETE FROM invoice_line_items WHERE invoice_id = CAST(:id AS uuid)"), {"id": invoice_id})
+        result = await conn.execute(text("DELETE FROM invoices WHERE id = CAST(:id AS uuid)"), {"id": invoice_id})
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Document not found")
+    logger.info("document_deleted", invoice_id=invoice_id)
+    from aiflow.api.audit_helper import audit_log
+    await audit_log("delete", "document", invoice_id)
+
+
+class BulkDeleteRequest(BaseModel):
+    ids: list[str]
+
+
+class BulkDeleteResponse(BaseModel):
+    deleted: int = 0
+    source: str = "backend"
+
+
+@router.post("/delete-bulk", response_model=BulkDeleteResponse)
+async def delete_documents_bulk(request: BulkDeleteRequest):
+    """Delete multiple documents by UUID list."""
+    from aiflow.api.deps import get_engine
+    from sqlalchemy import text
+
+    if not request.ids:
+        return BulkDeleteResponse(deleted=0)
+
+    engine = await get_engine()
+    total_deleted = 0
+    async with engine.begin() as conn:
+        for doc_id in request.ids:
+            await conn.execute(text("DELETE FROM invoice_line_items WHERE invoice_id = CAST(:id AS uuid)"), {"id": doc_id})
+            result = await conn.execute(text("DELETE FROM invoices WHERE id = CAST(:id AS uuid)"), {"id": doc_id})
+            total_deleted += result.rowcount
+
+    logger.info("documents_bulk_deleted", count=total_deleted, ids=request.ids)
+    from aiflow.api.audit_helper import audit_log
+    await audit_log("bulk_delete", "document", details={"count": total_deleted, "ids": request.ids})
+    return BulkDeleteResponse(deleted=total_deleted)
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/documents/{document_id}/extract-free — free-text extraction
+# ---------------------------------------------------------------------------
+
+
+class FreeTextQueryItem(BaseModel):
+    query: str
+    hint: str = ""
+
+
+class FreeTextExtractRequest(BaseModel):
+    queries: list[FreeTextQueryItem]
+    model: str | None = None
+
+
+class FreeTextResultItem(BaseModel):
+    query: str
+    answer: str
+    confidence: float = 0.0
+    source_span: str = ""
+
+
+class FreeTextExtractResponse(BaseModel):
+    document_id: str
+    results: list[FreeTextResultItem]
+    extraction_time_ms: float = 0.0
+    model_used: str = ""
+    source: str = "backend"
+
+
+@router.post("/{document_id}/extract-free", response_model=FreeTextExtractResponse)
+async def extract_free_text(document_id: str, request: FreeTextExtractRequest) -> FreeTextExtractResponse:
+    """Extract answers to arbitrary queries from a stored document using LLM."""
+    from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+    from aiflow.services.document_extractor.free_text import (
+        FreeTextExtractorService,
+        FreeTextQuery,
+    )
+
+    if not request.queries:
+        raise HTTPException(status_code=400, detail="At least one query is required")
+
+    engine = await get_engine()
+    sf = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    svc = FreeTextExtractorService(sf)
+    await svc.start()
+    try:
+        queries = [FreeTextQuery(query=q.query, hint=q.hint) for q in request.queries]
+        response = await svc.extract(
+            document_id=document_id,
+            queries=queries,
+            model=request.model,
+        )
+        return FreeTextExtractResponse(
+            document_id=response.document_id,
+            results=[
+                FreeTextResultItem(
+                    query=r.query,
+                    answer=r.answer,
+                    confidence=r.confidence,
+                    source_span=r.source_span,
+                )
+                for r in response.results
+            ],
+            extraction_time_ms=response.extraction_time_ms,
+            model_used=response.model_used,
+        )
+    except Exception as e:
+        logger.error("extract_free_failed", error=str(e), document_id=document_id)
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         await svc.stop()
 

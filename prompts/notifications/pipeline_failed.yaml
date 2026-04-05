@@ -1,0 +1,11 @@
+name: pipeline_failed
+channel: slack
+subject: "Pipeline {{ pipeline_name }} FAILED"
+body: |
+  :x: Pipeline *{{ pipeline_name }}* failed.
+  - Failed step: {{ failed_step | default('unknown') }}
+  - Error: {{ error_message | default('No details') }}
+  - Run ID: {{ run_id | default('N/A') }}
+  {% if retry_count is defined %}
+  Retries attempted: {{ retry_count }}
+  {% endif %}

@@ -77,6 +77,7 @@ class QueryResult(BaseModel):
     response_time_ms: float = 0
     cost_usd: float = 0
     tokens_used: int = 0
+    model_used: str = ""
 
 
 class CollectionStats(BaseModel):
@@ -131,7 +132,10 @@ class RAGEngineService(BaseService):
         """Initialize vector store, embedder, and search engine."""
         db_url = os.environ.get(
             "DATABASE_URL",
-            "postgresql+asyncpg://aiflow:aiflow@localhost:5433/aiflow",
+            os.environ.get(
+                "AIFLOW_DATABASE__URL",
+                "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
+            ),
         )
         # Convert async URL to sync for PgVectorStore (uses asyncpg directly)
         sync_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
@@ -141,7 +145,7 @@ class RAGEngineService(BaseService):
             from aiflow.vectorstore.embedder import Embedder
             from aiflow.vectorstore.search import HybridSearchEngine, SearchConfig
             from aiflow.models.client import ModelClient
-            from aiflow.models.litellm_backend import LiteLLMBackend
+            from aiflow.models.backends.litellm_backend import LiteLLMBackend
 
             backend = LiteLLMBackend()
             self._model_client = ModelClient(
@@ -466,6 +470,7 @@ class RAGEngineService(BaseService):
         question: str,
         role: str = "expert",
         top_k: int | None = None,
+        model: str | None = None,
     ) -> QueryResult:
         """Run a RAG query: embed → search → generate → log."""
         import time
@@ -537,13 +542,14 @@ class RAGEngineService(BaseService):
         answer = ""
         cost = 0.0
         tokens = 0
+        answer_model = model or self._ext_config.default_answer_model
         try:
             result = await self._model_client.generate(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": question},
                 ],
-                model=self._ext_config.default_answer_model,
+                model=answer_model,
                 temperature=0.3,
                 max_tokens=2048,
             )
@@ -591,6 +597,7 @@ class RAGEngineService(BaseService):
             response_time_ms=elapsed,
             cost_usd=cost,
             tokens_used=tokens,
+            model_used=answer_model,
         )
 
     # -----------------------------------------------------------------------

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aiflow"
-version = "0.1.0"
+version = "1.2.1"
 description = "Enterprise AI Automation Framework"
 requires-python = ">=3.12"
 license = {text = "MIT"}
@@ -52,6 +52,9 @@ dependencies = [
 
     # Scheduling
     "apscheduler>=4.0.0a5",
+
+    # Notifications
+    "aiosmtplib>=5.0",
 ]
 
 [project.optional-dependencies]
@@ -98,7 +101,7 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "TCH"]
 
 [tool.ruff.format]
-line-length = 100
+quote-style = "double"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

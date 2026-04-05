@@ -1,15 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     host: true,
     port: 5173,
     proxy: {
       // All API traffic goes directly to FastAPI — no Next.js needed
       "/api": {
-        target: "http://localhost:8101",
+        target: "http://localhost:8102",
         changeOrigin: true,
         // Disable buffering for SSE (process-stream) endpoints
         configure: (proxy) => {
@@ -23,7 +24,7 @@ export default defineConfig(({ mode }) => ({
         },
       },
       "/health": {
-        target: "http://localhost:8101",
+        target: "http://localhost:8102",
         changeOrigin: true,
       },
     },

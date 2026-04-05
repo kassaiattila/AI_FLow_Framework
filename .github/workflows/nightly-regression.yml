@@ -1,0 +1,241 @@
+name: Nightly Regression (L3)
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # 03:00 UTC daily (after nightly-eval at 02:00)
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run unit tests
+        run: |
+          uv run pytest tests/unit/ -v \
+            --cov=aiflow --cov-report=xml --cov-report=term-missing \
+            --junitxml=test-results-unit.xml
+        env:
+          AIFLOW_DATABASE_URL: "postgresql://localhost/test"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: |
+            test-results-unit.xml
+            coverage.xml
+          retention-days: 30
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: aiflow_test
+          POSTGRES_USER: aiflow
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aiflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run migrations
+        run: uv run alembic upgrade head
+        env:
+          AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
+
+      - name: Run integration tests
+        run: |
+          uv run pytest tests/integration/ -v \
+            --junitxml=test-results-integration.xml
+        env:
+          AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
+          AIFLOW_REDIS__URL: redis://localhost:6379/1
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: test-results-integration.xml
+          retention-days: 30
+
+  e2e-tests:
+    name: E2E Playwright Tests
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: aiflow_test
+          POSTGRES_USER: aiflow
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aiflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install Python dependencies
+        run: uv sync --dev
+
+      - name: Install Playwright browsers
+        run: uv run playwright install --with-deps chromium
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: aiflow-admin/package-lock.json
+
+      - name: Build frontend
+        run: cd aiflow-admin && npm ci && npm run build
+
+      - name: Run migrations
+        run: uv run alembic upgrade head
+        env:
+          AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
+
+      - name: Start API server
+        run: |
+          uv run python -B -m uvicorn aiflow.api.app:create_app --factory --port 8102 &
+          sleep 5
+          curl -sf http://localhost:8102/health || exit 1
+        env:
+          AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
+          AIFLOW_REDIS__URL: redis://localhost:6379/1
+
+      - name: Serve frontend
+        run: |
+          npx serve aiflow-admin/dist -l 5174 -s &
+          sleep 2
+
+      - name: Run E2E tests
+        run: |
+          uv run pytest tests/e2e/ -v \
+            --junitxml=test-results-e2e.xml
+        env:
+          BASE_URL: http://localhost:5174
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: test-results-e2e.xml
+          retention-days: 30
+
+  admin-build:
+    name: Admin Dashboard Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: aiflow-admin/package-lock.json
+
+      - name: Install and build
+        run: cd aiflow-admin && npm ci && npx tsc --noEmit && npm run build
+
+  summary:
+    name: Regression Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, e2e-tests, admin-build]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all results
+        uses: actions/download-artifact@v4
+        with:
+          path: test-artifacts/
+          merge-multiple: true
+
+      - name: Generate summary
+        run: |
+          echo "## Nightly L3 Regression Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          for suite in unit integration e2e; do
+            if [ -f "test-artifacts/test-results-${suite}.xml" ]; then
+              failures=$(python3 -c "
+          import xml.etree.ElementTree as ET
+          t = ET.parse('test-artifacts/test-results-${suite}.xml')
+          r = t.getroot()
+          f = int(r.attrib.get('failures', 0)) + int(r.attrib.get('errors', 0))
+          total = int(r.attrib.get('tests', 0))
+          passed = total - f
+          print(f'{'PASS' if f == 0 else 'FAIL'} ({passed}/{total})')
+          " 2>/dev/null || echo "PARSE ERROR")
+              echo "| ${suite} | ${failures} |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| ${suite} | SKIPPED |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "| admin-build | ${{ needs.admin-build.result == 'success' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY

@@ -8,14 +8,20 @@ import os
 
 import asyncpg
 import structlog
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
-__all__ = ["get_pool", "get_engine", "close_all"]
+__all__ = ["get_pool", "get_engine", "get_session_factory", "close_all"]
 
 logger = structlog.get_logger(__name__)
 
 _pool: asyncpg.Pool | None = None
 _engine: AsyncEngine | None = None
+_session_factory: async_sessionmaker[AsyncSession] | None = None
 
 
 def _get_db_url_raw() -> str:
@@ -58,9 +64,19 @@ async def get_engine() -> AsyncEngine:
     return _engine
 
 
+async def get_session_factory() -> async_sessionmaker[AsyncSession]:
+    """Get the shared SQLAlchemy async session factory (created on first call)."""
+    global _session_factory
+    if _session_factory is None:
+        engine = await get_engine()
+        _session_factory = async_sessionmaker(engine, expire_on_commit=False)
+        logger.info("db_session_factory_created")
+    return _session_factory
+
+
 async def close_all() -> None:
     """Close pool and engine — call on app shutdown."""
-    global _pool, _engine
+    global _pool, _engine, _session_factory
     if _pool is not None:
         await _pool.close()
         _pool = None
@@ -68,4 +84,5 @@ async def close_all() -> None:
     if _engine is not None:
         await _engine.dispose()
         _engine = None
+        _session_factory = None
         logger.info("db_engine_closed")

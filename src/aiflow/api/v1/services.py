@@ -254,3 +254,113 @@ async def circuit_reset(key: str) -> dict[str, Any]:
         raise HTTPException(status_code=503, detail="Resilience service not available")
     res.reset_circuit(key)
     return {"reset": True, "key": key, "source": "backend"}
+
+
+# --- Service manager endpoints (C10) ---
+
+
+class ServiceSummaryItem(BaseModel):
+    name: str
+    status: str
+    description: str = ""
+    has_adapter: bool = False
+
+
+class ServiceManagerListResponse(BaseModel):
+    services: list[ServiceSummaryItem]
+    count: int
+    source: str = "backend"
+
+
+class ServiceDetailResponse(BaseModel):
+    name: str
+    status: str
+    description: str = ""
+    has_adapter: bool = False
+    adapter_methods: list[str] = []
+    pipelines_using: list[str] = []
+    source: str = "backend"
+
+
+class ServiceMetricsResponse(BaseModel):
+    service_name: str
+    period: str = "24h"
+    call_count: int = 0
+    success_count: int = 0
+    error_count: int = 0
+    error_rate: float = 0.0
+    avg_duration_ms: float = 0.0
+    min_duration_ms: int | None = None
+    max_duration_ms: int | None = None
+    total_cost: float = 0.0
+    source: str = "backend"
+
+
+class RestartServiceResponse(BaseModel):
+    service: str
+    restarted: bool
+    source: str = "backend"
+
+
+@router.get("/manager", response_model=ServiceManagerListResponse)
+async def manager_list_services() -> dict[str, Any]:
+    """List all known services with adapter availability."""
+    from aiflow.services.service_manager.service import (
+        ServiceManagerConfig,
+        ServiceManagerService,
+    )
+
+    svc = ServiceManagerService(config=ServiceManagerConfig())
+    await svc.start()
+    items = await svc.list_services()
+    return {
+        "services": [s.model_dump() for s in items],
+        "count": len(items),
+        "source": "backend",
+    }
+
+
+@router.get("/manager/{name}", response_model=ServiceDetailResponse)
+async def manager_service_detail(name: str) -> dict[str, Any]:
+    """Get detailed info for a specific service."""
+    from aiflow.api.deps import get_session_factory
+    from aiflow.services.service_manager.service import (
+        ServiceManagerConfig,
+        ServiceManagerService,
+    )
+
+    sf = await get_session_factory()
+    svc = ServiceManagerService(session_factory=sf, config=ServiceManagerConfig())
+    await svc.start()
+    detail = await svc.get_service_detail(name)
+    return {**detail.model_dump(), "source": "backend"}
+
+
+@router.post("/manager/{name}/restart", response_model=RestartServiceResponse)
+async def manager_restart_service(name: str) -> dict[str, Any]:
+    """Restart a service gracefully."""
+    from aiflow.services.service_manager.service import (
+        ServiceManagerConfig,
+        ServiceManagerService,
+    )
+
+    svc = ServiceManagerService(config=ServiceManagerConfig())
+    await svc.start()
+    ok = await svc.restart_service(name)
+    return {"service": name, "restarted": ok, "source": "backend"}
+
+
+@router.get("/manager/{name}/metrics", response_model=ServiceMetricsResponse)
+async def manager_service_metrics(name: str, period: str = "24h") -> dict[str, Any]:
+    """Get aggregated metrics for a service over a time period."""
+    from aiflow.api.deps import get_session_factory
+    from aiflow.services.service_manager.service import (
+        ServiceManagerConfig,
+        ServiceManagerService,
+    )
+
+    sf = await get_session_factory()
+    svc = ServiceManagerService(session_factory=sf, config=ServiceManagerConfig())
+    await svc.start()
+    metrics = await svc.get_service_metrics(name, period)
+    return {**metrics.model_dump(), "source": "backend"}

@@ -1,0 +1,37 @@
+name: free_text_extraction
+version: "1.0"
+description: >
+  Extract answers to arbitrary user queries from document text.
+  Returns structured JSON with answer, confidence, and source span.
+
+model: openai/gpt-4o-mini
+temperature: 0.0
+
+system: |
+  You are a document analysis assistant.
+  Given a document and a list of queries, answer each query based ONLY on the document content.
+  Return a JSON array where each element has:
+    - "query": the original query text
+    - "answer": your answer (use "Not found" if the document does not contain the information)
+    - "confidence": 0.0–1.0 how confident you are in the answer
+    - "source_span": the relevant text snippet from the document (max 200 chars)
+
+  Rules:
+  - ONLY use information present in the document
+  - If a query cannot be answered from the document, set answer to "Not found" and confidence to 0.0
+  - Be precise — quote exact values (numbers, dates, names) when possible
+  - Confidence 1.0 = exact match found, 0.5 = inferred, 0.0 = not found
+
+user: |
+  DOCUMENT:
+  {{ document_text }}
+
+  QUERIES:
+  {% for q in queries %}
+  {{ loop.index }}. {{ q.query }}{% if q.hint %} (hint: {{ q.hint }}){% endif %}
+  {% endfor %}
+
+  Answer each query. Return JSON array only.
+
+output_format: json
+tags: [extraction, free-text, document]

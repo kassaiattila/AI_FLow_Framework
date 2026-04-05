@@ -1,0 +1,98 @@
+# Advanced RAG Ingest Pipeline
+# Chain: parse -> clean -> enrich metadata -> semantic chunk -> store vectors
+# Full advanced RAG preparation pipeline with all Tier 3 services.
+#
+# Prerequisites:
+#   - RAG collection exists (collection_id)
+#   - File paths accessible on the server
+#   - Advanced parser, chunker, cleaner, enricher services running
+#
+# Usage:
+#   POST /api/v1/pipelines  (create with this YAML)
+#   POST /api/v1/pipelines/{id}/run  {"input_data": {"collection_id": "...", "file_paths": [...]}}
+
+name: advanced_rag_ingest
+version: "1.0.0"
+description: "Parse -> clean -> enrich metadata -> semantic chunk -> embed (advanced RAG prep)"
+
+trigger:
+  type: manual
+
+input_schema:
+  collection_id:
+    type: string
+    required: true
+    description: "Target RAG collection ID"
+  file_paths:
+    type: array
+    required: true
+    description: "List of file paths to ingest"
+  chunking_strategy:
+    type: string
+    default: "recursive"
+    description: "Chunking strategy: fixed, recursive, sentence_window, semantic, document_aware, agentic"
+
+steps:
+  - name: parse_documents
+    service: advanced_parser
+    method: parse
+    for_each: "{{ input.file_paths }}"
+    config:
+      file_path: "{{ item }}"
+      parser: "auto"
+    retry:
+      max_retries: 2
+      backoff_base: 2.0
+      backoff_max: 20.0
+    concurrency: 3
+    timeout: 180
+
+  - name: clean_text
+    service: data_cleaner
+    method: clean
+    depends_on: [parse_documents]
+    for_each: "{{ parse_documents.output.results }}"
+    config:
+      text: "{{ item.text }}"
+    concurrency: 5
+    timeout: 60
+
+  - name: enrich_metadata
+    service: metadata_enricher
+    method: enrich
+    depends_on: [clean_text]
+    for_each: "{{ clean_text.output.results }}"
+    config:
+      text: "{{ item.cleaned_text }}"
+    concurrency: 3
+    timeout: 120
+
+  - name: chunk_text
+    service: advanced_chunker
+    method: chunk
+    depends_on: [clean_text]
+    for_each: "{{ clean_text.output.results }}"
+    config:
+      text: "{{ item.cleaned_text }}"
+      strategy: "{{ input.chunking_strategy }}"
+    concurrency: 3
+    timeout: 120
+
+  - name: store_vectors
+    service: rag_engine
+    method: ingest
+    depends_on: [chunk_text, enrich_metadata]
+    config:
+      collection_id: "{{ input.collection_id }}"
+      file_paths: []
+    retry:
+      max_retries: 2
+      backoff_base: 2.0
+      backoff_max: 30.0
+    timeout: 300
+
+metadata:
+  author: "AIFlow"
+  category: "rag"
+  tier: "4"
+  cycle: "C19"

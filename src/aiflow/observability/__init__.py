@@ -16,6 +16,8 @@ from aiflow.observability.tracing import (
     TraceManager,
     TraceRecord,
     TracerBackend,
+    get_langfuse_client,
+    trace_llm_call,
 )
 
 __all__ = [
@@ -29,6 +31,8 @@ __all__ = [
     "TraceManager",
     "TraceRecord",
     "TracerBackend",
+    "get_langfuse_client",
+    "trace_llm_call",
     # Cost tracking
     "BudgetAlert",
     "BudgetStatus",

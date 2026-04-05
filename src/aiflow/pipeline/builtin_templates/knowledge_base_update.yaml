@@ -1,0 +1,100 @@
+# Knowledge Base Update Pipeline
+# Chain: email fetch -> filter relevant -> clean text -> RAG ingest -> notify
+# Keeps a RAG collection up-to-date from incoming emails.
+#
+# Prerequisites:
+#   - Email connector configured (connector_id)
+#   - RAG collection exists (collection_id)
+#   - Notification channel configured
+#
+# Usage:
+#   POST /api/v1/pipelines  (create with this YAML)
+#   POST /api/v1/pipelines/{id}/run  {"input_data": {"connector_id": "...", "collection_id": "..."}}
+
+name: knowledge_base_update
+version: "1.0.0"
+description: "Email -> filter relevant -> clean -> chunk -> RAG ingest -> notify"
+
+trigger:
+  type: manual
+
+input_schema:
+  connector_id:
+    type: string
+    required: true
+    description: "Email connector configuration ID"
+  collection_id:
+    type: string
+    required: true
+    description: "RAG collection to ingest into"
+  days:
+    type: integer
+    default: 7
+    description: "Fetch emails from last N days"
+
+steps:
+  - name: fetch_emails
+    service: email_connector
+    method: fetch_emails
+    config:
+      connector_id: "{{ input.connector_id }}"
+      since_days: "{{ input.days }}"
+    retry:
+      max_retries: 3
+      backoff_base: 2.0
+      backoff_max: 30.0
+    timeout: 120
+
+  - name: filter_relevant
+    service: data_router
+    method: filter
+    depends_on: [fetch_emails]
+    config:
+      items: "{{ fetch_emails.output.emails }}"
+      condition: "attachments | length > 0"
+    timeout: 60
+
+  - name: clean_text
+    service: data_cleaner
+    method: clean
+    depends_on: [filter_relevant]
+    for_each: "{{ filter_relevant.output.filtered_items }}"
+    config:
+      text: "{{ item.body_text }}"
+    concurrency: 5
+    timeout: 60
+
+  - name: ingest_to_rag
+    service: rag_engine
+    method: ingest
+    depends_on: [clean_text]
+    config:
+      collection_id: "{{ input.collection_id }}"
+      file_paths: []
+    retry:
+      max_retries: 2
+      backoff_base: 2.0
+      backoff_max: 30.0
+    timeout: 300
+
+  - name: notify_complete
+    service: notification
+    method: send
+    depends_on: [ingest_to_rag]
+    config:
+      channel: "email"
+      template: "Knowledge base updated: {{ filter_relevant.output.matched }} documents ingested into collection {{ input.collection_id }}."
+      recipients:
+        - "admin@aiflow.local"
+      subject: "AIFlow KB Update Complete"
+    retry:
+      max_retries: 2
+      backoff_base: 2.0
+      backoff_max: 15.0
+    timeout: 30
+
+metadata:
+  author: "AIFlow"
+  category: "rag"
+  tier: "4"
+  cycle: "C19"

@@ -69,8 +69,9 @@ class DoclingParser:
     Features: table recognition, layout analysis, reading order
     """
 
-    def __init__(self, ocr_enabled: bool = False) -> None:
+    def __init__(self, ocr_enabled: bool = False, max_pages: int = 50) -> None:
         self._ocr = ocr_enabled
+        self._max_pages = max_pages
         self._converter = None
 
     def _get_converter(self) -> Any:
@@ -106,25 +107,53 @@ class DoclingParser:
         if not path.exists():
             raise FileNotFoundError(f"Document not found: {path}")
 
-        logger.info("docling_parse_start", file=path.name, size_kb=path.stat().st_size // 1024)
+        size_kb = path.stat().st_size // 1024
+        logger.info("docling_parse_start", file=path.name, size_kb=size_kb)
 
-        converter = self._get_converter()
-        result = converter.convert(str(path))
+        # Check page count for large PDFs — route to Azure DI or pypdfium2
+        page_count = self._get_pdf_page_count(path)
+        if page_count and page_count > self._max_pages:
+            logger.warning(
+                "docling_large_pdf",
+                file=path.name,
+                pages=page_count,
+                max_pages=self._max_pages,
+            )
+            # Try Azure DI first (better quality), fallback to pypdfium2
+            azure_result = self._try_azure_di(path)
+            if azure_result:
+                return azure_result
+            logger.info("azure_di_unavailable_using_pypdfium2", file=path.name)
+            return self._fallback_parse(path, page_count)
 
-        # Extract markdown (preserves structure, tables, headings)
-        markdown_text = result.document.export_to_markdown()
+        try:
+            converter = self._get_converter()
+            result = converter.convert(str(path))
 
-        # Extract plain text
-        plain_text = self._markdown_to_plain(markdown_text)
+            # Extract markdown (preserves structure, tables, headings)
+            markdown_text = result.document.export_to_markdown()
 
-        # Extract tables
-        tables = self._extract_tables(result)
+            # Extract plain text
+            plain_text = self._markdown_to_plain(markdown_text)
+
+            # Extract tables
+            tables = self._extract_tables(result)
+        except (RuntimeError, MemoryError, Exception) as e:
+            err_str = str(e)
+            if "bad_alloc" in err_str or "memory" in err_str.lower() or "MemoryError" in type(e).__name__:
+                logger.warning("docling_memory_error", file=path.name, error=err_str)
+                azure_result = self._try_azure_di(path)
+                if azure_result:
+                    return azure_result
+                return self._fallback_parse(path, page_count or 0)
+            raise
 
         # Build metadata
         metadata = {
             "source": str(path),
             "file_type": path.suffix.lstrip(".").lower(),
             "file_size_bytes": path.stat().st_size,
+            "parser": "docling",
         }
 
         doc = ParsedDocument(
@@ -135,6 +164,7 @@ class DoclingParser:
             markdown=markdown_text,
             tables=tables,
             metadata=metadata,
+            page_count=page_count or 0,
             word_count=len(plain_text.split()),
             char_count=len(plain_text),
         )
@@ -145,6 +175,7 @@ class DoclingParser:
             chars=doc.char_count,
             words=doc.word_count,
             tables=len(tables),
+            pages=page_count,
         )
         return doc
 
@@ -177,6 +208,123 @@ class DoclingParser:
         except Exception:
             pass
         return tables
+
+    def _try_azure_di(self, path: Path) -> ParsedDocument | None:
+        """Try parsing with Azure Document Intelligence. Returns None if unavailable."""
+        import os
+        endpoint = os.environ.get("AZURE_DI_ENDPOINT", "")
+        api_key = os.environ.get("AZURE_DI_API_KEY", "") or os.environ.get("AZURE_DI_KEY", "")
+        enabled = os.environ.get("AZURE_DI_ENABLED", "false").lower() == "true"
+        if not enabled or not endpoint or not api_key:
+            return None
+
+        try:
+            import asyncio
+            from aiflow.tools.azure_doc_intelligence import AzureDocIntelligence
+
+            client = AzureDocIntelligence(endpoint, api_key)
+            content = path.read_bytes()
+
+            # Run async in sync context
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    result = pool.submit(asyncio.run, client.analyze(content)).result()
+            else:
+                result = asyncio.run(client.analyze(content))
+
+            text = result.get("text", "")
+            tables = [
+                ParsedTable(index=i, markdown=t.get("markdown", ""))
+                for i, t in enumerate(result.get("tables", []))
+            ]
+
+            logger.info("azure_di_parse_done", file=path.name, chars=len(text), tables=len(tables))
+            return ParsedDocument(
+                file_path=str(path),
+                file_name=path.name,
+                file_type=path.suffix.lstrip(".").lower(),
+                text=text,
+                markdown=result.get("markdown", text),
+                tables=tables,
+                metadata={
+                    "source": str(path),
+                    "file_type": path.suffix.lstrip(".").lower(),
+                    "file_size_bytes": path.stat().st_size,
+                    "parser": "azure_document_intelligence",
+                },
+                page_count=self._get_pdf_page_count(path) or 0,
+                word_count=len(text.split()),
+                char_count=len(text),
+            )
+        except Exception as e:
+            logger.warning("azure_di_failed", file=path.name, error=str(e))
+            return None
+
+    @staticmethod
+    def _get_pdf_page_count(path: Path) -> int | None:
+        """Get PDF page count without parsing the whole document."""
+        if path.suffix.lower() != ".pdf":
+            return None
+        try:
+            import pypdfium2 as pdfium
+            doc = pdfium.PdfDocument(str(path))
+            count = len(doc)
+            doc.close()
+            return count
+        except Exception:
+            return None
+
+    def _fallback_parse(self, path: Path, page_count: int) -> ParsedDocument:
+        """Fallback parser using pypdfium2 for large/problematic PDFs."""
+        logger.info("fallback_parse_start", file=path.name, parser="pypdfium2")
+        try:
+            import pypdfium2 as pdfium
+            doc = pdfium.PdfDocument(str(path))
+            pages_text: list[str] = []
+            parsed_pages: list[ParsedPage] = []
+            max_p = min(len(doc), self._max_pages)
+
+            for i in range(max_p):
+                try:
+                    page = doc[i]
+                    text = page.get_textpage().get_text_range()
+                    pages_text.append(text)
+                    parsed_pages.append(ParsedPage(page_number=i + 1, text=text))
+                except Exception as e:
+                    logger.debug("fallback_page_error", page=i + 1, error=str(e))
+
+            doc.close()
+            full_text = "\n\n".join(pages_text)
+
+            logger.info("fallback_parse_done", file=path.name, pages=max_p, chars=len(full_text))
+            return ParsedDocument(
+                file_path=str(path),
+                file_name=path.name,
+                file_type=path.suffix.lstrip(".").lower(),
+                text=full_text,
+                markdown=full_text,
+                pages=parsed_pages,
+                metadata={
+                    "source": str(path),
+                    "file_type": path.suffix.lstrip(".").lower(),
+                    "file_size_bytes": path.stat().st_size,
+                    "parser": "pypdfium2_fallback",
+                    "total_pages": page_count,
+                    "parsed_pages": max_p,
+                },
+                page_count=page_count,
+                word_count=len(full_text.split()),
+                char_count=len(full_text),
+            )
+        except ImportError:
+            logger.error("pypdfium2_not_installed")
+            return ParsedDocument(
+                file_path=str(path),
+                file_name=path.name,
+                metadata={"error": "pypdfium2 not installed for fallback"},
+            )
 
     @staticmethod
     def _markdown_to_plain(markdown: str) -> str:

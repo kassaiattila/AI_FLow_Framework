@@ -1,0 +1,92 @@
+name: Nightly Prompt Evaluation
+
+on:
+  schedule:
+    - cron: "0 2 * * *"  # 02:00 UTC daily
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        skill:
+          - aszf_rag_chat
+          - email_intent_processor
+          - process_documentation
+          - invoice_processor
+          - cubix_course_capture
+          - qbpp_test_automation
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run Promptfoo eval (${{ matrix.skill }})
+        run: |
+          npx promptfoo eval \
+            -c skills/${{ matrix.skill }}/tests/promptfooconfig.yaml \
+            --output tests/artifacts/promptfoo/${{ matrix.skill }}_results.json
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Check pass rate (${{ matrix.skill }})
+        run: |
+          python scripts/check_promptfoo_results.py \
+            tests/artifacts/promptfoo/${{ matrix.skill }}_results.json \
+            --min-pass-rate 0.9
+
+      - name: Upload results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptfoo-${{ matrix.skill }}
+          path: tests/artifacts/promptfoo/${{ matrix.skill }}_results.json
+          retention-days: 30
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: eval
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all results
+        uses: actions/download-artifact@v4
+        with:
+          path: tests/artifacts/promptfoo/
+          pattern: promptfoo-*
+          merge-multiple: true
+
+      - name: Generate summary
+        run: |
+          echo "## Nightly Prompt Evaluation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Skill | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          for skill in aszf_rag_chat email_intent_processor process_documentation invoice_processor cubix_course_capture qbpp_test_automation; do
+            if [ -f "tests/artifacts/promptfoo/${skill}_results.json" ]; then
+              result=$(python -c "
+          import json, sys
+          d = json.load(open('tests/artifacts/promptfoo/${skill}_results.json'))
+          results = d.get('results', [])
+          total = len(results)
+          passed = sum(1 for r in results if r.get('success', False))
+          rate = passed/total if total else 0
+          status = 'PASS' if rate >= 0.9 else 'FAIL'
+          print(f'{status} ({passed}/{total} = {rate:.0%})')
+          " 2>/dev/null || echo "ERROR")
+              echo "| ${skill} | ${result} |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| ${skill} | MISSING |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done

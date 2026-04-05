@@ -29,6 +29,86 @@
 | Monitoring | `11659:111466` | `11659:111467` | AIFlow Monitoring Dashboard — Desktop 1440px |
 | Audit Log | `11659:111546` | `11659:111547` | AIFlow Audit Log — Desktop 1440px |
 | Admin | `11659:111584` | `11659:111585` | AIFlow Admin — Desktop 1440px |
+| Pipelines | `11662:113170` | `11693:283232` | 16 — Pipelines |
+| Pipeline Detail | `11662:113170` | `11693:283233` | 17 — Pipeline Detail |
+| Quality | `11662:113170` | `11700:283294` | 18 — Quality |
+
+---
+
+## v1.1 Redesign — Unified Tailwind + Untitled UI (2026-04-02)
+
+> **Figma Page:** "AIFlow v1.1 — Redesign" (ID: `11662:113170`)
+> **Design System:** Untitled UI (Tables, Charts, Badges, Inputs — innen instance-oljuk)
+> **Stack:** Tailwind v4 + React Aria (kódban), Untitled UI (Figma-ban)
+
+### v1.1 Frame Registry (konszolidalt, 15 frame)
+
+| # | Page | Frame ID | Route | Megjegyzes |
+|---|------|----------|-------|------------|
+| 01 | Login | `11662:113171` | `/login` | UJ oldal — email/password form |
+| 02 | Dashboard | `11662:113172` | `/` | 3 KPI sparkline + Active Pipelines + Skill Cards |
+| 03 | Documents (Tabbed) | `11662:113173` | `/documents` | **List + Upload** tab, 3 KPI, filter, tabla |
+| 04 | Emails (Tabbed) | `11662:113174` | `/emails` | **Inbox + Upload + Connectors** tab |
+| 05 | RAG (Tabbed) | `11662:113175` | `/rag` | **Collections + Chat** tab |
+| 06 | Runs | `11662:113176` | `/runs` | Run lista + detail |
+| 07 | Costs | `11662:113177` | `/costs` | recharts BarChart + LineChart |
+| 08 | Monitoring | `11662:113178` | `/monitoring` | 8 service health cards |
+| 09 | Audit Log | `11662:113179` | `/audit` | Filter + export + tabla |
+| 10 | Admin | `11662:113180` | `/admin` | Users + API Keys tabs |
+| 11 | Process Docs | `11662:113181` | `/process-docs` | Split: input + Mermaid preview |
+| 12 | Media | `11662:113182` | `/media` | Upload + STT jobs tabla |
+| 13 | RPA | `11662:113183` | `/rpa` | Configs + Execution log |
+| 14 | Reviews | `11662:113184` | `/reviews` | Pending + History |
+| 15 | Verification | `11662:113185` | `/documents/:id/verify` | Canvas + DataPointEditor |
+
+### v1.1 Sidebar Structure (4 collapsible groups, 11 items)
+```
+[Dashboard]                      — always visible
+── OPERATIONS ──                 — collapsible, default open
+   Workflow Runs    /runs
+   Cost Analytics   /costs
+   Monitoring       /monitoring
+── DATA ──                       — collapsible, default open
+   Documents        /documents   (tabbed: List + Upload)
+   Emails           /emails      (tabbed: Inbox + Upload + Connectors)
+── AI SERVICES ──                — collapsible, default open
+   RAG              /rag         (tabbed: Collections + Chat)
+   Process Docs     /process-docs
+   Media            /media
+   RPA              /rpa
+── ADMIN ──                      — collapsible, default collapsed
+   Users & Keys     /admin
+   Audit Log        /audit
+   Human Review     /reviews
+```
+
+### v1.1 Design Tokens (Tailwind v4)
+```
+Brand:     #4F46E5 (primary), #EEF2FF (active bg)
+Surface:   #F8FAFC (light bg), #0F172A (dark bg), #FFFFFF (cards)
+Border:    #E2E8F0
+Text:      #0F172A (primary), #64748B (secondary)
+Status:    #059669 (success), #D97706 (warning), #DC2626 (error)
+Font:      Inter, 13px base, 8px spacing grid
+Cards:     12px radius, 1px border, no shadow
+Buttons:   8px radius, 600 weight
+```
+
+### v1.1 Untitled UI Components Used
+| Component | Figma Source Page | Usage |
+|-----------|------------------|-------|
+| Table (Companies) | `↳ Tables` | Runs, Documents, Emails, Audit, Admin |
+| Table header cell | `↳ Tables` | Sort arrows, checkboxes |
+| Table cell (Badge) | `↳ Tables` | Status columns |
+| Line & Bar chart | `↳ Charts` | Costs daily trend, Dashboard sparklines |
+| Pie chart | `↳ Charts` | Costs by-model |
+| Progress circle | `↳ Charts` | Pipeline progress |
+| Badges | `↳ Badges` | Status, Priority, Role |
+| Inputs | `↳ Inputs` | Search, filters, forms |
+| Buttons | `↳ Buttons` | Primary (purple), Secondary (white), Destructive (red) |
+| Tabs | `↳ 🔒 Tabs` | Documents, Emails, RAG, Admin page tabs |
+| Empty states | `↳ 🔒 Empty states` | No data, upload prompt |
+| File upload | `↳ 🔒 File upload` | Documents Upload, Media Upload |
 
 ---
 
@@ -1002,3 +1082,141 @@ Sidebar + Main:
 - `audit.details`: "Details" / "Részletek"
 - `audit.showing`: "Showing %{from}–%{to} of %{total} entries" / "%{from}–%{to} / %{total} bejegyzés"
 - `audit.noEntries`: "No audit entries found" / "Nincs audit bejegyzés"
+
+---
+
+## Page: Pipelines (v1.2.0 — Pipeline Orchestrator)
+
+> **Figma Frame:** `11693:283232` — "16 — Pipelines"
+> **Route:** `/pipelines`
+> **API:** `GET /api/v1/pipelines`
+> **Journey:** `01_PLAN/PIPELINE_UI_JOURNEY.md`
+
+### Layout
+- AppShell: dark sidebar (220px) + top bar (56px)
+- Page header: title "Pipelines" + subtitle + "New Pipeline" button (brand color)
+- DataTable (Untitled UI): Name, Version, Steps, Trigger, Status, Created, Actions
+- Empty state: "No pipelines yet — create your first pipeline"
+
+### Components
+- `DataTable` — sortable columns, pagination
+- `StatusBadge` — Enabled (green) / Disabled (gray)
+- `Button` (brand) — "+ New Pipeline" → opens create modal
+- Create modal: YAML textarea + Validate + Create buttons
+
+### i18n keys
+- `pipelines.title`: "Pipelines" / "Pipeline-ok"
+- `pipelines.subtitle`: "Manage YAML-defined automation pipelines" / "YAML-alapú automatizálási pipeline-ok kezelése"
+- `pipelines.new`: "New Pipeline" / "Új Pipeline"
+- `pipelines.name`: "Name" / "Név"
+- `pipelines.version`: "Version" / "Verzió"
+- `pipelines.steps`: "Steps" / "Lépések"
+- `pipelines.trigger`: "Trigger" / "Indító"
+- `pipelines.status`: "Status" / "Állapot"
+- `pipelines.created`: "Created" / "Létrehozva"
+- `pipelines.actions`: "Actions" / "Műveletek"
+- `pipelines.enabled`: "Enabled" / "Aktív"
+- `pipelines.disabled`: "Disabled" / "Inaktív"
+- `pipelines.empty`: "No pipelines yet" / "Még nincs pipeline"
+- `pipelines.createFirst`: "Create your first pipeline" / "Hozza létre az első pipeline-t"
+
+---
+
+## Page: PipelineDetail (v1.2.0 — Pipeline Orchestrator)
+
+> **Figma Frame:** `11693:283233` — "17 — Pipeline Detail"
+> **Route:** `/pipelines/:id`
+> **API:** `GET /api/v1/pipelines/{id}`, `POST .../validate`, `GET .../runs`
+> **Journey:** `01_PLAN/PIPELINE_UI_JOURNEY.md`
+
+### Layout
+- AppShell: dark sidebar + top bar
+- Breadcrumb: "Pipelines / {name}"
+- Header: pipeline name + version badge + enabled badge + action buttons (Validate, Run, Edit)
+- Tabs: Overview | YAML | Runs
+
+### Tab: Overview
+- Info card: description, trigger type, step count, created/updated timestamps
+- Steps card: numbered list with step name, service.method, depends_on arrows
+
+### Tab: YAML
+- Readonly code block with syntax-highlighted YAML (yaml_source)
+- "Copy" button
+
+### Tab: Runs
+- DataTable: run_id, status, started_at, duration_ms, error
+- Empty state: "No runs yet"
+
+### Components
+- `Tabs` (Untitled UI) — Overview / YAML / Runs
+- `Badge` — version (brand), enabled (green), disabled (gray)
+- `Button` — Validate (secondary), Run (primary/brand), Edit (secondary)
+- `DataTable` — runs list
+
+### i18n keys
+- `pipelineDetail.overview`: "Overview" / "Áttekintés"
+- `pipelineDetail.yaml`: "YAML" / "YAML"
+- `pipelineDetail.runs`: "Runs" / "Futtatások"
+- `pipelineDetail.info`: "Pipeline Info" / "Pipeline információ"
+- `pipelineDetail.stepsTitle`: "Pipeline Steps" / "Pipeline lépések"
+- `pipelineDetail.description`: "Description" / "Leírás"
+- `pipelineDetail.trigger`: "Trigger" / "Indító"
+- `pipelineDetail.stepCount`: "Steps" / "Lépések"
+- `pipelineDetail.createdAt`: "Created" / "Létrehozva"
+- `pipelineDetail.updatedAt`: "Updated" / "Frissítve"
+- `pipelineDetail.validate`: "Validate" / "Validálás"
+- `pipelineDetail.run`: "Run" / "Futtatás"
+- `pipelineDetail.edit`: "Edit" / "Szerkesztés"
+- `pipelineDetail.noRuns`: "No runs yet" / "Még nincs futtatás"
+- `pipelineDetail.dependsOn`: "depends on" / "függ"
+- `pipelineDetail.copyYaml`: "Copy YAML" / "YAML másolás"
+
+---
+
+## Page 18: Quality Dashboard (/quality) — S3
+
+**Phase:** S3 (v1.2.1 Production Ready Sprint)
+**Figma Frame:** `11700:283294` (18 — Quality)
+**Layout:** KPI cards row + two-column body (Rubrics table + Evaluate form)
+**Data Source:** `GET /api/v1/quality/overview`, `GET /api/v1/quality/rubrics`, `POST /api/v1/quality/evaluate`
+
+**Header:**
+- Title: "Quality Dashboard" (i18n: `aiflow.quality.title`)
+- Subtitle: "LLM quality monitoring, rubric evaluation, and cost tracking."
+- Backend badge (top-right)
+
+**KPI Cards (5):**
+
+| Card | API Field | Format | i18n Key |
+|------|-----------|--------|----------|
+| Total Evaluations | `total_evaluations` | integer | `aiflow.quality.totalEvals` |
+| Avg Score | `avg_score` | percentage | `aiflow.quality.avgScore` |
+| Pass Rate | `pass_rate` | percentage (green) | `aiflow.quality.passRate` |
+| Cost Today | `cost_today` | USD | `aiflow.quality.costToday` |
+| Cost This Month | `cost_month` | USD | `aiflow.quality.costMonth` |
+
+**Rubrics Table (DataTable):**
+
+| Column | Source | i18n Key |
+|--------|--------|----------|
+| Name | rubric key | `aiflow.quality.rubricName` |
+| Description | rubric value | `aiflow.quality.rubricDesc` |
+
+**Evaluate Form:**
+- Rubric select (dropdown from /rubrics list)
+- Actual output (textarea, required)
+- Expected output (textarea, optional)
+- "Evaluate" button (brand color) → POST /api/v1/quality/evaluate
+- Result display: Score (0-100%), Pass/Fail badge, Reasoning text
+
+**States:**
+- Loading: Spinner centered
+- Error: Alert with retry button
+- Empty: "No evaluations yet" message
+
+**i18n Keys (quality.* namespace):**
+- `quality.title`, `quality.subtitle`, `quality.totalEvals`, `quality.avgScore`
+- `quality.passRate`, `quality.costToday`, `quality.costMonth`
+- `quality.rubrics`, `quality.rubricName`, `quality.rubricDesc`
+- `quality.evaluate`, `quality.actualOutput`, `quality.expectedOutput`
+- `quality.selectRubric`, `quality.score`, `quality.pass`, `quality.fail`, `quality.reasoning`

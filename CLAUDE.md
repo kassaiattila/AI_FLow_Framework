@@ -15,27 +15,31 @@ AI-powered automation workflows at scale. Python 3.12+, FastAPI, PostgreSQL, Red
 - **Skill Instance** = configured deployment of a Skill template per customer
 - **VectorStore** = pgvector hybrid search (vector HNSW + BM25 tsvector + RRF)
 
-## Current Phase: Service Generalization (v0.9.0-stable → v1.0.0)
-**Terv:** `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`
+## Current Phase: v1.2.1 COMPLETE (Production Ready Sprint)
+**Fo terv:** `01_PLAN/57_PRODUCTION_READY_SPRINT.md` — S1-S14 MIND DONE (2026-04-04)
+**Elozo terv:** `01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md` (v1.2.0 COMPLETE)
 
-> **Elozmeny:** Az eredeti framework implementacio (Phase 1-7, Het 1-22) KESZ — `src/aiflow/` teljes.
-> Ez a fazis (Fazis 0-5) EGY UJ, onallo fejezet: skill-specifikus kodot altalanos szolgaltatasokka alakitunk.
-> A ket fazis-rendszer fuggetlen: Phase 1-7 = framework mag, Fazis 0-5 = service generalizacio (vertikalis szeletek).
+> **v1.2.1 COMPLETE** (S1-S14, 2026-04-04) — UI integracio, Langfuse, Promptfoo, 102 E2E teszt, accessibility.
+> 26 service, 165 API endpoint (25 router), 17 UI oldal, 45 DB tabla, 29 Alembic migracio.
+> 19 pipeline adapter, 6 pipeline template, 369 unit test, 102 E2E teszt, 51 promptfoo test case.
 
-Skill-specifikus kodot altalanos, konfiguralhato szolgaltatasokka alakitjuk:
-- **Email Connector** (O365/Gmail/IMAP) ← email_intent_processor
-- **Document Extractor** (barmilyen doc tipus) ← invoice_processor
-- **RAG Engine** (cserelheto tudasbazis + chat UI) ← aszf_rag_chat
-- **Intent Classifier** (hibrid ML+LLM) ← email_intent_processor
-- **RPA Browser** (YAML-alapu automatizalas) ← cubix_course_capture
-- **Media Processor** (video→szoveg) ← cubix_course_capture
-- **Diagram Generator** (DrawIO/SVG) ← process_documentation
+**v1.2.1 fo celok:**
+- **UI integracio** — ChatMarkdown bekotes, Quality dashboard, in-app notifications, design tokens
+- **Observability** — Langfuse valos integracio, pipeline cost tracking
+- **Quality assurance** — 6/6 skill Promptfoo config, E2E Playwright suite, CI/CD nightly
+- **Hianyzo funkciok** — free text extraction, SLA eszkalacio, intent schema CRUD, cost estimation
+- **UI polish** — MUI eltavolitas, dark mode, responsive, accessibility, PWA teszteles
 
-Infrastruktura epitokockak: Cache Layer, Event Bus, Config Versioning, Health Monitoring,
-Rate Limiter, Circuit Breaker, Human Review, Audit Trail, Schema Registry.
+**Tier-ek:**
+- Tier 1 (Core): P1 Adapter → P2 Schema → P3 Runner+DB → P4 API → P5 UI
+- Tier 2 (Support): P6A Notification │ P6C Service Mgr │ P6D Data Router
+- Tier 3 (RAG): P7A-7F (independent)
+- Phase 8: Pipeline Templates │ P6B Kafka (HALASZTVA post-v1.2.0)
 
-**Fazisok (vertikalis szelet — egy szolgaltatas TELJESEN KESZ mielott a kovetkezore lepunk):**
-F0 (infra) → F1 (Document Extractor) → F2 (Email+Classifier) → F3 (RAG Engine) → F4 (RPA+Media+Diagram) → F5 (Monitoring+Governance)
+**Reszletes tervek:** `01_PLAN/` mappaban: 49 (stability), 50 (RAG), 51 (doc extraction), 52 (HITL+notification), 53 (frontend), 54 (LLM quality), 55 (Claude config), 56 (execution)
+
+**Fazisok:**
+~~F6.0-F6.6 (UI Modernization) → KESZ (v1.1.4, 2026-04-03)~~
 
 ## Skills (6 db)
 
@@ -88,9 +92,25 @@ This enables: new intents/entities without code changes, per-customer customizat
 2. Check `git status` - no untracked files that should be tracked
 3. Commit message: conventional commits (`feat`, `fix`, `docs`, `refactor`)
 
+### MANDATORY: After EVERY cycle (SOHA NE HAGYD KI!)
+> **Session 9 tanulsag:** C7-C16 utan a tervek NEM kerultek frissitesre. Ez TILOS.
+1. **`01_PLAN/56_EXECUTION_PLAN.md`** — Progress tabla: ciklus allapot DONE, datum, commit hash
+2. **`01_PLAN/56_EXECUTION_PLAN.md`** — Output szekció: mit deliveralt a ciklus (fajlok, tesztek, E2E eredmenyek)
+3. **`01_PLAN/CLAUDE.md`** — Key numbers: service/adapter/endpoint/migracio/teszt szamok frissitese
+4. **Root `CLAUDE.md`** — Infrastruktura szamok frissitese (service, endpoint, router, migracio, teszt)
+5. **Meglevo UI regresszio check** — a `.venv` ujraepites NEM torolheti a fuggosegeket!
+   Ha `.venv`-t ujra kell epiteni: `uv pip install -e ".[dev]"` UTAN ellenorizd: `python -c "import pypdfium2; import docling"`
+
+### MANDATORY: .venv Dependency Safety
+> **Session 9 tanulsag:** A `.venv` ujraepites (`uv venv && uv pip install`) torolte a `pypdfium2` es `docling`
+> fuggosegeket mert nem voltak `pyproject.toml`-ben. Ez UI regressziot okozott (PDF image 500, RAG ingest fail).
+- **Ha `.venv`-t torlod/ujraepited:** MINDEN fuggoseg KELL — `uv pip install -e ".[dev]" pypdfium2 docling aiosmtplib`
+- **Ellenorzes:** `python -c "import pypdfium2; import docling; import aiosmtplib; print('OK')"`
+- **VAGY:** add hozza `pyproject.toml` dependencies-hez (preferalt megoldas)
+
 ### STRICT: Real Testing Only (SOHA NE MOCK/FAKE!)
 > **Csak valos, sikeres teszteles utan szabad tovabblepni. SOHA NE mockolt/fake adatokkal!**
-> Ez a szabaly MINDEN fejlesztesi fazisra vonatkozik (F0-F5), MINDEN modulra, MINDEN PR-re.
+> Ez a szabaly MINDEN fejlesztesi fazisra vonatkozik (F0-F6), MINDEN modulra, MINDEN PR-re.
 
 - **API tesztek:** Valos FastAPI szerver fut, valos HTTP keresek (curl vagy Playwright)
 - **Service tesztek:** Valos fuggoosegek (PostgreSQL, Redis Docker-ben), NEM in-memory mock
@@ -104,12 +124,16 @@ This enables: new intents/entities without code changes, per-customer customizat
 - **Fazis CSAK AKKOR "KESZ" ha MINDEN sikerkriteriuma teljesul** (ld. 42_SERVICE_GENERALIZATION_PLAN.md Section 8)
 
 ### Key plan documents:
-- **`01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md`** - AKTUALIS: Service generalizalas terv (F0-F5 vertikalis szeletek), infra + domain szolgaltatasok
-- `01_PLAN/IMPLEMENTATION_PLAN.md` - Legacy fazisok (Phase 1-7 KESZ). Aktualis: ld. 42_SERVICE_GENERALIZATION_PLAN F0-F5
-- `01_PLAN/29_OPTIMIZATION_PLAN.md` - O1-O3 (KESZ) + framework audit eredmeny
-- `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist (Cubix tananyag alapjan!)
-- `01_PLAN/28_MODULAR_DEPLOYMENT.md` - Multi-customer instance architecture
-- `01_PLAN/22_API_SPECIFICATION.md` - API specifikacio (114 endpoint, 19 router)
+- **`01_PLAN/57_PRODUCTION_READY_SPRINT.md`** - **COMPLETE**: v1.2.1 Production Ready (S1-S14 DONE), UI+observability+quality+102 E2E+accessibility
+- **`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`** - **AKTUALIS**: Sprint A (v1.2.2 infra+security A0-A6) + Sprint B (v1.3.0 service excellence B0-B7)
+- **`01_PLAN/48_ORCHESTRABLE_SERVICE_ARCHITECTURE.md`** - KESZ: v1.2.0 Pipeline as Code fo terv (C0-C20 DONE)
+- **`01_PLAN/56_EXECUTION_PLAN.md`** - KESZ: 21 ciklus (C0-C20 MIND DONE), v1.2.0 tagged
+- `01_PLAN/49-54` - Reszletes tervek (stability, RAG, doc extract, HITL, frontend, LLM quality)
+- `01_PLAN/55_CLAUDE_CODE_CONFIGURATION.md` - Claude iranyitas konfiguracio terv
+- `01_PLAN/43_UI_RATIONALIZATION_PLAN.md` - KESZ: UI migracio (F6, v1.1.4)
+- `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` - KESZ: Service generalizalas (F0-F5, v1.0.0)
+- `01_PLAN/22_API_SPECIFICATION.md` - API specifikacio (112+ endpoint, 19 router)
+- `01_PLAN/30_RAG_PRODUCTION_PLAN.md` - RAG pipeline checklist
 
 ### Database:
 - PostgreSQL pgvector @ localhost:5433 (Docker: `docker compose up -d db`)
@@ -121,7 +145,8 @@ This enables: new intents/entities without code changes, per-customer customizat
 - LiteLLM (multi-LLM), instructor (structured output), Langfuse (LLM observability)
 - PyJWT[crypto] (RS256 JWT auth), bcrypt (hashing), APScheduler 4.x (async cron)
 - Promptfoo (prompt testing), structlog (JSON logging), Alembic (DB migrations), ruff (lint+format)
-- React Admin + Vite + React 19 + MUI (production admin dashboard - **aiflow-admin/**)
+- ~~React Admin + MUI~~ → **Untitled UI + Tailwind v4 + React Aria** (v1.1.0 migracio, ld. 43_UI_RATIONALIZATION_PLAN.md)
+- Vite 7 + React 19 + TypeScript 5.1 + recharts (production admin dashboard - **aiflow-admin/**)
 - ~~Legacy: Next.js 16 + shadcn/ui~~ (aiflow-ui/ TOROLVE v1.0.0-ban, archiv: tag v0.9-nextjs-ui)
 - typer (CLI), Playwright (GUI testing + RPA skills), ffmpeg (media processing in RPA skills)
 
@@ -196,10 +221,15 @@ make lock                                   # Regenerate uv.lock from pyproject.
 - `/ui-api-endpoint` - **GATE 2-3**: API implementacio + curl teszt — `source: "backend"` KELL
 - `/ui-design` - **GATE 4**: Figma MCP design → PAGE_SPECS.md frissites KELL mielott UI kod
 - `/ui-page` - **GATE 5**: React page — CSAK ha PAGE_SPECS.md-ben mar letezik a design!
-- `/ui-component` - **GATE 5**: MUI component — CSAK ha PAGE_SPECS.md-ben mar letezik!
+- `/ui-component` - **GATE 5**: UI component — CSAK ha PAGE_SPECS.md-ben mar letezik!
 - `/ui-viewer` - **GATE 5**: Skill viewer — CSAK ha PAGE_SPECS.md-ben mar letezik!
 > **TILOS** `/ui-page`-et vagy `/ui-component`-et futtatni `/ui-design` NELKUL!
 > **TILOS** `/ui-design`-t futtatni `/ui-journey` NELKUL!
+
+### Pipeline Orchestracio (v1.2.0)
+- `/new-pipeline` - **PIPELINE YAML GENERATOR**: Elerheto adapterek alapjan general YAML definiciot
+- `/pipeline-test` - **PIPELINE E2E TESZT**: Valos futatas, WorkflowRunner, cost check, DB sorok ellenorzes
+- `/quality-check` - **LLM MINOSEG + KOLTSEG**: Promptfoo eval + cost_records + regresszio detektalas
 
 ### Tervek + Audit
 - `/phase-status` - Check implementation progress for a phase (F0-F5)
@@ -213,7 +243,7 @@ src/aiflow/
     engine/        # Step, SkillRunner, WorkflowRunner, DAG, checkpoint
     models/        # ModelClient, LiteLLM backend, protocols
     prompts/       # PromptManager (YAML + Jinja2 + cache)
-    services/      # TERVEZETT (42_SERVICE_GENERALIZATION_PLAN): email_connector, document_extractor, rag_engine, classifier, rpa_browser, media_processor, diagram_generator, cache, events, monitoring, resilience, human_review, audit, schema_registry
+    services/      # KESZ (F0-F5, v1.0.0): email_connector, document_extractor, rag_engine, classifier, rpa_browser, media_processor, diagram_generator, cache, events, monitoring, resilience, human_review, audit, schema_registry
     execution/     # JobQueue (arq+Redis), Worker, Scheduler, RateLimiter, DLQ, Messaging
     evaluation/    # EvalSuite framework, scorers (BLEU, ROUGE), Promptfoo integration
     skill_system/  # Skill manifest, loader, registry, instance (canonical)
@@ -221,10 +251,11 @@ src/aiflow/
     vectorstore/   # VectorStore ABC, pgvector, HybridSearchEngine, embedder
     documents/     # DocumentRegistry, versioning, freshness
     ingestion/     # Parsers (PDF/DOCX), chunkers (semantic)
-    state/         # SQLAlchemy ORM, repository, 13 Alembic migraciok (001-013)
+    state/         # SQLAlchemy ORM, repository, 26 Alembic migraciok (001-026)
     security/      # JWT+API key auth, RBAC, audit
-    api/v1/        # FastAPI endpoints (12 route files: health, workflows, chat_completions, feedback, runs, costs, skills_api, emails, auth, documents, process_docs, cubix)
+    api/v1/        # FastAPI endpoints (19 route files: health, workflows, chat_completions, feedback, runs, costs, skills_api, emails, auth, documents, process_docs, cubix, rag_engine, media_processor, rpa_browser, human_review, admin, services, diagram_generator)
     observability/ # Tracing, cost_tracker (partial)
+    pipeline/      # v1.2.0: Pipeline orchestrator (adapter_base, adapters/, schema, compiler, runner, repository, triggers, templates)
     cli/           # typer CLI
     skills/        # Backward compat re-exports -> skill_system/
     contrib/       # Backward compat re-exports -> tools/
@@ -235,13 +266,15 @@ skills/            # Self-contained skill packages (each with own tools, tests, 
   email_intent_processor/ # IN DEVELOPMENT - email + attachment processing
   invoice_processor/      # IN DEVELOPMENT - PDF invoice extraction
   qbpp_test_automation/   # STUB - insurance calculator test automation
-aiflow-admin/      # React Admin + Vite + React 19 + MUI (AKTIV production dashboard)
-  src/pages/         # Oldalak (Dashboard, InvoiceUpload, stb.)
-  src/resources/     # React Admin resource definiciok (InvoiceList, InvoiceShow, stb.)
-  src/components/    # Komponensek (PipelineProgress, stb.)
-  src/verification/  # Szamla verifikacio (DocumentCanvas, VerificationPanel, MockInvoiceSvg)
-  src/dataProvider.ts # FastAPI → React Admin adatkapcsolat
-  vite.config.ts     # Vite config + API proxy (localhost:8100)
+aiflow-admin/      # Untitled UI + Vite + React 19 + Tailwind v4 (AKTIV production dashboard)
+  src/layout/        # AppShell, Sidebar, TopBar
+  src/pages/         # Oldalak (Dashboard, Documents, Emails, stb.)
+  src/components/    # Ujrahasznalhato komponensek (DataTable, KpiCard, StatusBadge, stb.)
+  src/lib/           # API kliens, auth, i18n, hooks
+  src/locales/       # hu.json, en.json (i18n forditasok)
+  src/router.tsx     # React Router v7 config
+  tailwind.config.ts # AIFlow design tokenek
+  vite.config.ts     # Vite config + API proxy (localhost:8102)
 # aiflow-ui/       # TOROLVE v1.0.0 — archiv: git tag v0.9-nextjs-ui
 deployments/       # Per-customer deployment configs (AZHU, NPRA, BESTIX)
 tests/             # unit/, integration/, e2e/, conftest.py
@@ -269,7 +302,7 @@ result = await runner.run_steps([step1, step2], {"input": "..."})
 - **Pydantic everywhere** - config, API models, step I/O, agent messages, DB schemas
 - All errors inherit from `AIFlowError` with `is_transient` flag for retry decisions
 
-## MANDATORY Admin UI Development Rules (aiflow-admin/ — Vite + React Admin)
+## MANDATORY Admin UI Development Rules (aiflow-admin/ — Vite + Untitled UI + Tailwind v4)
 
 ### The Depth Rule
 > **Finish ONE feature properly before starting the next.**
@@ -311,6 +344,7 @@ GATE 7: Figma sync → OUTPUT: PAGE_SPECS.md vegso frissites, Figma ↔ Code kon
 | F3 | `01_PLAN/F3_RAG_ENGINE_JOURNEY.md` | Page: RAGChat (redesign), RAGCollections, RAGIngest | `e2e-f3-*.png` |
 | F4 | `01_PLAN/F4_RPA_MEDIA_DIAGRAM_JOURNEY.md` | Page: ProcessDocs (redesign), CubixViewer (redesign) | `e2e-f4-*.png` |
 | F5 | `01_PLAN/F5_MONITORING_GOVERNANCE_JOURNEY.md` | Page: AdminDashboard, AuditLog, Scheduling | `e2e-f5-*.png` |
+| F6 | `01_PLAN/F6_UI_RATIONALIZATION_JOURNEY.md` | Page: Dashboard, Documents, Emails, RAG (Untitled UI) | `e2e-f6-*.png` |
 
 ### MANDATORY GATE CHECK PROTOCOL
 > **Claude Code MINDEN UI-t erinto /dev-step, /ui-page, /ui-component, /ui-design ELOTT KOTELES lefuttatni:**
@@ -324,7 +358,7 @@ grep -c "## Page.*{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md || echo "GAT
 # Ha FAIL → TILOS TOVABBLEPNI. Futtasd /ui-design ELOSZOR.
 
 # 3. API valos adatot ad?
-curl -sf http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend'" || echo "GATE 2-3 FAIL"
+curl -sf http://localhost:8102/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend'" || echo "GATE 2-3 FAIL"
 ```
 **Ha BARMELYIK check FAIL → NEM IRUNK UI KODOT. Eloszor az elofeltetelt teljesitjuk.**
 **A felhasznalot ERTESITJUK melyik gate FAIL es mi a megoldas.**
@@ -341,18 +375,32 @@ curl -sf http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d
 > Reszletek: `01_PLAN/42_SERVICE_GENERALIZATION_PLAN.md` Section 11 (UI/UX Fejlesztesi Pipeline)
 > Design System: Untitled UI (React 19 + Tailwind v4), Figma channel: `hq5dlkhu`
 
+### Untitled UI + Tailwind Rules (v1.1.0+)
+- **Styling:** Tailwind utility classes — NEM inline style, NEM sx prop, NEM emotion
+- **Components:** Untitled UI primitives (Button, Input, Table, Badge, etc.) — NEM MUI
+- **Icons:** @untitledui/icons — NEM @mui/icons-material
+- **Accessibility:** React Aria hooks (useButton, useDialog, useTable, etc.)
+- **Theming:** tailwind.config.ts design tokenek — NEM MUI createTheme
+- **Data fetching:** `fetchApi<T>()` from `src/lib/api-client.ts` — NEM dataProvider
+- **Auth:** `src/lib/auth.ts` — NEM authProvider
+- **Tables:** `<DataTable>` from `src/components-new/DataTable.tsx` — KOTELEZO minden lista oldalon
+  - Powered by `@tanstack/react-table` v8 (headless, Tailwind styled)
+  - Beepitett: oszlop rendezés (asc/desc), global search, pagination
+  - NEM szabad kezi `<table>` markup-ot irni — MINDIG DataTable-t hasznalj
+  - Peldak: Documents.tsx, Emails.tsx (Inbox + Connectors tab)
+
 ### i18n Rules (NEVER skip!)
-- **EVERY user-visible string MUST use `useTranslate()` from react-admin** — no exceptions
+- **EVERY user-visible string MUST use `useTranslate()` from `src/lib/i18n.ts`** — no exceptions
 - Wire i18n AS YOU BUILD — not after
 - Check: page titles, button labels, table headers, KPI labels, error messages, empty states
 - Test: click HU/EN toggle → EVERY string on screen must change
 
-### Vite + React Admin Rules (avoid common pitfalls!)
-- **vite.config.ts** tartalmazza az API proxy-t (`/api` → `localhost:8100`) — NEM proxy.ts/middleware.ts
+### Vite + Routing Rules (avoid common pitfalls!)
+- **vite.config.ts** tartalmazza az API proxy-t (`/api` → `localhost:8102`) — NEM proxy.ts/middleware.ts
 - **No hardcoded `localhost` URLs** — use relative paths via `/api/` proxy routes
-- **Data fetches: dataProvider.ts** → FastAPI `/api/v1/*` endpointok
+- **Data fetches:** `fetchApi<T>()` from `src/lib/api-client.ts` → FastAPI `/api/v1/*` endpointok
 - **No `localStorage` in `useState()` initializer** — causes hydration mismatch. Use `useEffect`
-- **React Admin resource-ok** a `src/resources/` mappaban
+- **Routing:** React Router v7 route-ok `src/router.tsx`-ben
 
 ### UI Component Checklist (verify BEFORE marking done)
 Every new page/component MUST have:
@@ -360,7 +408,7 @@ Every new page/component MUST have:
 2. [ ] Loading state (show spinner/skeleton while data loads)
 3. [ ] Error state (show error message + retry button)
 4. [ ] Empty state (meaningful message when no data)
-5. [ ] Data fetched via dataProvider or `/api/` routes
+5. [ ] Data fetched via `fetchApi()` / `useApi()` hook or `/api/` routes
 6. [ ] No hardcoded Hungarian/English strings
 7. [ ] Works in both light and dark mode
 8. [ ] **Playwright E2E teszt:** navigate → snapshot → click → screenshot → console check
@@ -488,6 +536,35 @@ regression_diff.json. Stored in tests/artifacts/{date}/{run_id}/
 - **Co-Authored-By**: always add when Claude Code assists
 - **CODEOWNERS**: framework-team owns src/aiflow/, skill teams own their skills/
 
+### v1.2.0 Branch Strategy (Tier-enkent branch, merge to main Tier vegen)
+
+```
+main (stabil, v1.1.4 — MINDIG mukodokepesnek kell maradnia)
+  │
+  ├── feature/v1.2.0-tier1-pipeline-orchestrator   ← C0-C5 (adapter, schema, runner, API, UI)
+  │     └── merge to main after: L0 smoke PASS + Tier 1 DONE → tag v1.2.0-alpha
+  │
+  ├── feature/v1.2.0-tier1.5-invoice-usecase       ← C6 (elso valos use case)
+  │     └── merge to main after: invoice pipeline E2E PASS → tag v1.2.0-beta
+  │
+  ├── feature/v1.2.0-tier2-supporting-services     ← C7-C10 (notification, data_router, service mgr)
+  │     └── merge to main after: invoice V2 E2E PASS → tag v1.2.0-rc1
+  │
+  ├── feature/v1.2.0-tier3-advanced-rag            ← C11-C16 (reranker, chunker, metadata, stb.)
+  │     └── merge to main after: advanced RAG pipeline PASS → tag v1.2.0-rc2
+  │
+  └── feature/v1.2.0-tier4-polish                  ← C17-C20 (quality, chat, templates, PWA)
+        └── merge to main → tag v1.2.0
+```
+
+**Szabalyok:**
+- **MINDEN fejlesztes a Tier branch-en** — NEM kozvetlenul main-re
+- **Merge to main:** CSAK ha L0 smoke test PASS + Tier MINDEN ciklusa DONE
+- **Squash merge:** Tier branch → main (clean commit history)
+- **Branch letrehozas:** Tier ciklus elso lepeseben (`git checkout -b feature/v1.2.0-tier{N}-...`)
+- **Ha main-en suurgo hotfix kell:** `hotfix/...` branch main-rol, cherry-pick Tier branch-re
+- **Merge conflict:** Tier branch rendszeresen rebase-eli main-t (`git rebase main`)
+
 ## Testing Rules
 - Unit tests: mock LLM calls, test logic only, <30s total, @test_registry header REQUIRED
 - Integration tests: testcontainers (real PostgreSQL + Redis), 2-5 min
@@ -514,6 +591,80 @@ regression_diff.json. Stored in tests/artifacts/{date}/{run_id}/
 | **F3** (RAG Engine) | Collection + ingest + query + feedback — TELJES szelet | `curl` + Playwright chat UI | Create → ingest → query → feedback → stats |
 | **F4** (RPA+Media+Diagram) | 3 mini-szelet: Diagram → Media → RPA → Human Review | Playwright E2E + subprocess | Valos render, valos STT, valos scrape |
 | **F5** (Monitoring+Gov) | Health, audit, admin, scheduling, RLS | `curl` + L4 regresszio | 90%+ API, ≥80% coverage, L4 atment |
+| **F6** (UI Migracio) | Minden oldal Untitled UI-val, i18n, dark mode, responsive | Playwright E2E | 16 oldal E2E PASS, 0 console error, bundle <500KB |
+
+## MANDATORY v1.2.0 Orchestration Development Rules
+
+### API Compatibility (SOHA ne torj meg meglevo API-t!)
+- Uj mezok: MINDIG optional (default ertekkel)
+- Mezo torles: TILOS — deprecation + 2 minor version utan optional-la
+- Endpoint atnevezes: TILOS — uj endpoint + redirect a regirol
+- Response format valtozas: TILOS — uj mezo OK, tipus valtozas NEM
+- `/api/v1/*` meglevo endpointok FROZEN — KIZAROLAG bugfix
+
+### DB Migration Safety
+- Uj oszlop meglevo tablaban: KOTELEZO `nullable=True` vagy `server_default`
+- Oszlop torles: TILOS egybol — eloszor `nullable=True`, kovetkezo release-ben torlod
+- Index: `CREATE INDEX CONCURRENTLY`
+- FK: `ON DELETE SET NULL` (nem cascadol varatlanul)
+- Teszt: `alembic upgrade head && alembic downgrade -1 && alembic upgrade head` HIBA NELKUL
+
+### Service Isolation (v1.2.0 fejlesztes alatt)
+- **Meglevo service-ek:** KIZAROLAG bugfix. Feature bovites TILOS.
+- **Adapter reteg:** WRAPPER-eket ir, NEM modositja az eredeti service-t.
+- **Uj service-ek:** Kulon mappa, kulon adapter, kulon migracio.
+- **Meglevo API router-ek:** CSAK bugfix. Uj feature → uj router fajl.
+
+### Frontend Stability (v1.2.0 fejlesztes alatt)
+- Meglevo `pages-new/*.tsx`: KIZAROLAG bugfix
+- Kozos komponensek (DataTable, PageLayout): modositas CSAK ha 100% backward-compatible
+- `router.tsx`: uj route hozzaadhato, meglevo NEM modosul
+- `locales/*.json`: uj kulcs hozzaadhato, meglevo NEM modosul
+
+### Pipeline Development Rules
+- MINDEN pipeline YAML: `src/aiflow/pipeline/builtin_templates/`
+- MINDEN step: `service` + `method` (adapter registry-ben LETEZIK)
+- `for_each`: CSAK Jinja2 expression ami list-et ad vissza
+- `condition`: CSAK `output.field op value` formatum
+- `retry`: KOTELEZO minden kulso service hivasra (LLM, email, HTTP)
+- Jinja2: NEM hasznalhato `__dunder__`, `callable`, `import`
+- MINDEN pipeline YAML-hoz KOTELEZO teszt: `tests/pipeline/test_{name}.py`
+- Cost tracking: MINDEN pipeline futtas cost_records-ba logolva
+
+### Adapter Development Rules
+- Adapter = thin wrapper, NEM modositja az eredeti service-t
+- File: `src/aiflow/pipeline/adapters/{service}_adapter.py`
+- KOTELEZO: `input_schema`, `output_schema` (Pydantic), `execute()` method
+- `for_each`: adapter belul kezeli `asyncio.Semaphore`-ral (concurrency limit)
+- MINDEN adapter-hez unit test: `tests/unit/pipeline/test_{service}_adapter.py`
+
+### L0 Smoke Test (MINDEN fejlesztes ELOTT es UTAN)
+```bash
+./scripts/smoke_test.sh  # 30s, health + 4 core endpoint + source=backend
+```
+
+### Notification & HITL Rules
+- Notification templates: `prompts/notifications/` YAML Jinja2
+- Channel credentials: MINDIG encrypted DB-ben
+- Notification log: MINDEN kuldes kiserlet logolva
+- HITL create_and_wait: Checkpoint+Resume pattern (NEM blokkolo)
+- SLA config: KOTELEZO minden review queue-ra
+- Review dontes: MINDIG logolva (reviewer + timestamp + comment)
+
+### Document Extraction & Intent Rules
+- Document type configs: KOTELEZO `auto_approve_threshold`, `review_threshold`, `reject_threshold`
+- Intent schemas: YAML-loadable + DB-storable
+- Extraction history: MINDEN extraction attempt logolva (confidence score-ral)
+- Parser fallback lanc: Docling → Unstructured → Tesseract → Azure DI (LlamaParse KIHAGYVA)
+
+### Technology Decisions (v1.2.0 VEGLEGES)
+- **Reranker:** bge-reranker-v2-m3 (primary), FlashRank (CPU fallback), Cohere (optional premium)
+- **Chunking:** Sajat implementacio (6 strategia) + Chonkie (gyorsasag). LangChain/LlamaIndex KIHAGYVA.
+- **GraphRAG:** Microsoft GraphRAG + LazyGraphRAG. Neo4j KIHAGYVA egyelore.
+- **UI komponensek:** Untitled UI (80+ free React, copy-paste CLI). MUI/Storybook KIHAGYVA.
+- **Chat UI:** react-markdown + Shiki. PWA → C20 ciklus.
+- **Kafka:** HALASZTVA post-v1.2.0 (in-memory MessageBroker elegseges).
+- **LlamaParse:** KIHAGYVA (cloud-only, privacy kockazat).
 
 ## Plan Reference (All docs in 01_PLAN/)
 Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
@@ -549,6 +700,17 @@ Start here: `01_PLAN/AIFLOW_MASTER_PLAN.md` - Integrated overview
 
 **Service Generalization:**
 - **42_SERVICE_GENERALIZATION_PLAN** - Teljes atalakitasi terv: 7 domain service + 9 infra epitokocka + 5 fazis
+
+**v1.2.0 Orchestrable Service Architecture (AKTUALIS):**
+- **48_ORCHESTRABLE_SERVICE_ARCHITECTURE** - FO TERV: Pipeline as Code, Tier 1-3, 8 fazis
+- **49_STABILITY_REGRESSION** - API compat, DB safety, L0-L4 tesztek
+- **50_RAG_VECTOR_CONTEXT_SERVICE** - Advanced RAG: OCR, chunking, reranking, VectorOps, GraphRAG
+- **51_DOCUMENT_EXTRACTION_INTENT** - Param. doc tipusok, intent routing, szamla use case
+- **52_HUMAN_IN_THE_LOOP_NOTIFICATION** - Review workflow, multi-channel ertesites
+- **53_FRONTEND_DESIGN_SYSTEM** - Untitled UI 80+ komponens, chat UI, user journey, PWA
+- **54_LLM_QUALITY_COST_OPTIMIZATION** - Promptfoo CI/CD, rubric scoring, koltseg
+- **55_CLAUDE_CODE_CONFIGURATION** - Claude iranyitas: CLAUDE.md, commands, MCP
+- **56_EXECUTION_PLAN** - 20 ciklus, session sablon, progress tracking
 
 **Dev Artifacts:**
 - IMPLEMENTATION_PLAN.md, SKILL_DEVELOPMENT.md, AIFLOW_MASTER_PLAN.md

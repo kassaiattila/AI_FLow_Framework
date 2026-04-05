@@ -18,19 +18,19 @@ Papir vagy digitalis PDF dokumentumbol strukturalt, ellenorzott adatot kinyerni 
 
 ## Preconditions
 
-- FastAPI backend fut (`localhost:8100`), PostgreSQL + Redis Docker-ben
+- FastAPI backend fut (`localhost:8101`), PostgreSQL + Redis Docker-ben
 - Alembic migraciok lefutottak (015 `document_type_configs` + 016 `invoices` tabla)
 - Legalabb 1 document type config letezik (default: `invoice-hu`, 14 mezo)
-- Vite frontend fut (`localhost:5174`)
+- Vite frontend fut (`localhost:5173`)
 
 ---
 
 ## Steps (User Journey)
 
-### 1. Dokumentum feltoltes (Document Upload oldal)
+### 1. Dokumentum feltoltes (Documents oldal — Upload tab)
 
-**URL:** `/document-upload`
-**Felhasznalo:** Megnyitja a "Document Upload" oldalt a sidebar menubol.
+**URL:** `/documents` → **Upload** tab (v1.1 konszolidacio: `/document-upload` megszunt)
+**Felhasznalo:** Megnyitja a "Documents" oldalt es atvalt az "Upload" tab-ra.
 
 - Drag-and-drop vagy kattintas a dropzone-ra
 - 1 vagy tobb PDF fajl kivalasztasa (max 20MB/fajl)

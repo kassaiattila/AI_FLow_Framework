@@ -124,12 +124,20 @@ Ha uj oldal vagy komponens:
 mcp__ClaudeTalkToFigma__export_node_as_image → {node_id, format: "png"}
 ```
 
-## Design Elvek (ld. REDESIGN_PLAN.md):
+## Design Elvek (ld. REDESIGN_PLAN.md + 43_UI_RATIONALIZATION_PLAN.md):
 - **Progressive Disclosure** — Ne mutass mindent egyszerre, bovitheto sorok
 - **Governor Pattern (Stanford HAI)** — AI adat 70% opacity amig nem verifikalt
 - **Real-Time Status** — Favicon pipeline statusz, SSE/WebSocket live update
 - **Honest Data** — Demo/Live badge MINDIG lathato, skeleton loading
 - **Keyboard-First** — Cmd+K, Tab navigacio, single-key shortcuts
+
+## Design System: Untitled UI
+- **Komponens konyvtar:** Untitled UI Figma Kit (1,100+ ikon, 200+ komponens)
+- **Szinek:** brand indigo (#4f46e5), surface (#f8fafc/#0f172a), status (success/warning/error/info)
+- **Typography:** Inter font, 13px base, 8px spacing grid
+- **Implementacio:** Tailwind v4 utility classes (NEM MUI sx prop)
+- **Accessibility:** React Aria (WCAG AA)
+- **Ld.:** `aiflow-admin/figma-sync/UNTITLED_UI_AGENT.md` komponens referencia
 
 ## VALOS teszteles (a design UTAN!):
 - A design UTAN kovetkezik: `/ui-page` vagy `/ui-component` a megvalositas

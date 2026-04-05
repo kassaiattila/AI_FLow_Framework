@@ -1,0 +1,153 @@
+# Promptfoo evaluation config for Email Intent Processor
+# Run: npx promptfoo eval -c skills/email_intent_processor/tests/promptfooconfig.yaml
+# View: npx promptfoo view
+
+description: "Email Intent Processor - intent classification & entity extraction"
+
+providers:
+  - id: openai:gpt-4o-mini
+    label: "gpt-4o-mini (intent classifier)"
+    config:
+      temperature: 0
+      response_format:
+        type: json_object
+
+prompts:
+  - label: "intent_classifier"
+    raw: |
+      You are an email intent classifier for a Hungarian insurance company's
+      customer service system. Classify the email into exactly one intent category.
+
+      Available categories: complaint, inquiry, order, support, feedback, claim, cancellation
+
+      Rules:
+      1. Analyze subject AND body together.
+      2. Choose the SINGLE most relevant intent.
+      3. Assign confidence (0.0-1.0).
+      4. Respond with valid JSON only.
+
+      Output format:
+      {"intent_id": "...", "confidence": 0.0, "sub_intent": "...", "reasoning": "..."}
+
+      Classify this email:
+
+      Subject: {{subject}}
+
+      Body:
+      {{body}}
+
+tests:
+  # --- Complaint intents ---
+  - vars:
+      subject: "Felháborító kiszolgálás a fióknál"
+      body: "Tisztelt Ügyfélszolgálat! Tegnap a Váci úti fiókban 2 órát kellett várnom, senki nem foglalkozott velem. Ez elfogadhatatlan! Kérem visszajelzésüket. Kovács Péter, szerződésszám: AH-2024-001234"
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'complaint'"
+      - type: javascript
+        value: "JSON.parse(output).confidence >= 0.8"
+
+  - vars:
+      subject: "Kártérítés elutasítva - panasz"
+      body: "Panaszt nyújtok be a 2024/03/15-i kárbejelentésem (KBJ-2024-5678) elutasítása miatt. A káresemény egyértelműen a biztosítás hatálya alá tartozik. Felülvizsgálatot kérek."
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'complaint'"
+
+  # --- Inquiry intents ---
+  - vars:
+      subject: "Tájékoztatás kérés - CASCO díj"
+      body: "Szeretném megtudni, hogy a CASCO biztosításom díja mennyivel emelkedik jövőre. Kötvényszámom: CAS-2023-9876. Előre is köszönöm a választ."
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'inquiry'"
+
+  - vars:
+      subject: "Biztosítási feltételek"
+      body: "Érdeklődnék, hogy a lakásbiztosításom kiterjed-e a villámkárra? Ha nem, milyen kiegészítő lehetőségek vannak?"
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'inquiry'"
+
+  # --- Claim intents ---
+  - vars:
+      subject: "Kárbejelentés - autóbaleset"
+      body: "Bejelentem, hogy 2024.03.20-án a Budapest, Kossuth Lajos utcában közlekedési balesetben megsérült a gépjárművem (ABC-123). A rendőrségi jegyzőkönyv száma: BPR-2024-4567. Kérem a kárrendezés megindítását."
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'claim'"
+      - type: javascript
+        value: "JSON.parse(output).confidence >= 0.8"
+
+  - vars:
+      subject: "Viharkár bejelentés"
+      body: "A tegnapi vihar letépte a tetőcserepeket. Kérem, küldjék ki a kárszakértőt. Cím: 1234 Budapest, Példa u. 5. Kötvényszám: LAK-2023-1111."
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'claim'"
+
+  # --- Cancellation intents ---
+  - vars:
+      subject: "Szerződés felmondás"
+      body: "Ezennel felmondásra kerül a CAS-2023-9876 számú CASCO biztosítási szerződésem 2024.06.30-i hatállyal. Kérem az írásban történő visszaigazolást."
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'cancellation'"
+      - type: javascript
+        value: "JSON.parse(output).confidence >= 0.8"
+
+  # --- Support intents ---
+  - vars:
+      subject: "Nem tudok belépni az online fiókba"
+      body: "Próbálok belépni az ügyfélportálra, de mindig hibát dob. Felhasználónevem: kovacs.peter@email.hu. Tudnának segíteni?"
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'support'"
+
+  # --- Feedback intents ---
+  - vars:
+      subject: "Köszönet a gyors kárrendezésért"
+      body: "Szeretném megköszönni a KBJ-2024-1234 számú kárigényem gyors és szakszerű kezelését. Az ügyintéző, Nagy Anna, rendkívül segítőkész volt."
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'feedback'"
+
+  # --- Order intents ---
+  - vars:
+      subject: "Új biztosítás kötése"
+      body: "Szeretnék lakásbiztosítást kötni a 1234 Budapest, Példa u. 5. szám alatti ingatlanomra. Kérem, küldjék el az ajánlatot és a szükséges dokumentumokat."
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'order'"
+
+  # --- English email ---
+  - vars:
+      subject: "Insurance claim - water damage"
+      body: "I would like to report water damage in my apartment at Andrassy ut 10. The flooding occurred on March 18, 2024 due to a burst pipe. Policy number: LAK-2023-2222."
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).intent_id === 'claim'"
+
+  # --- Ambiguous / multi-intent ---
+  - vars:
+      subject: "Szerződésmódosítás és díjreklamáció"
+      body: "Egyrészt módosítani szeretném a címemet (új cím: 5678 Szeged, Tisza u. 10), másrészt reklamálok a márciusi dupla díjlevonás miatt. Számlaszám: HU12-3456-7890."
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "['complaint', 'support'].includes(JSON.parse(output).intent_id)"
+      - type: javascript
+        value: "JSON.parse(output).confidence <= 0.9"
+
+outputPath: test_output/promptfoo/email_intent_results.json

@@ -1,0 +1,88 @@
+# Email Triage Pipeline
+# Chain: fetch emails -> classify priority -> route by category -> notify
+# Automated email triage with priority classification and alert routing.
+#
+# Prerequisites:
+#   - Email connector configured (connector_id)
+#   - Classifier service running
+#   - DataRouter and Notification services running
+#
+# Usage:
+#   POST /api/v1/pipelines  (create with this YAML)
+#   POST /api/v1/pipelines/{id}/run  {"input_data": {"connector_id": "..."}}
+
+name: email_triage
+version: "1.0.0"
+description: "Fetch emails -> classify priority -> route by category -> notify per channel"
+
+trigger:
+  type: manual
+
+input_schema:
+  connector_id:
+    type: string
+    required: true
+    description: "Email connector configuration ID"
+  days:
+    type: integer
+    default: 1
+    description: "Fetch emails from last N days"
+
+steps:
+  - name: fetch_emails
+    service: email_connector
+    method: fetch_emails
+    config:
+      connector_id: "{{ input.connector_id }}"
+      since_days: "{{ input.days }}"
+    retry:
+      max_retries: 3
+      backoff_base: 2.0
+      backoff_max: 30.0
+    timeout: 120
+
+  - name: classify_priority
+    service: classifier
+    method: classify
+    depends_on: [fetch_emails]
+    for_each: "{{ fetch_emails.output.emails }}"
+    config:
+      text: "{{ item.subject }} {{ item.body_text }}"
+      subject: "{{ item.subject }}"
+    retry:
+      max_retries: 2
+      backoff_base: 1.0
+      backoff_max: 10.0
+    concurrency: 5
+    timeout: 60
+
+  - name: route_by_category
+    service: data_router
+    method: filter
+    depends_on: [classify_priority]
+    config:
+      items: "{{ classify_priority.output.results }}"
+      condition: "confidence > 0.7"
+    timeout: 60
+
+  - name: notify_high_priority
+    service: notification
+    method: send
+    depends_on: [route_by_category]
+    config:
+      channel: "slack"
+      template: "{{ route_by_category.output.matched }} high-priority emails need attention. Check the inbox for details."
+      recipients:
+        - "#alerts"
+      subject: "Email Triage Alert"
+    retry:
+      max_retries: 2
+      backoff_base: 2.0
+      backoff_max: 15.0
+    timeout: 30
+
+metadata:
+  author: "AIFlow"
+  category: "email"
+  tier: "4"
+  cycle: "C19"

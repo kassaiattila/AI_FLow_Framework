@@ -184,6 +184,48 @@ async def _check_redis() -> ReadyCheck:
         )
 
 
+async def _check_langfuse() -> ReadyCheck:
+    """Check Langfuse observability connectivity."""
+    try:
+        from aiflow.observability.tracing import get_langfuse_client
+
+        client = get_langfuse_client()
+        if client is None:
+            # Check if keys are configured but client not initialized
+            pk = os.getenv("AIFLOW_LANGFUSE__PUBLIC_KEY", "")
+            if not pk:
+                return ReadyCheck(
+                    name="langfuse",
+                    status="disabled",
+                    message="Langfuse not configured (no API keys)",
+                )
+            return ReadyCheck(
+                name="langfuse",
+                status="disabled",
+                message="Langfuse client not initialized",
+            )
+
+        auth_ok = client.auth_check()
+        if auth_ok:
+            return ReadyCheck(
+                name="langfuse",
+                status="ok",
+                message="Langfuse connected",
+            )
+        return ReadyCheck(
+            name="langfuse",
+            status="error",
+            message="Langfuse auth check failed",
+        )
+    except Exception as e:
+        logger.warning("health_langfuse_check_failed", error=str(e))
+        return ReadyCheck(
+            name="langfuse",
+            status="error",
+            message=f"Check failed: {type(e).__name__}",
+        )
+
+
 @router.get("/health/live", response_model=LiveResponse)
 async def liveness() -> LiveResponse:
     """Kubernetes liveness probe - is the process alive?"""
@@ -210,6 +252,9 @@ async def readiness() -> ReadyResponse:
 
     # Redis check
     checks.append(await _check_redis())
+
+    # Langfuse observability check (non-critical)
+    checks.append(await _check_langfuse())
 
     # Determine overall status: error in database = not ready
     db_check = next((c for c in checks if c.name == "database"), None)

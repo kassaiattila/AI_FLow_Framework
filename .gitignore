@@ -67,6 +67,7 @@ test_emails/
 test_rag_docs/
 
 # === E2E / audit screenshots (regenerated on test runs) ===
+e2e-audit/
 e2e-*.png
 audit-*.png
 test-*.png
