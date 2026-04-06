@@ -12,6 +12,8 @@ __all__ = [
     "AcquiredDocument",
     "DocumentAcquisitionOutput",
     "InvoiceClassificationResult",
+    "PaymentStatus",
+    "ReportResult",
 ]
 
 
@@ -69,3 +71,26 @@ class InvoiceClassificationResult(BaseModel):
     doc_type: str = ""
     language: str = ""
     needs_review: bool = False
+
+
+class PaymentStatus(BaseModel):
+    """Payment status result for a single invoice."""
+
+    invoice_number: str = ""
+    due_date: str = ""
+    amount: float = 0.0
+    payment_status: str = Field("unknown", description="overdue | due_soon | not_due | unknown")
+    days_until_due: int = 0
+    is_overdue: bool = False
+
+
+class ReportResult(BaseModel):
+    """Result of the invoice finder report generation."""
+
+    report_markdown: str = ""
+    report_path: str = ""
+    csv_path: str = ""
+    total_invoices: int = 0
+    overdue_count: int = 0
+    due_soon_count: int = 0
+    total_amount: float = 0.0
