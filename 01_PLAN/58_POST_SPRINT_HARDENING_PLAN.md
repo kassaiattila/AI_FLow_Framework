@@ -1937,7 +1937,8 @@ Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 |-------|----------|---------|---------|-------|--------|
 | B0 | Guardrail per-function + qbpp torles + koncepcio | S19 | DONE | 2026-04-05 | 4b09aad |
 | B1 | LLM guardrail promptok + per-skill config | S20-S21 | DONE | 2026-04-05 | 7cec90b |
-| B2 | Service unit tesztek (130 test, Tier-based) | S22-S23 | TODO | — | — |
+| B2.1 | Core infra service tesztek (65 test, Tier 1) | S23 | DONE | 2026-04-06 | 51ce1bf |
+| B2.2 | v1.2.0 service tesztek (65 test, Tier 2) | S24 | TODO | — | — |
 | B3 | **Invoice Finder E2E pipeline** (valos adat!) | S24-S25 | TODO | — | — |
 | B3.5 | **Konfidencia scoring hardening** + review routing | S26 | TODO | — | — |
 | B4 | Skill hardening (5 skill, 95%+ promptfoo) | S27-S28 | TODO | — | — |
