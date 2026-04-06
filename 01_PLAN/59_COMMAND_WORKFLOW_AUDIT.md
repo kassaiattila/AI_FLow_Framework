@@ -105,7 +105,7 @@ Ez elfogadhato dev/test kontextusban, de dokumentalni kell hogy CSAK dev kornyez
 | Command | Javitas |
 |---------|---------|
 | `/dev-step` | v1.3.0 branch, 58-as terv hivatkozas, elavult branch lista torles, egyszerusites |
-| `/regression` | v1.3.0 kontextus, aktualis teszt szamok (1164 unit) |
+| `/regression` | v1.3.0 kontextus, aktualis teszt szamok (1195 unit, 129 guardrail) |
 | `/update-plan` | Helyes szamok (46 tabla, 6 view, 29 migracio), 58-as terv hivatkozas |
 | `/validate-plan` | Szamok egyeztetese update-plan-nel, Sprint B kontextus |
 | `/service-test` | Port javitas 8100→8102, fazis labelek frissitese |

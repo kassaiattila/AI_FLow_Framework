@@ -40,7 +40,7 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - **v1.3.0: `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint B: service excellence (B0-B11)**
 - 26 service, 165 endpoint (25 router), 46 DB tabla, 29 Alembic migracio
 - 18 pipeline adapter, 6 pipeline template
-- 1164 unit test, 76 guardrail teszt, 97 security teszt, 157 skill test, 102 E2E, 54 promptfoo test case
+- 1195 unit test, 129 guardrail teszt, 97 security teszt, 157 skill test, 102 E2E, 54 promptfoo test case
 - v1.2.2 Sprint A COMPLETE (A0-A8, 2026-04-05)
 - 5 skill (qbpp TOROLVE v1.3.0 B0-ban), 22 UI oldal
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock

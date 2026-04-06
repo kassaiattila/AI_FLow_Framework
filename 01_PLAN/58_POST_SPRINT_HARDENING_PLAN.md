@@ -105,7 +105,7 @@
 | `ci-framework.yml` | Regi venv setup + ruff 574 | `uv sync --dev` |
 | `ci-skill.yml` | Skill fuggoseg hianyzik | pyproject.toml extras |
 
-### 0.6 Szolgaltatas Erettseg (26 service, 6 skill)
+### 0.6 Szolgaltatas Erettseg (26 service, 5 skill)
 
 | Szint | Db | Fo hianyossag |
 |-------|----|---------------|
@@ -1935,8 +1935,8 @@ Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 
 | Fazis | Tartalom | Session | Allapot | Datum | Commit |
 |-------|----------|---------|---------|-------|--------|
-| B0 | Guardrail per-function + qbpp torles + koncepcio | S19 | TODO | — | — |
-| B1 | LLM guardrail promptok + per-skill config | S20-S21 | TODO | — | — |
+| B0 | Guardrail per-function + qbpp torles + koncepcio | S19 | DONE | 2026-04-05 | 4b09aad |
+| B1 | LLM guardrail promptok + per-skill config | S20-S21 | DONE | 2026-04-05 | 7cec90b |
 | B2 | Service unit tesztek (130 test, Tier-based) | S22-S23 | TODO | — | — |
 | B3 | **Invoice Finder E2E pipeline** (valos adat!) | S24-S25 | TODO | — | — |
 | B3.5 | **Konfidencia scoring hardening** + review routing | S26 | TODO | — | — |
