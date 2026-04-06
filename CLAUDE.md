@@ -19,7 +19,7 @@ tests/              — unit/, integration/, e2e/
 ## Key Numbers
 26 services | 165 API endpoints (25 routers) | 46 DB tables | 29 Alembic migrations
 18 pipeline adapters | 6 pipeline templates | 5 skills | 22 UI pages
-1260 unit tests | 129 guardrail tests | 97 security tests | 54 promptfoo test cases
+1325 unit tests | 129 guardrail tests | 97 security tests | 54 promptfoo test cases
 
 ## Build & Test
 ```bash
