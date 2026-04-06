@@ -1,0 +1,172 @@
+# Invoice Finder Pipeline v3
+# Extends V2 with: mailbox scanning, document acquisition, payment status, file org, reporting
+# Chain: email search → doc acquire → classify → extract → payment status → file org → report → notify
+#
+# Prerequisites:
+#   - Email connector configured (connector_id)
+#   - Classifier, Document Extractor, DataRouter, Notification services running
+#   - Azure Document Intelligence configured (optional, for high-quality parsing)
+#
+# Usage:
+#   POST /api/v1/pipelines  (create with this YAML)
+#   POST /api/v1/pipelines/{id}/run  {"input_data": {"connector_id": "cfg-1", "days": 30}}
+
+name: invoice_finder_v3
+version: "3.0.0"
+description: "Invoice Finder: mailbox scan → acquire → classify → extract → report → notify"
+
+trigger:
+  type: manual
+
+input_schema:
+  connector_id:
+    type: string
+    required: true
+    description: "Email connector configuration ID"
+  days:
+    type: integer
+    default: 30
+    description: "Scan emails from last N days"
+  limit:
+    type: integer
+    default: 50
+    description: "Maximum number of emails to scan"
+  confidence_threshold:
+    type: number
+    default: 0.8
+    description: "Minimum confidence for auto-accept classification"
+  notify_channel:
+    type: string
+    default: "email"
+    description: "Notification channel type (email, slack, webhook)"
+  notify_recipients:
+    type: string
+    default: "admin@aiflow.local"
+    description: "Comma-separated notification recipients"
+  output_dir:
+    type: string
+    default: "./data/invoices"
+    description: "Output directory for organized invoice files"
+
+steps:
+  # --- B3.1 steps (S25) ---
+
+  - name: search_emails
+    service: email_connector
+    method: search_invoices
+    config:
+      connector_id: "{{ input.connector_id }}"
+      limit: "{{ input.limit }}"
+      since_days: "{{ input.days }}"
+    retry:
+      max_retries: 3
+      backoff_base: 2.0
+      backoff_max: 30.0
+    timeout: 120
+
+  - name: acquire_documents
+    service: document_extractor
+    method: acquire_from_email
+    depends_on: [search_emails]
+    for_each: "{{ search_emails.output.emails }}"
+    config:
+      email_id: "{{ item.email_id }}"
+      attachments: "{{ item.attachment_names }}"
+      has_attachment: "{{ item.has_attachment }}"
+      body_snippet: "{{ item.body_snippet }}"
+    retry:
+      max_retries: 2
+      backoff_base: 1.0
+      backoff_max: 10.0
+    concurrency: 3
+    timeout: 180
+
+  - name: classify_invoices
+    service: classifier
+    method: classify
+    depends_on: [acquire_documents]
+    for_each: "{{ acquire_documents.output.results }}"
+    config:
+      text: "{{ item.raw_text }}"
+      subject: "invoice_finder"
+      strategy: "llm"
+    retry:
+      max_retries: 2
+      backoff_base: 1.0
+      backoff_max: 10.0
+    concurrency: 5
+    timeout: 60
+
+  # --- B3.2 steps (S26) ---
+
+  - name: extract_fields
+    service: document_extractor
+    method: extract
+    depends_on: [classify_invoices, acquire_documents]
+    for_each: "{{ acquire_documents.output.results }}"
+    config:
+      file_path: "{{ item.file_path }}"
+      config_name: "invoice"
+    condition: "classify_invoices.output.results[loop.index].confidence > {{ input.confidence_threshold }}"
+    retry:
+      max_retries: 2
+      backoff_base: 1.0
+      backoff_max: 10.0
+    concurrency: 3
+    timeout: 180
+
+  - name: check_payment_status
+    service: payment_status
+    method: check
+    depends_on: [extract_fields]
+    for_each: "{{ extract_fields.output.results }}"
+    config:
+      invoice_number: "{{ item.fields.invoice_number }}"
+      due_date: "{{ item.fields.due_date }}"
+      amount: "{{ item.fields.gross_total }}"
+    concurrency: 5
+    timeout: 60
+
+  - name: organize_files
+    service: data_router
+    method: route
+    depends_on: [extract_fields, check_payment_status]
+    config:
+      items: "{{ extract_fields.output.results }}"
+      output_dir: "{{ input.output_dir }}"
+      naming_template: "{{ input.output_dir }}/{{ item.fields.vendor_name }}/{{ item.fields.invoice_date }}_{{ item.fields.invoice_number }}.pdf"
+    timeout: 60
+
+  - name: generate_report
+    service: report_generator
+    method: generate
+    depends_on: [extract_fields, check_payment_status, organize_files]
+    config:
+      invoices: "{{ extract_fields.output.results }}"
+      payment_statuses: "{{ check_payment_status.output.results }}"
+      file_paths: "{{ organize_files.output }}"
+    timeout: 120
+
+  - name: notify_team
+    service: notification
+    method: send
+    depends_on: [generate_report]
+    config:
+      channel: "{{ input.notify_channel }}"
+      template: "Invoice Finder completed: {{ acquire_documents.output.count }} documents acquired, {{ extract_fields.output.count }} invoices extracted."
+      recipients:
+        - "{{ input.notify_recipients }}"
+      subject: "AIFlow Invoice Finder Report"
+      attachments:
+        - "{{ generate_report.output.report_path }}"
+    retry:
+      max_retries: 2
+      backoff_base: 2.0
+      backoff_max: 15.0
+    timeout: 30
+
+metadata:
+  author: "AIFlow"
+  category: "document_processing"
+  tier: "2"
+  cycle: "B3"

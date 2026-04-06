@@ -1,0 +1,27 @@
+# Invoice Finder — PII OFF (invoice fields ARE PII but required for extraction)
+input:
+  pii_masking: "off"
+  pii_logging: true
+  max_length: 10000
+  check_injection: true
+output:
+  validate_amounts: true
+  validate_dates: true
+  check_pii: false
+  check_safety: true
+scope:
+  allowed_topics:
+    - "szamla"
+    - "invoice"
+    - "faktura"
+    - "document"
+    - "amount"
+    - "date"
+    - "supplier"
+    - "email"
+    - "payment"
+    - "fizetesi"
+  blocked_topics: []
+  dangerous_patterns: ["drop\\s+table", "delete\\s+from"]
+llm_fallback:
+  enabled: false

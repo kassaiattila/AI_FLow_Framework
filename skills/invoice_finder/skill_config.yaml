@@ -1,0 +1,52 @@
+models:
+  default: openai/gpt-4o-mini
+  extraction: openai/gpt-4o
+  per_step:
+    email_search: openai/gpt-4o-mini
+    classify_invoice: openai/gpt-4o-mini
+    extract_invoice_data: openai/gpt-4o
+    payment_status: openai/gpt-4o-mini
+    report_generation: openai/gpt-4o-mini
+
+parsing:
+  primary_processor: docling
+  quality_threshold: 0.5
+  azure_di_enabled: true
+
+email_search:
+  subject_keywords:
+    - "szamla"
+    - "invoice"
+    - "számla"
+    - "fizetesi"
+    - "payment"
+    - "faktura"
+    - "szla"
+  body_keywords:
+    - "fizetendo"
+    - "hatarido"
+    - "osszeg"
+    - "netto"
+    - "brutto"
+    - "due date"
+    - "total amount"
+  attachment_patterns:
+    - "*.pdf"
+    - "szamla*.pdf"
+    - "invoice*.pdf"
+    - "szla*.pdf"
+  relevance_threshold: 0.3
+
+classification:
+  confidence_threshold: 0.8
+  human_review_below: 0.8
+
+validation:
+  tolerance_huf: 1.0
+  required_fields: [invoice_number, vendor_name, buyer_name]
+  hungarian_tax_number_regex: '^\d{8}-\d-\d{2}$'
+  standard_vat_rates: [27, 18, 5, 0]
+
+output:
+  default_dir: ./data/invoices
+  file_naming_template: "{{ vendor_name }}/{{ invoice_date }}_{{ invoice_number }}.pdf"
