@@ -1136,6 +1136,20 @@ async def _fetch_outlook_com_impl(
             else "Inbox"
         )
 
+        # Localized inbox folder names (EN, HU, DE, FR, ES, IT, NL, PL, CZ)
+        _INBOX_ALIASES = {
+            "inbox",
+            "beérkezett üzenetek",
+            "beerkezett uzenetek",
+            "posteingang",
+            "boîte de réception",
+            "bandeja de entrada",
+            "posta in arrivo",
+            "postvak in",
+            "skrzynka odbiorcza",
+            "doručená pošta",
+        }
+
         target_folder = None
         if account_filter:
             for store in outlook.Stores:
@@ -1143,9 +1157,16 @@ async def _fetch_outlook_com_impl(
                     try:
                         root = store.GetRootFolder()
                         for folder in root.Folders:
-                            if folder_name.lower() in folder.Name.lower():
+                            fname = folder.Name.lower()
+                            if folder_name.lower() in fname or fname in _INBOX_ALIASES:
                                 target_folder = folder
                                 break
+                        if not target_folder:
+                            # Fallback: use store's default Inbox (olFolderInbox=6)
+                            try:
+                                target_folder = store.GetDefaultFolder(6)
+                            except Exception:
+                                pass
                     except Exception:
                         continue
                 if target_folder:

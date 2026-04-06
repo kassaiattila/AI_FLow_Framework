@@ -277,7 +277,7 @@ class EmailConnectorConfigModel(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "provider IN ('imap', 'o365_graph', 'gmail')",
+            "provider IN ('imap', 'o365_graph', 'gmail', 'outlook_com')",
             name="chk_ecc_provider",
         ),
         Index("idx_ecc_provider", "provider"),
