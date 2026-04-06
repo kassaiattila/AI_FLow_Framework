@@ -6,6 +6,7 @@ the corresponding guard objects (InputGuard, OutputGuard, ScopeGuard).
 
 from __future__ import annotations
 
+import enum
 from pathlib import Path
 
 import structlog
@@ -16,9 +17,22 @@ from aiflow.guardrails.input_guard import InputGuard
 from aiflow.guardrails.output_guard import OutputGuard
 from aiflow.guardrails.scope_guard import ScopeGuard
 
-__all__ = ["GuardrailConfig", "load_guardrail_config"]
+__all__ = ["GuardrailConfig", "PIIMaskingMode", "load_guardrail_config"]
 
 logger = structlog.get_logger(__name__)
+
+
+class PIIMaskingMode(str, enum.Enum):
+    """PII masking strategy per skill.
+
+    ON      — mask all PII (default, safest)
+    PARTIAL — only mask PII types NOT in allowed_pii_types
+    OFF     — no masking at all (e.g. invoice processing needs full PII)
+    """
+
+    ON = "on"
+    PARTIAL = "partial"
+    OFF = "off"
 
 
 class ScopeConfig(BaseModel):
@@ -36,6 +50,9 @@ class InputConfig(BaseModel):
     check_injection: bool = True
     check_pii: bool = True
     pii_masking: bool = False
+    pii_masking_mode: PIIMaskingMode = PIIMaskingMode.ON
+    allowed_pii_types: list[str] = Field(default_factory=list)
+    pii_logging: bool = False
     allowed_languages: list[str] | None = None
     extra_injection_patterns: list[list[str]] = Field(default_factory=list)
 
@@ -81,6 +98,9 @@ class GuardrailConfig(BaseModel):
             max_length=self.input.max_length,
             check_pii=self.input.check_pii,
             pii_masking=self.input.pii_masking,
+            pii_masking_mode=self.input.pii_masking_mode,
+            allowed_pii_types=self.input.allowed_pii_types,
+            pii_logging=self.input.pii_logging,
             check_injection=self.input.check_injection,
             allowed_languages=self.input.allowed_languages,
             injection_patterns=extra or None,
@@ -101,6 +121,32 @@ class GuardrailConfig(BaseModel):
             blocked_topics=self.scope.blocked_topics or None,
             dangerous_patterns=self.scope.dangerous_patterns or None,
         )
+
+
+def _normalize_pii_masking(data: dict) -> None:
+    """Convert YAML pii_masking string/bool to PIIMaskingMode + legacy bool.
+
+    Handles both new format (``pii_masking: "on"/"partial"/"off"``)
+    and legacy format (``pii_masking: true/false``).
+    """
+    input_cfg = data.get("input")
+    if not isinstance(input_cfg, dict):
+        return
+
+    raw = input_cfg.get("pii_masking")
+    if raw is None:
+        return
+
+    if isinstance(raw, bool):
+        # Legacy: true → ON + masking enabled, false → OFF
+        input_cfg["pii_masking_mode"] = PIIMaskingMode.ON.value if raw else PIIMaskingMode.OFF.value
+        input_cfg["pii_masking"] = raw
+    elif isinstance(raw, str) and raw in {"on", "partial", "off"}:
+        input_cfg["pii_masking_mode"] = raw
+        input_cfg["pii_masking"] = raw != "off"
+    # Map allowed_pii → allowed_pii_types for YAML convenience
+    if "allowed_pii" in input_cfg and "allowed_pii_types" not in input_cfg:
+        input_cfg["allowed_pii_types"] = input_cfg.pop("allowed_pii")
 
 
 def load_guardrail_config(path: str | Path) -> GuardrailConfig:
@@ -124,6 +170,8 @@ def load_guardrail_config(path: str | Path) -> GuardrailConfig:
     data = yaml.safe_load(raw)
     if not isinstance(data, dict):
         raise ValueError(f"Invalid guardrail config (expected mapping): {path}")
+
+    _normalize_pii_masking(data)
 
     config = GuardrailConfig.model_validate(data)
     logger.info("guardrail_config_loaded", path=str(path))

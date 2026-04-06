@@ -1,0 +1,19 @@
+# Email Intent Processor — partial PII (routing needs sender/recipient)
+input:
+  pii_masking: "partial"
+  allowed_pii: ["email", "phone", "hu_taj"]
+  max_length: 3000
+  check_injection: true
+output:
+  check_pii: true
+  check_safety: true
+  hallucination_threshold: 0.5
+scope:
+  allowed_topics: ["email", "intent", "complaint", "inquiry", "order", "support", "claim"]
+  blocked_topics: []
+  dangerous_patterns: ["how\\s+to\\s+hack", "delete\\s+all"]
+llm_fallback:
+  enabled: true
+  content_safety_classifier: true
+  pii_detector: true
+  confidence_threshold: 0.7

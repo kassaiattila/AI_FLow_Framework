@@ -78,7 +78,10 @@ class InputGuard(GuardrailBase):
     Args:
         max_length: Maximum allowed character count.
         check_pii: Whether to detect PII patterns.
-        pii_masking: If True, mask detected PII in sanitized_text.
+        pii_masking: Legacy bool toggle (kept for backward compat).
+        pii_masking_mode: Tri-state PII masking — ``"on"``/``"partial"``/``"off"``.
+        allowed_pii_types: PII type names that pass through in PARTIAL mode.
+        pii_logging: If True, log which PII types were detected (audit trail).
         check_injection: Whether to detect prompt injection.
         allowed_languages: Optional list of ISO-639-1 codes (e.g. ``["hu", "en"]``).
         injection_patterns: Extra injection patterns ``(regex, label)`` to append.
@@ -90,6 +93,9 @@ class InputGuard(GuardrailBase):
         max_length: int = 10_000,
         check_pii: bool = True,
         pii_masking: bool = False,
+        pii_masking_mode: str = "on",
+        allowed_pii_types: list[str] | None = None,
+        pii_logging: bool = False,
         check_injection: bool = True,
         allowed_languages: list[str] | None = None,
         injection_patterns: list[tuple[str, str]] | None = None,
@@ -97,6 +103,11 @@ class InputGuard(GuardrailBase):
         self._max_length = max_length
         self._check_pii = check_pii
         self._pii_masking = pii_masking
+        self._pii_masking_mode = (
+            pii_masking_mode.value if hasattr(pii_masking_mode, "value") else str(pii_masking_mode)
+        )
+        self._allowed_pii_types = set(allowed_pii_types or [])
+        self._pii_logging = pii_logging
         self._check_injection = check_injection
         self._allowed_languages = allowed_languages
         self._extra_injection = injection_patterns or []
@@ -126,21 +137,58 @@ class InputGuard(GuardrailBase):
         if self._check_injection:
             violations.extend(self._detect_injection(text))
 
-        # 3. PII detection
-        if self._check_pii:
+        # 3. PII detection (respects pii_masking_mode: on/partial/off)
+        if self._check_pii and self._pii_masking_mode != "off":
             found = self._detect_pii(text)
             pii_matches.extend(found)
             if found:
-                violations.append(
-                    GuardrailViolation(
-                        rule="pii_detected",
-                        message=f"PII detected in input: {', '.join(m.pattern_name for m in found)}",
-                        severity=Severity.WARNING,
-                        details={"pii_types": [m.pattern_name for m in found]},
+                if self._pii_logging:
+                    logger.info(
+                        "pii_detected_audit",
+                        pii_types=[m.pattern_name for m in found],
+                        mode=self._pii_masking_mode,
                     )
+                if self._pii_masking_mode == "on":
+                    # Mask ALL PII
+                    to_mask = found
+                elif self._pii_masking_mode == "partial":
+                    # Mask only PII types NOT in allowed list.
+                    # If an allowed match overlaps a non-allowed match at the
+                    # same position, the non-allowed match is also skipped
+                    # (e.g. TAJ "123-456-789" also matches phone pattern).
+                    allowed_ranges: set[tuple[int, int]] = set()
+                    for m in found:
+                        if m.pattern_name in self._allowed_pii_types:
+                            allowed_ranges.add((m.start, m.end))
+                    to_mask = [
+                        m
+                        for m in found
+                        if m.pattern_name not in self._allowed_pii_types
+                        and not any(m.start < ae and m.end > as_ for as_, ae in allowed_ranges)
+                    ]
+                else:
+                    to_mask = []
+
+                if to_mask:
+                    violations.append(
+                        GuardrailViolation(
+                            rule="pii_detected",
+                            message=f"PII detected in input: {', '.join(m.pattern_name for m in to_mask)}",
+                            severity=Severity.WARNING,
+                            details={"pii_types": [m.pattern_name for m in to_mask]},
+                        )
+                    )
+                    sanitized = self._mask_pii(sanitized, to_mask)
+        elif self._check_pii and self._pii_masking_mode == "off" and self._pii_logging:
+            # OFF mode: still detect for audit logging, but don't mask or violate
+            found = self._detect_pii(text)
+            pii_matches.extend(found)
+            if found:
+                logger.info(
+                    "pii_detected_audit",
+                    pii_types=[m.pattern_name for m in found],
+                    mode="off",
                 )
-                if self._pii_masking:
-                    sanitized = self._mask_pii(text, found)
 
         # 4. Language check
         if self._allowed_languages:

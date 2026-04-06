@@ -1,0 +1,17 @@
+# Invoice Processor — PII OFF (invoice fields ARE PII but required)
+input:
+  pii_masking: "off"
+  pii_logging: true
+  max_length: 5000
+  check_injection: true
+output:
+  validate_amounts: true
+  validate_dates: true
+  check_pii: false
+  check_safety: true
+scope:
+  allowed_topics: ["szamla", "invoice", "faktura", "document", "amount", "date", "supplier"]
+  blocked_topics: []
+  dangerous_patterns: ["drop\\s+table", "delete\\s+from"]
+llm_fallback:
+  enabled: false

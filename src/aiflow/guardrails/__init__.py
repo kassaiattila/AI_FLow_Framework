@@ -21,7 +21,12 @@ from aiflow.guardrails.base import (
     ScopeVerdict,
     Severity,
 )
-from aiflow.guardrails.config import GuardrailConfig, LLMFallbackConfig, load_guardrail_config
+from aiflow.guardrails.config import (
+    GuardrailConfig,
+    LLMFallbackConfig,
+    PIIMaskingMode,
+    load_guardrail_config,
+)
 from aiflow.guardrails.input_guard import InputGuard
 from aiflow.guardrails.llm_guards import (
     LLMContentSafetyClassifier,
@@ -52,5 +57,6 @@ __all__ = [
     # Config
     "GuardrailConfig",
     "LLMFallbackConfig",
+    "PIIMaskingMode",
     "load_guardrail_config",
 ]

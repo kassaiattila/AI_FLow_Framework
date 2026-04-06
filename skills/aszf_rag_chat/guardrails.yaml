@@ -1,0 +1,22 @@
+# ASzF RAG Chat — full PII protection, strict scope
+input:
+  pii_masking: "on"
+  allowed_pii: []
+  max_length: 2000
+  check_injection: true
+output:
+  require_citation: true
+  hallucination_threshold: 0.7
+  check_pii: true
+  check_safety: true
+scope:
+  allowed_topics: ["jog", "biztositas", "aszf", "szolgaltatas", "law", "insurance", "contract"]
+  blocked_topics: ["politika", "orvosi tanacs", "befektetesi tanacs"]
+  dangerous_patterns: ["hogyan torzek be", "hogyan hackeljem", "how\\s+to\\s+hack"]
+llm_fallback:
+  enabled: true
+  hallucination_evaluator: true
+  content_safety_classifier: true
+  scope_classifier: true
+  pii_detector: true
+  confidence_threshold: 0.7
