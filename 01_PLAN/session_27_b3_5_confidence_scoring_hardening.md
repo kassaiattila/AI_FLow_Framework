@@ -8,6 +8,36 @@
 
 ---
 
+## ✅ FUGGOSEGEK TELJESITVE — B3.E2E Phase 2 + 3 DONE (2026-04-08)
+
+| Fazis | Tartalom | Allapot | Commit |
+|-------|----------|---------|--------|
+| B3.E2E Phase 0 | Outlook COM multi-account fetch + email intent | ✅ DONE | `0b5e542` |
+| B3.E2E Phase 1 | Offline invoice finder pipeline teszt (20/20 PASS) | ✅ DONE | `f1f0029` |
+| B3.E2E Phase 2 | PipelineRunner DB persist + real LLM (3 PDFs, 5 steps) | ✅ DONE | (2026-04-08) |
+| B3.E2E Phase 3 | Full 8-step on 3 Outlook accounts (bestix/kodosok/gmail) | ✅ DONE | (2026-04-08) |
+
+**Kalibracios adatok B3.5-hoz (Phase 2 eredmenyek):**
+- 3/3 magyar szamla PDF sikeresen kinyerve valos GPT-4o LLM-mel
+  - EdiMeron, Kacz Levente, CSEPP Studio
+- Classifier: llm_only strategy 3/3 is_invoice=True
+- Field extraction: 3/3 `invoice_number` jelen, `vendor.tax_number` HU format ellenorzes OK
+- Osszes LLM hivas < $0.50
+
+**Framework javitasok Phase 2+3 soran (7 blokkolo bug kiirtva):**
+1. `template.py` — pure expression (`"{{ list_var }}"`) mostantol nativ Python objektumot ad vissza
+2. `document_extractor/service.py:317` — `ModelClient()` → `ModelClient(generation_backend=LiteLLMBackend(...))`
+3. `document_extractor/service.py:190` — `extract()` defensive file_path validation
+4. `document_adapter.py` — `result.fields` → `result.extracted_fields` attribute name fix
+5. `email_connector/service.py` — `EmailAttachment.file_path` field + Outlook COM population
+6. `email_adapter.py` — `attachment_paths` propagation + `InvoiceEmailResult.attachment_paths`
+7. `invoice_finder_v3.yaml` — 6 reszbeli fix (`method: route_files`, classify strategy, config_name, defensive defaults, selectattr filter, generate_report file_paths)
+
+**Ismert soft warning (nem blokkol, kesobbi hardening):**
+- `notification_log` UUID mismatch: a runner nem injektalja a valos `workflow_run.id`-t a `ctx.run_id`-be, ezert string run_id eseten a notification audit INSERT warn-ol. A notification DELIVERY mukodik, csak az audit row hianyzik.
+
+---
+
 ## KONTEXTUS
 
 ### B3.2 Eredmenyek (S26 — DONE)

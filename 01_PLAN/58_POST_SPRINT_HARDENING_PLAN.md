@@ -1939,8 +1939,13 @@ Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 | B1 | LLM guardrail promptok + per-skill config | S20-S21 | DONE | 2026-04-05 | 7cec90b |
 | B2.1 | Core infra service tesztek (65 test, Tier 1) | S23 | DONE | 2026-04-06 | 51ce1bf |
 | B2.2 | v1.2.0 service tesztek (65 test, Tier 2) | S24 | DONE | 2026-04-06 | 62e829b |
-| B3 | **Invoice Finder E2E pipeline** (valos adat!) | S24-S25 | TODO | — | — |
-| B3.5 | **Konfidencia scoring hardening** + review routing | S26 | TODO | — | — |
+| B3.1 | Invoice Finder pipeline + email search + doc acquisition (29 test) | S25 | DONE | 2026-04-06 | 372e08b |
+| B3.2 | Invoice Finder extract + payment + report + notify (16 test) | S26 | DONE | 2026-04-06 | aecce10 |
+| B3.E2E.P0 | Outlook COM multi-account fetch + email intent klasszifikacio | S26a | DONE | 2026-04-06 | 0b5e542 |
+| B3.E2E.P1 | Offline invoice finder pipeline teszt (20/20 PASS) | S26a | DONE | 2026-04-06 | f1f0029 |
+| B3.E2E.P2 | PipelineRunner integration (workflow_runs + step_runs + cost_records, real Docker DB + LLM, 3 PDFs) | S27a | DONE | 2026-04-08 | — |
+| B3.E2E.P3 | Full 8-step pipeline on 3 Outlook accounts (bestix + kodosok + gmail, 3/3 completed) | S27a | DONE | 2026-04-08 | — |
+| B3.5 | **Konfidencia scoring hardening** + review routing | S27b | TODO | — | — |
 | B4 | Skill hardening (5 skill, 95%+ promptfoo) | S27-S28 | TODO | — | — |
 | B5 | Diagram pipeline + Spec writer + koltseg baseline | S29 | TODO | — | — |
 | B6 | **Portal struktura** + 4 journey tervezes | S30 | TODO | — | — |
