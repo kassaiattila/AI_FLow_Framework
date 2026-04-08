@@ -72,9 +72,22 @@ class DocumentExtractAdapter(BaseAdapter):
             config_name=data.config_name,
         )
 
+        # ExtractionResult uses `extracted_fields` as the canonical attribute.
+        # Fallback to `fields` for compatibility with older result shapes.
+        fields = getattr(result, "extracted_fields", None)
+        if fields is None:
+            fields = getattr(result, "fields", {})
+
+        # document_id is a string in the adapter output schema — coerce None to ""
+        raw_id = (
+            getattr(result, "db_id", None)
+            or getattr(result, "invoice_id", None)
+            or getattr(result, "document_id", None)
+        )
+
         return {
-            "document_id": getattr(result, "invoice_id", getattr(result, "document_id", "")),
-            "fields": getattr(result, "fields", {}),
+            "document_id": str(raw_id) if raw_id else "",
+            "fields": fields,
             "confidence": getattr(result, "confidence", 0.0),
             "validation_errors": getattr(result, "validation_errors", []),
             "raw_text": getattr(result, "raw_text", ""),

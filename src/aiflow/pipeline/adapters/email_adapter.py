@@ -92,6 +92,21 @@ class EmailFetchAdapter(BaseAdapter):
 
         emails = []
         for email in result.emails:
+            # Serialize EmailAttachment objects to dicts (preserve file_path!)
+            raw_atts = getattr(email, "attachments", []) or []
+            att_dicts = []
+            for att in raw_atts:
+                if isinstance(att, dict):
+                    att_dicts.append(att)
+                else:
+                    att_dicts.append(
+                        {
+                            "filename": getattr(att, "filename", ""),
+                            "mime_type": getattr(att, "mime_type", ""),
+                            "size": getattr(att, "size", 0),
+                            "file_path": getattr(att, "file_path", ""),
+                        }
+                    )
             emails.append(
                 {
                     "message_id": getattr(email, "message_id", ""),
@@ -99,7 +114,7 @@ class EmailFetchAdapter(BaseAdapter):
                     "sender": getattr(email, "sender", ""),
                     "body_text": getattr(email, "body_text", ""),
                     "received_at": str(getattr(email, "received_at", "")),
-                    "attachments": getattr(email, "attachments", []),
+                    "attachments": att_dicts,
                 }
             )
 
@@ -212,6 +227,10 @@ class InvoiceEmailResult(BaseModel):
     score: float = 0.0
     has_attachment: bool = False
     attachment_names: list[str] = Field(default_factory=list)
+    attachment_paths: list[str] = Field(
+        default_factory=list,
+        description="Absolute paths of saved attachment files on disk (if any).",
+    )
     body_snippet: str = ""
 
 
@@ -284,12 +303,17 @@ class EmailSearchInvoicesAdapter(BaseAdapter):
             body_text = getattr(email, "body_text", "")
             attachments = getattr(email, "attachments", [])
 
-            att_names = []
+            att_names: list[str] = []
+            att_paths: list[str] = []
             for att in attachments:
                 if isinstance(att, dict):
                     att_names.append(att.get("filename", att.get("name", "")))
+                    path = att.get("file_path", "")
                 else:
                     att_names.append(getattr(att, "filename", getattr(att, "name", "")))
+                    path = getattr(att, "file_path", "")
+                if path:
+                    att_paths.append(path)
 
             score = _score_email_for_invoice(subject, body_text, att_names)
 
@@ -303,6 +327,7 @@ class EmailSearchInvoicesAdapter(BaseAdapter):
                         "score": round(score, 3),
                         "has_attachment": len(att_names) > 0,
                         "attachment_names": att_names,
+                        "attachment_paths": att_paths,
                         "body_snippet": body_text[:200],
                     }
                 )

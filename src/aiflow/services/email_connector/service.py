@@ -48,11 +48,18 @@ class ConnectorProvider(str, Enum):
 
 
 class EmailAttachment(BaseModel):
-    """A single email attachment."""
+    """A single email attachment.
+
+    file_path is populated when the fetch backend saves the attachment to disk
+    (Outlook COM + IMAP), allowing downstream pipeline steps to read the file
+    directly. Empty string if the attachment wasn't saved (e.g., Graph API
+    placeholder).
+    """
 
     filename: str = ""
     mime_type: str = ""
     size: int = 0
+    file_path: str = ""
 
 
 class FetchedEmail(BaseModel):
@@ -1137,7 +1144,7 @@ async def _fetch_outlook_com_impl(
         )
 
         # Localized inbox folder names (EN, HU, DE, FR, ES, IT, NL, PL, CZ)
-        _INBOX_ALIASES = {
+        inbox_aliases = {
             "inbox",
             "beérkezett üzenetek",
             "beerkezett uzenetek",
@@ -1158,7 +1165,7 @@ async def _fetch_outlook_com_impl(
                         root = store.GetRootFolder()
                         for folder in root.Folders:
                             fname = folder.Name.lower()
-                            if folder_name.lower() in fname or fname in _INBOX_ALIASES:
+                            if folder_name.lower() in fname or fname in inbox_aliases:
                                 target_folder = folder
                                 break
                         if not target_folder:
@@ -1234,6 +1241,7 @@ async def _fetch_outlook_com_impl(
                                     filename=att_name,
                                     mime_type="application/octet-stream",
                                     size=att_path.stat().st_size if att_path.exists() else 0,
+                                    file_path=str(att_path) if att_path.exists() else "",
                                 )
                             )
                             with open(att_path, "rb") as af:

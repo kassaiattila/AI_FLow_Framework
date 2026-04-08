@@ -71,6 +71,7 @@ steps:
     for_each: "{{ search_emails.output.emails }}"
     config:
       email_id: "{{ item.email_id }}"
+      file_path: "{{ item.attachment_paths[0] if item.attachment_paths else '' }}"
       attachments: "{{ item.attachment_names }}"
       has_attachment: "{{ item.has_attachment }}"
       body_snippet: "{{ item.body_snippet }}"
@@ -89,7 +90,7 @@ steps:
     config:
       text: "{{ item.raw_text }}"
       subject: "invoice_finder"
-      strategy: "llm"
+      strategy: "llm_only"
     retry:
       max_retries: 2
       backoff_base: 1.0
@@ -103,10 +104,13 @@ steps:
     service: document_extractor
     method: extract
     depends_on: [classify_invoices, acquire_documents]
-    for_each: "{{ acquire_documents.output.results }}"
+    # Only extract from documents that were actually acquired with a file path.
+    # Emails without PDF attachments or body URLs produce empty file_path and
+    # would otherwise crash docling on Path("") → ".".
+    for_each: "{{ acquire_documents.output.results | selectattr('file_path') | list }}"
     config:
       file_path: "{{ item.file_path }}"
-      config_name: "invoice"
+      config_name: "invoice-hu"
     condition: "classify_invoices.output.results[loop.index].confidence > {{ input.confidence_threshold }}"
     retry:
       max_retries: 2
@@ -121,20 +125,27 @@ steps:
     depends_on: [extract_fields]
     for_each: "{{ extract_fields.output.results }}"
     config:
-      invoice_number: "{{ item.fields.invoice_number }}"
-      due_date: "{{ item.fields.due_date }}"
-      amount: "{{ item.fields.gross_total }}"
+      # Defensive defaults — LLM may return None for missing fields
+      invoice_number: "{{ item.fields.invoice_number or '' }}"
+      due_date: "{{ item.fields.due_date or '' }}"
+      amount: "{{ item.fields.gross_total or 0 }}"
     concurrency: 5
     timeout: 60
 
   - name: organize_files
     service: data_router
-    method: route
+    method: route_files
     depends_on: [extract_fields, check_payment_status]
     config:
-      items: "{{ extract_fields.output.results }}"
-      output_dir: "{{ input.output_dir }}"
-      naming_template: "{{ input.output_dir }}/{{ item.fields.vendor_name }}/{{ item.fields.invoice_date }}_{{ item.fields.invoice_number }}.pdf"
+      files: "{{ acquire_documents.output.results }}"
+      rules:
+        # Single catch-all rule: tag every acquired invoice file.
+        # "tag" is non-destructive — it marks the match without moving the
+        # source file. Use "move_to_dir" with a target_dir_template in
+        # production if physical file organization is required.
+        - condition: "file_path"
+          action: "tag"
+          config: {}
     timeout: 60
 
   - name: generate_report
@@ -144,7 +155,8 @@ steps:
     config:
       invoices: "{{ extract_fields.output.results }}"
       payment_statuses: "{{ check_payment_status.output.results }}"
-      file_paths: "{{ organize_files.output }}"
+      # Use the original acquired file paths — organize_files only tags, doesn't move
+      file_paths: "{{ acquire_documents.output.results | map(attribute='file_path') | list }}"
     timeout: 120
 
   - name: notify_team
@@ -157,8 +169,6 @@ steps:
       recipients:
         - "{{ input.notify_recipients }}"
       subject: "AIFlow Invoice Finder Report"
-      attachments:
-        - "{{ generate_report.output.report_path }}"
     retry:
       max_retries: 2
       backoff_base: 2.0
