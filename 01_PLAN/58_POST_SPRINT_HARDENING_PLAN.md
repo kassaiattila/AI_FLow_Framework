@@ -775,7 +775,7 @@ B0.5 — Prompt Lifecycle Management (SPRINT B TELJES IDOTARTAMARA!):
     invalidate() metodus: azonnali cache torles
   - Langfuse: AIFLOW_LANGFUSE__ENABLED=true (.env-ben beallitva)
     Prompt versioning, label management, trace-ek, cost tracking
-  - Promptfoo: 54 test case 6 skill-re (mar konfiguralt)
+  - Promptfoo: 80 test case 6 skill-re (mar konfiguralt) — B4.2 utan
 
   AMI HIANYZIK (Sprint B-ben megcsinalando):
   - POST /api/v1/prompts/{name}/invalidate endpoint (cache azonnali torles)
@@ -1947,7 +1947,7 @@ Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 | B3.E2E.P3 | Full 8-step pipeline on 3 Outlook accounts (bestix + kodosok + gmail, 3/3 completed) | S27a | DONE | 2026-04-08 | — |
 | B3.5 | Confidence scoring hardening: FieldConfidenceCalculator (4-factor) + ConfidenceRouter (auto/review/reject) + confidence_config.yaml + BM25 [0,1] normalization (36 unit tests) | S27b | DONE | 2026-04-08 | — |
 | B4.1 | Skill hardening — aszf_rag_chat + email_intent_processor. aszf_rag: 12/12 promptfoo (100%), prompt-ok [N] citation enforcement + hallucination calibration 0.9, guardrails max_length 4000 + llm_fallback 0.8. email_intent: 16/16 promptfoo (100%), intent catalog 10→12 (invoice_received + calendar_invite), HU entity types tax_number/bank_account/postal_address, guardrails HU PII allowlist bovites. Promptfoo infra fix: stdout UTF-8 + logs to stderr + argv support. | S28 | DONE | 2026-04-08 | — |
-| B4.2 | Skill hardening — process_docs + invoice_processor + cubix + diagram (4 skill, 95%+ promptfoo) | S29 | TODO | — | — |
+| B4.2 | Skill hardening — process_documentation + invoice_processor + cubix_course_capture + invoice_finder. process_docs: 14/14 promptfoo (100%), strict shape mapping + decision label + parallel + off-topic refusal + loop-back. invoice_processor: 14/14 promptfoo (100%), HU thousands separator (1.500.000,50→1500000.50), AAM VAT-exempt, multi-currency, multi-page continuation, literal VAT rate reading. cubix_course_capture: 12/12 promptfoo (100%), monolit prompt SPLIT → 3 dedikalt (section_detector + summary_generator + vocabulary_extractor), workflow asyncio.gather, transcript_structurer.yaml DEPRECATED. invoice_finder: 12/12 promptfoo (100%), UJ promptfooconfig.yaml router prompt-tal (4 task: classify/extract/payment_status/report), Phase 0 valos invoice email-eken kalibralva, allowed_pii bovites (email + hu_tax_number + hu_bank_account). +50 promptfoo test (54→104), 4/4 skill PRODUCTION-READY 8/10. | S29 | DONE | 2026-04-08 | — |
 | B5 | Diagram pipeline + Spec writer + koltseg baseline | S29 | TODO | — | — |
 | B6 | **Portal struktura** + 4 journey tervezes | S30 | TODO | — | — |
 | B7 | **Verification Page v2** (bounding box, confidence, diff) | S31 | TODO | — | — |

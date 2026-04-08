@@ -4,6 +4,11 @@ input:
   pii_logging: true
   max_length: 10000
   check_injection: true
+  # B4.2: explicit allow-list of PII categories the skill is allowed to process
+  allowed_pii:
+    - email
+    - hu_tax_number
+    - hu_bank_account
 output:
   validate_amounts: true
   validate_dates: true
@@ -22,6 +27,11 @@ scope:
     - "payment"
     - "fizetesi"
   blocked_topics: []
-  dangerous_patterns: ["drop\\s+table", "delete\\s+from"]
+  # B4.2: invoice-domain injection patterns (in addition to global ones)
+  dangerous_patterns:
+    - "drop\\s+table"
+    - "delete\\s+from"
+    - "modify\\s+vat\\s+rate"
+    - "approve\\s+all\\s+invoices"
 llm_fallback:
   enabled: false

@@ -16,12 +16,44 @@ prompts:
       You are a business process analyst. Convert the following process description
       into a Mermaid flowchart diagram.
 
-      Rules:
+      STRICT SHAPE MAPPING (use exactly these shapes):
+      - Start/End events:  id([Label])         stadium / rounded
+      - User/Service task: id[Label]           rectangle
+      - Decision (gateway): id{Label?}         rhombus (always end with `?`)
+      - Parallel branches: A --> B & C         (ampersand fans out)
+
+      EDGE LABELING RULES (mandatory):
+      - Every decision `{...}` MUST have AT LEAST 2 outgoing edges, each with a label.
+        Hungarian: -->|Igen| / -->|Nem|. English: -->|Yes| / -->|No|.
+      - Other branch labels (e.g. -->|Számlázás| / -->|Technikai|) are also valid.
+      - A `loop back` edge that returns to a previous step is encouraged when the
+        description says "vissza", "ismét", "újra", "back", "again", "retry".
+
+      OFF-TOPIC REFUSAL (very important):
+      - If the input is NOT a business process (e.g. greetings "hi", "hello",
+        casual chat, a question about how to do something, or weather/news/jokes),
+        output exactly: NOT_A_PROCESS
+      - Do NOT invent a flowchart for non-process input.
+
+      OUTPUT RULES:
       1. Use "flowchart TD" (top-down) syntax.
-      2. Use appropriate shapes: ([...]) for start/end, [...] for tasks, {...} for decisions.
-      3. Label all edges, especially from decision nodes (Yes/No or Igen/Nem).
-      4. Include ALL steps from the description — do not skip any.
-      5. Output ONLY the Mermaid code, no markdown fences, no explanations.
+      2. Include ALL steps from the description — do not skip any.
+      3. Output ONLY the Mermaid code (or `NOT_A_PROCESS`).
+         No markdown fences, no explanations, no comments.
+
+      FEW-SHOT EXAMPLE (parallel + decision + loop back):
+      Input: "A vevő leadja a rendelést. A raktáros és a könyvelő egyszerre dolgozik:
+      a raktáros csomagol, a könyvelő számlázik. Ha a csomag sérült, vissza a raktárba.
+      Egyébként kiszállítás."
+      Output:
+      flowchart TD
+          A([Start]) --> B[Vevő leadja a rendelést]
+          B --> C[Raktáros csomagol] & D[Könyvelő számlázik]
+          C --> E{Csomag sérült?}
+          E -->|Igen| C
+          E -->|Nem| F[Kiszállítás]
+          D --> F
+          F --> G([End])
 
       Process description:
       {{process_description}}
@@ -126,5 +158,77 @@ tests:
         value: ["IVR", "számlázás", "technikai", "értékesítés", "elégedettség"]
       - type: llm-rubric
         value: "Should have at least 3 branches from a central decision/routing point"
+
+  # --- B4.2: Decision label enforcement ---
+  - description: "test_decision_labels — every decision diamond must have labeled outgoing edges"
+    vars:
+      process_description: "Az ügyfél kérelmet ad be. A vezető megvizsgálja. Ha jóváhagyja, a pénzügy kifizeti. Ha elutasítja, az ügyfél értesítést kap."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: javascript
+        value: |
+          const hasDecision = /\{[^}]+\}/.test(output);
+          const labeledEdges = (output.match(/-->\|[^|]+\|/g) || []).length;
+          return hasDecision && labeledEdges >= 2;
+
+  # --- B4.2: Parallel branches with ampersand syntax ---
+  - description: "test_parallel_branches — concurrent branches must use parallel syntax"
+    vars:
+      process_description: "A megrendelés beérkezése után egyszerre indul a csomagolás és a számlázás. Mindkettő befejeztével a csomag postázásra kerül."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: javascript
+        value: |
+          // Accept either `B --> C & D` ampersand syntax OR a node with 2+ outgoing edges.
+          const hasAmpersand = / & /.test(output);
+          const lines = output.split('\n');
+          const fromCount = {};
+          for (const l of lines) {
+            const m = l.match(/^\s*([A-Za-z0-9_]+)\s*-->/);
+            if (m) fromCount[m[1]] = (fromCount[m[1]] || 0) + 1;
+          }
+          const hasFan = Object.values(fromCount).some(v => v >= 2);
+          return hasAmpersand || hasFan;
+
+  # --- B4.2: Off-topic refusal — non-process input ---
+  - description: "test_off_topic_refusal — greetings/chat must NOT produce a flowchart"
+    vars:
+      process_description: "Hello, hogy vagy ma? Milyen az időjárás?"
+    assert:
+      - type: javascript
+        value: |
+          // Either output is exactly NOT_A_PROCESS, OR it contains no flowchart structure.
+          const isRefusal = /NOT_A_PROCESS/i.test(output);
+          const hasFlowchart = /flowchart\s+TD[\s\S]*-->/i.test(output);
+          return isRefusal || !hasFlowchart;
+
+  # --- B4.2: Loop-back / retry edge ---
+  - description: "test_loop_back — retry/back-to-step must produce a loop edge"
+    vars:
+      process_description: "A fejlesztő commitol. A CI lefut. Ha sikertelen, vissza a kódoláshoz. Ha sikeres, deploy."
+    assert:
+      - type: contains
+        value: "flowchart"
+      - type: javascript
+        value: |
+          // Look for any node that appears as a target of an edge from a LATER node
+          // (i.e. an upstream node referenced from downstream → loop back).
+          const lines = output.split('\n').map(l => l.trim()).filter(l => l.includes('-->'));
+          const order = {};
+          let idx = 0;
+          for (const l of lines) {
+            const m = l.match(/^([A-Za-z0-9_]+)/);
+            if (m && !(m[1] in order)) { order[m[1]] = idx++; }
+            const m2 = l.match(/-->\s*\|?[^|]*\|?\s*([A-Za-z0-9_]+)/);
+            if (m2 && !(m2[1] in order)) { order[m2[1]] = idx++; }
+          }
+          for (const l of lines) {
+            const src = (l.match(/^([A-Za-z0-9_]+)/) || [])[1];
+            const tgt = (l.match(/-->\s*\|?[^|]*\|?\s*([A-Za-z0-9_]+)/) || [])[1];
+            if (src && tgt && order[tgt] < order[src]) return true;
+          }
+          return false;
 
 outputPath: test_output/promptfoo/process_doc_results.json

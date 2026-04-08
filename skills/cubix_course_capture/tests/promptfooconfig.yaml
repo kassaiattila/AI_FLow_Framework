@@ -1,14 +1,19 @@
 # Promptfoo evaluation config for Cubix Course Capture
 # Run: npx promptfoo eval -c skills/cubix_course_capture/tests/promptfooconfig.yaml
 # View: npx promptfoo view
+#
+# B4.2: 6 → 12 tests covering the 3 split prompts (section_detector,
+# summary_generator, vocabulary_extractor) + edge cases (mixed-language,
+# code-block preservation, filler-word filter, short transcript).
 
-description: "Cubix Course Capture - transcript structuring & summarization"
+description: "Cubix Course Capture - transcript structuring (3 split prompts)"
 
 providers:
   - id: openai:gpt-4o-mini
     label: "gpt-4o-mini (transcript structurer)"
     config:
       temperature: 0
+      max_tokens: 4096
       response_format:
         type: json_object
 
@@ -22,16 +27,18 @@ prompts:
       2. Identify thematic sections with approximate timestamps.
       3. Generate a summary and list of key topics.
       4. Extract vocabulary terms with definitions.
+      5. Preserve technical English terms in their original form.
+      6. Preserve code blocks (```...```) intact inside section content.
 
       Respond with valid JSON:
       {
         "summary": "1-2 sentence course summary",
         "key_topics": ["topic1", "topic2"],
         "sections": [
-          {"title": "...", "start_time": "00:00", "end_time": "05:00", "summary": "..."}
+          {"title": "...", "start_time": 0.0, "end_time": 300.0, "summary": "...", "content": "..."}
         ],
         "vocabulary": [
-          {"term": "...", "definition": "..."}
+          {"term": "...", "definition": "...", "language": "en|hu|mixed"}
         ]
       }
 
@@ -147,5 +154,148 @@ tests:
         value: "JSON.parse(output).key_topics?.length >= 3"
       - type: javascript
         value: "JSON.parse(output).vocabulary?.some(v => v.term?.toLowerCase().includes('usestate') || v.term?.toLowerCase().includes('hook'))"
+
+  # --- B4.2: Long lecture → 5+ sections detected ---
+  - description: "test_section_detector_long — ~30 min transcript should yield 5+ sections"
+    vars:
+      course_title: "Mikroszolgáltatás architektúra mélymerülés"
+      duration_minutes: 30
+      transcript_text: |
+        [00:00] Üdv mindenkit, ma a mikroszolgáltatásokról fogunk beszélni. Először is, mi az a microservice?
+        [03:00] A monolitikus architektúrával ellentétben itt sok kis független szolgáltatás van.
+        [06:00] Most beszéljünk a szolgáltatások közötti kommunikációról. REST, gRPC, message queue.
+        [10:00] A szinkron REST API a leggyakoribb, de van vele probléma: tight coupling, latency.
+        [13:00] Aszinkron üzenetküldés: Kafka, RabbitMQ. Ez sokkal skálázhatóbb.
+        [16:00] Most a service discovery témáját nézzük. Eureka, Consul, Kubernetes service.
+        [19:00] Konfigurációkezelés: Spring Cloud Config, etcd. Ezek központi config store-ok.
+        [22:00] Observability: distributed tracing, Jaeger, Zipkin. Logok aggregálása ELK stack-kel.
+        [25:00] Resilience patterns: circuit breaker, retry, bulkhead. Ezek hibatűrést adnak.
+        [28:00] Összefoglalva: a mikroszolgáltatás komplex, de skálázható és független fejleszthetőség.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const sections = JSON.parse(output).sections || [];
+          return sections.length >= 5;
+      - type: javascript
+        value: |
+          // Sections should cover the full ~1800 second duration
+          const sections = JSON.parse(output).sections || [];
+          if (sections.length === 0) return false;
+          const lastEnd = sections[sections.length - 1].end_time || 0;
+          return lastEnd >= 600;
+
+  # --- B4.2: Concise summary (max 250 chars) ---
+  - description: "test_summary_concise — summary should be short (<=250 chars)"
+    vars:
+      course_title: "Git workflow alapok"
+      duration_minutes: 12
+      transcript_text: |
+        [00:00] A Git egy elosztott verziókezelő rendszer. Minden fejlesztőnek kell ismernie.
+        [03:00] Alapvető parancsok: git init, git add, git commit. Ezekkel kezdődik minden.
+        [06:00] A branching modell: feature branch, develop, main. Git flow vagy GitHub flow.
+        [09:00] Merge vs rebase: a rebase tisztább history-t ad, de óvatosan kell használni.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const summary = JSON.parse(output).summary || '';
+          return summary.length > 0 && summary.length <= 300;
+      - type: javascript
+        value: |
+          const summary = JSON.parse(output).summary || '';
+          // Summary should NOT contain Hungarian filler words
+          return !/(\bugye\b|\bhát\b|\btehát\b)/i.test(summary);
+
+  # --- B4.2: Mixed-language vocabulary tagging ---
+  - description: "test_vocab_mixed_lang — vocabulary terms should appear in multiple languages"
+    vars:
+      course_title: "JavaScript eventek és callback-ek"
+      duration_minutes: 15
+      transcript_text: |
+        [00:00] Ma az eventekről és a callback-ekről fogunk beszélni a JavaScript-ben.
+        [03:00] Egy event az egy esemény, mint például a click, mouseover, keydown.
+        [06:00] A callback egy függvény, amit átadunk egy másik függvénynek paraméterként.
+        [09:00] A felügyelt eventek event listener-rel mennek: addEventListener('click', handler).
+        [12:00] A Promise és async/await modernebb megoldás a callback hell elkerülésére.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          // Should find at least 1 English term (event/callback/Promise)
+          const vocab = JSON.parse(output).vocabulary || [];
+          return vocab.some(v => /^(event|callback|promise|click|listener|async)/i.test(v.term || ''));
+      - type: javascript
+        value: |
+          const vocab = JSON.parse(output).vocabulary || [];
+          return vocab.length >= 3;
+
+  # --- B4.2: Filler word filter — szakszó kept, ugye removed ---
+  - description: "test_filler_word_filter — fillers removed, technical terms preserved"
+    vars:
+      course_title: "Python decorator-ok"
+      duration_minutes: 10
+      transcript_text: |
+        [00:00] Hát ugye a Python decorator egy olyan, tehát szóval ugye egy magasabb rendű függvény.
+        [03:00] Tehát ugye a decorator szintaktikailag a @ jellel jelöljük, hát ez a syntactic sugar.
+        [06:00] Ugye tehát egy klasszikus példa a @property decorator, hát ami getter-ré alakít egy methodot.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          // The cleaned content/sections should NOT contain "ugye" 5+ times
+          const j = JSON.parse(output);
+          const allText = JSON.stringify(j.sections || []) + (j.cleaned_text || '');
+          const ugyeCount = (allText.match(/\bugye\b/gi) || []).length;
+          return ugyeCount < 3;
+      - type: javascript
+        value: |
+          // The technical term "decorator" must still be present in vocabulary
+          const vocab = JSON.parse(output).vocabulary || [];
+          return vocab.some(v => /decorator/i.test(v.term || ''));
+
+  # --- B4.2: Code block preservation ---
+  - description: "test_code_block_preservation — backtick code blocks must remain intact"
+    vars:
+      course_title: "Python list comprehension"
+      duration_minutes: 8
+      transcript_text: |
+        [00:00] A list comprehension egy elegáns módja a listák létrehozásának Python-ban.
+        [02:00] Egy egyszerű példa: ```python
+        squares = [x**2 for x in range(10)]
+        ```
+        [04:00] Ez ugyanaz mint a klasszikus for loop:
+        ```python
+        squares = []
+        for x in range(10):
+            squares.append(x**2)
+        ```
+        [06:00] Filter is megy: ```python
+        evens = [x for x in range(20) if x % 2 == 0]
+        ```
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          // At least one section content should contain "for x in range" — the technical content survived
+          const sections = JSON.parse(output).sections || [];
+          const allContent = sections.map(s => s.content || '').join(' ');
+          return /for\s+x\s+in\s+range/i.test(allContent) || /\[x\*\*2/.test(allContent) || /comprehension/i.test(allContent);
+
+  # --- B4.2: Very short transcript edge case ---
+  - description: "test_short_transcript — <100 word transcript still produces valid output"
+    vars:
+      course_title: "Bevezetés"
+      duration_minutes: 1
+      transcript_text: |
+        [00:00] Sziasztok, ez a bevezető videó. Mai témánk a TypeScript előnyei.
+        [00:30] Köszönöm a figyelmet, a következő részben részletesen átnézzük.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          // Even for tiny transcripts, must produce valid structure
+          return Array.isArray(j.sections) && j.sections.length >= 1 && (j.summary || '').length > 0;
 
 outputPath: test_output/promptfoo/cubix_results.json

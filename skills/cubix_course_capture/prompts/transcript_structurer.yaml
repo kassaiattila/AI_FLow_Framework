@@ -1,6 +1,9 @@
 name: cubix/transcript_structurer
-version: "1.0"
-description: "Structure raw Hungarian lecture transcript into sections, summary, vocabulary"
+version: "1.1"
+description: >
+  DEPRECATED (B4.2): use the 3 split prompts instead — section_detector,
+  summary_generator, vocabulary_extractor. Kept here for backward compatibility
+  and as a fallback when the workflow needs a single-call structuring path.
 
 system: |
   You are a professional transcript editor specializing in Hungarian educational content.
