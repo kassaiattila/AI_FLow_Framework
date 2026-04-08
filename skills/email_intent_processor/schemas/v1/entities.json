@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "entity_types": [
     {
       "id": "person_name",
@@ -135,6 +135,55 @@
       },
       "source_priority": ["subject", "body", "attachment"],
       "normalize": true
+    },
+    {
+      "id": "tax_number",
+      "display_name": "Adoszam (HU)",
+      "extraction_methods": ["regex", "llm"],
+      "regex_patterns": [
+        "\\b\\d{8}-\\d-\\d{2}\\b"
+      ],
+      "llm_prompt_hint": "Extract Hungarian tax numbers (adoszam). Format: XXXXXXXX-Y-ZZ where X is an 8-digit company tax ID, Y is a 1-digit VAT code (1-5), ZZ is a 2-digit county code. Example: '12345678-2-42'. Do NOT confuse with bank accounts or personal IDs.",
+      "validation": {
+        "min_length": 13,
+        "max_length": 13,
+        "pattern": "^\\d{8}-\\d-\\d{2}$"
+      },
+      "source_priority": ["body", "attachment", "subject"],
+      "normalize": true,
+      "normalize_format": "XXXXXXXX-X-XX"
+    },
+    {
+      "id": "bank_account",
+      "display_name": "Bankszamlaszam (HU)",
+      "extraction_methods": ["regex", "llm"],
+      "regex_patterns": [
+        "\\b\\d{8}-\\d{8}(?:-\\d{8})?\\b"
+      ],
+      "llm_prompt_hint": "Extract Hungarian bank account numbers (GIRO format: 2x8 digits or 3x8 digits). Example: '11773016-01234567' (16-digit domestic) or '11773016-01234567-12345678' (24-digit with extension). Do NOT confuse with tax numbers (XXXXXXXX-X-XX) or phone numbers.",
+      "validation": {
+        "min_length": 17,
+        "max_length": 26
+      },
+      "source_priority": ["body", "attachment"],
+      "normalize": true,
+      "normalize_format": "XXXXXXXX-XXXXXXXX[-XXXXXXXX]"
+    },
+    {
+      "id": "postal_address",
+      "display_name": "Postai cim (HU)",
+      "extraction_methods": ["llm"],
+      "regex_patterns": [
+        "\\b\\d{4}\\s+[A-Z\\u00C0-\\u017E][a-z\\u00E0-\\u017E]+",
+        "\\b(?:utca|ut|ter|sor|korut|koz|setany)\\b"
+      ],
+      "llm_prompt_hint": "Extract Hungarian postal addresses with strict structure: 4-digit ZIP + city + street name + type (utca/ut/ter/korut/koz/setany) + house number (+ optional floor/door). Example: '1051 Budapest, Nador utca 12. 3/4.'. This is STRICTER than the general address field — it MUST have all 4 components (zip, city, street, number).",
+      "validation": {
+        "min_length": 15,
+        "max_length": 200
+      },
+      "source_priority": ["body", "attachment"],
+      "normalize": false
     }
   ]
 }

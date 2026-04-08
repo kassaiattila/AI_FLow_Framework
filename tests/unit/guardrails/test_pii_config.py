@@ -204,7 +204,13 @@ class TestPerSkillConfigLoad:
         ("skill", "expected_mode", "expected_allowed"),
         [
             ("aszf_rag_chat", PIIMaskingMode.ON, []),
-            ("email_intent_processor", PIIMaskingMode.PARTIAL, ["email", "phone", "hu_taj"]),
+            (
+                "email_intent_processor",
+                PIIMaskingMode.PARTIAL,
+                # B4.1 expansion: HU tax + bank account added for routing/triage
+                # context — these types are already in InputGuard.PII_PATTERNS.
+                ["email", "phone", "hu_taj", "hu_tax_number", "hu_bank_account"],
+            ),
             ("invoice_processor", PIIMaskingMode.OFF, []),
             ("process_documentation", PIIMaskingMode.ON, []),
             ("cubix_course_capture", PIIMaskingMode.ON, []),
@@ -237,7 +243,14 @@ class TestPerSkillConfigLoad:
         cfg = load_guardrail_config(SKILLS_DIR / "email_intent_processor" / "guardrails.yaml")
         guard = cfg.build_input_guard()
         assert guard._pii_masking_mode == "partial"
-        assert guard._allowed_pii_types == {"email", "phone", "hu_taj"}
+        # B4.1: expanded HU PII set so routing + audit can see adoszam + bankszamla.
+        assert guard._allowed_pii_types == {
+            "email",
+            "phone",
+            "hu_taj",
+            "hu_tax_number",
+            "hu_bank_account",
+        }
 
 
 # ===================================================================

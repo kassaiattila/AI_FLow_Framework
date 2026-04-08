@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "intents": [
     {
       "id": "complaint",
@@ -425,6 +425,91 @@
         "request"
       ],
       "auto_action": "none"
+    },
+    {
+      "id": "invoice_received",
+      "display_name": "Kapott szamla / Dijbekero",
+      "description": "Kulso szamlakibocsato altal kuldott szamla, dijbekero vagy fizetesi felszolitas. Pontos osszeg, szamlaszam, fizetesi hatarido jelenik meg. Nem kar, nem marketing.",
+      "keywords_hu": [
+        "szamla",
+        "dijbekero",
+        "fizetesi felszolitas",
+        "fizetendo",
+        "fizetesi hatarido",
+        "befizetesi kotelezettseg",
+        "invoice",
+        "szamlaszam"
+      ],
+      "keywords_en": [
+        "invoice",
+        "bill",
+        "payment due",
+        "amount due",
+        "payment reminder",
+        "account statement",
+        "fee notice"
+      ],
+      "examples": [
+        "Szamla: 123456 — fizetesi hatarido 2026.04.15",
+        "Your invoice INV-2024-5678 is ready — due April 15",
+        "Dijbekero a 2024. marciusi ideszakra (48 500 Ft)"
+      ],
+      "routing": {
+        "queue": "penzugy",
+        "priority_boost": 1,
+        "sla_hours": 24
+      },
+      "ml_label": "invoice_received",
+      "sub_intents": [
+        "one_time_invoice",
+        "recurring_invoice",
+        "overdue_reminder"
+      ]
+    },
+    {
+      "id": "calendar_invite",
+      "display_name": "Meeting meghivas",
+      "description": "Meeting / naptar meghivas, tipikusan .ics csatolmannyal. Idopont, helyszin, szervezo, RSVP opcioval. Kulonbozik az internal email-tol, ami csak szoveges megbeszelest kezdemenyez.",
+      "keywords_hu": [
+        "meghivas",
+        "megbeszeles",
+        "meeting",
+        "invitation",
+        "idopont",
+        "elfogad",
+        "elutasit",
+        "teams meeting",
+        "zoom"
+      ],
+      "keywords_en": [
+        "meeting invitation",
+        "calendar invite",
+        "RSVP",
+        "accept",
+        "decline",
+        "tentative",
+        "when2meet",
+        "webex",
+        "google meet"
+      ],
+      "examples": [
+        "Meeting: Sprint review — 2026-04-10 10:00 CET",
+        "Meghivas: Q2 tervezes (.ics csatolmany)",
+        "Outlook calendar invite: Friday 2pm"
+      ],
+      "routing": {
+        "queue": "calendar",
+        "priority_boost": 0,
+        "sla_hours": 4
+      },
+      "ml_label": "calendar_invite",
+      "sub_intents": [
+        "accept",
+        "decline",
+        "tentative",
+        "new_invite"
+      ],
+      "auto_action": "rsvp_process"
     }
   ]
 }

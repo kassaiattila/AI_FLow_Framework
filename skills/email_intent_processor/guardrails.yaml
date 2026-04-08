@@ -1,19 +1,72 @@
-# Email Intent Processor — partial PII (routing needs sender/recipient)
+# Email Intent Processor — partial PII (routing needs sender/recipient).
+#
+# B4.1 changes:
+#   - allowed_pii expanded: email, phone, hu_taj, hu_tax_number, hu_bank_account
+#     These HU patterns are ALREADY implemented in input_guard.py (PII_PATTERNS);
+#     listing them in allowed_pii keeps them readable but hashes other PII.
+#   - max_length 3000 -> 4000 (HU invoice-style emails can be long)
+#   - extra_injection_patterns: strip email-specific prompt-inject attempts
+#     that showed up during Phase 0 e2e testing.
+#   - output.hallucination_threshold kept at 0.5 — intent classification is
+#     a labeling task, not a grounded-generation task; strict groundedness
+#     is irrelevant here.
+
 input:
   pii_masking: "partial"
-  allowed_pii: ["email", "phone", "hu_taj"]
-  max_length: 3000
+  # HU PII types that routing+triage logic needs to see in plain form.
+  # All of these are already recognized by InputGuard.PII_PATTERNS:
+  #   - email, phone         (universal)
+  #   - hu_taj               (TAJ szam XXX-XXX-XXX)
+  #   - hu_tax_number        (adoszam XXXXXXXX-X-XX)
+  #   - hu_bank_account      (bankszamla XXXXXXXX-XXXXXXXX(-XXXXXXXX))
+  allowed_pii:
+    - email
+    - phone
+    - hu_taj
+    - hu_tax_number
+    - hu_bank_account
+  max_length: 4000
   check_injection: true
+  extra_injection_patterns:
+    - ["ignore\\s+(the\\s+)?intent\\s+classifier", "override_classifier"]
+    - ["classify\\s+this\\s+as\\s+\\w+", "force_label"]
+    - ["return\\s+confidence\\s+[01]\\.\\d+", "force_confidence"]
+
 output:
   check_pii: true
   check_safety: true
+  # Intent classification is a labeling task — not generation. Keep the
+  # existing 0.5 threshold (loose) because there is no "context" to ground
+  # against. Marketing/notification boundary is the real challenge, not
+  # fabricated content.
   hallucination_threshold: 0.5
+
 scope:
-  allowed_topics: ["email", "intent", "complaint", "inquiry", "order", "support", "claim"]
+  allowed_topics:
+    - email
+    - intent
+    - complaint
+    - inquiry
+    - order
+    - support
+    - claim
+    - invoice
+    - calendar
+    - internal
+    - feedback
+    - cancellation
+    - marketing
+    - notification
   blocked_topics: []
-  dangerous_patterns: ["how\\s+to\\s+hack", "delete\\s+all"]
+  dangerous_patterns:
+    - "how\\s+to\\s+hack"
+    - "delete\\s+all"
+    - "drop\\s+table"
+
 llm_fallback:
   enabled: true
   content_safety_classifier: true
   pii_detector: true
+  # 0.7 is fine here — classifier confidence is the real signal, not
+  # a secondary LLM safety check.
   confidence_threshold: 0.7

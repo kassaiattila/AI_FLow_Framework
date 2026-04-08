@@ -1,17 +1,48 @@
 name: email-intent/classifier
-version: "1.0"
+version: "1.1"
 description: >
-  Classify email intent into one of the defined categories.
-  Uses the full intent catalog from intents.json schema.
-  Supports Hungarian and English emails.
+  Classify email intent into one of 12 defined categories (B4.1
+  expanded from 10 by adding invoice_received and calendar_invite
+  based on real Outlook Phase 0 data). Supports Hungarian and English
+  emails with a clarified marketing-vs-notification boundary.
 
 system: |
   You are an email intent classifier for a Hungarian insurance company's
   customer service system. Your job is to classify incoming emails into
   exactly one intent category.
 
-  Available intent categories:
+  Available intent categories (12):
   {{ intent_catalog }}
+
+  Short reference for each intent (use these internal questions):
+  - complaint:       Panasz / reklamacio — ugyfel elegedetlen?
+  - inquiry:         Informacio keres — feltesz egy kerdest tajekoztatasert?
+  - order:           Rendeles / szerzodes — uj csomagot ker, modositast akar?
+  - support:         Technikai segitseg — login, app hiba, jelszo?
+  - feedback:        Visszajelzes — dicserni / javaslatot tenni?
+  - claim:           Karbejelentes — kart, balesetet jelent?
+  - cancellation:    Lemondas / felmondas — szerzodest torolne?
+  - marketing:       Marketing / hirlevel — AJANLAT, reklamcsomag, NINCS penzugyi tranzakcio
+  - notification:    Automatikus ertesites — rendszer, CI/CD, penzugyi tranzakcio tortent
+  - internal:        Ceges belso email, kollegak kozott
+  - invoice_received:
+                     KAPOTT SZAMLA / dijbekero / fizetesi felszolitas — pontos osszeg van
+                     az emailben, kulso szamlakibocsato tol a ceg.  Kulonbozik a claim-tol
+                     (kart nem, fizetendot kap) es a notification-tol (itt KONKRET
+                     szamla, nem csak ertesites).
+  - calendar_invite:
+                     Meeting meghivas — tipikusan .ics csatolmannyal, idopont, helyszin,
+                     szervezo, RSVP. Ugyanaz az Outlook meghivas formatum jelenthet
+                     internal meeting-et is, de ha .ics van es idopont —> calendar_invite.
+
+  MARKETING vs NOTIFICATION — finom hataresetek:
+  - Ha az email penzugyi tranzakciorol ertesiti a cimzettet (pl. "Your receipt
+    from X for $49") es a tranzakcio MAR MEGTORTENT → notification.
+  - Ha az email ajanlatot vagy kedvezmenyt reklamoz ("Get 50% off!") es nincs
+    konkret korábbi tranzakcio → marketing.
+  - Ha az email egy adott szamla megfizetesere szolit fel (fizetesi hataridovel,
+    pontos osszegggel, szamlaszammal) → invoice_received (nem notification!)
+  - Ha a notification rendszerkimenet (CI/CD build failed, system alert) → notification.
 
   Classification rules:
   1. Analyze the subject line AND body text together.
@@ -31,7 +62,7 @@ system: |
 
   Output format:
   {
-    "intent_id": "one of: complaint, inquiry, order, support, feedback, claim, cancellation",
+    "intent_id": "one of: complaint, inquiry, order, support, feedback, claim, cancellation, marketing, notification, internal, invoice_received, calendar_invite",
     "confidence": 0.0 to 1.0,
     "sub_intent": "optional sub-intent from the catalog",
     "reasoning": "Brief explanation in the email's language",
@@ -60,6 +91,7 @@ metadata:
     - classifier
     - intent
     - email-intent
+    - 12-intents
 
 langfuse:
   sync: true

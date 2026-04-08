@@ -4,7 +4,7 @@
 > **Elozmeny:** v1.2.1 COMPLETE (S1-S14, 2026-04-04) — UI, observability, quality, 102 E2E
 > **Cel:** Ket sprint: (A) infrastruktura+biztonsag+halott kod+guardrail keretrendszer, (B) szolgaltatas excellence+prompt guardrail implementacio
 > **Becsult idotartam:** Sprint A ~8 session, Sprint B ~10 session
-> **Infrastruktura:** 26 service, 162 endpoint (25 router), 46 DB tabla, 29 migracio, 18 adapter
+> **Infrastruktura:** 26 service, 165 endpoint (25 router), 46 DB tabla, 29 migracio, 21 adapter, 6 pipeline template, 6 skill
 > **Sprint A: COMPLETE** (A0-A8 DONE, v1.2.2, 2026-04-05) — CI, ruff, dead code, security, stubs, guardrails, audit
 
 ---
@@ -1946,7 +1946,8 @@ Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 | B3.E2E.P2 | PipelineRunner integration (workflow_runs + step_runs + cost_records, real Docker DB + LLM, 3 PDFs) | S27a | DONE | 2026-04-08 | — |
 | B3.E2E.P3 | Full 8-step pipeline on 3 Outlook accounts (bestix + kodosok + gmail, 3/3 completed) | S27a | DONE | 2026-04-08 | — |
 | B3.5 | Confidence scoring hardening: FieldConfidenceCalculator (4-factor) + ConfidenceRouter (auto/review/reject) + confidence_config.yaml + BM25 [0,1] normalization (36 unit tests) | S27b | DONE | 2026-04-08 | — |
-| B4 | Skill hardening (5 skill, 95%+ promptfoo) | S27-S28 | TODO | — | — |
+| B4.1 | Skill hardening — aszf_rag_chat + email_intent_processor. aszf_rag: 12/12 promptfoo (100%), prompt-ok [N] citation enforcement + hallucination calibration 0.9, guardrails max_length 4000 + llm_fallback 0.8. email_intent: 16/16 promptfoo (100%), intent catalog 10→12 (invoice_received + calendar_invite), HU entity types tax_number/bank_account/postal_address, guardrails HU PII allowlist bovites. Promptfoo infra fix: stdout UTF-8 + logs to stderr + argv support. | S28 | DONE | 2026-04-08 | — |
+| B4.2 | Skill hardening — process_docs + invoice_processor + cubix + diagram (4 skill, 95%+ promptfoo) | S29 | TODO | — | — |
 | B5 | Diagram pipeline + Spec writer + koltseg baseline | S29 | TODO | — | — |
 | B6 | **Portal struktura** + 4 journey tervezes | S30 | TODO | — | — |
 | B7 | **Verification Page v2** (bounding box, confidence, diff) | S31 | TODO | — | — |
