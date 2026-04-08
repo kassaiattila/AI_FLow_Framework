@@ -41,23 +41,46 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
-def _bm25_score(query_terms: list[str], text: str) -> float:
-    """Simplified BM25-like term-frequency score for in-memory keyword search."""
+def _bm25_score(
+    query_terms: list[str],
+    text: str,
+    *,
+    avg_dl: float = 200.0,
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> float:
+    """Simplified BM25-like term-frequency score, saturation-normalized to [0, 1].
+
+    The raw BM25 score is unbounded — repeated matches can drive it above 1.0
+    and break the hybrid combination ``0.6 * cosine + 0.4 * bm25``. We apply
+    a saturation normalization ``score / (score + 1)`` as the final step,
+    which maps ``[0, ∞)`` to ``[0, 1)`` monotonically and keeps the relative
+    ordering of documents intact.
+
+    Args:
+        query_terms: Tokens to score (whitespace-split, lowercased by caller).
+        text: Document body.
+        avg_dl: Expected average document length (tuned via corpus stats).
+        k1: Term-frequency saturation parameter.
+        b: Length normalization parameter.
+    """
     if not query_terms:
         return 0.0
     text_lower = text.lower()
     words = text_lower.split()
     doc_len = len(words) if words else 1
-    avg_dl = 200.0  # assumed average document length
-    k1, b = 1.5, 0.75
-    score = 0.0
+    raw_score = 0.0
     for term in query_terms:
         tf = text_lower.count(term.lower())
         if tf > 0:
             numerator = tf * (k1 + 1)
             denominator = tf + k1 * (1 - b + b * doc_len / avg_dl)
-            score += numerator / denominator
-    return score
+            raw_score += numerator / denominator
+
+    # Saturation normalization to [0, 1): score / (score + 1)
+    if raw_score <= 0.0:
+        return 0.0
+    return raw_score / (raw_score + 1.0)
 
 
 # ---------------------------------------------------------------------------

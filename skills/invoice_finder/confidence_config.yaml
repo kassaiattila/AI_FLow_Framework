@@ -1,0 +1,77 @@
+# Invoice Finder confidence scoring + review routing config (B3.5)
+#
+# Consumed by:
+#   - aiflow.engine.confidence.FieldConfidenceCalculator
+#   - aiflow.engine.confidence_router.route_by_confidence
+#
+# Thresholds MUST satisfy:
+#   reject_threshold <= review_threshold <= auto_approve_threshold
+#
+# Calibration notes (2026-04-08, based on B3.E2E Phase 1+2 data):
+#   - 3/3 Hungarian invoices (EdiMeron / Kacz / CSEPP) extracted with
+#     valid invoice_number + HU tax format → overall confidence ~0.90-0.95
+#     when parsed via Docling clean PDF.
+#   - Review band 0.70-0.90 chosen conservatively: any field with
+#     regex_validation < 1.0 or cross_field_consistency < 0.5 should
+#     drop a clean document below 0.90.
+#   - Reject band < 0.50 catches scan-only PDFs where Docling fallback
+#     yields empty text (quality_score * 0 → overall ~0).
+
+routing:
+  auto_approve_threshold: 0.90
+  review_threshold: 0.70
+  reject_threshold: 0.50
+  low_confidence_field_threshold: 0.70
+
+# Per-field aggregation weights for document-overall confidence.
+# Financial fields (amount, invoice_number) weigh higher because they
+# drive the routing decision; narrative fields (line_items) lower.
+field_weights:
+  invoice_number: 0.15
+  invoice_date: 0.10
+  due_date: 0.10
+  vendor_name: 0.10
+  vendor_tax_number: 0.10
+  net_total: 0.10
+  vat_total: 0.05
+  gross_total: 0.20
+  line_items: 0.10
+
+# Parser-type → reliability multiplier (applied as the source_quality
+# factor in every field's per-field confidence).
+source_quality_scores:
+  docling_clean: 1.0
+  docling: 1.0
+  azure_di: 0.9
+  ocr_scan: 0.7
+  ocr: 0.7
+  handwriting: 0.4
+  fallback: 0.5
+  unknown: 0.5
+
+# Mandatory fields — each missing one subtracts 0.15 from the structural
+# penalty (minimum 0.30) in FieldConfidenceCalculator.compute_document.
+mandatory_fields:
+  - invoice_number
+  - invoice_date
+  - vendor_name
+  - gross_total
+
+# Field type hints — used by the format_match factor to apply
+# type-specific regex patterns. Defaults to "string" if omitted.
+field_types:
+  invoice_number: string
+  invoice_date: date
+  due_date: date
+  fulfillment_date: date
+  vendor_name: string
+  vendor_address: string
+  vendor_tax_number: string
+  buyer_name: string
+  buyer_address: string
+  buyer_tax_number: string
+  net_total: number
+  vat_total: number
+  gross_total: number
+  currency: string
+  line_items: string

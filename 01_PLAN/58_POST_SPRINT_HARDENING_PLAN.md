@@ -1945,7 +1945,7 @@ Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 | B3.E2E.P1 | Offline invoice finder pipeline teszt (20/20 PASS) | S26a | DONE | 2026-04-06 | f1f0029 |
 | B3.E2E.P2 | PipelineRunner integration (workflow_runs + step_runs + cost_records, real Docker DB + LLM, 3 PDFs) | S27a | DONE | 2026-04-08 | — |
 | B3.E2E.P3 | Full 8-step pipeline on 3 Outlook accounts (bestix + kodosok + gmail, 3/3 completed) | S27a | DONE | 2026-04-08 | — |
-| B3.5 | **Konfidencia scoring hardening** + review routing | S27b | TODO | — | — |
+| B3.5 | Confidence scoring hardening: FieldConfidenceCalculator (4-factor) + ConfidenceRouter (auto/review/reject) + confidence_config.yaml + BM25 [0,1] normalization (36 unit tests) | S27b | DONE | 2026-04-08 | — |
 | B4 | Skill hardening (5 skill, 95%+ promptfoo) | S27-S28 | TODO | — | — |
 | B5 | Diagram pipeline + Spec writer + koltseg baseline | S29 | TODO | — | — |
 | B6 | **Portal struktura** + 4 journey tervezes | S30 | TODO | — | — |
