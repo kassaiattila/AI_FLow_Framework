@@ -647,8 +647,8 @@ FAZIS 2 — E2E SZOLGALTATASOK (S22-S29): 8 session
       TESZTELES: E2E diagram render, spec writer output validacio
 
 FAZIS 3 — UI EXCELLENCE (S30-S32): 3 session
-  B6: Portal struktura ujragondolas + 4 journey tervezes (S30)
-  B7: Verification Page v2 (bounding box, per-field confidence, diff) (S31)
+  B6: Portal struktura ujragondolas + 4 journey tervezes (S31) — DONE
+  B7: Verification Page v2 (bounding box, per-field confidence, diff) (S32)
       TESZTELES: Playwright E2E (upload→extract→verify→save→retrieve)
       FUGG: B3.5 per-field confidence adat!
   B8: UI Journey implementacio (top 3 journey) (S32)
@@ -1949,7 +1949,7 @@ Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 | B4.1 | Skill hardening — aszf_rag_chat + email_intent_processor. aszf_rag: 12/12 promptfoo (100%), prompt-ok [N] citation enforcement + hallucination calibration 0.9, guardrails max_length 4000 + llm_fallback 0.8. email_intent: 16/16 promptfoo (100%), intent catalog 10→12 (invoice_received + calendar_invite), HU entity types tax_number/bank_account/postal_address, guardrails HU PII allowlist bovites. Promptfoo infra fix: stdout UTF-8 + logs to stderr + argv support. | S28 | DONE | 2026-04-08 | — |
 | B4.2 | Skill hardening — process_documentation + invoice_processor + cubix_course_capture + invoice_finder. process_docs: 14/14 promptfoo (100%), strict shape mapping + decision label + parallel + off-topic refusal + loop-back. invoice_processor: 14/14 promptfoo (100%), HU thousands separator (1.500.000,50→1500000.50), AAM VAT-exempt, multi-currency, multi-page continuation, literal VAT rate reading. cubix_course_capture: 12/12 promptfoo (100%), monolit prompt SPLIT → 3 dedikalt (section_detector + summary_generator + vocabulary_extractor), workflow asyncio.gather, transcript_structurer.yaml DEPRECATED. invoice_finder: 12/12 promptfoo (100%), UJ promptfooconfig.yaml router prompt-tal (4 task: classify/extract/payment_status/report), Phase 0 valos invoice email-eken kalibralva, allowed_pii bovites (email + hu_tax_number + hu_bank_account). +50 promptfoo test (54→104), 4/4 skill PRODUCTION-READY 8/10. | S29 | DONE | 2026-04-08 | — |
 | B5 | Diagram hardening (3 semantics + 3 service prompts + pipeline template + 11 unit + 7 promptfoo + 3 E2E) + spec_writer BRAND-NEW skill (skill.yaml + 3 prompts + 5-step workflow + CLI + adapter + pipeline template + alembic 030 + /api/v1/specs router + SpecWriter.tsx UI + 7 unit + 8 promptfoo) + Langfuse cost baseline (scripts/cost_baseline.py + COST_BASELINE_REPORT.md 14 records, 11 runs, $0.1931). Diagram_generator 8/10, spec_writer 9/10 service-hardening PRODUCTION-READY. +18 unit test, +16 promptfoo test, +3 E2E, +1 DB migration, +2 pipeline templates, +1 skill, +1 UI page. | S30 | DONE | 2026-04-09 | 41d3e60 |
-| B6 | **Portal struktura** + 4 journey tervezes | S31 | TODO | — | — |
+| B6 | **Portal struktura** + 4 journey tervezes. 23 page audit (A=1/B=15/C=7), 6-group journey-based IA, 4 journey definition (Invoice + Monitoring + RAG + Generation), ASCII wireframe (sidebar + dashboard), B8 migration plan (10 kötelező + 8 opcionális + 6 halasztott). 2x plan-validator validáció: R1 4 MAJOR→fixed, R2 1 MAJOR→fixed, 0 CRITICAL open. `01_PLAN/63_UI_USER_JOURNEYS.md` = 1059 sor. | S31 | DONE | 2026-04-10 | — |
 | B7 | **Verification Page v2** (bounding box, confidence, diff) | S32 | TODO | — | — |
 | B8 | UI Journey implementacio (navigacio + 3 journey) | S33 | TODO | — | — |
 | B9 | **Docker deploy** + UI pipeline trigger | S34 | TODO | — | — |

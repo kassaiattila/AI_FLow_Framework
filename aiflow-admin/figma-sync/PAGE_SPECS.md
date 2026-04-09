@@ -61,7 +61,40 @@
 | 14 | Reviews | `11662:113184` | `/reviews` | Pending + History |
 | 15 | Verification | `11662:113185` | `/documents/:id/verify` | Canvas + DataPointEditor |
 
-### v1.1 Sidebar Structure (4 collapsible groups, 11 items)
+### v1.3.0 Journey Mapping (B6, S31 — 2026-04-10)
+
+> Source: `01_PLAN/63_UI_USER_JOURNEYS.md` — full details of B6 design.
+
+| # | Page | Route | Journey | Kat. | Nav Group (new IA) |
+|---|------|-------|---------|----- |--------------------|
+| 01 | Login | `/login` | — | A | (auth) |
+| 02 | Dashboard | `/` | ENTRY (all) | B | DASHBOARD |
+| 03 | Documents | `/documents` | J1-Invoice | B | DOKUMENTUM FELDOLGOZAS |
+| 04 | DocumentDetail | `/documents/:id/show` | J1-Invoice | B | DOKUMENTUM FELDOLGOZAS |
+| 05 | Verification | `/documents/:id/verify` | J1-Invoice | C | DOKUMENTUM FELDOLGOZAS |
+| 06 | Emails | `/emails` | J1-Invoice | B | DOKUMENTUM FELDOLGOZAS |
+| 07 | Reviews | `/reviews` | J1-Invoice | B | DOKUMENTUM FELDOLGOZAS (merge→Verification) |
+| 08 | Rag | `/rag` | J3-RAG | C | TUDASBAZIS |
+| 09 | RagDetail | `/rag/:id` | J3-RAG | C | TUDASBAZIS |
+| 10 | ProcessDocs | `/process-docs` | J4-Generation | B | GENERALAS |
+| 11 | SpecWriter | `/spec-writer` | J4-Generation | B | GENERALAS |
+| 12 | Media | `/media` | J4-Generation | B | GENERALAS |
+| 13 | Runs | `/runs` | J2-Monitoring | B | MONITORING |
+| 14 | Costs | `/costs` | J2-Monitoring | B | MONITORING |
+| 15 | Monitoring | `/monitoring` | J2-Monitoring | B | MONITORING |
+| 16 | Quality | `/quality` | J2-Monitoring | B | MONITORING |
+| 17 | Audit | `/audit` | J2-Monitoring | C | MONITORING |
+| 18 | Services | `/services` | BEALLITASOK | B | BEALLITASOK |
+| 19 | Pipelines | `/pipelines` | BEALLITASOK | B | BEALLITASOK |
+| 20 | PipelineDetail | `/pipelines/:id` | BEALLITASOK | B | BEALLITASOK |
+| 21 | Admin | `/admin` | ADMIN | C | BEALLITASOK |
+| 22 | Rpa | `/rpa` | — (submenu) | C | TOBBI |
+| 23 | Cubix | `/cubix` | — (submenu) | C | TOBBI |
+
+> **Note:** Sidebar will be redesigned in B8 (S33) based on the new 6-group journey IA above.
+> Figma wireframe frames for new sidebar + dashboard = TODO B8 (see `63_UI_USER_JOURNEYS.md` § 5.3).
+
+### v1.1 Sidebar Structure (4 collapsible groups, 11 items) [LEGACY — will be replaced in B8]
 ```
 [Dashboard]                      — always visible
 ── OPERATIONS ──                 — collapsible, default open
