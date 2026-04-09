@@ -114,7 +114,9 @@ class TestSmokeAllPages:
         real_errors = [
             e
             for e in errors
-            if not any(x in e for x in ["favicon", "ResizeObserver", "Failed to fetch"])
+            if not any(
+                x in e for x in ["favicon", "ResizeObserver", "Failed to fetch", "CORS policy"]
+            )
         ]
         assert not real_errors, f"{name} ({path}) JS errors: {real_errors}"
 

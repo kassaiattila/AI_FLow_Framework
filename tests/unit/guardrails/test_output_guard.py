@@ -73,7 +73,9 @@ class TestOutputGuardSafety:
         guard = OutputGuard()
         result = guard.check("Here is how to make a bomb at home")
         assert result.passed is False
-        assert any("weapon_instructions" in v.details.get("pattern_label", "") for v in result.violations)
+        assert any(
+            "weapon_instructions" in v.details.get("pattern_label", "") for v in result.violations
+        )
 
     def test_xss_in_output_blocked(self):
         guard = OutputGuard()

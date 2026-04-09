@@ -162,5 +162,3 @@ class TestRegexMatch:
     def test_invalid_regex(self):
         score, passed = regex_match("test", pattern="[invalid")
         assert passed is False
-
-

@@ -35,18 +35,42 @@ class TestHealthEndpoints:
     def test_readiness(self, client):
         # Mock external service checks — unit tests must not depend on Docker
         mock_checks = {
-            "_check_database": ReadyCheck(name="database", status="ok", message="PostgreSQL connected"),
+            "_check_database": ReadyCheck(
+                name="database", status="ok", message="PostgreSQL connected"
+            ),
             "_check_pgvector": ReadyCheck(name="pgvector", status="ok", message="pgvector v0.7"),
             "_check_rag_data": ReadyCheck(name="rag_data", status="ok", message="2 collections"),
             "_check_redis": ReadyCheck(name="redis", status="ok", message="Redis PONG"),
-            "_check_langfuse": ReadyCheck(name="langfuse", status="disabled", message="Not configured"),
+            "_check_langfuse": ReadyCheck(
+                name="langfuse", status="disabled", message="Not configured"
+            ),
         }
         with (
-            patch("aiflow.api.v1.health._check_database", new_callable=AsyncMock, return_value=mock_checks["_check_database"]),
-            patch("aiflow.api.v1.health._check_pgvector", new_callable=AsyncMock, return_value=mock_checks["_check_pgvector"]),
-            patch("aiflow.api.v1.health._check_rag_data", new_callable=AsyncMock, return_value=mock_checks["_check_rag_data"]),
-            patch("aiflow.api.v1.health._check_redis", new_callable=AsyncMock, return_value=mock_checks["_check_redis"]),
-            patch("aiflow.api.v1.health._check_langfuse", new_callable=AsyncMock, return_value=mock_checks["_check_langfuse"]),
+            patch(
+                "aiflow.api.v1.health._check_database",
+                new_callable=AsyncMock,
+                return_value=mock_checks["_check_database"],
+            ),
+            patch(
+                "aiflow.api.v1.health._check_pgvector",
+                new_callable=AsyncMock,
+                return_value=mock_checks["_check_pgvector"],
+            ),
+            patch(
+                "aiflow.api.v1.health._check_rag_data",
+                new_callable=AsyncMock,
+                return_value=mock_checks["_check_rag_data"],
+            ),
+            patch(
+                "aiflow.api.v1.health._check_redis",
+                new_callable=AsyncMock,
+                return_value=mock_checks["_check_redis"],
+            ),
+            patch(
+                "aiflow.api.v1.health._check_langfuse",
+                new_callable=AsyncMock,
+                return_value=mock_checks["_check_langfuse"],
+            ),
         ):
             resp = client.get("/health/ready")
             assert resp.status_code == 200

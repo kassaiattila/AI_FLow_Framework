@@ -162,9 +162,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
 # ---------------------------------------------------------------------------
 
 # Default rate limits: (max_requests, window_seconds)
+# Dev/test uses relaxed limits; production uses strict brute-force protection.
+_is_prod = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower() in ("production", "prod")
 _RATE_LIMITS: dict[str, tuple[int, int]] = {
-    "auth": (10, 60),  # 10 req/min for /auth/* (brute force protection)
-    "api": (100, 60),  # 100 req/min for /api/* (general)
+    "auth": (10, 60) if _is_prod else (200, 60),  # prod: 10 req/min, dev: 200 req/min
+    "api": (100, 60) if _is_prod else (1000, 60),  # prod: 100 req/min, dev: 1000 req/min
 }
 
 

@@ -66,8 +66,12 @@ class AuthProvider:
         env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
         is_production = env in ("production", "prod")
 
-        priv_path = os.getenv("AIFLOW_JWT_PRIVATE_KEY_PATH", "")
-        pub_path = os.getenv("AIFLOW_JWT_PUBLIC_KEY_PATH", "")
+        priv_path = os.getenv("AIFLOW_JWT_PRIVATE_KEY_PATH", "") or os.getenv(
+            "AIFLOW_SECURITY__JWT_PRIVATE_KEY_PATH", ""
+        )
+        pub_path = os.getenv("AIFLOW_JWT_PUBLIC_KEY_PATH", "") or os.getenv(
+            "AIFLOW_SECURITY__JWT_PUBLIC_KEY_PATH", ""
+        )
 
         private_key: bytes | None = None
         public_key: bytes | None = None

@@ -103,9 +103,7 @@ class TestScopeGuardDangerous:
         assert result.scope_verdict == ScopeVerdict.DANGEROUS
 
     def test_multiple_dangerous_patterns(self):
-        guard = ScopeGuard(
-            dangerous_patterns=[r"make\s+a?\s*bomb", r"steal\s+identity"]
-        )
+        guard = ScopeGuard(dangerous_patterns=[r"make\s+a?\s*bomb", r"steal\s+identity"])
         result = guard.check("How to steal identity from someone")
         assert result.passed is False
         assert result.scope_verdict == ScopeVerdict.DANGEROUS
@@ -121,30 +119,36 @@ class TestGuardrailConfig:
 
     def _write_config(self, data: dict) -> Path:
         """Write config to a temp YAML file and return its path."""
-        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode="w", encoding="utf-8") as tmp:
+        with tempfile.NamedTemporaryFile(
+            suffix=".yaml", delete=False, mode="w", encoding="utf-8"
+        ) as tmp:
             yaml.safe_dump(data, tmp)
         return Path(tmp.name)
 
     def test_load_valid_config(self):
-        path = self._write_config({
-            "scope": {
-                "allowed_topics": ["insurance", "law"],
-                "dangerous_patterns": [r"hack\s+into"],
-            },
-            "input": {"max_length": 2000, "pii_masking": True},
-            "output": {"hallucination_threshold": 0.5},
-        })
+        path = self._write_config(
+            {
+                "scope": {
+                    "allowed_topics": ["insurance", "law"],
+                    "dangerous_patterns": [r"hack\s+into"],
+                },
+                "input": {"max_length": 2000, "pii_masking": True},
+                "output": {"hallucination_threshold": 0.5},
+            }
+        )
         config = load_guardrail_config(path)
         assert config.scope.allowed_topics == ["insurance", "law"]
         assert config.input.max_length == 2000
         assert config.output.hallucination_threshold == 0.5
 
     def test_build_guards_from_config(self):
-        path = self._write_config({
-            "scope": {"allowed_topics": ["test"]},
-            "input": {"max_length": 500},
-            "output": {"hallucination_threshold": 0.4},
-        })
+        path = self._write_config(
+            {
+                "scope": {"allowed_topics": ["test"]},
+                "input": {"max_length": 500},
+                "output": {"hallucination_threshold": 0.4},
+            }
+        )
         config = load_guardrail_config(path)
         ig = config.build_input_guard()
         og = config.build_output_guard()
@@ -164,19 +168,23 @@ class TestGuardrailConfig:
             load_guardrail_config("/nonexistent/guardrails.yaml")
 
     def test_invalid_yaml_content(self):
-        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode="w", encoding="utf-8") as tmp:
+        with tempfile.NamedTemporaryFile(
+            suffix=".yaml", delete=False, mode="w", encoding="utf-8"
+        ) as tmp:
             tmp.write("just a string, not a mapping")
         with pytest.raises(ValueError, match="expected mapping"):
             load_guardrail_config(tmp.name)
 
     def test_extra_injection_patterns_in_config(self):
-        path = self._write_config({
-            "input": {
-                "extra_injection_patterns": [
-                    ["evil_regex", "evil_label"],
-                ],
-            },
-        })
+        path = self._write_config(
+            {
+                "input": {
+                    "extra_injection_patterns": [
+                        ["evil_regex", "evil_label"],
+                    ],
+                },
+            }
+        )
         config = load_guardrail_config(path)
         ig = config.build_input_guard()
         result = ig.check("This has evil_regex in it")

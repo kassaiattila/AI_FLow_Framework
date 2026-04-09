@@ -139,6 +139,7 @@ class TestAdminJourney:
                     "Failed to fetch",
                     "Failed to load resource",
                     "Maximum update depth",
+                    "CORS policy",
                 ]
             )
         ]

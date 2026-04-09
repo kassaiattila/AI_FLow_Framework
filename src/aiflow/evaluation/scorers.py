@@ -184,5 +184,3 @@ def regex_match(
         return (1.0, True) if match else (0.0, False)
     except re.error:
         return (0.0, False)
-
-

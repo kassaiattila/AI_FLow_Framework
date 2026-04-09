@@ -45,8 +45,9 @@ def authenticated_page(page: Page) -> Page:
     page.fill("input#password", AUTH_PASSWORD)
     page.click('button[type="submit"]')
 
-    # Wait for sidebar nav to appear (means login succeeded)
-    page.locator("nav").wait_for(state="visible", timeout=15000)
+    # Wait for sidebar nav to appear (means login succeeded).
+    # Use longer timeout for sequential test runs where browser overhead accumulates.
+    page.locator("nav").wait_for(state="visible", timeout=30000)
     page.wait_for_load_state("networkidle")
 
     return page
@@ -77,6 +78,7 @@ def assert_no_console_errors(errors: list[str]) -> None:
                 "favicon.ico",
                 "ResizeObserver",
                 "Failed to fetch",  # API may not be running
+                "CORS policy",  # Vite dev proxy redirect triggers CORS on localhost
             ]
         )
     ]

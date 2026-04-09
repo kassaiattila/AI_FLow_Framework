@@ -134,6 +134,8 @@ class TestAuthProviderFromEnv:
         monkeypatch.setenv("AIFLOW_ENVIRONMENT", "production")
         monkeypatch.delenv("AIFLOW_JWT_PRIVATE_KEY_PATH", raising=False)
         monkeypatch.delenv("AIFLOW_JWT_PUBLIC_KEY_PATH", raising=False)
+        monkeypatch.delenv("AIFLOW_SECURITY__JWT_PRIVATE_KEY_PATH", raising=False)
+        monkeypatch.delenv("AIFLOW_SECURITY__JWT_PUBLIC_KEY_PATH", raising=False)
         with pytest.raises(RuntimeError, match="REQUIRED in production"):
             AuthProvider.from_env()
 

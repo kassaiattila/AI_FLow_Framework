@@ -18,7 +18,15 @@ __all__ = ["router"]
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-_auth = AuthProvider.from_env()
+_auth: AuthProvider | None = None
+
+
+def _get_auth() -> AuthProvider:
+    """Lazy-init AuthProvider (after dotenv is loaded by create_app)."""
+    global _auth
+    if _auth is None:
+        _auth = AuthProvider.from_env()
+    return _auth
 
 
 # --- Models ---
@@ -94,7 +102,7 @@ async def login(request: LoginRequest) -> LoginResponse:
             {"now": datetime.now(UTC), "id": user_id},
         )
 
-    token = _auth.create_token(
+    token = _get_auth().create_token(
         user_id=str(user_id),
         team_id=str(team_id) if team_id else None,
         role=role,
@@ -122,7 +130,7 @@ async def me(authorization: str = Header("")) -> MeResponse:
         raise HTTPException(status_code=401, detail="No authorization header")
 
     token = authorization.replace("Bearer ", "").strip()
-    result = _auth.verify_token(token)
+    result = _get_auth().verify_token(token)
 
     if not result.authenticated:
         raise HTTPException(status_code=401, detail=result.error or "Invalid token")
@@ -153,14 +161,14 @@ class RefreshResponse(BaseModel):
 @router.post("/refresh", response_model=RefreshResponse)
 async def refresh_token(request: RefreshRequest) -> RefreshResponse:
     """Refresh a JWT token. Accepts a valid (or recently expired within 5 min) token."""
-    result = _auth.verify_token(request.token)
+    result = _get_auth().verify_token(request.token)
 
     if not result.authenticated:
         if result.error == "token_expired":
             # 5-minute grace period for recently expired tokens
-            payload = _auth.decode_expired_token(request.token)
+            payload = _get_auth().decode_expired_token(request.token)
             if payload and time.time() - payload.get("exp", 0) < 300:
-                new_token = _auth.create_token(
+                new_token = _get_auth().create_token(
                     user_id=payload["sub"],
                     team_id=payload.get("team_id"),
                     role=payload.get("role", "viewer"),
@@ -170,7 +178,7 @@ async def refresh_token(request: RefreshRequest) -> RefreshResponse:
 
         raise HTTPException(status_code=401, detail=result.error or "Invalid token")
 
-    new_token = _auth.create_token(
+    new_token = _get_auth().create_token(
         user_id=result.user_id or "",
         team_id=result.team_id,
         role=result.role,

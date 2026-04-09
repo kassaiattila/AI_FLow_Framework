@@ -28,8 +28,16 @@ logger = structlog.get_logger(__name__)
 # Content safety patterns (output-specific)
 # ---------------------------------------------------------------------------
 UNSAFE_CONTENT_PATTERNS: list[tuple[str, str, Severity]] = [
-    (r"\b(kill|murder|assassinate)\s+(yourself|someone|people)\b", "violence_incitement", Severity.CRITICAL),
-    (r"\b(how\s+to\s+make\s+a?\s*bomb|build\s+a?\s*weapon)\b", "weapon_instructions", Severity.CRITICAL),
+    (
+        r"\b(kill|murder|assassinate)\s+(yourself|someone|people)\b",
+        "violence_incitement",
+        Severity.CRITICAL,
+    ),
+    (
+        r"\b(how\s+to\s+make\s+a?\s*bomb|build\s+a?\s*weapon)\b",
+        "weapon_instructions",
+        Severity.CRITICAL,
+    ),
     (r"\b(hack\s+into|break\s+into\s+a?\s*system)\b", "hacking_instructions", Severity.WARNING),
     (r"<script[\s>]", "xss_in_output", Severity.CRITICAL),
 ]
