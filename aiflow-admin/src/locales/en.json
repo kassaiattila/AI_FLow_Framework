@@ -521,7 +521,18 @@
       "kbNav": "navigate",
       "kbConfirm": "confirm",
       "kbEdit": "edit",
-      "kbCancel": "cancel"
+      "kbCancel": "cancel",
+      "saveDraft": "Save Draft",
+      "approveAll": "Approve All",
+      "reject": "Reject",
+      "approved": "Document approved",
+      "rejected": "Document rejected",
+      "rejectReason": "Rejection reason",
+      "rejectReasonRequired": "Reason is required for rejection",
+      "pendingReview": "This document is pending human review",
+      "confidence": "Confidence",
+      "reviewMovedBanner": "Review functionality has been moved to the Verification page.",
+      "goToVerification": "Go to Verification"
     },
     "costs": {
       "title": "Cost Analytics",

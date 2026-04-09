@@ -15,7 +15,7 @@ import { useVerificationState } from "../verification/use-verification-state";
 import { getAllFields, fieldToBBox, resolvePath, PAGE } from "../verification/document-layout";
 import { MockDocumentSvg } from "../verification/MockDocumentSvg";
 import type { DataPoint, DataPointCategory, DocumentVerificationData } from "../verification/types";
-import { getConfidenceLevel, CATEGORY_ORDER } from "../verification/types";
+import { getConfidenceLevel, CATEGORY_ORDER, validateField } from "../verification/types";
 
 // --- Tailwind color mappings ---
 
@@ -54,9 +54,20 @@ function generateVerificationData(
 ): DocumentVerificationData {
   const lineItems = (invoice.line_items as unknown[]) || [];
   const fields = getAllFields(lineItems.length);
+
+  // Backend may provide per-field confidence and bounding boxes
+  const fieldConfidences = (invoice.field_confidences as Record<string, number>) || {};
+  const fieldBBoxes = (invoice.field_bounding_boxes as Record<string, { x: number; y: number; width: number; height: number; page: number }>) || {};
+  const globalConf = (invoice.extraction_confidence as number) || 0.8;
+
   const dataPoints: DataPoint[] = fields.map((f) => {
     const value = resolvePath(invoice, f.fieldPath);
-    const confidence = (invoice.extraction_confidence as number) || 0.8;
+    const confidence = fieldConfidences[f.fieldPath] ?? fieldConfidences[f.id] ?? globalConf;
+    // Use backend bbox if available, otherwise fall back to layout-based estimate
+    const backendBBox = fieldBBoxes[f.fieldPath] ?? fieldBBoxes[f.id];
+    const bbox = backendBBox
+      ? { x: backendBBox.x, y: backendBBox.y, width: backendBBox.width, height: backendBBox.height, page: backendBBox.page ?? 0 }
+      : fieldToBBox(f);
     return {
       id: f.id,
       category: f.category as DataPointCategory,
@@ -66,7 +77,7 @@ function generateVerificationData(
       extracted_value: value,
       current_value: value,
       confidence,
-      bounding_box: fieldToBBox(f),
+      bounding_box: bbox,
       status: "auto",
       line_item_index: f.lineIndex,
     };
@@ -76,12 +87,12 @@ function generateVerificationData(
     document_index: index,
     source_file: (invoice.source_file as string) || "",
     document_meta: {
-      document_type: "invoice",
-      document_type_confidence: 0.97,
+      document_type: (invoice.document_type as "invoice" | "receipt" | "contract" | "credit_note" | "proforma" | "unknown") || "invoice",
+      document_type_confidence: (invoice.document_type_confidence as number) ?? 0.97,
       direction: (invoice.direction as "incoming" | "outgoing") || "incoming",
-      direction_confidence: 0.94,
-      language: "hu",
-      language_confidence: 0.99,
+      direction_confidence: (invoice.direction_confidence as number) ?? 0.94,
+      language: (invoice.language as string) || "hu",
+      language_confidence: (invoice.language_confidence as number) ?? 0.99,
     },
     data_points: dataPoints,
     page_dimensions: { width: 595, height: 842 },
@@ -145,8 +156,8 @@ function DocumentCanvas({
     return () => { revoked = true; };
   }, [fileName]);
 
-  // Hide overlays in real image mode (bounding boxes are inaccurate on the photo)
-  const filteredPoints = viewMode === "real" ? [] : dataPoints.filter((dp) => {
+  // Filter overlay points based on mode (works on both real and mock views)
+  const filteredPoints = dataPoints.filter((dp) => {
     if (!dp.bounding_box) return false;
     if (overlayMode === "off") return false;
     if (overlayMode === "low") return dp.confidence < 0.9;
@@ -212,9 +223,8 @@ function DocumentCanvas({
           </label>
         )}
 
-        {/* Overlay mode toggle (only in mock view) */}
-        {viewMode === "mock" && (
-          <div className="flex rounded-lg border border-gray-200 dark:border-gray-700">
+        {/* Overlay mode toggle */}
+        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700">
             {overlayModes.map(({ mode, key, icon }) => (
               <button
                 key={mode}
@@ -230,7 +240,6 @@ function DocumentCanvas({
               </button>
             ))}
           </div>
-        )}
 
         {/* Zoom slider */}
         <div className="flex flex-1 items-center gap-2 px-2">
@@ -314,6 +323,7 @@ function DataPointEditor({
   selectedPointId,
   editingPointId,
   editBuffer,
+  originalValues,
   onHoverPoint,
   onSelectPoint,
   onStartEdit,
@@ -329,6 +339,7 @@ function DataPointEditor({
   selectedPointId: string | null;
   editingPointId: string | null;
   editBuffer: string;
+  originalValues: Record<string, string>;
   onHoverPoint: (id: string | null) => void;
   onSelectPoint: (id: string) => void;
   onStartEdit: (id: string) => void;
@@ -508,29 +519,48 @@ function DataPointEditor({
                       {locale === "en" ? dp.labelEn : dp.label}
                     </span>
 
-                    {/* Value or edit input */}
-                    <div className="flex-1">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editBuffer}
-                          onChange={(e) => onEditChange(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") onCommitEdit();
-                            if (e.key === "Escape") onCancelEdit();
-                            e.stopPropagation();
-                          }}
-                          onBlur={onCommitEdit}
-                          autoFocus
-                          className="w-full rounded border border-brand-300 bg-white px-2 py-0.5 text-xs text-gray-900 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                        />
-                      ) : (
-                        <span
-                          onDoubleClick={() => onStartEdit(dp.id)}
-                          className={`block truncate text-xs ${dp.current_value ? "text-gray-900 dark:text-gray-100" : "text-gray-400"}`}
-                        >
-                          {dp.current_value || "\u2014"}
-                        </span>
+                    {/* Value or edit input + diff */}
+                    <div className="min-w-0 flex-1">
+                      {isEditing ? (() => {
+                        const vr = validateField(dp.field_name, editBuffer);
+                        return (
+                          <div>
+                            <input
+                              type="text"
+                              value={editBuffer}
+                              onChange={(e) => onEditChange(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && vr.valid) onCommitEdit();
+                                if (e.key === "Escape") onCancelEdit();
+                                e.stopPropagation();
+                              }}
+                              onBlur={() => { if (vr.valid) onCommitEdit(); }}
+                              autoFocus
+                              className={`w-full rounded border px-2 py-0.5 text-xs text-gray-900 outline-none dark:bg-gray-800 dark:text-gray-100 ${
+                                vr.valid
+                                  ? "border-brand-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                                  : "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                              }`}
+                            />
+                            {!vr.valid && (
+                              <span className="block text-[10px] text-red-500">{vr.error}</span>
+                            )}
+                          </div>
+                        );
+                      })() : (
+                        <div onDoubleClick={() => onStartEdit(dp.id)}>
+                          <span
+                            className={`block truncate text-xs ${dp.current_value ? "text-gray-900 dark:text-gray-100" : "text-gray-400"}`}
+                          >
+                            {dp.current_value || "\u2014"}
+                          </span>
+                          {/* Diff line: show original when field was corrected */}
+                          {dp.status === "corrected" && originalValues[dp.id] && originalValues[dp.id] !== dp.current_value && (
+                            <span className="block truncate text-[10px] text-gray-400 line-through" title={originalValues[dp.id]}>
+                              {originalValues[dp.id]}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -627,9 +657,12 @@ export function Verification() {
   const [invoice, setInvoice] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error" | "approved" | "rejected">("idle");
   const [source, setSource] = useState<string | null>(null);
   const [docIds, setDocIds] = useState<string[]>([]);
+  const [pendingReview, setPendingReview] = useState(false);
+  const [rejectModal, setRejectModal] = useState(false);
+  const [rejectComment, setRejectComment] = useState("");
 
   const vs = useVerificationState();
   const docListRef = useRef<DocumentResponse[]>([]);
@@ -671,6 +704,15 @@ export function Verification() {
           setInvoice(found as Record<string, unknown>);
           const idx = allDocs.indexOf(found);
           vs.loadData(generateVerificationData(found as Record<string, unknown>, idx >= 0 ? idx : 0));
+          // Check if document has a pending review
+          if (found.id) {
+            fetchApi<{ reviews: unknown[]; total: number }>("GET", `/api/v1/reviews/pending?limit=100`)
+              .then((res) => {
+                const hasPending = (res.reviews as Array<{ entity_id?: string }>).some((r) => r.entity_id === found!.id);
+                setPendingReview(hasPending);
+              })
+              .catch(() => setPendingReview(false));
+          }
         }
       } catch { /* not found */ }
       finally { setLoading(false); }
@@ -688,30 +730,46 @@ export function Verification() {
     [navigate],
   );
 
-  // Save handler — calls real backend verify API
-  const handleSave = useCallback(async () => {
+  // Build edits array from current state
+  const buildEdits = useCallback(() => {
+    return vs.dataPoints
+      .filter((dp) => dp.status === "corrected" || dp.status === "confirmed")
+      .map((dp) => ({
+        field_name: dp.field_name,
+        field_category: dp.category,
+        original_value: vs.originalValues[dp.id] ?? dp.extracted_value,
+        edited_value: dp.current_value,
+        confidence_score: dp.confidence,
+      }));
+  }, [vs.dataPoints, vs.originalValues]);
+
+  const invoiceId = (invoice as Record<string, unknown>)?.id as string | undefined;
+
+  // Save Draft — persist edits to backend + localStorage
+  const handleSaveDraft = useCallback(async () => {
     setSaving(true);
     setSaveStatus("idle");
     try {
-      const verifiedFields: Record<string, unknown> = {};
-      for (const dp of vs.dataPoints) {
-        if (dp.status === "corrected" || dp.status === "confirmed") {
-          verifiedFields[dp.field_name] = dp.current_value;
-        }
+      const edits = buildEdits();
+      if (invoiceId && edits.length > 0) {
+        await fetchApi("POST", `/api/v1/documents/${invoiceId}/verifications`, { edits });
       }
-
-      const invoiceId = (invoice as Record<string, unknown>)?.id as string;
+      // Also backup to old verify endpoint for backward compat
       if (invoiceId) {
+        const verifiedFields: Record<string, string> = {};
+        for (const dp of vs.dataPoints) {
+          if (dp.status === "corrected" || dp.status === "confirmed") {
+            verifiedFields[dp.field_name] = dp.current_value;
+          }
+        }
         await fetchApi("POST", `/api/v1/documents/${invoiceId}/verify`, {
           verified_fields: verifiedFields,
           verified_by: "user",
         });
       }
-
-      // Backup to localStorage
       localStorage.setItem(
         `aiflow_verification_${id}`,
-        JSON.stringify({ verified_fields: verifiedFields, confirmed: vs.stats.confirmed }),
+        JSON.stringify({ confirmed: vs.stats.confirmed }),
       );
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 3000);
@@ -720,7 +778,53 @@ export function Verification() {
     } finally {
       setSaving(false);
     }
-  }, [vs.dataPoints, vs.stats.confirmed, id, invoice]);
+  }, [buildEdits, invoiceId, vs.dataPoints, vs.stats.confirmed, id]);
+
+  // Approve All — save edits + approve
+  const handleApprove = useCallback(async () => {
+    setSaving(true);
+    setSaveStatus("idle");
+    try {
+      const edits = buildEdits();
+      if (invoiceId) {
+        if (edits.length > 0) {
+          await fetchApi("POST", `/api/v1/documents/${invoiceId}/verifications`, { edits });
+        }
+        await fetchApi("PATCH", `/api/v1/documents/${invoiceId}/verifications/approve`, {
+          reviewer_id: "user",
+        });
+      }
+      setSaveStatus("approved");
+      setTimeout(() => navigate("/documents"), 1500);
+    } catch {
+      setSaveStatus("error");
+    } finally {
+      setSaving(false);
+    }
+  }, [buildEdits, invoiceId, navigate]);
+
+  // Reject — requires comment
+  const handleReject = useCallback(async () => {
+    if (!rejectComment.trim()) return;
+    setSaving(true);
+    setSaveStatus("idle");
+    try {
+      if (invoiceId) {
+        await fetchApi("PATCH", `/api/v1/documents/${invoiceId}/verifications/reject`, {
+          reviewer_id: "user",
+          comment: rejectComment,
+        });
+      }
+      setRejectModal(false);
+      setRejectComment("");
+      setSaveStatus("rejected");
+      setTimeout(() => navigate("/documents"), 1500);
+    } catch {
+      setSaveStatus("error");
+    } finally {
+      setSaving(false);
+    }
+  }, [invoiceId, rejectComment, navigate]);
 
   // Loading state
   if (loading) return <LoadingState fullPage />;
@@ -831,6 +935,18 @@ export function Verification() {
         </div>
       </div>
 
+      {/* Pending review banner */}
+      {pendingReview && (
+        <div className="mb-2 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 dark:border-amber-700 dark:bg-amber-900/20">
+          <svg className="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
+            {translate("aiflow.verification.pendingReview")}
+          </span>
+        </div>
+      )}
+
       {/* Split layout — fills remaining height */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden md:grid-cols-[55%_45%]">
         <DocumentCanvas
@@ -847,6 +963,7 @@ export function Verification() {
           selectedPointId={vs.selectedPointId}
           editingPointId={vs.editingPointId}
           editBuffer={vs.editBuffer}
+          originalValues={vs.originalValues}
           onHoverPoint={vs.hoverPoint}
           onSelectPoint={vs.selectPoint}
           onStartEdit={vs.startEdit}
@@ -861,11 +978,21 @@ export function Verification() {
 
       {/* Sticky action bar */}
       <div className="mt-2 flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-900">
-        {/* Left side: save status + counter */}
+        {/* Left side: status + counter */}
         <div className="flex items-center gap-2">
           {saveStatus === "saved" && (
             <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
               {translate("aiflow.verification.saved")}
+            </span>
+          )}
+          {saveStatus === "approved" && (
+            <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+              {translate("aiflow.verification.approved")}
+            </span>
+          )}
+          {saveStatus === "rejected" && (
+            <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
+              {translate("aiflow.verification.rejected")}
             </span>
           )}
           {saveStatus === "error" && (
@@ -881,45 +1008,88 @@ export function Verification() {
 
         {/* Right side: action buttons */}
         <div className="flex items-center gap-2">
-          {/* Reset */}
+          {/* Save Draft */}
           <button
-            onClick={vs.reset}
-            className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Reset
-          </button>
-
-          {/* Confirm All */}
-          <button
-            onClick={vs.confirmAll}
-            className="flex items-center gap-1 rounded-lg border border-green-300 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/20"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            {translate("aiflow.verification.confirmAll")}
-          </button>
-
-          {/* Save */}
-          <button
-            onClick={handleSave}
+            onClick={handleSaveDraft}
             disabled={saving}
-            className="flex items-center gap-1 rounded-lg bg-brand-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
+            className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
           >
             {saving ? (
-              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-400/30 border-t-gray-400" />
             ) : (
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
               </svg>
             )}
-            {translate("aiflow.common.save")}
+            {translate("aiflow.verification.saveDraft")}
+          </button>
+
+          {/* Reject */}
+          <button
+            onClick={() => setRejectModal(true)}
+            disabled={saving}
+            className="flex items-center gap-1 rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            {translate("aiflow.verification.reject")}
+          </button>
+
+          {/* Approve All */}
+          <button
+            onClick={handleApprove}
+            disabled={saving}
+            className="flex items-center gap-1 rounded-lg bg-green-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {saving ? (
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            ) : (
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+            {translate("aiflow.verification.approveAll")}
           </button>
         </div>
       </div>
+
+      {/* Reject modal */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
+            <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-gray-100">
+              {translate("aiflow.verification.reject")}
+            </h3>
+            <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+              {translate("aiflow.verification.rejectReason")} *
+            </label>
+            <textarea
+              value={rejectComment}
+              onChange={(e) => setRejectComment(e.target.value)}
+              rows={3}
+              autoFocus
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              placeholder={translate("aiflow.verification.rejectReasonRequired")}
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => { setRejectModal(false); setRejectComment(""); }}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
+              >
+                {translate("aiflow.common.cancel")}
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={!rejectComment.trim() || saving}
+                className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {translate("aiflow.verification.reject")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

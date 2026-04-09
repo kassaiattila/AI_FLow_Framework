@@ -521,7 +521,18 @@
       "kbNav": "navigacio",
       "kbConfirm": "jovahagyas",
       "kbEdit": "szerkesztes",
-      "kbCancel": "megse"
+      "kbCancel": "megse",
+      "saveDraft": "Piszkozat mentese",
+      "approveAll": "Elfogadas",
+      "reject": "Elutasitas",
+      "approved": "Dokumentum elfogadva",
+      "rejected": "Dokumentum elutasitva",
+      "rejectReason": "Elutasitas indoka",
+      "rejectReasonRequired": "Az indok megadasa kotelezo",
+      "pendingReview": "Ez a dokumentum emberi ellenorzesre var",
+      "confidence": "Konfidencia",
+      "reviewMovedBanner": "A review funkcio athelyezve a Verifikacio oldalra.",
+      "goToVerification": "Ugras a Verifikacihoz"
     },
     "costs": {
       "title": "Koltseg analitika",
