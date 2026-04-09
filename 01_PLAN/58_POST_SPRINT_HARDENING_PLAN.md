@@ -1787,18 +1787,18 @@ GATE: PASS — audit riport MINDEN sor PASS
 
 ---
 
-## B11: v1.3.0 Tag + Merge — fel session (S35)
+## B11: v1.3.0 Tag + Merge — DONE (S36, 2026-04-09, `daddcea`)
 
-> **Gate:** v1.3.0 tag, main-en CI ZOLD.
+> **Gate:** PASS — v1.3.0 tag, squash merge → main.
 
 ```
-B11.1 — pyproject.toml + _version.py: version = "1.3.0"
-B11.2 — git tag v1.3.0
-B11.3 — 58_POST_SPRINT_HARDENING_PLAN.md: Sprint B = DONE
-B11.4 — CLAUDE.md + 01_PLAN/CLAUDE.md: vegleges szamok
-B11.5 — Merge to main (squash)
+B11.1 — Version bump 1.2.2 → 1.3.0 (6 files: pyproject.toml, _version.py, openapi.yaml/json, test_manifest.py) ── DONE (daddcea)
+B11.2 — Regression: 1443 unit PASS, tsc 0 error, ruff CLEAN ── DONE
+B11.3 — v1.3.0 annotated tag ── DONE
+B11.4 — 58 plan + CLAUDE.md + 01_PLAN/CLAUDE.md finalization ── DONE
+B11.5 — Squash merge → main ── DONE
 
-GATE: v1.3.0 tag pushed, main CI ZOLD
+GATE: PASS — v1.3.0 tag, main ZOLD
 ```
 
 ---
@@ -1847,7 +1847,7 @@ S16: A3+A4 ─── Security + Stubs ──────────── DONE 
 S17: A5 ─────── Guardrail keretrendszer ───── DONE (2026-04-04)
 S18: A6+A7+A8 — POST-AUDIT + v1.2.2 tag ─── DONE (2026-04-05)
 
-=== SPRINT B: E2E Szolgaltatas Excellence (v1.3.0) — 16 session ===
+=== SPRINT B: E2E Szolgaltatas Excellence (v1.3.0) — 17 session — DONE (2026-04-09, v1.3.0) ===
 --- Fazis 1: Alapok (S19-S21) ---
 S19: B0 ─── Guardrail per-function + qbpp torles + Claude↔AIFlow koncepcio
 S20: B1.1 ─ LLM guardrail promptok (4 YAML + Promptfoo + llm_guards.py)
@@ -1875,9 +1875,10 @@ S35: B11 ── v1.3.0 tag + merge
 ```
 
 **Osszes:** Sprint A 4 + Sprint B 17 = **21 session**, ~9,000 LOC, ~420+ uj teszt,
-2 version tag (v1.2.2 DONE + v1.3.0), 1 uj E2E pipeline (Invoice Finder),
+2 version tag (v1.2.2 DONE + v1.3.0 DONE), 1 uj E2E pipeline (Invoice Finder),
 konfidencia hardening + auto-routing, Verification Page v2 per-field confidence,
-Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
+Docker-ready deploy, UI pipeline trigger, 7 skill 95%+ promptfoo.
+**SPRINT A + B: COMPLETE** (2026-04-09)
 
 ---
 
@@ -1968,6 +1969,6 @@ Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 | B6 | **Portal struktura** + 4 journey tervezes. 23 page audit (A=1/B=15/C=7), 6-group journey-based IA, 4 journey definition (Invoice + Monitoring + RAG + Generation), ASCII wireframe (sidebar + dashboard), B8 migration plan (10 kötelező + 8 opcionális + 6 halasztott). 2x plan-validator validáció: R1 4 MAJOR→fixed, R2 1 MAJOR→fixed, 0 CRITICAL open. `01_PLAN/63_UI_USER_JOURNEYS.md` = 1059 sor. | S31 | DONE | 2026-04-10 | — |
 | B7 | **Verification Page v2** — alembic 031 verification_edits + 5 API endpoint + Verification.tsx v2 (bounding box, diff display, field validation, approve/reject workflow, pending review banner, reject modal) + Reviews.tsx backward compat + 11 i18n kulcs + 8 unit teszt + 4 E2E teszt. | S32 | DONE | 2026-04-10 | a23db05 |
 | B8 | **UI Journey implementacio** — Sidebar.tsx: 5 tech→6 journey-based csoport + bottom menu (RPA, Cubix). Breadcrumb.tsx UJ: route-based hierarchia. Dashboard.tsx: 4 journey kartya (live stats, responsive grid, alert banner). Documents: ?filter= URL param. ProcessDocs: diagram_type 3 opcio. Runs: restart gomb. ~20 i18n kulcs (hu+en), 14 SVG ikon, responsive collapse 768px. 5 Playwright E2E teszt. | S33 | DONE | 2026-04-09 | 47e69e1 |
-| B9 | **Docker deploy** + UI pipeline trigger | S34 | TODO | — | — |
-| B10 | POST-AUDIT + javitasok | S35 | TODO | — | — |
-| B11 | v1.3.0 tag + merge | S36 | TODO | — | — |
+| B9 | **Docker deploy** — docker compose prod stack (nginx + UI container + healthcheck) + UI pipeline trigger (scan mailbox + pipeline status). 4 compose services, deploy guide, 7 docker E2E tests. | S34 | DONE | 2026-04-09 | 9078fd0 |
+| B10 | **POST-AUDIT** — JWT auth lazy init fix (module-level → _get_auth()), env var prefix fix, dev rate limit 10→200, CORS E2E ignore, login timeout 30s, ruff format 6 files. Audit riport: ALL PASS (1443 unit, 86+ E2E, 7/7 skill, 4/4 guardrail, 23 UI pages). | S35 | DONE | 2026-04-09 | 9bcc09a |
+| B11 | **v1.3.0 Release** — version bump (6 files), regression PASS, v1.3.0 annotated tag, plan finalization, squash merge → main. | S36 | DONE | 2026-04-09 | daddcea |

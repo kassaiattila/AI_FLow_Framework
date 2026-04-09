@@ -37,10 +37,10 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - **v1.2.0 Orchestration: COMPLETE (C0-C20, tag v1.2.0)**
 - **v1.2.1 Production Ready Sprint: COMPLETE (S1-S14, 2026-04-04) — UI integracio, observability, quality, 102 E2E teszt, v1.2.1 tag**
 - **v1.2.2: Sprint A COMPLETE (A0-A8, 2026-04-05) — infra+security+guardrails+audit**
-- **v1.3.0: `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint B: service excellence (B0-B11)**
+- **v1.3.0: Sprint B COMPLETE (B0-B11, 2026-04-09) — E2E service excellence, 17 sessions, squash merged to main**
 - 27 service, 175 endpoint (27 router), 48 DB tabla, 31 Alembic migracio
 - 22 pipeline adapter, 10 pipeline template
-- 1443 unit test, 129 guardrail teszt, 97 security teszt, 161 skill test, 114 E2E, 96 promptfoo test case
+- 1443 unit test, 129 guardrail teszt, 97 security teszt, 161 skill test, 121 E2E, 96 promptfoo test case
 - v1.2.2 Sprint A COMPLETE (A0-A8, 2026-04-05)
 - 7 skill (qbpp TOROLVE v1.3.0 B0-ban, spec_writer UJ B5.2-ben S30 2026-04-09), 23 UI oldal
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock

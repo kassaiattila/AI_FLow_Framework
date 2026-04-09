@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-Branch: `feature/v1.3.0-service-excellence` | API: 8102 | UI: 5174
+**v1.3.0** — Sprint B COMPLETE (2026-04-09) | API: 8102 | UI: 5174
 
 ## Structure
 ```
@@ -19,7 +19,7 @@ tests/              — unit/, integration/, e2e/
 ## Key Numbers
 27 services | 175 API endpoints (27 routers) | 48 DB tables | 31 Alembic migrations
 22 pipeline adapters | 10 pipeline templates | 7 skills | 23 UI pages
-1443 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 114 E2E tests
+1443 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 121 E2E tests
 
 ## Build & Test
 ```bash
@@ -44,13 +44,13 @@ alembic upgrade head                      # DB migrations
 - **Services in Docker** (PostgreSQL 5433, Redis 6379, Kroki 8000), Python code locally from .venv
 
 ## Git Workflow
-- Branch: `feature/v1.3.0-service-excellence` — NEVER commit to main directly
+- Branch: `main` (v1.3.0 merged) — NEVER commit to main directly
 - Commits: conventional (`feat`, `fix`, `docs`, `refactor`) + Co-Authored-By
 - NEVER commit: .env, credentials, API keys, failing tests
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
-`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint B (B0-B11), v1.3.0
+`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint B (B0-B11) COMPLETE, v1.3.0 released
 
 ## Slash Commands
 
