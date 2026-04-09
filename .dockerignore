@@ -1,0 +1,45 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Output & artifacts
+out/
+htmlcov/
+.coverage
+.pytest_cache/
+.mypy_cache/
+tests/artifacts/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+!.env.production.example
+jwt_*.pem
+
+# Plans & docs (not needed in image)
+01_PLAN/
+.claude/
+*.md
+!README.md
+
+# OS
+Thumbs.db
+.DS_Store

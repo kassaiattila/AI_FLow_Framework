@@ -1,4 +1,4 @@
-.PHONY: help setup setup-full dev dev-docker api worker down down-volumes test test-cov test-integration test-e2e test-ui test-prompts test-all lint lint-fix migrate migrate-new db-reset lock clean skill-list workflow-list check-env
+.PHONY: help setup setup-full dev dev-docker api worker down down-volumes test test-cov test-integration test-e2e test-ui test-prompts test-all lint lint-fix migrate migrate-new db-reset lock clean skill-list workflow-list check-env deploy deploy-status deploy-down deploy-logs
 
 # Platform-aware venv paths
 ifeq ($(OS),Windows_NT)
@@ -133,3 +133,29 @@ skill-list: ## List installed skills
 
 workflow-list: ## List registered workflows
 	$(PYTHON) -m aiflow.cli.main workflow list
+
+# === PRODUCTION DEPLOY ===
+
+deploy: ## Build + start production stack
+	docker compose -f docker-compose.prod.yml up -d --build
+	@echo "Waiting for services to start..."
+	@sleep 10
+	docker compose -f docker-compose.prod.yml exec api alembic upgrade head
+	@echo ""
+	@echo "=== AIFlow Production Stack Running ==="
+	@echo "UI:     http://localhost:$${UI_PORT:-80}"
+	@echo "Health: http://localhost:$${UI_PORT:-80}/health"
+	@echo ""
+
+deploy-status: ## Check production stack health
+	docker compose -f docker-compose.prod.yml ps
+	@echo ""
+	@echo "--- Health Checks ---"
+	@curl -sf http://localhost:$${UI_PORT:-80}/health-ui && echo " (UI OK)" || echo "UI: unreachable"
+	@curl -sf http://localhost:$${UI_PORT:-80}/health | python -m json.tool 2>/dev/null || echo "API: checking..."
+
+deploy-down: ## Stop production stack
+	docker compose -f docker-compose.prod.yml down
+
+deploy-logs: ## Show production logs
+	docker compose -f docker-compose.prod.yml logs -f --tail=100
