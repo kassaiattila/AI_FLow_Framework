@@ -5249,7 +5249,7 @@ components:
 info:
   description: Enterprise AI Automation Framework
   title: AIFlow API
-  version: 1.2.2
+  version: 1.3.0
 openapi: 3.1.0
 paths:
   /api/v1/admin/api-keys:
@@ -6204,7 +6204,7 @@ paths:
       - documents
   /api/v1/documents/{invoice_id}/verify:
     post:
-      description: Verify an extracted document — confirm or correct extracted fields.
+      description: Verify an extracted document ï¿½ confirm or correct extracted fields.
       operationId: verify_document_api_v1_documents__invoice_id__verify_post
       parameters:
       - in: path
@@ -8899,7 +8899,7 @@ paths:
       - reviews
   /api/v1/reviews/{review_id}/escalate:
     post:
-      description: Manually escalate a pending review — bumps priority.
+      description: Manually escalate a pending review ï¿½ bumps priority.
       operationId: escalate_review_api_v1_reviews__review_id__escalate_post
       parameters:
       - in: path
