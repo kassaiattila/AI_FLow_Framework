@@ -4,7 +4,7 @@
 > **Elozmeny:** v1.2.1 COMPLETE (S1-S14, 2026-04-04) — UI, observability, quality, 102 E2E
 > **Cel:** Ket sprint: (A) infrastruktura+biztonsag+halott kod+guardrail keretrendszer, (B) szolgaltatas excellence+prompt guardrail implementacio
 > **Becsult idotartam:** Sprint A ~8 session, Sprint B ~10 session
-> **Infrastruktura:** 26 service, 165 endpoint (25 router), 46 DB tabla, 29 migracio, 21 adapter, 6 pipeline template, 6 skill
+> **Infrastruktura (S30 vegen):** 27 service, 170 endpoint (26 router), 47 DB tabla, 30 migracio, 22 adapter, 9 pipeline template, 7 skill, 23 UI oldal, 1442 unit test, 96 promptfoo teszt, 105 E2E teszt
 > **Sprint A: COMPLETE** (A0-A8 DONE, v1.2.2, 2026-04-05) — CI, ruff, dead code, security, stubs, guardrails, audit
 
 ---
@@ -1948,10 +1948,10 @@ Docker-ready deploy, UI pipeline trigger, 5 skill 95%+ promptfoo
 | B3.5 | Confidence scoring hardening: FieldConfidenceCalculator (4-factor) + ConfidenceRouter (auto/review/reject) + confidence_config.yaml + BM25 [0,1] normalization (36 unit tests) | S27b | DONE | 2026-04-08 | — |
 | B4.1 | Skill hardening — aszf_rag_chat + email_intent_processor. aszf_rag: 12/12 promptfoo (100%), prompt-ok [N] citation enforcement + hallucination calibration 0.9, guardrails max_length 4000 + llm_fallback 0.8. email_intent: 16/16 promptfoo (100%), intent catalog 10→12 (invoice_received + calendar_invite), HU entity types tax_number/bank_account/postal_address, guardrails HU PII allowlist bovites. Promptfoo infra fix: stdout UTF-8 + logs to stderr + argv support. | S28 | DONE | 2026-04-08 | — |
 | B4.2 | Skill hardening — process_documentation + invoice_processor + cubix_course_capture + invoice_finder. process_docs: 14/14 promptfoo (100%), strict shape mapping + decision label + parallel + off-topic refusal + loop-back. invoice_processor: 14/14 promptfoo (100%), HU thousands separator (1.500.000,50→1500000.50), AAM VAT-exempt, multi-currency, multi-page continuation, literal VAT rate reading. cubix_course_capture: 12/12 promptfoo (100%), monolit prompt SPLIT → 3 dedikalt (section_detector + summary_generator + vocabulary_extractor), workflow asyncio.gather, transcript_structurer.yaml DEPRECATED. invoice_finder: 12/12 promptfoo (100%), UJ promptfooconfig.yaml router prompt-tal (4 task: classify/extract/payment_status/report), Phase 0 valos invoice email-eken kalibralva, allowed_pii bovites (email + hu_tax_number + hu_bank_account). +50 promptfoo test (54→104), 4/4 skill PRODUCTION-READY 8/10. | S29 | DONE | 2026-04-08 | — |
-| B5 | Diagram pipeline + Spec writer + koltseg baseline | S29 | TODO | — | — |
-| B6 | **Portal struktura** + 4 journey tervezes | S30 | TODO | — | — |
-| B7 | **Verification Page v2** (bounding box, confidence, diff) | S31 | TODO | — | — |
-| B8 | UI Journey implementacio (navigacio + 3 journey) | S32 | TODO | — | — |
-| B9 | **Docker deploy** + UI pipeline trigger | S33 | TODO | — | — |
-| B10 | POST-AUDIT + javitasok | S34 | TODO | — | — |
-| B11 | v1.3.0 tag + merge | S35 | TODO | — | — |
+| B5 | Diagram hardening (3 semantics + 3 service prompts + pipeline template + 11 unit + 7 promptfoo + 3 E2E) + spec_writer BRAND-NEW skill (skill.yaml + 3 prompts + 5-step workflow + CLI + adapter + pipeline template + alembic 030 + /api/v1/specs router + SpecWriter.tsx UI + 7 unit + 8 promptfoo) + Langfuse cost baseline (scripts/cost_baseline.py + COST_BASELINE_REPORT.md 14 records, 11 runs, $0.1931). Diagram_generator 8/10, spec_writer 9/10 service-hardening PRODUCTION-READY. +18 unit test, +16 promptfoo test, +3 E2E, +1 DB migration, +2 pipeline templates, +1 skill, +1 UI page. | S30 | DONE | 2026-04-09 | 41d3e60 |
+| B6 | **Portal struktura** + 4 journey tervezes | S31 | TODO | — | — |
+| B7 | **Verification Page v2** (bounding box, confidence, diff) | S32 | TODO | — | — |
+| B8 | UI Journey implementacio (navigacio + 3 journey) | S33 | TODO | — | — |
+| B9 | **Docker deploy** + UI pipeline trigger | S34 | TODO | — | — |
+| B10 | POST-AUDIT + javitasok | S35 | TODO | — | — |
+| B11 | v1.3.0 tag + merge | S36 | TODO | — | — |

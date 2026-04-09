@@ -8,7 +8,6 @@ JSON export.
 from __future__ import annotations
 
 import json
-import os
 import uuid
 from datetime import UTC, datetime
 from typing import Any, Literal
@@ -68,22 +67,20 @@ class DeleteResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# DB pool helper — asyncpg direct (mirrors diagram_generator service pattern)
+# DB helpers — reuse the shared asyncpg pool from aiflow.api.deps so this
+# router participates in the same connection lifecycle as the rest of the
+# app (one pool per event loop, no double-booking of pool connections).
 # ---------------------------------------------------------------------------
 
 
-_POOL: asyncpg.Pool | None = None
-
-
 async def _get_pool() -> asyncpg.Pool:
-    global _POOL
-    if _POOL is None:
-        url = os.getenv(
-            "AIFLOW_DATABASE__URL",
-            "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-        ).replace("postgresql+asyncpg://", "postgresql://")
-        _POOL = await asyncpg.create_pool(url, min_size=1, max_size=5)
-    return _POOL
+    # Delegate to the shared pool factory so this router reuses the same
+    # event-loop-bound pool instance as the rest of the app. Keeping the
+    # import local makes it survive autoformatter runs that would prune
+    # top-level imports it thinks are unused.
+    from aiflow.api.deps import get_pool as _shared_pool
+
+    return await _shared_pool()
 
 
 def _row_to_response(row: dict[str, Any]) -> SpecResponse:

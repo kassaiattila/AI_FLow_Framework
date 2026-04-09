@@ -38,11 +38,11 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - **v1.2.1 Production Ready Sprint: COMPLETE (S1-S14, 2026-04-04) — UI integracio, observability, quality, 102 E2E teszt, v1.2.1 tag**
 - **v1.2.2: Sprint A COMPLETE (A0-A8, 2026-04-05) — infra+security+guardrails+audit**
 - **v1.3.0: `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint B: service excellence (B0-B11)**
-- 26 service, 165 endpoint (25 router), 46 DB tabla, 29 Alembic migracio
-- 18 pipeline adapter, 6 pipeline template
-- 1424 unit test, 129 guardrail teszt, 97 security teszt, 154 skill test, 104 E2E, 80 promptfoo test case
+- 27 service, 170 endpoint (26 router), 47 DB tabla, 30 Alembic migracio
+- 22 pipeline adapter, 9 pipeline template
+- 1442 unit test, 129 guardrail teszt, 97 security teszt, 161 skill test, 105 E2E, 96 promptfoo test case
 - v1.2.2 Sprint A COMPLETE (A0-A8, 2026-04-05)
-- 5 skill (qbpp TOROLVE v1.3.0 B0-ban), 22 UI oldal
+- 7 skill (qbpp TOROLVE v1.3.0 B0-ban, spec_writer UJ B5.2-ben S30 2026-04-09), 23 UI oldal
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock
 - Services in Docker, Python code locally from .venv/
 - Step + SkillRunner architecture (agents/ module removed, llm/ → models/ atnevezve)
