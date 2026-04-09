@@ -1,6 +1,6 @@
 /**
- * AIFlow Sidebar — 4 collapsible groups, 11 items, active state.
- * Replaces React Admin's Menu component.
+ * AIFlow Sidebar — 6 journey-based groups + bottom menu.
+ * B8.1: Restructured from 5 technical groups to 6 journey-oriented groups.
  */
 
 import { useState, useEffect } from "react";
@@ -21,76 +21,87 @@ interface MenuGroup {
 
 const MENU_GROUPS: MenuGroup[] = [
   {
-    labelKey: "aiflow.menu.operations",
+    labelKey: "aiflow.menu.documentProcessing",
     defaultOpen: true,
     items: [
-      { path: "/runs", labelKey: "aiflow.resources.runs", icon: "play" },
-      { path: "/costs", labelKey: "aiflow.costs.title", icon: "dollar" },
-      { path: "/monitoring", labelKey: "aiflow.monitoring.title", icon: "heart" },
-      { path: "/quality", labelKey: "aiflow.quality.title", icon: "star" },
+      { path: "/documents", labelKey: "aiflow.menu.documents", icon: "file-text" },
+      { path: "/emails", labelKey: "aiflow.menu.emailScan", icon: "mail" },
+      { path: "/reviews", labelKey: "aiflow.menu.verification", icon: "check-circle" },
     ],
   },
   {
-    labelKey: "aiflow.menu.data",
-    defaultOpen: true,
-    items: [
-      { path: "/documents", labelKey: "aiflow.resources.documents", icon: "file" },
-      { path: "/emails", labelKey: "aiflow.resources.emails", icon: "mail" },
-    ],
-  },
-  {
-    labelKey: "aiflow.menu.aiServices",
-    defaultOpen: true,
-    items: [
-      { path: "/rag", labelKey: "aiflow.rag.title", icon: "book" },
-      { path: "/process-docs", labelKey: "aiflow.skills.process_documentation", icon: "diagram" },
-      { path: "/media", labelKey: "aiflow.media.title", icon: "audio" },
-      { path: "/rpa", labelKey: "aiflow.rpa.menuLabel", icon: "bot" },
-    ],
-  },
-  {
-    labelKey: "aiflow.menu.orchestration",
-    defaultOpen: true,
-    items: [
-      { path: "/services", labelKey: "aiflow.services.catalogTitle", icon: "grid" },
-      { path: "/pipelines", labelKey: "pipelines.title", icon: "diagram" },
-    ],
-  },
-  {
-    labelKey: "aiflow.menu.admin",
+    labelKey: "aiflow.menu.knowledgeBase",
     defaultOpen: false,
     items: [
-      { path: "/admin", labelKey: "aiflow.admin.menuLabel", icon: "users" },
-      { path: "/audit", labelKey: "aiflow.audit.title", icon: "history" },
-      { path: "/reviews", labelKey: "aiflow.reviews.menuLabel", icon: "check" },
+      { path: "/rag", labelKey: "aiflow.menu.collections", icon: "book-open" },
+    ],
+  },
+  {
+    labelKey: "aiflow.menu.generation",
+    defaultOpen: false,
+    items: [
+      { path: "/process-docs", labelKey: "aiflow.menu.diagrams", icon: "git-branch" },
+      { path: "/spec-writer", labelKey: "aiflow.menu.specWriter", icon: "file-plus" },
+      { path: "/media", labelKey: "aiflow.menu.mediaProcessing", icon: "headphones" },
+    ],
+  },
+  {
+    labelKey: "aiflow.menu.monitoring",
+    defaultOpen: true,
+    items: [
+      { path: "/runs", labelKey: "aiflow.menu.pipelineRuns", icon: "play-circle" },
+      { path: "/costs", labelKey: "aiflow.menu.costs", icon: "trending-up" },
+      { path: "/monitoring", labelKey: "aiflow.menu.serviceHealth", icon: "activity" },
+      { path: "/quality", labelKey: "aiflow.menu.llmQuality", icon: "bar-chart" },
+      { path: "/audit", labelKey: "aiflow.menu.auditLog", icon: "clock" },
+    ],
+  },
+  {
+    labelKey: "aiflow.menu.settings",
+    defaultOpen: false,
+    items: [
+      { path: "/admin", labelKey: "aiflow.menu.usersApi", icon: "users" },
+      { path: "/pipelines", labelKey: "aiflow.menu.pipelineTemplates", icon: "layers" },
+      { path: "/services", labelKey: "aiflow.menu.serviceCatalog", icon: "server" },
     ],
   },
 ];
 
-/** Simple SVG icon set — will be replaced by @untitledui/icons */
+const BOTTOM_ITEMS: MenuItem[] = [
+  { path: "/rpa", labelKey: "aiflow.menu.rpaBrowser", icon: "terminal" },
+  { path: "/cubix", labelKey: "aiflow.menu.cubixCourse", icon: "book" },
+];
+
+/** SVG icon set — 24x24 viewBox, stroke-based (Untitled UI / Heroicons style) */
 function MenuIcon({ name }: { name: string }) {
   const icons: Record<string, string> = {
-    play: "M5 3l14 9-14 9V3z",
-    dollar: "M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
-    heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
-    file: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6",
-    mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6",
-    book: "M4 19.5A2.5 2.5 0 016.5 17H20 M4 19.5A2.5 2.5 0 014 17V5a2 2 0 012-2h14v14H6.5",
-    grid: "M3 3h7v7H3V3zm11 0h7v7h-7V3zm0 11h7v7h-7v-7zM3 14h7v7H3v-7z",
-    diagram: "M22 12h-4l-3 9L9 3l-3 9H2",
-    audio: "M9 18V5l12-2v13 M9 18a3 3 0 11-6 0 3 3 0 016 0z",
-    bot: "M12 8V4l8 4-8 4V8zM4 12h8m-8 4h16",
-    users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75",
-    history: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
-    check: "M9 11l3 3L22 4 M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11",
     home: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z",
+    "file-text": "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8",
+    mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6",
+    "check-circle": "M22 11.08V12a10 10 0 11-5.93-9.14 M22 4L12 14.01l-3-3",
+    "book-open": "M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z",
+    "git-branch": "M6 3v12 M18 9a3 3 0 100-6 3 3 0 000 6z M6 21a3 3 0 100-6 3 3 0 000 6z M18 9a9 9 0 01-9 9",
+    "file-plus": "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M12 18v-6 M9 15h6",
+    headphones: "M3 18v-6a9 9 0 0118 0v6 M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3z M3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z",
+    "play-circle": "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M10 8l6 4-6 4V8z",
+    "trending-up": "M23 6l-9.5 9.5-5-5L1 18 M17 6h6v6",
+    activity: "M22 12h-4l-3 9L9 3l-3 9H2",
+    "bar-chart": "M12 20V10 M18 20V4 M6 20v-4",
+    clock: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M12 6v6l4 2",
+    users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75",
+    layers: "M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5",
+    server: "M2 2h20v8H2z M2 14h20v8H2z M6 6h.01 M6 18h.01",
+    terminal: "M4 17l6-6-6-6 M12 19h8",
+    book: "M4 19.5A2.5 2.5 0 016.5 17H20 M4 19.5A2.5 2.5 0 014 17V5a2 2 0 012-2h14v14H6.5",
     chevronDown: "M6 9l6 6 6-6",
     chevronRight: "M9 18l6-6-6-6",
   };
 
   return (
     <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d={icons[name] || icons.file} />
+      {(icons[name] || icons["file-text"]).split(" M").map((segment, i) => (
+        <path key={i} d={i === 0 ? segment : `M${segment}`} />
+      ))}
     </svg>
   );
 }
@@ -98,9 +109,12 @@ function MenuIcon({ name }: { name: string }) {
 export function Sidebar() {
   const translate = useTranslate();
   const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem("aiflow_sidebar_groups");
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      try { return JSON.parse(saved); } catch { /* use defaults */ }
+    }
     return Object.fromEntries(MENU_GROUPS.map((g) => [g.labelKey, g.defaultOpen]));
   });
 
@@ -118,27 +132,58 @@ export function Sidebar() {
     }
   }, [location.pathname]);
 
+  // Responsive collapse at 768px
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => setCollapsed(e.matches);
+    handler(mq);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const isGroupActive = (group: MenuGroup) =>
+    group.items.some((item) => location.pathname.startsWith(item.path));
+
+  const renderNavItem = (item: MenuItem) => (
+    <NavLink
+      key={item.path}
+      to={item.path}
+      title={collapsed ? translate(item.labelKey) : undefined}
+      className={({ isActive }) =>
+        `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+          isActive
+            ? "bg-brand-50 font-semibold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400"
+            : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+        } ${collapsed ? "justify-center" : ""}`
+      }
+    >
+      <MenuIcon name={item.icon} />
+      {!collapsed && <span>{translate(item.labelKey)}</span>}
+    </NavLink>
+  );
+
   return (
-    <aside className="flex h-full w-[var(--sidebar-width)] flex-col border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+    <aside className={`flex h-full flex-col border-r border-gray-200 bg-white transition-all dark:border-gray-700 dark:bg-gray-900 ${collapsed ? "w-14" : "w-[var(--sidebar-width)]"}`}>
       {/* Dashboard link */}
       <nav className="flex-1 overflow-y-auto px-2 py-2">
         <NavLink
           to="/"
           end
+          title={collapsed ? "Dashboard" : undefined}
           className={({ isActive }) =>
             `flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               isActive
                 ? "bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400"
                 : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-            }`
+            } ${collapsed ? "justify-center" : ""}`
           }
         >
           <MenuIcon name="home" />
-          <span>Dashboard</span>
+          {!collapsed && <span>Dashboard</span>}
         </NavLink>
 
         {/* Menu groups */}
@@ -147,36 +192,40 @@ export function Sidebar() {
             {/* Group header */}
             <button
               onClick={() => toggleGroup(group.labelKey)}
-              className="flex w-full items-center justify-between px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              title={collapsed ? translate(group.labelKey) : undefined}
+              className={`flex w-full items-center justify-between px-3 py-1 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                isGroupActive(group)
+                  ? "text-brand-500 dark:text-brand-400"
+                  : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              } ${collapsed ? "justify-center" : ""}`}
             >
-              <span>{translate(group.labelKey)}</span>
-              <MenuIcon name={openGroups[group.labelKey] ? "chevronDown" : "chevronRight"} />
+              {!collapsed && <span>{translate(group.labelKey)}</span>}
+              {!collapsed && (
+                <MenuIcon name={openGroups[group.labelKey] ? "chevronDown" : "chevronRight"} />
+              )}
             </button>
 
             {/* Group items */}
-            {openGroups[group.labelKey] && (
-              <div className="mt-1 space-y-0.5">
-                {group.items.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }) =>
-                      `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                        isActive
-                          ? "bg-brand-50 font-semibold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400"
-                          : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-                      }`
-                    }
-                  >
-                    <MenuIcon name={item.icon} />
-                    <span>{translate(item.labelKey)}</span>
-                  </NavLink>
-                ))}
+            {(openGroups[group.labelKey] || collapsed) && (
+              <div className={`mt-1 space-y-0.5 ${collapsed ? "" : ""}`}>
+                {group.items.map(renderNavItem)}
               </div>
             )}
           </div>
         ))}
       </nav>
+
+      {/* Bottom menu — separate section */}
+      <div className="border-t border-gray-200 px-2 py-2 dark:border-gray-700">
+        {!collapsed && (
+          <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            {translate("aiflow.menu.more")}
+          </p>
+        )}
+        <div className="space-y-0.5">
+          {BOTTOM_ITEMS.map(renderNavItem)}
+        </div>
+      </div>
     </aside>
   );
 }
