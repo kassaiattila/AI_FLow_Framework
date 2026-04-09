@@ -7,8 +7,8 @@ Branch: `feature/v1.3.0-service-excellence` | API: 8102 | UI: 5174
 ## Structure
 ```
 src/aiflow/         — Framework: core, engine, api, services, pipeline, guardrails, security
-skills/             — 6 skill: process_docs, aszf_rag, email_intent, invoice_processor, invoice_finder, cubix
-aiflow-admin/       — React 19 + Tailwind v4 + Vite (admin dashboard, 22 pages)
+skills/             — 7 skill: process_docs, aszf_rag, email_intent, invoice_processor, invoice_finder, cubix, spec_writer
+aiflow-admin/       — React 19 + Tailwind v4 + Vite (admin dashboard, 23 pages)
 01_PLAN/            — Plans (58_POST_SPRINT_HARDENING_PLAN.md = CURRENT)
 tests/              — unit/, integration/, e2e/
 .claude/skills/     — 4 skill: aiflow-ui-pipeline, aiflow-testing, aiflow-pipeline, aiflow-services
@@ -17,9 +17,9 @@ tests/              — unit/, integration/, e2e/
 ```
 
 ## Key Numbers
-26 services | 165 API endpoints (25 routers) | 46 DB tables | 29 Alembic migrations
-21 pipeline adapters | 7 pipeline templates | 6 skills | 22 UI pages
-1424 unit tests | 129 guardrail tests | 97 security tests | 80 promptfoo test cases | 104 E2E tests
+27 services | 170 API endpoints (26 routers) | 47 DB tables | 30 Alembic migrations
+22 pipeline adapters | 9 pipeline templates | 7 skills | 23 UI pages
+1442 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 105 E2E tests
 
 ## Build & Test
 ```bash
