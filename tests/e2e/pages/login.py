@@ -1,9 +1,8 @@
 """Login Page Object for AIFlow admin."""
+
 from __future__ import annotations
 
-from playwright.sync_api import Page
-
-from tests.e2e.pages.base import BasePage, BASE_URL
+from tests.e2e.pages.base import BasePage
 
 
 class LoginPage(BasePage):

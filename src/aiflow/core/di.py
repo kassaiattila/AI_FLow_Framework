@@ -4,7 +4,9 @@ Services are registered by type and retrieved by type. Supports lazy initializat
 
 DEPRECATED: Skills use SkillRunner.from_env() instead. Planned for Phase B review.
 """
-from typing import Any, TypeVar, Callable
+
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import structlog
 

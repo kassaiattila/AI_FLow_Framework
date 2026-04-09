@@ -9,9 +9,12 @@
     requires_services: []
     tags: [security, audit, logging, compliance]
 """
+
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timezone, timedelta
-from aiflow.security.audit import AuditEntry, AuditAction, AuditLogger
+
+from aiflow.security.audit import AuditAction, AuditEntry, AuditLogger
 
 
 class TestAuditAction:
@@ -110,23 +113,35 @@ class TestAuditLogger:
         assert audit_logger.count() == 5
 
     def test_query_by_action(self, audit_logger):
-        audit_logger.log(AuditEntry(user_id="u1", action=AuditAction.workflow_create, resource_type="workflow"))
-        audit_logger.log(AuditEntry(user_id="u1", action=AuditAction.skill_install, resource_type="skill"))
-        audit_logger.log(AuditEntry(user_id="u2", action=AuditAction.workflow_create, resource_type="workflow"))
+        audit_logger.log(
+            AuditEntry(user_id="u1", action=AuditAction.workflow_create, resource_type="workflow")
+        )
+        audit_logger.log(
+            AuditEntry(user_id="u1", action=AuditAction.skill_install, resource_type="skill")
+        )
+        audit_logger.log(
+            AuditEntry(user_id="u2", action=AuditAction.workflow_create, resource_type="workflow")
+        )
         results = audit_logger.query(action=AuditAction.workflow_create)
         assert len(results) == 2
         assert all(e.action == AuditAction.workflow_create for e in results)
 
     def test_query_by_user(self, audit_logger):
-        audit_logger.log(AuditEntry(user_id="alice", action=AuditAction.user_login, resource_type="session"))
-        audit_logger.log(AuditEntry(user_id="bob", action=AuditAction.user_login, resource_type="session"))
-        audit_logger.log(AuditEntry(user_id="alice", action=AuditAction.workflow_run, resource_type="workflow"))
+        audit_logger.log(
+            AuditEntry(user_id="alice", action=AuditAction.user_login, resource_type="session")
+        )
+        audit_logger.log(
+            AuditEntry(user_id="bob", action=AuditAction.user_login, resource_type="session")
+        )
+        audit_logger.log(
+            AuditEntry(user_id="alice", action=AuditAction.workflow_run, resource_type="workflow")
+        )
         results = audit_logger.query(user_id="alice")
         assert len(results) == 2
         assert all(e.user_id == "alice" for e in results)
 
     def test_query_by_date_range(self, audit_logger):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         old_entry = AuditEntry(
             user_id="u1",
             action=AuditAction.user_login,
@@ -146,7 +161,9 @@ class TestAuditLogger:
         assert results[0].action == AuditAction.workflow_run
 
     def test_query_returns_empty_when_no_match(self, audit_logger):
-        audit_logger.log(AuditEntry(user_id="u1", action=AuditAction.user_login, resource_type="session"))
+        audit_logger.log(
+            AuditEntry(user_id="u1", action=AuditAction.user_login, resource_type="session")
+        )
         results = audit_logger.query(user_id="nonexistent")
         assert results == []
 
@@ -154,8 +171,12 @@ class TestAuditLogger:
         assert audit_logger.count() == 0
 
     def test_clear_removes_all(self, audit_logger):
-        audit_logger.log(AuditEntry(user_id="u1", action=AuditAction.user_login, resource_type="session"))
-        audit_logger.log(AuditEntry(user_id="u2", action=AuditAction.user_login, resource_type="session"))
+        audit_logger.log(
+            AuditEntry(user_id="u1", action=AuditAction.user_login, resource_type="session")
+        )
+        audit_logger.log(
+            AuditEntry(user_id="u2", action=AuditAction.user_login, resource_type="session")
+        )
         assert audit_logger.count() == 2
         audit_logger.clear()
         assert audit_logger.count() == 0

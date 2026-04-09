@@ -1,7 +1,6 @@
 """Model cost calculation and tracking."""
-from typing import Any
+
 import structlog
-from aiflow.models.metadata import ModelMetadata
 
 __all__ = ["ModelCostCalculator"]
 
@@ -18,6 +17,7 @@ DEFAULT_PRICING: dict[str, dict[str, float]] = {
     "openai/text-embedding-3-small": {"input": 0.02, "output": 0.0},
     "openai/text-embedding-3-large": {"input": 0.13, "output": 0.0},
 }
+
 
 class ModelCostCalculator:
     """Calculate costs for model calls based on token usage."""
@@ -37,7 +37,9 @@ class ModelCostCalculator:
         output_cost = (output_tokens / 1_000_000) * pricing.get("output", 0)
         return round(input_cost + output_cost, 8)
 
-    def estimate_cost(self, model: str, estimated_input_tokens: int, estimated_output_tokens: int) -> float:
+    def estimate_cost(
+        self, model: str, estimated_input_tokens: int, estimated_output_tokens: int
+    ) -> float:
         """Estimate cost before making a call (for budget checking)."""
         return self.calculate(model, estimated_input_tokens, estimated_output_tokens)
 
@@ -45,7 +47,9 @@ class ModelCostCalculator:
         """Get pricing info for a model."""
         return self._pricing.get(model)
 
-    def register_pricing(self, model: str, input_per_million: float, output_per_million: float) -> None:
+    def register_pricing(
+        self, model: str, input_per_million: float, output_per_million: float
+    ) -> None:
         """Register or update pricing for a model."""
         self._pricing[model] = {"input": input_per_million, "output": output_per_million}
 

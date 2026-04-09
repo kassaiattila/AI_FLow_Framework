@@ -9,8 +9,10 @@
     requires_services: []
     tags: [security, secrets, env, vault]
 """
+
 import pytest
-from aiflow.security.secrets import SecretProvider, EnvSecretProvider, SecretManager
+
+from aiflow.security.secrets import EnvSecretProvider, SecretManager, SecretProvider
 
 
 class TestEnvSecretProvider:

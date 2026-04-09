@@ -1,7 +1,8 @@
 """Authentication endpoints — login, token verification, token refresh."""
+
 from __future__ import annotations
 
-import os
+import time
 from datetime import UTC, datetime
 
 import bcrypt
@@ -17,35 +18,15 @@ __all__ = ["router"]
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-def _init_auth() -> AuthProvider:
-    """Initialize AuthProvider with JWT secret validation.
-
-    Production mode requires an explicit AIFLOW_JWT_SECRET (min 32 chars).
-    Dev/test mode falls back to a default secret.
-    """
-    secret = os.getenv("AIFLOW_JWT_SECRET", "")
-    env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
-    is_production = env in ("production", "prod")
-
-    if is_production:
-        if not secret:
-            raise RuntimeError(
-                "AIFLOW_JWT_SECRET is REQUIRED in production mode. "
-                "Set AIFLOW_JWT_SECRET env var (minimum 32 characters)."
-            )
-        if len(secret) < 32:
-            raise RuntimeError(
-                f"AIFLOW_JWT_SECRET is too short ({len(secret)} chars). "
-                "Minimum 32 characters required for production."
-            )
-    elif not secret:
-        secret = "dev-secret-change-in-production"
-        logger.warning("jwt_using_default_secret", env=env)
-
-    return AuthProvider(secret=secret)
+_auth: AuthProvider | None = None
 
 
-_auth = _init_auth()
+def _get_auth() -> AuthProvider:
+    """Lazy-init AuthProvider (after dotenv is loaded by create_app)."""
+    global _auth
+    if _auth is None:
+        _auth = AuthProvider.from_env()
+    return _auth
 
 
 # --- Models ---
@@ -53,12 +34,14 @@ _auth = _init_auth()
 
 class LoginRequest(BaseModel):
     """Login credentials."""
+
     username: str
     password: str
 
 
 class LoginResponse(BaseModel):
     """Login response with token."""
+
     token: str
     user_id: str
     role: str
@@ -68,6 +51,7 @@ class LoginResponse(BaseModel):
 
 class MeResponse(BaseModel):
     """Current user info."""
+
     user_id: str
     role: str
     team_id: str | None = None
@@ -112,12 +96,13 @@ async def login(request: LoginRequest) -> LoginResponse:
     # Update last_login_at
     async with engine.begin() as conn:
         from sqlalchemy import text as t
+
         await conn.execute(
             t("UPDATE users SET last_login_at = :now WHERE id = :id"),
             {"now": datetime.now(UTC), "id": user_id},
         )
 
-    token = _auth.create_token(
+    token = _get_auth().create_token(
         user_id=str(user_id),
         team_id=str(team_id) if team_id else None,
         role=role,
@@ -145,7 +130,7 @@ async def me(authorization: str = Header("")) -> MeResponse:
         raise HTTPException(status_code=401, detail="No authorization header")
 
     token = authorization.replace("Bearer ", "").strip()
-    result = _auth.verify_token(token)
+    result = _get_auth().verify_token(token)
 
     if not result.authenticated:
         raise HTTPException(status_code=401, detail=result.error or "Invalid token")
@@ -162,42 +147,38 @@ async def me(authorization: str = Header("")) -> MeResponse:
 
 class RefreshRequest(BaseModel):
     """Token refresh request."""
+
     token: str
 
 
 class RefreshResponse(BaseModel):
     """Token refresh response."""
+
     token: str
     expires_in: int = 3600
 
 
 @router.post("/refresh", response_model=RefreshResponse)
 async def refresh_token(request: RefreshRequest) -> RefreshResponse:
-    """Refresh a JWT token. Accepts a valid (or recently expired) token."""
-    result = _auth.verify_token(request.token)
+    """Refresh a JWT token. Accepts a valid (or recently expired within 5 min) token."""
+    result = _get_auth().verify_token(request.token)
 
     if not result.authenticated:
         if result.error == "token_expired":
-            import base64
-            import json
-            import time
-
-            parts = request.token.split(".")
-            if len(parts) == 2:
-                payload_json = base64.urlsafe_b64decode(parts[0]).decode()
-                payload = json.loads(payload_json)
-                if time.time() - payload.get("exp", 0) < 300:  # 5-minute grace period
-                    new_token = _auth.create_token(
-                        user_id=payload["sub"],
-                        team_id=payload.get("team_id"),
-                        role=payload.get("role", "viewer"),
-                    )
-                    logger.info("token_refreshed", user_id=payload["sub"], expired=True)
-                    return RefreshResponse(token=new_token)
+            # 5-minute grace period for recently expired tokens
+            payload = _get_auth().decode_expired_token(request.token)
+            if payload and time.time() - payload.get("exp", 0) < 300:
+                new_token = _get_auth().create_token(
+                    user_id=payload["sub"],
+                    team_id=payload.get("team_id"),
+                    role=payload.get("role", "viewer"),
+                )
+                logger.info("token_refreshed", user_id=payload["sub"], expired=True)
+                return RefreshResponse(token=new_token)
 
         raise HTTPException(status_code=401, detail=result.error or "Invalid token")
 
-    new_token = _auth.create_token(
+    new_token = _get_auth().create_token(
         user_id=result.user_id or "",
         team_id=result.team_id,
         role=result.role,

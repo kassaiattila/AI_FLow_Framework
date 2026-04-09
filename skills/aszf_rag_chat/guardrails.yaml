@@ -1,0 +1,69 @@
+# ASzF RAG Chat — full PII protection, strict scope, stricter
+# hallucination gate (0.9 after B3.5 lesson: LLM self-report unreliable).
+#
+# B4.1 changes:
+#   - input.max_length 2000 -> 4000 (legal questions can be long)
+#   - output.hallucination_threshold 0.7 -> 0.9 (stricter grounding gate)
+#   - llm_fallback.confidence_threshold 0.7 -> 0.8 (scope classifier
+#     requires higher confidence before allowing)
+#   - scope.allowed_topics expanded to cover GDPR-adjacent terms
+#
+# PII: full masking (ON mode). allowed_pii is empty - nothing passes through.
+
+input:
+  pii_masking: "on"
+  allowed_pii: []
+  max_length: 4000
+  check_injection: true
+  # Extra injection patterns specific to legal/insurance domain
+  extra_injection_patterns:
+    - ["override\\s+system\\s+prompt", "override_system"]
+    - ["forget\\s+(all|previous)\\s+(rules|constraints)", "forget_rules"]
+
+output:
+  # require_citation=true is the citation_guard: the output must
+  # contain at least one [N] numbered reference to a source chunk.
+  # Enforced by OutputGuard; answer_generator.yaml (v1.1) uses strict
+  # [N] format and refuses without citation.
+  require_citation: true
+  # B3.5 lesson: LLM self-report confidence is unreliable. We raise
+  # the threshold to 0.9 so only high-confidence grounded answers pass.
+  hallucination_threshold: 0.9
+  check_pii: true
+  check_safety: true
+
+scope:
+  allowed_topics:
+    - jog
+    - biztositas
+    - aszf
+    - szolgaltatas
+    - adatkezeles
+    - adatvedelelm
+    - gdpr
+    - law
+    - insurance
+    - contract
+    - data-protection
+  blocked_topics:
+    - politika
+    - orvosi tanacs
+    - befektetesi tanacs
+    - fogadas
+    - sport
+    - receptek
+  dangerous_patterns:
+    - "hogyan torjek be"
+    - "hogyan hackeljem"
+    - "how\\s+to\\s+hack"
+    - "bypass\\s+security"
+
+llm_fallback:
+  enabled: true
+  hallucination_evaluator: true
+  content_safety_classifier: true
+  scope_classifier: true
+  pii_detector: true
+  # B4.1: tighter scope classifier gate — 0.8 before we allow through.
+  # Below 0.8 we treat the answer as out-of-scope and refuse.
+  confidence_threshold: 0.8

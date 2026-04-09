@@ -16,7 +16,7 @@ grep -c "## Page.*{PageName}" aiflow-admin/figma-sync/PAGE_SPECS.md || echo "GAT
 # Ha 0 → **STOP** — futtasd `/ui-design` (valos Figma MCP design!) ELOSZOR!
 
 # GATE CHECK 3: API endpoint valos adatot ad?
-curl -sf http://localhost:8101/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', 'NO BACKEND'" || echo "GATE 2-3 FAIL: API nem ad valos adatot!"
+curl -sf http://localhost:8102/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', 'NO BACKEND'" || echo "GATE 2-3 FAIL: API nem ad valos adatot!"
 ```
 **Mind a 3 GATE PASS kell mielott BARMILYEN UI kodot generalnal!**
 **Ha barmelyik FAIL → STOP → megoldas → ujra ellenorzes → AZTAN generálas.**

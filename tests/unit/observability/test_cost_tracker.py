@@ -9,13 +9,14 @@
     requires_services: []
     tags: [observability, cost, budget, tracking]
 """
+
 import pytest
 
 from aiflow.observability.cost_tracker import (
+    BudgetAlert,
+    BudgetStatus,
     CostRecord,
     CostTracker,
-    BudgetStatus,
-    BudgetAlert,
 )
 
 
@@ -80,21 +81,42 @@ class TestCostTracker:
 
     @pytest.mark.asyncio
     async def test_get_workflow_cost(self, tracker):
-        await tracker.record(CostRecord(
-            workflow_run_id="run-001", step_name="s1", model="gpt-4o",
-            provider="openai", input_tokens=100, output_tokens=50,
-            cost_usd=0.005, team_id="team-a",
-        ))
-        await tracker.record(CostRecord(
-            workflow_run_id="run-001", step_name="s2", model="gpt-4o",
-            provider="openai", input_tokens=200, output_tokens=100,
-            cost_usd=0.010, team_id="team-a",
-        ))
-        await tracker.record(CostRecord(
-            workflow_run_id="run-002", step_name="s1", model="gpt-4o",
-            provider="openai", input_tokens=50, output_tokens=25,
-            cost_usd=0.002, team_id="team-a",
-        ))
+        await tracker.record(
+            CostRecord(
+                workflow_run_id="run-001",
+                step_name="s1",
+                model="gpt-4o",
+                provider="openai",
+                input_tokens=100,
+                output_tokens=50,
+                cost_usd=0.005,
+                team_id="team-a",
+            )
+        )
+        await tracker.record(
+            CostRecord(
+                workflow_run_id="run-001",
+                step_name="s2",
+                model="gpt-4o",
+                provider="openai",
+                input_tokens=200,
+                output_tokens=100,
+                cost_usd=0.010,
+                team_id="team-a",
+            )
+        )
+        await tracker.record(
+            CostRecord(
+                workflow_run_id="run-002",
+                step_name="s1",
+                model="gpt-4o",
+                provider="openai",
+                input_tokens=50,
+                output_tokens=25,
+                cost_usd=0.002,
+                team_id="team-a",
+            )
+        )
 
         wf_cost = await tracker.get_workflow_cost("run-001")
         assert abs(wf_cost - 0.015) < 1e-9
@@ -106,18 +128,36 @@ class TestCostTracker:
 
     @pytest.mark.asyncio
     async def test_get_team_usage(self, tracker):
-        await tracker.record(CostRecord(
-            workflow_run_id="run-001", step_name="s1", model="gpt-4o",
-            provider="openai", cost_usd=0.005, team_id="team-alpha",
-        ))
-        await tracker.record(CostRecord(
-            workflow_run_id="run-002", step_name="s1", model="gpt-4o",
-            provider="openai", cost_usd=0.010, team_id="team-alpha",
-        ))
-        await tracker.record(CostRecord(
-            workflow_run_id="run-003", step_name="s1", model="gpt-4o",
-            provider="openai", cost_usd=0.002, team_id="team-beta",
-        ))
+        await tracker.record(
+            CostRecord(
+                workflow_run_id="run-001",
+                step_name="s1",
+                model="gpt-4o",
+                provider="openai",
+                cost_usd=0.005,
+                team_id="team-alpha",
+            )
+        )
+        await tracker.record(
+            CostRecord(
+                workflow_run_id="run-002",
+                step_name="s1",
+                model="gpt-4o",
+                provider="openai",
+                cost_usd=0.010,
+                team_id="team-alpha",
+            )
+        )
+        await tracker.record(
+            CostRecord(
+                workflow_run_id="run-003",
+                step_name="s1",
+                model="gpt-4o",
+                provider="openai",
+                cost_usd=0.002,
+                team_id="team-beta",
+            )
+        )
 
         alpha_usage = await tracker.get_team_usage("team-alpha")
         assert abs(alpha_usage - 0.015) < 1e-9
@@ -140,10 +180,16 @@ class TestBudgetStatus:
 
     @pytest.mark.asyncio
     async def test_budget_under_limit(self, tracker):
-        await tracker.record(CostRecord(
-            workflow_run_id="run-1", step_name="s1", model="gpt-4o",
-            provider="openai", cost_usd=5.0, team_id="team-x",
-        ))
+        await tracker.record(
+            CostRecord(
+                workflow_run_id="run-1",
+                step_name="s1",
+                model="gpt-4o",
+                provider="openai",
+                cost_usd=5.0,
+                team_id="team-x",
+            )
+        )
         status = await tracker.check_budget("team-x", budget_limit=10.0)
         assert isinstance(status, BudgetStatus)
         assert status.remaining_usd == pytest.approx(5.0)
@@ -153,10 +199,16 @@ class TestBudgetStatus:
     @pytest.mark.asyncio
     async def test_budget_at_warning_threshold(self, tracker):
         """80%+ usage triggers WARNING alert."""
-        await tracker.record(CostRecord(
-            workflow_run_id="run-1", step_name="s1", model="gpt-4o",
-            provider="openai", cost_usd=8.5, team_id="team-x",
-        ))
+        await tracker.record(
+            CostRecord(
+                workflow_run_id="run-1",
+                step_name="s1",
+                model="gpt-4o",
+                provider="openai",
+                cost_usd=8.5,
+                team_id="team-x",
+            )
+        )
         status = await tracker.check_budget("team-x", budget_limit=10.0)
         assert status.usage_pct == pytest.approx(85.0)
         assert status.alert == BudgetAlert.WARNING
@@ -164,20 +216,32 @@ class TestBudgetStatus:
     @pytest.mark.asyncio
     async def test_budget_below_warning_threshold(self, tracker):
         """Below 80% should be NONE alert."""
-        await tracker.record(CostRecord(
-            workflow_run_id="run-1", step_name="s1", model="gpt-4o",
-            provider="openai", cost_usd=7.0, team_id="team-x",
-        ))
+        await tracker.record(
+            CostRecord(
+                workflow_run_id="run-1",
+                step_name="s1",
+                model="gpt-4o",
+                provider="openai",
+                cost_usd=7.0,
+                team_id="team-x",
+            )
+        )
         status = await tracker.check_budget("team-x", budget_limit=10.0)
         assert status.usage_pct == pytest.approx(70.0)
         assert status.alert == BudgetAlert.NONE
 
     @pytest.mark.asyncio
     async def test_budget_exceeded(self, tracker):
-        await tracker.record(CostRecord(
-            workflow_run_id="run-1", step_name="s1", model="gpt-4o",
-            provider="openai", cost_usd=12.0, team_id="team-x",
-        ))
+        await tracker.record(
+            CostRecord(
+                workflow_run_id="run-1",
+                step_name="s1",
+                model="gpt-4o",
+                provider="openai",
+                cost_usd=12.0,
+                team_id="team-x",
+            )
+        )
         status = await tracker.check_budget("team-x", budget_limit=10.0)
         assert status.remaining_usd == pytest.approx(0.0)
         assert status.usage_pct == pytest.approx(120.0)

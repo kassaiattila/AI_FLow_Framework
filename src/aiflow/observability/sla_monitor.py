@@ -15,10 +15,8 @@ Usage:
 
 from __future__ import annotations
 
-import statistics
 from collections import defaultdict
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 import structlog
 from pydantic import BaseModel, Field
@@ -37,6 +35,7 @@ logger = structlog.get_logger(__name__)
 # Models
 # ---------------------------------------------------------------------------
 
+
 class SLADefinition(BaseModel):
     """SLA contract for a workflow."""
 
@@ -52,7 +51,7 @@ class RunRecord(BaseModel):
     workflow_name: str
     duration_ms: float
     success: bool
-    recorded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    recorded_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class SLAResult(BaseModel):
@@ -71,6 +70,7 @@ class SLAResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Monitor
 # ---------------------------------------------------------------------------
+
 
 class SLAMonitor:
     """In-memory SLA monitor that tracks latency percentiles and success rate.
@@ -153,9 +153,7 @@ class SLAMonitor:
         if sla:
             max_ms = sla.max_duration_seconds * 1000
             if p95 > max_ms:
-                violations.append(
-                    f"p95 latency ({p95:.0f}ms) exceeds max ({max_ms:.0f}ms)"
-                )
+                violations.append(f"p95 latency ({p95:.0f}ms) exceeds max ({max_ms:.0f}ms)")
             if success_rate < sla.target_success_rate:
                 violations.append(
                     f"success rate ({success_rate:.2%}) below target ({sla.target_success_rate:.2%})"
@@ -203,6 +201,7 @@ class SLAMonitor:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _percentile(sorted_values: list[float], pct: float) -> float:
     """Compute a percentile from a pre-sorted list."""

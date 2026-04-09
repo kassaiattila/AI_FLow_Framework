@@ -9,11 +9,12 @@
     requires_services: []
     tags: [observability, logging, structlog]
 """
+
 import logging
 
 import structlog
 
-from aiflow.observability.logging import setup_logging, get_logger
+from aiflow.observability.logging import get_logger, setup_logging
 
 
 class TestSetupLogging:

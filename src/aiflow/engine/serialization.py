@@ -3,11 +3,11 @@
 Inspired by Haystack's pipeline YAML serialization.
 Allows workflows to be saved, versioned, and shared as config files.
 """
+
 from typing import Any
 
-import yaml
-
 import structlog
+import yaml
 
 from aiflow.engine.dag import DAG
 
@@ -16,10 +16,15 @@ __all__ = ["serialize_workflow", "deserialize_dag_structure"]
 logger = structlog.get_logger(__name__)
 
 
-def serialize_workflow(name: str, version: str, dag: DAG, *,
-                       skill: str | None = None,
-                       description: str = "",
-                       metadata: dict[str, Any] | None = None) -> str:
+def serialize_workflow(
+    name: str,
+    version: str,
+    dag: DAG,
+    *,
+    skill: str | None = None,
+    description: str = "",
+    metadata: dict[str, Any] | None = None,
+) -> str:
     """Serialize a workflow to YAML string.
 
     Args:
@@ -59,7 +64,8 @@ def serialize_workflow(name: str, version: str, dag: DAG, *,
         if node.metadata:
             # Exclude non-serializable items
             serializable_meta = {
-                k: v for k, v in node.metadata.items()
+                k: v
+                for k, v in node.metadata.items()
                 if isinstance(v, (str, int, float, bool, list, dict, type(None)))
             }
             if serializable_meta:

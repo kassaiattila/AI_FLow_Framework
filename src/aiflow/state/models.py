@@ -1,13 +1,21 @@
 """SQLAlchemy ORM models for AIFlow state persistence."""
+
 import uuid
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
-from decimal import Decimal
-
 from sqlalchemy import (
-    Boolean, DateTime, Float, Integer, Numeric, String, Text, Index,
-    ForeignKey, CheckConstraint,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -25,6 +33,7 @@ __all__ = [
 
 class Base(DeclarativeBase):
     """Base class for all ORM models."""
+
     type_annotation_map = {
         dict[str, Any]: JSONB,
     }
@@ -75,12 +84,18 @@ class WorkflowRunModel(Base):
     priority: Mapped[int] = mapped_column(Integer, default=3)
     metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, default=dict)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
 
     # Relationships
-    step_runs: Mapped[list["StepRunModel"]] = relationship(back_populates="workflow_run", cascade="all, delete-orphan")
+    step_runs: Mapped[list["StepRunModel"]] = relationship(
+        back_populates="workflow_run", cascade="all, delete-orphan"
+    )
     instance: Mapped["SkillInstanceModel | None"] = relationship(back_populates="workflow_runs")
-    pipeline: Mapped["PipelineDefinitionModel | None"] = relationship(back_populates="workflow_runs")
+    pipeline: Mapped["PipelineDefinitionModel | None"] = relationship(
+        back_populates="workflow_runs"
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -138,7 +153,9 @@ class StepRunModel(Base):
     checkpoint_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     checkpoint_version: Mapped[int] = mapped_column(Integer, default=0)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
 
     # Relationships
     workflow_run: Mapped["WorkflowRunModel"] = relationship(back_populates="step_runs")
@@ -163,9 +180,7 @@ class SkillInstanceModel(Base):
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     customer: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    skill_name: Mapped[str] = mapped_column(
-        String(255), ForeignKey("skills.name"), nullable=False
-    )
+    skill_name: Mapped[str] = mapped_column(String(255), ForeignKey("skills.name"), nullable=False)
     skill_version: Mapped[str] = mapped_column(String(50), nullable=False)
 
     config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
@@ -194,8 +209,12 @@ class SkillInstanceModel(Base):
     total_runs: Mapped[int] = mapped_column(Integer, default=0)
     total_cost_usd: Mapped[Decimal] = mapped_column(Numeric(10, 4), default=Decimal("0"))
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
     created_by: Mapped[str | None] = mapped_column(String(255))
     updated_by: Mapped[str | None] = mapped_column(String(255))
 
@@ -244,8 +263,12 @@ class EmailConnectorConfigModel(Base):
     max_emails_per_fetch: Mapped[int] = mapped_column(Integer, default=50)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
 
     # Relationships
     fetch_history: Mapped[list["EmailFetchHistoryModel"]] = relationship(
@@ -254,7 +277,7 @@ class EmailConnectorConfigModel(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "provider IN ('imap', 'o365_graph', 'gmail')",
+            "provider IN ('imap', 'o365_graph', 'gmail', 'outlook_com')",
             name="chk_ecc_provider",
         ),
         Index("idx_ecc_provider", "provider"),
@@ -262,7 +285,9 @@ class EmailConnectorConfigModel(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<EmailConnectorConfig {self.name} provider={self.provider} active={self.is_active}>"
+        return (
+            f"<EmailConnectorConfig {self.name} provider={self.provider} active={self.is_active}>"
+        )
 
 
 class EmailFetchHistoryModel(Base):
@@ -272,14 +297,18 @@ class EmailFetchHistoryModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     config_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("email_connector_configs.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("email_connector_configs.id", ondelete="CASCADE"),
+        nullable=False,
     )
     status: Mapped[str] = mapped_column(String(20), default="pending")
     email_count: Mapped[int] = mapped_column(Integer, default=0)
     new_emails: Mapped[int] = mapped_column(Integer, default=0)
     duration_ms: Mapped[float | None] = mapped_column(Float)
     error: Mapped[str | None] = mapped_column(Text)
-    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
 
     # Relationships
     config: Mapped["EmailConnectorConfigModel"] = relationship(back_populates="fetch_history")
@@ -300,23 +329,15 @@ class PipelineDefinitionModel(Base):
 
     __tablename__ = "pipeline_definitions"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    version: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="1.0.0"
-    )
+    version: Mapped[str] = mapped_column(String(50), nullable=False, default="1.0.0")
     description: Mapped[str | None] = mapped_column(Text)
 
     yaml_source: Mapped[str] = mapped_column(Text, nullable=False)
     definition: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    trigger_config: Mapped[dict[str, Any]] = mapped_column(
-        JSONB, default=dict
-    )
-    input_schema: Mapped[dict[str, Any]] = mapped_column(
-        JSONB, default=dict
-    )
+    trigger_config: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    input_schema: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
 
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     team_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
@@ -329,9 +350,7 @@ class PipelineDefinitionModel(Base):
     )
 
     # Relationships
-    workflow_runs: Mapped[list["WorkflowRunModel"]] = relationship(
-        back_populates="pipeline"
-    )
+    workflow_runs: Mapped[list["WorkflowRunModel"]] = relationship(back_populates="pipeline")
 
     __table_args__ = (
         Index("idx_pd_name", "name"),

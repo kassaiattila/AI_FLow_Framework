@@ -2,6 +2,7 @@
 
 In-memory implementation; Phase 5 will add DB-backed persistence via SQLAlchemy.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -136,8 +137,8 @@ class DocumentRegistry:
         """Return document by ID or raise ``KeyError``."""
         try:
             return self._store[doc_id]
-        except KeyError:
-            raise KeyError(f"Document {doc_id} not found in registry")
+        except KeyError as exc:
+            raise KeyError(f"Document {doc_id} not found in registry") from exc
 
     def list_by_collection(self, collection_name: str | None = None) -> list[Document]:
         """Return all documents, optionally filtered by collection."""

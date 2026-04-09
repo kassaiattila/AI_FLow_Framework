@@ -1,0 +1,24 @@
+# Spec Writer Skill — Runtime Configuration (B5.2)
+
+models:
+  analyzer: openai/gpt-4o-mini
+  generator: openai/gpt-4o-mini
+  reviewer: openai/gpt-4o-mini
+
+output:
+  base_dir: ./output/specs
+  default_format: markdown
+  include_review: true
+
+quality:
+  min_score: 7.0                  # review.is_acceptable threshold
+  max_missing_sections: 2
+
+defaults:
+  spec_type: feature              # feature | api | db | user_story
+  language: hu                    # hu | en
+
+prompt_labels:
+  analyzer_label: prod
+  generator_label: prod
+  reviewer_label: prod

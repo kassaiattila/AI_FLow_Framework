@@ -22,29 +22,32 @@ Futtatas:
     python klaszterezes.py
 """
 
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+
+# Scipy - dendrogram a hierarchikus klaszterezeshez
+import scipy.cluster.hierarchy as shc
 from matplotlib import cm
+
+# Sklearn - klaszterezo algoritmusok
+from sklearn.cluster import DBSCAN, AgglomerativeClustering, KMeans, SpectralClustering
 
 # Sklearn - adatgeneralas
 from sklearn.datasets import make_blobs, make_moons
 
-# Sklearn - eloeldolgozas
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-
-# Sklearn - klaszterezo algoritmusok
-from sklearn.cluster import KMeans, AgglomerativeClustering, SpectralClustering, DBSCAN
+# Sklearn - validacios metrikak
+from sklearn.metrics import (
+    calinski_harabasz_score,
+    davies_bouldin_score,
+    silhouette_samples,
+    silhouette_score,
+)
 
 # Sklearn - Gaussian Mixture Model
 from sklearn.mixture import GaussianMixture
 
-# Sklearn - validacios metrikak
-from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
-from sklearn.metrics import silhouette_samples
-
-# Scipy - dendrogram a hierarchikus klaszterezeshez
-import scipy.cluster.hierarchy as shc
+# Sklearn - eloeldolgozas
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 # HDBSCAN - opcionalis import (nem mindig telepitett)
 try:
@@ -339,7 +342,7 @@ def gmm_klaszterezes(X, n_komponens=4):
     print(f"  BIC: {gmm.bic(X):.2f}  (alacsonyabb = jobb)")
     print(f"  AIC: {gmm.aic(X):.2f}  (alacsonyabb = jobb)")
     print(f"  Klaszter meretek: {np.bincount(labels)}")
-    print(f"  Pelda valoszinusegek (elso 3 pont):")
+    print("  Pelda valoszinusegek (elso 3 pont):")
     for i in range(min(3, len(probabilities))):
         prob_str = ", ".join([f"{p:.3f}" for p in probabilities[i]])
         print(f"    Pont {i}: [{prob_str}]")

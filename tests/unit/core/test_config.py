@@ -9,13 +9,19 @@
     requires_services: []
     tags: [config, settings, pydantic]
 """
+
 import os
-import pytest
+
 from aiflow.core.config import AIFlowSettings, get_settings
 
 
 class TestAIFlowSettings:
-    def test_default_values(self):
+    def test_default_values(self, monkeypatch):
+        # Clean AIFLOW_ env vars that may leak from other tests
+        # (e.g., create_app() calls load_dotenv() which sets AIFLOW_DEBUG=true)
+        for key in list(os.environ):
+            if key.startswith("AIFLOW_"):
+                monkeypatch.delenv(key, raising=False)
         settings = AIFlowSettings()
         assert settings.environment == "dev"
         assert settings.debug is False

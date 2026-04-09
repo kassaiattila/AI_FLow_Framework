@@ -9,28 +9,58 @@
     requires_services: []
     tags: [models, router, routing, fallback]
 """
+
 import pytest
-from aiflow.models.router import ModelRouter, RoutingStrategy
-from aiflow.models.registry import ModelRegistry
+
 from aiflow.models.metadata import ModelMetadata, ModelType
+from aiflow.models.registry import ModelRegistry
+from aiflow.models.router import ModelRouter, RoutingStrategy
+
 
 @pytest.fixture
 def registry():
     reg = ModelRegistry()
-    reg.register(ModelMetadata(name="openai/gpt-4o", model_type=ModelType.LLM, provider="openai",
-                               priority=10, cost_per_input_token=0.0000025, cost_per_output_token=0.00001,
-                               avg_latency_ms=800, fallback_model="openai/gpt-4o-mini",
-                               capabilities=["chat", "json_mode"]))
-    reg.register(ModelMetadata(name="openai/gpt-4o-mini", model_type=ModelType.LLM, provider="openai",
-                               priority=20, cost_per_input_token=0.00000015, cost_per_output_token=0.0000006,
-                               avg_latency_ms=400, capabilities=["chat", "json_mode"]))
-    reg.register(ModelMetadata(name="openai/text-embedding-3-small", model_type=ModelType.EMBEDDING,
-                               provider="openai", priority=10, cost_per_input_token=0.00000002))
+    reg.register(
+        ModelMetadata(
+            name="openai/gpt-4o",
+            model_type=ModelType.LLM,
+            provider="openai",
+            priority=10,
+            cost_per_input_token=0.0000025,
+            cost_per_output_token=0.00001,
+            avg_latency_ms=800,
+            fallback_model="openai/gpt-4o-mini",
+            capabilities=["chat", "json_mode"],
+        )
+    )
+    reg.register(
+        ModelMetadata(
+            name="openai/gpt-4o-mini",
+            model_type=ModelType.LLM,
+            provider="openai",
+            priority=20,
+            cost_per_input_token=0.00000015,
+            cost_per_output_token=0.0000006,
+            avg_latency_ms=400,
+            capabilities=["chat", "json_mode"],
+        )
+    )
+    reg.register(
+        ModelMetadata(
+            name="openai/text-embedding-3-small",
+            model_type=ModelType.EMBEDDING,
+            provider="openai",
+            priority=10,
+            cost_per_input_token=0.00000002,
+        )
+    )
     return reg
+
 
 @pytest.fixture
 def router(registry):
     return ModelRouter(registry)
+
 
 class TestModelRouter:
     def test_fallback_chain_route(self, router):

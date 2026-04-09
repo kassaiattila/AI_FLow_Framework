@@ -1,0 +1,37 @@
+# Invoice Finder — PII OFF (invoice fields ARE PII but required for extraction)
+input:
+  pii_masking: "off"
+  pii_logging: true
+  max_length: 10000
+  check_injection: true
+  # B4.2: explicit allow-list of PII categories the skill is allowed to process
+  allowed_pii:
+    - email
+    - hu_tax_number
+    - hu_bank_account
+output:
+  validate_amounts: true
+  validate_dates: true
+  check_pii: false
+  check_safety: true
+scope:
+  allowed_topics:
+    - "szamla"
+    - "invoice"
+    - "faktura"
+    - "document"
+    - "amount"
+    - "date"
+    - "supplier"
+    - "email"
+    - "payment"
+    - "fizetesi"
+  blocked_topics: []
+  # B4.2: invoice-domain injection patterns (in addition to global ones)
+  dangerous_patterns:
+    - "drop\\s+table"
+    - "delete\\s+from"
+    - "modify\\s+vat\\s+rate"
+    - "approve\\s+all\\s+invoices"
+llm_fallback:
+  enabled: false

@@ -3,6 +3,7 @@
 Wraps the core Registry and provides instance-specific queries
 (by customer, by skill template, by status).
 """
+
 from __future__ import annotations
 
 import structlog
@@ -71,24 +72,19 @@ class InstanceRegistry:
 
     def list_by_customer(self, customer: str) -> list[InstanceConfig]:
         """Return all instances for a given customer."""
-        return [
-            config for _, config in self._registry.list_items()
-            if config.customer == customer
-        ]
+        return [config for _, config in self._registry.list_items() if config.customer == customer]
 
     def list_by_skill(self, skill_template: str) -> list[InstanceConfig]:
         """Return all instances of a given skill template."""
         return [
-            config for _, config in self._registry.list_items()
+            config
+            for _, config in self._registry.list_items()
             if config.skill_template == skill_template
         ]
 
     def list_enabled(self) -> list[InstanceConfig]:
         """Return only enabled instances."""
-        return [
-            config for _, config in self._registry.list_items()
-            if config.enabled
-        ]
+        return [config for _, config in self._registry.list_items() if config.enabled]
 
     def list_names(self) -> list[str]:
         """Return all registered instance names."""

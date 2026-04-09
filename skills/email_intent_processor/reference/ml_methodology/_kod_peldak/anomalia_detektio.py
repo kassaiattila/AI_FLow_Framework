@@ -18,30 +18,30 @@ Futtatas:
     python anomalia_detektio.py
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
-import warnings
+
 warnings.filterwarnings("ignore")
 
 # Sklearn - adatgeneralas
-from sklearn.datasets import make_blobs, make_classification
-
-# Sklearn - eloeldolgozas
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+# Scipy - Z-score szamitas
+from scipy.stats import zscore
+from sklearn.datasets import make_blobs
+from sklearn.ensemble import IsolationForest, RandomForestRegressor
 from sklearn.impute import SimpleImputer
-from sklearn.model_selection import train_test_split
 
 # Sklearn - anomalia detektio es regresszio
 from sklearn.mixture import GaussianMixture
-from sklearn.ensemble import IsolationForest, RandomForestRegressor
+from sklearn.model_selection import train_test_split
 
-# Scipy - Z-score szamitas
-from scipy.stats import zscore
+# Sklearn - eloeldolgozas
+from sklearn.preprocessing import MinMaxScaler
 
 # Matplotlib - vizualizacio (opcionalis)
 try:
     import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
     MATPLOTLIB_ELERHETO = True
 except ImportError:
     MATPLOTLIB_ELERHETO = False
@@ -125,7 +125,7 @@ def adatok_elokeszitese(df, hianyzo_arany=0.02, random_state=42):
     n_hianyzo = int(df.size * hianyzo_arany)
     hianyzo_sorok = np.random.randint(0, df.shape[0], size=n_hianyzo)
     hianyzo_oszlopok = np.random.randint(0, df.shape[1], size=n_hianyzo)
-    for s, o in zip(hianyzo_sorok, hianyzo_oszlopok):
+    for s, o in zip(hianyzo_sorok, hianyzo_oszlopok, strict=False):
         df_with_nan.iat[s, o] = np.nan
     print(f"\n[Eloeszites] Hianyzo ertekek szimulalva: {df_with_nan.isna().sum().sum()}")
 
@@ -162,7 +162,7 @@ def gmm_anomalia_detektio(scaled_data, n_components=5, kvantilis=0.05,
     Returns: (labels, scores, threshold, gm_model)
     """
     print(f"\n{'='*60}")
-    print(f"  GMM ANOMALIA DETEKTIO")
+    print("  GMM ANOMALIA DETEKTIO")
     print(f"{'='*60}")
 
     gm = GaussianMixture(n_components=n_components, covariance_type='full',
@@ -197,7 +197,7 @@ def isolation_forest_detektio(scaled_data, contamination=0.05,
     Returns: (labels, scores, iso_model) - -1=anomalia, 1=normalis
     """
     print(f"\n{'='*60}")
-    print(f"  ISOLATION FOREST ANOMALIA DETEKTIO")
+    print("  ISOLATION FOREST ANOMALIA DETEKTIO")
     print(f"{'='*60}")
 
     iso_forest = IsolationForest(
@@ -215,7 +215,6 @@ def isolation_forest_detektio(scaled_data, contamination=0.05,
 
     # Statisztikak
     n_anomalia = (labels == -1).sum()
-    n_normalis = (labels == 1).sum()
 
     print(f"  contamination={contamination:.2%}, n_estimators={n_estimators}")
     print(f"  Skor: [{scores.min():.4f}, {scores.max():.4f}] | "
@@ -234,7 +233,7 @@ def modszerek_osszehasonlitasa(gmm_labels, if_labels, y_true=None):
     Ha mindketto -1: eros jelzes. Ha van y_true, precision/recall kiertekeles is.
     """
     print(f"\n{'='*60}")
-    print(f"  GMM + ISOLATION FOREST OSSZEHASONLITAS")
+    print("  GMM + ISOLATION FOREST OSSZEHASONLITAS")
     print(f"{'='*60}")
 
     # DataFrame az osszehasonlitashoz
@@ -268,13 +267,13 @@ def modszerek_osszehasonlitasa(gmm_labels, if_labels, y_true=None):
 
     # Ha van valos cimke, kiertekeles
     if y_true is not None:
-        print(f"\n  --- Kiertekeles valos cimkekhez kepest ---")
+        print("\n  --- Kiertekeles valos cimkekhez kepest ---")
 
         # Konverzio: -1 --> 1 (anomalia), 1 --> 0 (normalis)
         gmm_pred = np.array([1 if x == -1 else 0 for x in gmm_labels])
         if_pred = np.array([1 if x == -1 else 0 for x in if_labels])
         consensus_pred = np.array([1 if g == -1 and i == -1 else 0
-                                   for g, i in zip(gmm_labels, if_labels)])
+                                   for g, i in zip(gmm_labels, if_labels, strict=False)])
 
         valos_anomaliak = y_true.sum()
         print(f"  Valos anomaliak szama: {valos_anomaliak}")
@@ -310,7 +309,7 @@ def self_supervised_anomalia(df_log, target_column_idx=0, threshold_z=3.0,
     Returns: (anomaly_indices, z_scores_arr, residuals_arr, test_indices)
     """
     print(f"\n{'='*60}")
-    print(f"  SELF-SUPERVISED ANOMALIA DETEKTIO")
+    print("  SELF-SUPERVISED ANOMALIA DETEKTIO")
     print(f"{'='*60}")
 
     # Target feature kivalasztasa
@@ -369,7 +368,7 @@ def anomalia_vizualizacio_2d(scaled_data, gmm_labels, if_labels, y_true=None):
         return
 
     print(f"\n{'='*60}")
-    print(f"  VIZUALIZACIO (t-SNE 2D vetites)")
+    print("  VIZUALIZACIO (t-SNE 2D vetites)")
     print(f"{'='*60}")
     print("  t-SNE szamitas folyamatban...")
 
@@ -392,7 +391,7 @@ def anomalia_vizualizacio_2d(scaled_data, gmm_labels, if_labels, y_true=None):
         (if_arr, f"Isolation Forest (anomalia: {(if_arr == -1).sum()})"),
         (consensus, f"Consensus (anomalia: {(consensus == -1).sum()})"),
     ]
-    for ax, (labels_arr, cim) in zip(axes, cimkek_lista):
+    for ax, (labels_arr, cim) in zip(axes, cimkek_lista, strict=False):
         szinek = [anomalia_szin if x == -1 else normalis_szin for x in labels_arr]
         ax.scatter(embedding[:, 0], embedding[:, 1], c=szinek, s=10, alpha=0.6)
         if valos_mask is not None:
@@ -482,7 +481,7 @@ def osszefoglalo_tablazat():
     A harom anomalia detekcios modszer osszehasonlito tablazata.
     """
     print(f"\n{'='*80}")
-    print(f"  ANOMALIA DETEKCIOS MODSZEREK OSSZEHASONLITASA")
+    print("  ANOMALIA DETEKCIOS MODSZEREK OSSZEHASONLITASA")
     print(f"{'='*80}")
 
     header = (f"{'Jellemzo':<25} {'GMM':>15} {'Isolation Forest':>18} "

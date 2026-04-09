@@ -2,17 +2,17 @@
 
 Runs the process_documentation skill in-process (no subprocess fork).
 """
+
 from __future__ import annotations
 
+import asyncio
 import json
-import os
 import tempfile
 import time as _time
 import uuid
 from pathlib import Path
 from typing import Any
 
-import asyncio
 import structlog
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -28,11 +28,13 @@ router = APIRouter(prefix="/api/v1/process-docs", tags=["process-docs"])
 
 class GenerateRequest(BaseModel):
     """Request to generate process documentation."""
+
     user_input: str
 
 
 class GenerateResponse(BaseModel):
     """Generated process documentation result."""
+
     doc_id: str = ""
     user_input: str = ""
     mermaid_code: str = ""
@@ -56,14 +58,16 @@ async def generate_process_doc(request: GenerateRequest) -> GenerateResponse:
         from skills.process_documentation.workflow import (
             classify_intent,
             elaborate,
-            extract,
-            review,
-            generate_diagram,
             export_all,
+            extract,
+            generate_diagram,
+            review,
         )
     except ImportError as e:
         logger.error("skill_import_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Process documentation skill not available: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Process documentation skill not available: {e}"
+        ) from e
 
     run_id = str(uuid.uuid4())
     run_start = _time.perf_counter()
@@ -89,22 +93,26 @@ async def generate_process_doc(request: GenerateRequest) -> GenerateResponse:
             t = _time.perf_counter()
             data = await step_fn(data)
             elapsed_ms = int((_time.perf_counter() - t) * 1000)
-            step_records.append({"name": step_name, "status": "completed", "duration_ms": elapsed_ms})
+            step_records.append(
+                {"name": step_name, "status": "completed", "duration_ms": elapsed_ms}
+            )
     except Exception as e:
         run_status = "failed"
         run_error = str(e)
         logger.error("generate_process_doc_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         total_duration_ms = int((_time.perf_counter() - run_start) * 1000)
         # Estimate BPMN generation cost: 4 LLM calls, ~2K input + 1K output tokens each
         _estimated_bpmn_cost = 0.0
         try:
             from aiflow.models.cost import ModelCostCalculator
+
             calc = ModelCostCalculator()
             # 4 steps use LLM: classify, elaborate, extract, review (~2000 in, 1000 out each)
             _estimated_bpmn_cost = calc.calculate("openai/gpt-4o", 8000, 4000)
             from aiflow.api.cost_recorder import record_cost
+
             await record_cost(
                 workflow_run_id=run_id,
                 step_name="bpmn_generation",
@@ -125,17 +133,27 @@ async def generate_process_doc(request: GenerateRequest) -> GenerateResponse:
                        VALUES ($1, $2, $3, $4, $5, $6,
                                NOW() - MAKE_INTERVAL(secs := $7::float / 1000),
                                NOW(), $7, $8, $9)""",
-                    uuid.UUID(run_id), "bpmn_generation", "1.0", "process_documentation",
-                    run_status, json.dumps({"user_input": request.user_input[:100]}),
-                    float(total_duration_ms), _estimated_bpmn_cost, run_error,
+                    uuid.UUID(run_id),
+                    "bpmn_generation",
+                    "1.0",
+                    "process_documentation",
+                    run_status,
+                    json.dumps({"user_input": request.user_input[:100]}),
+                    float(total_duration_ms),
+                    _estimated_bpmn_cost,
+                    run_error,
                 )
                 for idx, sr in enumerate(step_records):
                     await conn.execute(
                         """INSERT INTO step_runs
                            (id, workflow_run_id, step_name, step_index, status, duration_ms)
                            VALUES ($1, $2, $3, $4, $5, $6)""",
-                        uuid.uuid4(), uuid.UUID(run_id), sr["name"], idx,
-                        sr["status"], float(sr["duration_ms"]),
+                        uuid.uuid4(),
+                        uuid.UUID(run_id),
+                        sr["name"],
+                        idx,
+                        sr["status"],
+                        float(sr["duration_ms"]),
                     )
         except Exception as persist_err:
             logger.warning("workflow_run_persist_failed", error=str(persist_err))
@@ -150,6 +168,7 @@ async def generate_process_doc(request: GenerateRequest) -> GenerateResponse:
     review_data = data.get("review")
 
     from datetime import datetime
+
     return GenerateResponse(
         doc_id=data.get("doc_id", f"doc-{datetime.now().strftime('%Y%m%d%H%M%S')}"),
         user_input=request.user_input,
@@ -163,6 +182,7 @@ async def generate_process_doc(request: GenerateRequest) -> GenerateResponse:
 # ---------------------------------------------------------------------------
 # POST /api/v1/process-docs/generate-stream — SSE step-by-step progress
 # ---------------------------------------------------------------------------
+
 
 @router.post("/generate-stream")
 async def generate_process_doc_stream(request: GenerateRequest) -> StreamingResponse:
@@ -178,13 +198,20 @@ async def generate_process_doc_stream(request: GenerateRequest) -> StreamingResp
 
     try:
         from skills.process_documentation.workflow import (
-            classify_intent, elaborate, extract, review, generate_diagram, export_all,
+            classify_intent,
+            elaborate,
+            export_all,
+            extract,
+            generate_diagram,
+            review,
         )
     except ImportError as e:
         err_msg = str(e)
         logger.error("skill_import_failed", error=err_msg)
+
         async def err():
             yield f"data: {json.dumps({'event': 'error', 'error': err_msg})}\n\n"
+
         return StreamingResponse(err(), media_type="text/event-stream")
 
     pipeline = [
@@ -213,21 +240,52 @@ async def generate_process_doc_stream(request: GenerateRequest) -> StreamingResp
         data: dict[str, Any] = {"user_input": request.user_input, "output_dir": str(output_dir)}
 
         for si, (name, step_fn) in enumerate(pipeline):
-            yield sse({"event": "file_step", "file": fname, "file_index": 0, "step_index": si, "step_name": name, "status": "running"})
+            yield sse(
+                {
+                    "event": "file_step",
+                    "file": fname,
+                    "file_index": 0,
+                    "step_index": si,
+                    "step_name": name,
+                    "status": "running",
+                }
+            )
             await asyncio.sleep(0)
             t = _time.perf_counter()
             try:
                 data = await step_fn(data)
                 elapsed_ms = int((_time.perf_counter() - t) * 1000)
-                step_records.append({"name": name, "status": "completed", "duration_ms": elapsed_ms})
-                yield sse({"event": "file_step", "file": fname, "file_index": 0, "step_index": si, "step_name": name, "status": "done", "elapsed_ms": elapsed_ms})
+                step_records.append(
+                    {"name": name, "status": "completed", "duration_ms": elapsed_ms}
+                )
+                yield sse(
+                    {
+                        "event": "file_step",
+                        "file": fname,
+                        "file_index": 0,
+                        "step_index": si,
+                        "step_name": name,
+                        "status": "done",
+                        "elapsed_ms": elapsed_ms,
+                    }
+                )
             except Exception as e:
                 elapsed_ms = int((_time.perf_counter() - t) * 1000)
                 step_records.append({"name": name, "status": "failed", "duration_ms": elapsed_ms})
                 logger.error("generate_stream_step_failed", step=name, error=str(e))
-                yield sse({"event": "file_error", "file": fname, "file_index": 0, "step_name": name, "error": str(e)})
+                yield sse(
+                    {
+                        "event": "file_error",
+                        "file": fname,
+                        "file_index": 0,
+                        "step_name": name,
+                        "error": str(e),
+                    }
+                )
                 yield sse({"event": "file_done", "file": fname, "file_index": 0, "ok": False})
-                yield sse({"event": "complete", "mermaid_code": "", "review": None, "error": str(e)})
+                yield sse(
+                    {"event": "complete", "mermaid_code": "", "review": None, "error": str(e)}
+                )
                 return
 
         yield sse({"event": "file_done", "file": fname, "file_index": 0, "ok": True})
@@ -243,11 +301,19 @@ async def generate_process_doc_stream(request: GenerateRequest) -> StreamingResp
 
         # Persist workflow run + cost (best-effort)
         try:
-            from aiflow.models.cost import ModelCostCalculator
             from aiflow.api.cost_recorder import record_cost
+            from aiflow.models.cost import ModelCostCalculator
+
             calc = ModelCostCalculator()
             cost = calc.calculate("openai/gpt-4o", 8000, 4000)
-            await record_cost(workflow_run_id=run_id, step_name="bpmn_generation", model="openai/gpt-4o", input_tokens=8000, output_tokens=4000, cost_usd=cost)
+            await record_cost(
+                workflow_run_id=run_id,
+                step_name="bpmn_generation",
+                model="openai/gpt-4o",
+                input_tokens=8000,
+                output_tokens=4000,
+                cost_usd=cost,
+            )
         except Exception:
             pass
         try:
@@ -258,14 +324,25 @@ async def generate_process_doc_stream(request: GenerateRequest) -> StreamingResp
                        (id, workflow_name, workflow_version, skill_name, status, input_data,
                         started_at, completed_at, total_duration_ms, total_cost_usd, error)
                        VALUES ($1,$2,$3,$4,$5,$6, NOW()-MAKE_INTERVAL(secs:=$7::float/1000), NOW(),$7,$8,$9)""",
-                    uuid.UUID(run_id), "bpmn_generation", "1.0", "process_documentation",
-                    "completed", json.dumps({"user_input": request.user_input[:100]}),
-                    float(total_duration_ms), 0.0, None,
+                    uuid.UUID(run_id),
+                    "bpmn_generation",
+                    "1.0",
+                    "process_documentation",
+                    "completed",
+                    json.dumps({"user_input": request.user_input[:100]}),
+                    float(total_duration_ms),
+                    0.0,
+                    None,
                 )
                 for idx, sr in enumerate(step_records):
                     await conn.execute(
                         "INSERT INTO step_runs (id,workflow_run_id,step_name,step_index,status,duration_ms) VALUES ($1,$2,$3,$4,$5,$6)",
-                        uuid.uuid4(), uuid.UUID(run_id), sr["name"], idx, sr["status"], float(sr["duration_ms"]),
+                        uuid.uuid4(),
+                        uuid.UUID(run_id),
+                        sr["name"],
+                        idx,
+                        sr["status"],
+                        float(sr["duration_ms"]),
                     )
         except Exception as e:
             logger.warning("workflow_run_persist_failed", error=str(e))

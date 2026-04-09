@@ -6,6 +6,7 @@ Supports two modes:
 
 Hungarian-specific defaults: batch_size=5 (longer token counts), 6000 char max.
 """
+
 from __future__ import annotations
 
 import time
@@ -22,6 +23,7 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Cost tracker
 # ---------------------------------------------------------------------------
+
 
 class EmbeddingCostTracker:
     """Accumulates embedding cost and token statistics across batches."""
@@ -155,9 +157,7 @@ class Embedder:
                             truncated_len=len(truncated),
                         )
                         try:
-                            retry_result = await self._client.embed(
-                                [truncated], model=target_model
-                            )
+                            retry_result = await self._client.embed([truncated], model=target_model)
                             all_embeddings.extend(retry_result.output.embeddings)
                             self._cost_tracker.record(
                                 tokens=retry_result.output.total_tokens,

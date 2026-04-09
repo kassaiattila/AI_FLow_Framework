@@ -3,6 +3,11 @@ Run regression tests for the current changes.
 Arguments: $ARGUMENTS
 (Optional: L1/L2/L3/L4/L5 to specify level, or "full" for L3)
 
+## Context (v1.3.0)
+Branch: feature/v1.3.0-service-excellence
+Expected test count: 1164+ unit tests, 76 guardrail tests, 97 security tests
+Coverage baseline: 80% minimum
+
 Steps:
 1. Run `git diff --name-only HEAD` to identify changed files
 2. Read `tests/regression_matrix.yaml` to determine affected suites

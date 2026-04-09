@@ -9,14 +9,15 @@
     requires_services: []
     tags: [engine, runner, execution, workflow, async]
 """
+
 import pytest
+
 from aiflow.core.context import ExecutionContext
 from aiflow.core.types import Status
-from aiflow.core.errors import BudgetExceededError
-from aiflow.engine.step import step
+from aiflow.engine.checkpoint import CheckpointManager
 from aiflow.engine.dag import DAG
 from aiflow.engine.runner import WorkflowRunner
-from aiflow.engine.checkpoint import CheckpointManager
+from aiflow.engine.step import step
 
 
 # Test steps
@@ -25,14 +26,17 @@ async def upper_step(data):
     text = data if isinstance(data, str) else data.get("text", data.get("result", ""))
     return {"result": text.upper()}
 
+
 @step(name="add_prefix")
 async def prefix_step(data):
     text = data.get("result", "") if isinstance(data, dict) else str(data)
     return {"result": f"PREFIX_{text}"}
 
+
 @step(name="failing")
 async def failing_step(data):
     raise ValueError("intentional failure")
+
 
 @step(name="costly")
 async def costly_step(data):

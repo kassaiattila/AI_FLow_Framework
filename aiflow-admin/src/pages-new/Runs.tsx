@@ -3,16 +3,24 @@
  */
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
+import { fetchApi } from "../lib/api-client";
 import { PageLayout } from "../layout/PageLayout";
 import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
 
-interface RunItem { run_id: string; workflow_name: string; skill_name: string | null; status: string; started_at: string | null; total_duration_ms: number | null; total_cost_usd: number; }
+interface RunItem { run_id: string; workflow_name: string; skill_name: string | null; status: string; started_at: string | null; total_duration_ms: number | null; total_cost_usd: number; pipeline_id?: string; }
 interface RunsResponse { runs: RunItem[]; total: number; }
 
 export function Runs() {
   const translate = useTranslate();
   const { data, loading, error, refetch } = useApi<RunsResponse>("/api/v1/runs");
+
+  const handleRestart = async (pipelineId: string) => {
+    try {
+      await fetchApi<unknown>("POST", `/api/v1/pipelines/${pipelineId}/execute`);
+      refetch();
+    } catch { /* ignore — ErrorState will handle */ }
+  };
 
   const columns: Column<Record<string, unknown>>[] = [
     { key: "run_id", label: "Run ID", render: (item) => <span className="font-mono text-xs text-gray-600 dark:text-gray-400">{String(item.run_id).substring(0, 8)}...</span> },
@@ -25,6 +33,20 @@ export function Runs() {
     { key: "total_duration_ms", label: translate("aiflow.runs.duration"), getValue: (item) => item.total_duration_ms as number ?? 0, render: (item) => <span className="text-gray-500">{item.total_duration_ms ? `${((item.total_duration_ms as number)/1000).toFixed(1)}s` : "—"}</span> },
     { key: "total_cost_usd", label: translate("aiflow.runs.cost"), getValue: (item) => item.total_cost_usd as number ?? 0, render: (item) => <span className="text-gray-500">{(item.total_cost_usd as number) > 0 ? `$${(item.total_cost_usd as number).toFixed(3)}` : "—"}</span> },
     { key: "started_at", label: translate("aiflow.runs.started"), render: (item) => <span className="text-xs text-gray-500">{item.started_at ? new Date(String(item.started_at)).toLocaleString() : "—"}</span> },
+    { key: "actions", label: "", sortable: false, render: (item) => {
+      const pipeId = item.pipeline_id as string | undefined;
+      const status = String(item.status);
+      if (!pipeId || status === "running") return null;
+      return (
+        <button
+          onClick={(e) => { e.stopPropagation(); void handleRestart(pipeId); }}
+          className="rounded-md border border-brand-300 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-900/20"
+          title="Restart"
+        >
+          ↻
+        </button>
+      );
+    }},
   ];
 
   return (

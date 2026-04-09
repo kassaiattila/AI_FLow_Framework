@@ -5,6 +5,7 @@ Supports any document type via document_type_configs DB table.
 
 Pipeline: parse (Docling) → extract (LLM) → validate → store → export
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -196,7 +197,16 @@ class DocumentExtractorService(BaseService):
         Steps: parse (Docling) → LLM extract → validate → store
         """
         start = time.time()
+
+        # Defensive: reject empty / missing paths before Path("") → "."
+        if not file_path or str(file_path).strip() in ("", "."):
+            raise ValueError("file_path is required for document extraction")
         file_path = Path(file_path)
+        if not file_path.exists():
+            raise ValueError(f"file_path does not exist: {file_path}")
+        if not file_path.is_file():
+            raise ValueError(f"file_path is not a file: {file_path}")
+
         config_name = config_name or self._ext_config.default_config_name
 
         # Load config
@@ -247,9 +257,7 @@ class DocumentExtractorService(BaseService):
             db_id=db_id,
         )
 
-    async def _parse_document(
-        self, file_path: Path, parser: str
-    ) -> dict[str, Any]:
+    async def _parse_document(self, file_path: Path, parser: str) -> dict[str, Any]:
         """Parse document with Docling (or fallback)."""
         import asyncio
 
@@ -269,9 +277,7 @@ class DocumentExtractorService(BaseService):
         try:
             return await asyncio.to_thread(_parse)
         except Exception as exc:
-            self._logger.warning(
-                "docling_parse_failed", file=str(file_path), error=str(exc)
-            )
+            self._logger.warning("docling_parse_failed", file=str(file_path), error=str(exc))
             # Fallback: read raw text
             try:
                 raw = file_path.read_text(encoding="utf-8", errors="replace")
@@ -292,18 +298,16 @@ class DocumentExtractorService(BaseService):
         config: DocumentTypeConfig,
     ) -> dict[str, Any]:
         """Extract fields from document text using LLM."""
+        from aiflow.models.backends.litellm_backend import LiteLLMBackend
         from aiflow.models.client import ModelClient
 
         # Build dynamic prompt from field definitions
         field_descriptions = "\n".join(
-            f"- {f.name} ({f.type}): {f.description}"
-            + (f" [REQUIRED]" if f.required else "")
+            f"- {f.name} ({f.type}): {f.description}" + (" [REQUIRED]" if f.required else "")
             for f in config.fields
         )
 
-        field_names_json = json.dumps(
-            {f.name: f"<{f.type}>" for f in config.fields}, indent=2
-        )
+        field_names_json = json.dumps({f.name: f"<{f.type}>" for f in config.fields}, indent=2)
 
         system_prompt = f"""You are a document data extractor. Extract the following fields from the provided {config.document_type} document.
 
@@ -320,7 +324,8 @@ Expected output format:
         user_prompt = f"Extract the fields from this document:\n\n{markdown[:8000]}"
 
         try:
-            client = ModelClient()
+            backend = LiteLLMBackend(default_model=config.extraction_model)
+            client = ModelClient(generation_backend=backend)
             result = await client.generate(
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -328,17 +333,21 @@ Expected output format:
                 ],
                 model=config.extraction_model,
                 temperature=0.0,
-                response_format={"type": "json_object"},
             )
-            return json.loads(result.output.text)
+            # Strip ```json markdown wrapper if present (LLMs often add it)
+            output_text = result.output.text.strip()
+            if output_text.startswith("```"):
+                import re
+
+                output_text = re.sub(r"^```(?:json)?\s*\n?", "", output_text)
+                output_text = re.sub(r"\n?```\s*$", "", output_text)
+            return json.loads(output_text.strip())
         except Exception as exc:
             self._logger.error("llm_extraction_failed", error=str(exc))
             # Return empty fields with 0 confidence
             return {f.name: f.default for f in config.fields} | {"_confidence": 0.0}
 
-    def _validate_fields(
-        self, extracted: dict[str, Any], config: DocumentTypeConfig
-    ) -> list[str]:
+    def _validate_fields(self, extracted: dict[str, Any], config: DocumentTypeConfig) -> list[str]:
         """Validate extracted fields against config rules."""
         errors = []
 
@@ -352,7 +361,8 @@ Expected output format:
             try:
                 # Safe eval for simple math expressions
                 local_vars = {
-                    k: v for k, v in extracted.items()
+                    k: v
+                    for k, v in extracted.items()
                     if isinstance(v, (int, float)) and k != "_confidence"
                 }
                 if local_vars and not eval(rule, {"__builtins__": {}}, local_vars):  # noqa: S307
@@ -477,9 +487,7 @@ Expected output format:
                 },
             )
             await session.commit()
-            self._logger.info(
-                "document_verified", invoice_id=invoice_id, by=verified_by
-            )
+            self._logger.info("document_verified", invoice_id=invoice_id, by=verified_by)
             return True
 
     async def get_invoice(self, invoice_id: str) -> dict[str, Any] | None:

@@ -17,7 +17,6 @@ from pathlib import Path
 import pytest
 
 from aiflow.pipeline.adapter_base import AdapterRegistry
-from aiflow.pipeline.adapters import discover_adapters
 from aiflow.pipeline.compiler import PipelineCompiler
 from aiflow.pipeline.parser import PipelineParser
 from aiflow.pipeline.schema import PipelineDefinition
@@ -47,9 +46,9 @@ def pipeline_def(yaml_source: str) -> PipelineDefinition:
 def registry() -> AdapterRegistry:
     reg = AdapterRegistry()
     # Use the real adapters — tests that they are importable
-    from aiflow.pipeline.adapters.email_adapter import EmailFetchAdapter
     from aiflow.pipeline.adapters.classifier_adapter import ClassifierAdapter
     from aiflow.pipeline.adapters.document_adapter import DocumentExtractAdapter
+    from aiflow.pipeline.adapters.email_adapter import EmailFetchAdapter
 
     reg.register(EmailFetchAdapter())
     reg.register(ClassifierAdapter())
@@ -157,9 +156,7 @@ class TestInvoiceTemplateCompilation:
         assert result is not None
         assert len(result.step_funcs) == 3
 
-    def test_dag_is_valid(
-        self, pipeline_def: PipelineDefinition, registry: AdapterRegistry
-    ):
+    def test_dag_is_valid(self, pipeline_def: PipelineDefinition, registry: AdapterRegistry):
         compiler = PipelineCompiler(registry)
         result = compiler.compile(pipeline_def)
         errors = result.dag.validate()

@@ -4,6 +4,7 @@ Resolution order: 1) in-memory cache, 2) Langfuse (if enabled), 3) local YAML fa
 Supports label-based environments: dev/test/staging/prod.
 Uses Langfuse v4 SDK get_prompt() for remote prompt resolution.
 """
+
 from __future__ import annotations
 
 import time
@@ -14,7 +15,7 @@ import structlog
 import yaml
 from pydantic import BaseModel
 
-from aiflow.prompts.schema import PromptDefinition, PromptConfig
+from aiflow.prompts.schema import PromptConfig, PromptDefinition
 
 __all__ = ["PromptManager"]
 
@@ -67,7 +68,7 @@ class PromptManager:
 
         Resolution order:
             1. In-memory cache (if not expired)
-            2. Langfuse (if enabled) -- placeholder
+            2. Langfuse (if enabled, via v4 get_prompt API)
             3. Local YAML fallback
 
         Args:
@@ -103,9 +104,7 @@ class PromptManager:
             logger.info("prompt_manager.yaml_fallback", prompt=prompt_name, path=str(yaml_path))
             return prompt
 
-        raise KeyError(
-            f"Prompt '{prompt_name}' not found in cache, Langfuse, or YAML registry"
-        )
+        raise KeyError(f"Prompt '{prompt_name}' not found in cache, Langfuse, or YAML registry")
 
     def load_yaml(self, path: Path | str) -> PromptDefinition:
         """Load a single YAML prompt file and return a PromptDefinition.
@@ -202,9 +201,7 @@ class PromptManager:
 
     # --- Private helpers ---
 
-    def _put_cache(
-        self, cache_key: str, prompt: PromptDefinition, label: str
-    ) -> None:
+    def _put_cache(self, cache_key: str, prompt: PromptDefinition, label: str) -> None:
         """Store a prompt in the in-memory cache with TTL."""
         self._cache[cache_key] = _CacheEntry(
             prompt=prompt,
@@ -212,9 +209,7 @@ class PromptManager:
             expires_at=time.monotonic() + self._cache_ttl,
         )
 
-    def _fetch_from_langfuse(
-        self, prompt_name: str, label: str
-    ) -> PromptDefinition | None:
+    def _fetch_from_langfuse(self, prompt_name: str, label: str) -> PromptDefinition | None:
         """Fetch prompt from Langfuse v4 API.
 
         Retrieves a chat prompt from Langfuse and converts it back to a
@@ -225,6 +220,7 @@ class PromptManager:
             # Try global client as fallback
             try:
                 from aiflow.observability.tracing import get_langfuse_client
+
                 client = get_langfuse_client()
             except ImportError:
                 pass
@@ -280,5 +276,7 @@ class PromptManager:
             if "not found" in error_str.lower() or "404" in error_str:
                 logger.debug("prompt_manager.langfuse_not_found", prompt=prompt_name, label=label)
             else:
-                logger.warning("prompt_manager.langfuse_fetch_failed", prompt=prompt_name, error=error_str)
+                logger.warning(
+                    "prompt_manager.langfuse_fetch_failed", prompt=prompt_name, error=error_str
+                )
             return None

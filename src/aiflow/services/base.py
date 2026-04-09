@@ -1,4 +1,5 @@
 """Base service class for all AIFlow infrastructure and domain services."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -96,9 +97,7 @@ class BaseService(ABC):
             self._logger.info("service_started", service=self.service_name)
         except Exception as exc:
             self._info.status = ServiceStatus.ERROR
-            self._logger.error(
-                "service_start_failed", service=self.service_name, error=str(exc)
-            )
+            self._logger.error("service_start_failed", service=self.service_name, error=str(exc))
             raise
 
     async def stop(self) -> None:
@@ -111,9 +110,7 @@ class BaseService(ABC):
             self._logger.info("service_stopped", service=self.service_name)
         except Exception as exc:
             self._info.status = ServiceStatus.ERROR
-            self._logger.error(
-                "service_stop_failed", service=self.service_name, error=str(exc)
-            )
+            self._logger.error("service_stop_failed", service=self.service_name, error=str(exc))
             raise
 
     @abstractmethod

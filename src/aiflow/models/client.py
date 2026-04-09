@@ -3,13 +3,18 @@
 This is the main entry point for skill developers to interact with models.
 Injected via DI as `models: ModelClient` in step functions.
 """
+
 from typing import Any
 
 import structlog
 
 from aiflow.models.protocols.base import ModelCallResult
-from aiflow.models.protocols.generation import GenerationInput, GenerationOutput, TextGenerationProtocol
 from aiflow.models.protocols.embedding import EmbeddingInput, EmbeddingOutput, EmbeddingProtocol
+from aiflow.models.protocols.generation import (
+    GenerationInput,
+    GenerationOutput,
+    TextGenerationProtocol,
+)
 
 __all__ = ["ModelClient", "LLMClient"]
 

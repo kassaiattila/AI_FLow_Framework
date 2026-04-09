@@ -1,12 +1,13 @@
 """RPA Browser API — config CRUD + execute + logs."""
+
 from __future__ import annotations
 
+from functools import cache
 from typing import Any
 
 import structlog
 from fastapi import APIRouter, HTTPException
-from functools import cache
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 __all__ = ["router"]
 
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/api/v1/rpa", tags=["rpa"])
 @cache
 def _get_service():
     from aiflow.services.rpa_browser import RPABrowserService
+
     return RPABrowserService()
 
 
@@ -76,7 +78,13 @@ async def list_configs():
     svc = _get_service()
     configs = await svc.list_configs()
     return ConfigListResponse(
-        configs=[ConfigResponse(**{k: v for k, v in c.model_dump().items() if k in ConfigResponse.model_fields}, source="backend") for c in configs],
+        configs=[
+            ConfigResponse(
+                **{k: v for k, v in c.model_dump().items() if k in ConfigResponse.model_fields},
+                source="backend",
+            )
+            for c in configs
+        ],
         total=len(configs),
     )
 
@@ -86,9 +94,12 @@ async def create_config(request: ConfigCreateRequest):
     svc = _get_service()
     try:
         cfg = await svc.create_config(**request.model_dump())
-        return ConfigResponse(**{k: v for k, v in cfg.model_dump().items() if k in ConfigResponse.model_fields}, source="backend")
+        return ConfigResponse(
+            **{k: v for k, v in cfg.model_dump().items() if k in ConfigResponse.model_fields},
+            source="backend",
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/configs/{config_id}", response_model=ConfigResponse)
@@ -97,7 +108,10 @@ async def get_config(config_id: str):
     cfg = await svc.get_config(config_id)
     if not cfg:
         raise HTTPException(status_code=404, detail="Config not found")
-    return ConfigResponse(**{k: v for k, v in cfg.model_dump().items() if k in ConfigResponse.model_fields}, source="backend")
+    return ConfigResponse(
+        **{k: v for k, v in cfg.model_dump().items() if k in ConfigResponse.model_fields},
+        source="backend",
+    )
 
 
 @router.delete("/configs/{config_id}", response_model=DeleteResponse)
@@ -114,11 +128,14 @@ async def execute_config(config_id: str):
     svc = _get_service()
     try:
         result = await svc.execute(config_id)
-        return ExecutionResponse(**{k: v for k, v in result.model_dump().items() if k in ExecutionResponse.model_fields}, source="backend")
+        return ExecutionResponse(
+            **{k: v for k, v in result.model_dump().items() if k in ExecutionResponse.model_fields},
+            source="backend",
+        )
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/logs", response_model=ExecutionListResponse)
@@ -126,6 +143,12 @@ async def list_executions(config_id: str | None = None, limit: int = 50):
     svc = _get_service()
     execs = await svc.list_executions(config_id=config_id, limit=limit)
     return ExecutionListResponse(
-        executions=[ExecutionResponse(**{k: v for k, v in e.model_dump().items() if k in ExecutionResponse.model_fields}, source="backend") for e in execs],
+        executions=[
+            ExecutionResponse(
+                **{k: v for k, v in e.model_dump().items() if k in ExecutionResponse.model_fields},
+                source="backend",
+            )
+            for e in execs
+        ],
         total=len(execs),
     )

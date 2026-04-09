@@ -16,14 +16,14 @@ Usage:
     # result.tables - extracted tables as markdown
     # result.metadata - document metadata
 """
+
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
-
 import structlog
+from pydantic import BaseModel, Field
 
 __all__ = ["DoclingParser", "ParsedDocument", "ParsedPage", "ParsedTable"]
 
@@ -82,11 +82,10 @@ class DoclingParser:
 
                 self._converter = DocumentConverter()
                 logger.info("docling_converter_initialized")
-            except ImportError:
+            except ImportError as exc:
                 raise ImportError(
-                    "docling is required for document parsing. "
-                    "Install with: pip install docling"
-                )
+                    "docling is required for document parsing. Install with: pip install docling"
+                ) from exc
         return self._converter
 
     def parse(self, file_path: str | Path) -> ParsedDocument:
@@ -140,7 +139,11 @@ class DoclingParser:
             tables = self._extract_tables(result)
         except (RuntimeError, MemoryError, Exception) as e:
             err_str = str(e)
-            if "bad_alloc" in err_str or "memory" in err_str.lower() or "MemoryError" in type(e).__name__:
+            if (
+                "bad_alloc" in err_str
+                or "memory" in err_str.lower()
+                or "MemoryError" in type(e).__name__
+            ):
                 logger.warning("docling_memory_error", file=path.name, error=err_str)
                 azure_result = self._try_azure_di(path)
                 if azure_result:
@@ -187,11 +190,13 @@ class DoclingParser:
                 results.append(self.parse(fp))
             except Exception as e:
                 logger.warning("docling_parse_failed", file=str(fp), error=str(e))
-                results.append(ParsedDocument(
-                    file_path=str(fp),
-                    file_name=Path(fp).name,
-                    metadata={"error": str(e)},
-                ))
+                results.append(
+                    ParsedDocument(
+                        file_path=str(fp),
+                        file_name=Path(fp).name,
+                        metadata={"error": str(e)},
+                    )
+                )
         return results
 
     def _extract_tables(self, result: Any) -> list[ParsedTable]:
@@ -199,12 +204,18 @@ class DoclingParser:
         tables = []
         try:
             for i, table in enumerate(result.document.tables):
-                md = table.export_to_markdown() if hasattr(table, "export_to_markdown") else str(table)
-                tables.append(ParsedTable(
-                    index=i,
-                    markdown=md,
-                    caption=getattr(table, "caption", ""),
-                ))
+                md = (
+                    table.export_to_markdown()
+                    if hasattr(table, "export_to_markdown")
+                    else str(table)
+                )
+                tables.append(
+                    ParsedTable(
+                        index=i,
+                        markdown=md,
+                        caption=getattr(table, "caption", ""),
+                    )
+                )
         except Exception:
             pass
         return tables
@@ -212,6 +223,7 @@ class DoclingParser:
     def _try_azure_di(self, path: Path) -> ParsedDocument | None:
         """Try parsing with Azure Document Intelligence. Returns None if unavailable."""
         import os
+
         endpoint = os.environ.get("AZURE_DI_ENDPOINT", "")
         api_key = os.environ.get("AZURE_DI_API_KEY", "") or os.environ.get("AZURE_DI_KEY", "")
         enabled = os.environ.get("AZURE_DI_ENABLED", "false").lower() == "true"
@@ -220,6 +232,7 @@ class DoclingParser:
 
         try:
             import asyncio
+
             from aiflow.tools.azure_doc_intelligence import AzureDocIntelligence
 
             client = AzureDocIntelligence(endpoint, api_key)
@@ -229,6 +242,7 @@ class DoclingParser:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor() as pool:
                     result = pool.submit(asyncio.run, client.analyze(content)).result()
             else:
@@ -269,6 +283,7 @@ class DoclingParser:
             return None
         try:
             import pypdfium2 as pdfium
+
             doc = pdfium.PdfDocument(str(path))
             count = len(doc)
             doc.close()
@@ -281,6 +296,7 @@ class DoclingParser:
         logger.info("fallback_parse_start", file=path.name, parser="pypdfium2")
         try:
             import pypdfium2 as pdfium
+
             doc = pdfium.PdfDocument(str(path))
             pages_text: list[str] = []
             parsed_pages: list[ParsedPage] = []
@@ -348,7 +364,17 @@ class DoclingParser:
     def supported_formats() -> list[str]:
         """Return list of supported file extensions."""
         return [
-            ".pdf", ".docx", ".pptx", ".xlsx",
-            ".html", ".htm", ".md", ".txt",
-            ".png", ".jpg", ".jpeg", ".tiff", ".bmp",
+            ".pdf",
+            ".docx",
+            ".pptx",
+            ".xlsx",
+            ".html",
+            ".htm",
+            ".md",
+            ".txt",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".tiff",
+            ".bmp",
         ]

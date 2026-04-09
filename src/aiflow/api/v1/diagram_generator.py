@@ -2,6 +2,7 @@
 
 CRUD + generate + export for persisted BPMN diagrams.
 """
+
 from __future__ import annotations
 
 from functools import cache
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/api/v1/diagrams", tags=["diagrams"])
 @cache
 def _get_service():
     from aiflow.services.diagram_generator import DiagramGeneratorService
+
     return DiagramGeneratorService()
 
 
@@ -66,7 +68,7 @@ async def generate_diagram(request: GenerateRequest) -> DiagramResponse:
         return DiagramResponse(**record.model_dump(), source="backend")
     except Exception as e:
         logger.error("diagram_generate_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("", response_model=DiagramListResponse)
@@ -110,7 +112,14 @@ async def export_diagram(diagram_id: str, fmt: str) -> PlainTextResponse:
     if content is None:
         detail = f"Export not available for format: {fmt}."
         if fmt == "svg":
-            detail += " SVG requires Kroki service (docker compose up -d kroki) or a previous render."
+            detail += (
+                " SVG requires Kroki service (docker compose up -d kroki) or a previous render."
+            )
         raise HTTPException(status_code=404, detail=detail)
-    content_types = {"mermaid": "text/plain", "svg": "image/svg+xml", "drawio": "application/xml", "bpmn": "application/xml"}
+    content_types = {
+        "mermaid": "text/plain",
+        "svg": "image/svg+xml",
+        "drawio": "application/xml",
+        "bpmn": "application/xml",
+    }
     return PlainTextResponse(content=content, media_type=content_types.get(fmt, "text/plain"))

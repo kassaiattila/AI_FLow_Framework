@@ -4,8 +4,8 @@ Module-level service initialization for step function closures.
 """
 from pathlib import Path
 
-from aiflow.models.client import ModelClient
 from aiflow.models.backends.litellm_backend import LiteLLMBackend
+from aiflow.models.client import ModelClient
 from aiflow.prompts.manager import PromptManager
 
 __all__ = ["models_client", "prompt_manager"]

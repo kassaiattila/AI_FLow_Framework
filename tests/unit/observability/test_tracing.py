@@ -9,9 +9,10 @@
     requires_services: []
     tags: [observability, tracing, spans, otel]
 """
+
 import pytest
 
-from aiflow.observability.tracing import TraceManager, InMemoryTracer
+from aiflow.observability.tracing import InMemoryTracer, TraceManager
 
 
 class TestInMemoryTracer:

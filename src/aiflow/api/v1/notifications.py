@@ -227,9 +227,7 @@ async def delete_channel(channel_id: str) -> dict[str, Any]:
     """Delete a notification channel."""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        r = await conn.execute(
-            "DELETE FROM notification_channels WHERE id = $1", channel_id
-        )
+        r = await conn.execute("DELETE FROM notification_channels WHERE id = $1", channel_id)
     if r == "DELETE 0":
         raise HTTPException(status_code=404, detail="Channel not found")
     return {"deleted": True, "id": channel_id, "source": "backend"}
@@ -274,9 +272,7 @@ async def list_notification_log(
             args.append(status)
             idx += 1
 
-        total = await conn.fetchval(
-            f"SELECT COUNT(*) FROM notification_log {where}", *args
-        )
+        total = await conn.fetchval(f"SELECT COUNT(*) FROM notification_log {where}", *args)
 
         args_q = list(args)
         args_q.append(limit)
@@ -326,9 +322,7 @@ async def list_in_app(
             args.append(user_id)
             idx += 1
 
-        total = await conn.fetchval(
-            f"SELECT COUNT(*) FROM in_app_notifications {where}", *args
-        )
+        total = await conn.fetchval(f"SELECT COUNT(*) FROM in_app_notifications {where}", *args)
 
         args_q = list(args)
         args_q.append(limit)
@@ -404,8 +398,6 @@ async def mark_all_read(
                 user_id,
             )
         else:
-            r = await conn.execute(
-                "UPDATE in_app_notifications SET read = true WHERE read = false"
-            )
+            r = await conn.execute("UPDATE in_app_notifications SET read = true WHERE read = false")
     count = int(r.split()[-1]) if r else 0
     return {"marked_read": count, "source": "backend"}

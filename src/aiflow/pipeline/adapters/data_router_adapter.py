@@ -151,10 +151,7 @@ class DataRouterRouteAdapter(BaseAdapter):
 
         files = config.get("files", input_data.files)
         raw_rules = config.get("rules", input_data.rules)
-        rules = [
-            RoutingRule.model_validate(r) if isinstance(r, dict) else r
-            for r in raw_rules
-        ]
+        rules = [RoutingRule.model_validate(r) if isinstance(r, dict) else r for r in raw_rules]
 
         svc = await self._get_service()
         results = await svc.route_files(files=files, rules=rules)

@@ -3,11 +3,12 @@
 Every config change creates a new version. Active config is the one with is_active=True.
 Rollback restores a previous version by copying it as a new active version.
 """
+
 from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -37,7 +38,7 @@ class ConfigVersion(BaseModel):
     deployed_by: str | None = None
     is_active: bool = False
     change_description: str = ""
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class ConfigVersioningConfig(ServiceConfig):
@@ -79,9 +80,7 @@ class ConfigVersioningService(BaseService):
         except Exception:
             return False
 
-    async def list_versions(
-        self, service_instance_id: str
-    ) -> list[ConfigVersion]:
+    async def list_versions(self, service_instance_id: str) -> list[ConfigVersion]:
         """List all config versions for a service instance, newest first."""
         async with self._session_factory() as session:
             result = await session.execute(
@@ -110,9 +109,7 @@ class ConfigVersioningService(BaseService):
                 for row in rows
             ]
 
-    async def get_active(
-        self, service_instance_id: str
-    ) -> ConfigVersion | None:
+    async def get_active(self, service_instance_id: str) -> ConfigVersion | None:
         """Get the currently active config version."""
         async with self._session_factory() as session:
             result = await session.execute(
@@ -171,7 +168,7 @@ class ConfigVersioningService(BaseService):
 
             # Insert new version
             new_id = str(uuid.uuid4())
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             await session.execute(
                 text("""
                     INSERT INTO service_config_versions

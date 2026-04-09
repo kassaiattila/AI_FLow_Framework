@@ -15,12 +15,12 @@ from typing import Any
 import structlog
 
 from aiflow.engine.step import step
-from aiflow.engine.workflow import workflow, WorkflowBuilder
-from aiflow.models.client import ModelClient
+from aiflow.engine.workflow import WorkflowBuilder, workflow
 from aiflow.models.backends.litellm_backend import LiteLLMBackend
+from aiflow.models.client import ModelClient
 from aiflow.prompts.manager import PromptManager
-from aiflow.vectorstore.pgvector_store import PgVectorStore
 from aiflow.vectorstore.embedder import Embedder
+from aiflow.vectorstore.pgvector_store import PgVectorStore
 
 __all__ = [
     "load_documents",
@@ -44,6 +44,7 @@ _prompt_manager = PromptManager()
 _prompt_manager.register_yaml_dir(Path(__file__).parent.parent / "prompts")
 
 import os as _os
+
 _db_url = _os.getenv("AIFLOW_DATABASE_URL", "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev")
 _vector_store = PgVectorStore(database_url=_db_url, table_name="rag_chunks")
 _embedder = Embedder(
@@ -289,7 +290,7 @@ async def chunk_documents(data: dict) -> dict:
     language = data.get("language", "hu")
 
     # Use RecursiveChunker (Cubix tananyag recommended strategy)
-    from aiflow.ingestion.chunkers.recursive_chunker import RecursiveChunker, ChunkingConfig
+    from aiflow.ingestion.chunkers.recursive_chunker import ChunkingConfig, RecursiveChunker
 
     chunker = RecursiveChunker(ChunkingConfig(
         strategy="recursive",
@@ -431,7 +432,7 @@ async def generate_embeddings(data: dict) -> dict:
     cost_summary = _embedder._cost_tracker.summary()
 
     chunks_with_embeddings: list[dict[str, Any]] = []
-    for chunk, embedding in zip(chunks, embeddings):
+    for chunk, embedding in zip(chunks, embeddings, strict=False):
         chunks_with_embeddings.append({
             **chunk,
             "embedding": embedding,

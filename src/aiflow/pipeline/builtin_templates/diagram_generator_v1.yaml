@@ -1,0 +1,51 @@
+# Diagram Generator Pipeline v1
+# Chain: plan + render a diagram from a natural language description using
+# the DiagramGeneratorService.generate adapter. The service selects between
+# the legacy process_documentation path (flowchart) and the dedicated
+# planner/mermaid/reviewer prompts (sequence, bpmn_swimlane).
+#
+# Prerequisites:
+#   - DiagramGeneratorService prompts loaded (service/diagram_generator/prompts/)
+#   - Kroki service reachable on http://localhost:8000 (Docker) for SVG render
+#   - generated_diagrams table created (migration 026)
+#
+# Usage:
+#   POST /api/v1/pipelines  (create with this YAML)
+#   POST /api/v1/pipelines/{id}/run
+#     body: {"input_data": {"description": "...", "diagram_type": "flowchart"}}
+
+name: diagram_generator_v1
+version: "1.0.0"
+description: "Natural language -> structured diagram (flowchart / sequence / bpmn_swimlane)"
+
+trigger:
+  type: manual
+
+input_schema:
+  description:
+    type: string
+    required: true
+    description: "Free-form natural language description of the process / flow"
+  diagram_type:
+    type: string
+    default: "flowchart"
+    description: "Diagram semantic: flowchart | sequence | bpmn_swimlane"
+
+steps:
+  - name: generate_diagram
+    service: diagram_generator
+    method: generate
+    config:
+      description: "{{ input.description }}"
+      diagram_type: "{{ input.diagram_type }}"
+    retry:
+      max_retries: 2
+      backoff_base: 2.0
+      backoff_max: 20.0
+    timeout: 180
+
+metadata:
+  author: "AIFlow"
+  category: "documentation"
+  tier: "3"
+  cycle: "B5"

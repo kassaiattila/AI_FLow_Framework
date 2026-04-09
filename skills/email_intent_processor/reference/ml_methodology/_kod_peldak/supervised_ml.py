@@ -24,18 +24,19 @@ Forras: Cubix EDU - ML Engineering kurzus, 4. het
 """
 
 import warnings
+
 import numpy as np
 import pandas as pd
-
-# Sklearn alap importok
-from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import (
     accuracy_score,
+    classification_report,
     mean_absolute_error,
     mean_squared_error,
     r2_score,
-    classification_report,
 )
+
+# Sklearn alap importok
+from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.preprocessing import StandardScaler
 
 # Figyelmeztetesek elnyomasa a tisztabb kimenetert
@@ -125,7 +126,7 @@ def adatok_elokeszitese():
         tuple: (klasszifikacios adatok, binaris adatok, regresszios adatok)
                Mindegyik egy dict: {'X_train', 'X_test', 'y_train', 'y_test'}
     """
-    from sklearn.datasets import load_iris, load_diabetes, load_breast_cancer
+    from sklearn.datasets import load_breast_cancer, load_diabetes, load_iris
 
     # --- Iris: tobbosztalyos klasszifikacio (3 osztaly) ---
     iris = load_iris()
@@ -224,7 +225,7 @@ def knn_pelda(cls_data, reg_data):
     knn_reg = KNeighborsRegressor(n_neighbors=5)
     knn_reg.fit(reg_data["X_train"], reg_data["y_train"])
 
-    eredmeny_reg = regresszio_kiertekeles(
+    regresszio_kiertekeles(
         knn_reg,
         reg_data["X_train"], reg_data["X_test"],
         reg_data["y_train"], reg_data["y_test"],
@@ -251,7 +252,7 @@ def linearis_regresszio_pelda(reg_data):
     """Linearis regresszios modellek bemutatasa: alap, Ridge, Lasso, ElasticNet."""
     szeparator("2. LINEARIS REGRESSZIO")
 
-    from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
+    from sklearn.linear_model import ElasticNet, Lasso, LinearRegression, Ridge
 
     eredmenyek = []
 
@@ -791,15 +792,15 @@ def modell_osszehasonlitas(cls_data):
     """
     szeparator("12. MODELL OSSZEHASONLITAS (cross_val_score, 5-fold CV)")
 
-    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.ensemble import (
+        AdaBoostClassifier,
+        GradientBoostingClassifier,
+        RandomForestClassifier,
+    )
     from sklearn.linear_model import LogisticRegression
+    from sklearn.neighbors import KNeighborsClassifier
     from sklearn.svm import SVC
     from sklearn.tree import DecisionTreeClassifier
-    from sklearn.ensemble import (
-        RandomForestClassifier,
-        GradientBoostingClassifier,
-        AdaBoostClassifier,
-    )
 
     # Alapmodellek (mindig elerheto sklearn-bol)
     modellek = {

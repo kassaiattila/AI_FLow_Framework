@@ -26,7 +26,6 @@ from aiflow.services.quality.service import (
     RubricResult,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -55,9 +54,7 @@ class TestQualityService:
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_evaluate_rubric_with_expected(
-        self, quality_svc: QualityService
-    ) -> None:
+    async def test_evaluate_rubric_with_expected(self, quality_svc: QualityService) -> None:
         """Evaluate with expected output produces token-overlap score."""
         await quality_svc.start()
         result = await quality_svc.evaluate_rubric(
@@ -72,9 +69,7 @@ class TestQualityService:
         assert result.model == "gpt-4o-mini"  # default
 
     @pytest.mark.asyncio
-    async def test_evaluate_rubric_no_expected(
-        self, quality_svc: QualityService
-    ) -> None:
+    async def test_evaluate_rubric_no_expected(self, quality_svc: QualityService) -> None:
         """Evaluate without expected output uses heuristic scoring."""
         await quality_svc.start()
         result = await quality_svc.evaluate_rubric(
@@ -87,9 +82,7 @@ class TestQualityService:
         assert len(result.reasoning) > 0
 
     @pytest.mark.asyncio
-    async def test_evaluate_rubric_empty_actual(
-        self, quality_svc: QualityService
-    ) -> None:
+    async def test_evaluate_rubric_empty_actual(self, quality_svc: QualityService) -> None:
         """Empty actual text scores 0."""
         await quality_svc.start()
         result = await quality_svc.evaluate_rubric(
@@ -100,9 +93,7 @@ class TestQualityService:
         assert result.pass_ is False
 
     @pytest.mark.asyncio
-    async def test_evaluate_custom_rubric(
-        self, quality_svc: QualityService
-    ) -> None:
+    async def test_evaluate_custom_rubric(self, quality_svc: QualityService) -> None:
         """Custom rubric text (not a built-in name) is accepted."""
         await quality_svc.start()
         result = await quality_svc.evaluate_rubric(
@@ -113,9 +104,7 @@ class TestQualityService:
         assert result.rubric == "Score based on how friendly the tone is."
 
     @pytest.mark.asyncio
-    async def test_evaluate_with_custom_model(
-        self, quality_svc: QualityService
-    ) -> None:
+    async def test_evaluate_with_custom_model(self, quality_svc: QualityService) -> None:
         """Custom model name is stored in the result."""
         await quality_svc.start()
         result = await quality_svc.evaluate_rubric(
@@ -137,12 +126,8 @@ class TestQualityService:
         ]
         assert len(BUILTIN_RUBRICS) == 6
         for name in expected_rubrics:
-            assert name in BUILTIN_RUBRICS, (
-                f"Missing built-in rubric: {name}"
-            )
-            assert len(BUILTIN_RUBRICS[name]) > 20, (
-                f"Rubric '{name}' description too short"
-            )
+            assert name in BUILTIN_RUBRICS, f"Missing built-in rubric: {name}"
+            assert len(BUILTIN_RUBRICS[name]) > 20, f"Rubric '{name}' description too short"
 
     def test_list_rubrics(self, quality_svc: QualityService) -> None:
         rubrics = quality_svc.list_rubrics()
@@ -151,9 +136,7 @@ class TestQualityService:
         assert "relevance" in rubrics
 
     @pytest.mark.asyncio
-    async def test_overview_defaults(
-        self, quality_svc: QualityService
-    ) -> None:
+    async def test_overview_defaults(self, quality_svc: QualityService) -> None:
         """Overview with no evaluations returns zeros."""
         await quality_svc.start()
         overview = await quality_svc.get_overview()
@@ -163,9 +146,7 @@ class TestQualityService:
         assert overview.pass_rate == 0.0
 
     @pytest.mark.asyncio
-    async def test_overview_after_evaluations(
-        self, quality_svc: QualityService
-    ) -> None:
+    async def test_overview_after_evaluations(self, quality_svc: QualityService) -> None:
         """Overview reflects accumulated evaluation results."""
         await quality_svc.start()
 
@@ -187,9 +168,7 @@ class TestQualityService:
         assert overview.pass_rate == 0.5  # 1 out of 2 pass
 
     @pytest.mark.asyncio
-    async def test_estimate_cost(
-        self, quality_svc: QualityService
-    ) -> None:
+    async def test_estimate_cost(self, quality_svc: QualityService) -> None:
         """Cost estimation returns positive values for pipeline steps."""
         await quality_svc.start()
         steps = [
@@ -204,22 +183,16 @@ class TestQualityService:
         assert estimate.model == "gpt-4o-mini"
 
     @pytest.mark.asyncio
-    async def test_estimate_cost_custom_model(
-        self, quality_svc: QualityService
-    ) -> None:
+    async def test_estimate_cost_custom_model(self, quality_svc: QualityService) -> None:
         """Cost estimation with a different model."""
         await quality_svc.start()
         steps = [{"service": "classifier", "method": "classify"}]
-        estimate = await quality_svc.estimate_pipeline_cost(
-            steps, model="gpt-4o"
-        )
+        estimate = await quality_svc.estimate_pipeline_cost(steps, model="gpt-4o")
         assert estimate.model == "gpt-4o"
         assert estimate.estimated_cost_usd > 0.0
 
     @pytest.mark.asyncio
-    async def test_estimate_cost_empty_steps(
-        self, quality_svc: QualityService
-    ) -> None:
+    async def test_estimate_cost_empty_steps(self, quality_svc: QualityService) -> None:
         """Empty step list returns zero cost."""
         await quality_svc.start()
         estimate = await quality_svc.estimate_pipeline_cost([])
@@ -235,9 +208,8 @@ class TestQualityService:
 class TestQualityAdapterRegistration:
     def test_quality_adapter_registered(self) -> None:
         """Quality adapter is registered in the adapter registry."""
-        from aiflow.pipeline.adapter_base import adapter_registry
-
         import aiflow.pipeline.adapters.quality_adapter  # noqa: F401
+        from aiflow.pipeline.adapter_base import adapter_registry
 
         assert adapter_registry.has("quality", "evaluate_rubric"), (
             "Adapter (quality, evaluate_rubric) not found in registry. "
@@ -248,9 +220,8 @@ class TestQualityAdapterRegistration:
         """Quality adapter has Pydantic input/output schemas."""
         from pydantic import BaseModel as PydanticBaseModel
 
-        from aiflow.pipeline.adapter_base import adapter_registry
-
         import aiflow.pipeline.adapters.quality_adapter  # noqa: F401
+        from aiflow.pipeline.adapter_base import adapter_registry
 
         adapter = adapter_registry.get("quality", "evaluate_rubric")
         assert issubclass(adapter.input_schema, PydanticBaseModel)
@@ -258,9 +229,8 @@ class TestQualityAdapterRegistration:
 
     def test_adapter_service_method_names(self) -> None:
         """Adapter service_name and method_name match expected values."""
-        from aiflow.pipeline.adapter_base import adapter_registry
-
         import aiflow.pipeline.adapters.quality_adapter  # noqa: F401
+        from aiflow.pipeline.adapter_base import adapter_registry
 
         adapter = adapter_registry.get("quality", "evaluate_rubric")
         assert adapter.service_name == "quality"

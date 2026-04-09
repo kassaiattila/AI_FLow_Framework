@@ -4,6 +4,7 @@ Supports HNSW index for vector similarity + tsvector BM25 for keyword search.
 When asyncpg is unavailable or DB is not configured, falls back to an in-memory
 dict-based store suitable for development and testing.
 """
+
 from __future__ import annotations
 
 import json
@@ -24,6 +25,7 @@ logger = structlog.get_logger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _embedding_to_pgvector(embedding: list[float]) -> str:
     """Format a Python list of floats as a pgvector literal '[0.1,0.2,...]'."""
     return "[" + ",".join(f"{v:.8f}" for v in embedding) + "]"
@@ -31,7 +33,7 @@ def _embedding_to_pgvector(embedding: list[float]) -> str:
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
     """Pure-Python cosine similarity for the in-memory fallback."""
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b, strict=False))
     norm_a = math.sqrt(sum(x * x for x in a))
     norm_b = math.sqrt(sum(x * x for x in b))
     if norm_a == 0 or norm_b == 0:
@@ -39,28 +41,52 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
-def _bm25_score(query_terms: list[str], text: str) -> float:
-    """Simplified BM25-like term-frequency score for in-memory keyword search."""
+def _bm25_score(
+    query_terms: list[str],
+    text: str,
+    *,
+    avg_dl: float = 200.0,
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> float:
+    """Simplified BM25-like term-frequency score, saturation-normalized to [0, 1].
+
+    The raw BM25 score is unbounded — repeated matches can drive it above 1.0
+    and break the hybrid combination ``0.6 * cosine + 0.4 * bm25``. We apply
+    a saturation normalization ``score / (score + 1)`` as the final step,
+    which maps ``[0, ∞)`` to ``[0, 1)`` monotonically and keeps the relative
+    ordering of documents intact.
+
+    Args:
+        query_terms: Tokens to score (whitespace-split, lowercased by caller).
+        text: Document body.
+        avg_dl: Expected average document length (tuned via corpus stats).
+        k1: Term-frequency saturation parameter.
+        b: Length normalization parameter.
+    """
     if not query_terms:
         return 0.0
     text_lower = text.lower()
     words = text_lower.split()
     doc_len = len(words) if words else 1
-    avg_dl = 200.0  # assumed average document length
-    k1, b = 1.5, 0.75
-    score = 0.0
+    raw_score = 0.0
     for term in query_terms:
         tf = text_lower.count(term.lower())
         if tf > 0:
             numerator = tf * (k1 + 1)
             denominator = tf + k1 * (1 - b + b * doc_len / avg_dl)
-            score += numerator / denominator
-    return score
+            raw_score += numerator / denominator
+
+    # Saturation normalization to [0, 1): score / (score + 1)
+    if raw_score <= 0.0:
+        return 0.0
+    return raw_score / (raw_score + 1.0)
 
 
 # ---------------------------------------------------------------------------
 # In-memory fallback store
 # ---------------------------------------------------------------------------
+
 
 class _InMemoryBackend:
     """Dict-based vector store for development/testing without PostgreSQL."""
@@ -85,7 +111,7 @@ class _InMemoryBackend:
         idx = {str(c["chunk_id"]): i for i, c in enumerate(existing)}
 
         upserted = 0
-        for chunk, embedding in zip(chunks, embeddings):
+        for chunk, embedding in zip(chunks, embeddings, strict=False):
             chunk_id = str(chunk.get("chunk_id", uuid.uuid4()))
             record = {
                 **chunk,
@@ -136,15 +162,23 @@ class _InMemoryBackend:
                     status = meta.get("status", "active")
                     if status != filters.document_status:
                         continue
-                if filters.language:
-                    if meta.get("language", "").lower() != filters.language.lower():
-                        continue
-                if filters.department:
-                    if meta.get("department", "").lower() != filters.department.lower():
-                        continue
+                if (
+                    filters.language
+                    and meta.get("language", "").lower() != filters.language.lower()
+                ):
+                    continue
+                if (
+                    filters.department
+                    and meta.get("department", "").lower() != filters.department.lower()
+                ):
+                    continue
 
             vs = _cosine_similarity(query_embedding, emb) if emb else 0.0
-            ks = _bm25_score(query_terms, text_content) if query_text and search_mode != "vector" else 0.0
+            ks = (
+                _bm25_score(query_terms, text_content)
+                if query_text and search_mode != "vector"
+                else 0.0
+            )
 
             if search_mode == "vector":
                 combined = vs
@@ -167,7 +201,9 @@ class _InMemoryBackend:
                     meta = {}
             results.append(
                 SearchResult(
-                    chunk_id=uuid.UUID(rec["chunk_id"]) if isinstance(rec["chunk_id"], str) else rec["chunk_id"],
+                    chunk_id=uuid.UUID(rec["chunk_id"])
+                    if isinstance(rec["chunk_id"], str)
+                    else rec["chunk_id"],
                     content=rec.get("content", rec.get("chunk_text", "")),
                     score=combined,
                     vector_score=vs,
@@ -188,9 +224,7 @@ class _InMemoryBackend:
         records = self._collections.get(key, [])
         doc_id_str = str(document_id)
         before = len(records)
-        self._collections[key] = [
-            r for r in records if str(r.get("document_id", "")) != doc_id_str
-        ]
+        self._collections[key] = [r for r in records if str(r.get("document_id", "")) != doc_id_str]
         return before - len(self._collections[key])
 
     async def health_check(self) -> bool:
@@ -200,6 +234,7 @@ class _InMemoryBackend:
 # ---------------------------------------------------------------------------
 # Async PostgreSQL backend
 # ---------------------------------------------------------------------------
+
 
 class _PgBackend:
     """Real PostgreSQL + pgvector backend using asyncpg."""
@@ -247,29 +282,28 @@ class _PgBackend:
         """
 
         upserted = 0
-        async with pool.acquire() as conn:
-            async with conn.transaction():
-                for chunk, embedding in zip(chunks, embeddings):
-                    chunk_id = chunk.get("chunk_id", str(uuid.uuid4()))
-                    if not isinstance(chunk_id, str):
-                        chunk_id = str(chunk_id)
+        async with pool.acquire() as conn, conn.transaction():
+            for chunk, embedding in zip(chunks, embeddings, strict=False):
+                chunk_id = chunk.get("chunk_id", str(uuid.uuid4()))
+                if not isinstance(chunk_id, str):
+                    chunk_id = str(chunk_id)
 
-                    metadata = chunk.get("metadata", {})
-                    if not isinstance(metadata, str):
-                        metadata = json.dumps(metadata)
+                metadata = chunk.get("metadata", {})
+                if not isinstance(metadata, str):
+                    metadata = json.dumps(metadata)
 
-                    await conn.execute(
-                        sql,
-                        chunk_id,
-                        collection,
-                        chunk.get("content", chunk.get("chunk_text", "")),
-                        _embedding_to_pgvector(embedding),
-                        metadata,
-                        skill_name,
-                        chunk.get("document_name", ""),
-                        chunk.get("chunk_index", 0),
-                    )
-                    upserted += 1
+                await conn.execute(
+                    sql,
+                    chunk_id,
+                    collection,
+                    chunk.get("content", chunk.get("chunk_text", "")),
+                    _embedding_to_pgvector(embedding),
+                    metadata,
+                    skill_name,
+                    chunk.get("document_name", ""),
+                    chunk.get("chunk_index", 0),
+                )
+                upserted += 1
         return upserted
 
     async def search(
@@ -399,6 +433,7 @@ class _PgBackend:
 # Public facade -- delegates to Pg or InMemory backend
 # ---------------------------------------------------------------------------
 
+
 class PgVectorStore(VectorStore):
     """pgvector-based vector store with HNSW index + BM25 full-text search.
 
@@ -502,9 +537,13 @@ class PgVectorStore(VectorStore):
             backend=self._mode,
         )
         return await self._backend.search(
-            collection, skill_name, query_embedding,
-            query_text=query_text, top_k=top_k,
-            filters=filters, search_mode=search_mode,
+            collection,
+            skill_name,
+            query_embedding,
+            query_text=query_text,
+            top_k=top_k,
+            filters=filters,
+            search_mode=search_mode,
         )
 
     async def delete_by_document(

@@ -9,12 +9,13 @@
     requires_services: []
     tags: [skills, registry, install, uninstall, lifecycle]
 """
+
 from pathlib import Path
 
 import pytest
 import yaml
 
-from aiflow.skills.registry import SkillRegistry, InstalledSkillRecord
+from aiflow.skills.registry import InstalledSkillRecord, SkillRegistry
 
 
 def _write_skill(tmp_path: Path, name: str, **extra: object) -> Path:
@@ -63,9 +64,7 @@ class TestSkillRegistryInstall:
         with pytest.raises(ValueError, match="unmet dependencies"):
             skill_registry.install(path)
 
-    def test_install_with_satisfied_dependency(
-        self, skill_registry: SkillRegistry, tmp_path: Path
-    ):
+    def test_install_with_satisfied_dependency(self, skill_registry: SkillRegistry, tmp_path: Path):
         base_path = _write_skill(tmp_path, "base-skill")
         skill_registry.install(base_path)
 
@@ -110,9 +109,7 @@ class TestSkillRegistryUninstall:
         with pytest.raises(KeyError):
             skill_registry.uninstall("ghost")
 
-    def test_uninstall_with_dependents_raises(
-        self, skill_registry: SkillRegistry, tmp_path: Path
-    ):
+    def test_uninstall_with_dependents_raises(self, skill_registry: SkillRegistry, tmp_path: Path):
         base_path = _write_skill(tmp_path, "base")
         skill_registry.install(base_path)
         child_path = _write_skill(tmp_path, "child", depends_on=["base"])
@@ -135,9 +132,7 @@ class TestSkillRegistryUpgrade:
         assert record.manifest.version == "2.0.0"
         assert skill_registry.get_skill("upgrade-skill").manifest.version == "2.0.0"
 
-    def test_upgrade_not_installed_raises(
-        self, skill_registry: SkillRegistry, tmp_path: Path
-    ):
+    def test_upgrade_not_installed_raises(self, skill_registry: SkillRegistry, tmp_path: Path):
         path = _write_skill(tmp_path, "fresh-skill")
         with pytest.raises(KeyError, match="not installed"):
             skill_registry.upgrade(path)

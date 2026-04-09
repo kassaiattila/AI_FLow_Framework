@@ -2,26 +2,30 @@
 
 Upload media → STT → transcript + structured output.
 """
+
 from __future__ import annotations
 
 import tempfile
+from functools import cache
 from pathlib import Path
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query
-from functools import cache
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from pydantic import BaseModel
 
 __all__ = ["router"]
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/v1/media", tags=["media"])
 
+_upload_file_field = File(...)
+
 
 @cache
 def _get_service():
     from aiflow.services.media_processor import MediaProcessorService
+
     return MediaProcessorService()
 
 
@@ -54,7 +58,7 @@ class DeleteResponse(BaseModel):
 
 @router.post("/upload", response_model=MediaJobResponse)
 async def upload_and_process(
-    file: UploadFile = File(...),
+    file: UploadFile = _upload_file_field,
     stt_provider: str | None = Query(None),
 ):
     """Upload a media file and start STT processing."""
@@ -69,10 +73,13 @@ async def upload_and_process(
     svc = _get_service()
     try:
         result = await svc.process_media(dest, stt_provider=stt_provider)
-        return MediaJobResponse(**{k: v for k, v in result.model_dump().items() if k in MediaJobResponse.model_fields}, source="backend")
+        return MediaJobResponse(
+            **{k: v for k, v in result.model_dump().items() if k in MediaJobResponse.model_fields},
+            source="backend",
+        )
     except Exception as e:
         logger.error("media_upload_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("", response_model=MediaJobListResponse)
@@ -81,7 +88,13 @@ async def list_jobs(limit: int = Query(50), offset: int = Query(0)):
     svc = _get_service()
     jobs, total = await svc.list_jobs(limit=limit, offset=offset)
     return MediaJobListResponse(
-        jobs=[MediaJobResponse(**{k: v for k, v in j.model_dump().items() if k in MediaJobResponse.model_fields}, source="backend") for j in jobs],
+        jobs=[
+            MediaJobResponse(
+                **{k: v for k, v in j.model_dump().items() if k in MediaJobResponse.model_fields},
+                source="backend",
+            )
+            for j in jobs
+        ],
         total=total,
     )
 
@@ -93,7 +106,10 @@ async def get_job(job_id: str):
     job = await svc.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    return MediaJobResponse(**{k: v for k, v in job.model_dump().items() if k in MediaJobResponse.model_fields}, source="backend")
+    return MediaJobResponse(
+        **{k: v for k, v in job.model_dump().items() if k in MediaJobResponse.model_fields},
+        source="backend",
+    )
 
 
 @router.delete("/{job_id}", response_model=DeleteResponse)

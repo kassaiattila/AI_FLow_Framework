@@ -1,0 +1,111 @@
+# Invoice Finder Pipeline v3 — OFFLINE (B3.E2E Phase 2)
+# Differences vs invoice_finder_v3.yaml:
+#   - SKIP search_emails (no email fetch)
+#   - acquire_documents reads directly from input.pdf_paths via file_path
+#   - SKIP organize_files (data_router route method mismatch — fix tracked separately)
+#   - SKIP notify_team (no SMTP needed for DB persistence test)
+#
+# Purpose: validate that PipelineRunner.run_from_yaml() persists
+# workflow_runs + step_runs + cost_records with real Docker DB + real LLM.
+#
+# Usage (code):
+#   runner = PipelineRunner(adapter_registry, session_factory)
+#   result = await runner.run_from_yaml(yaml_str, {"pdf_paths": [...]})
+
+name: invoice_finder_v3_offline
+version: "3.0.0"
+description: "Invoice Finder OFFLINE: direct PDFs → classify → extract → payment → report"
+
+trigger:
+  type: manual
+
+input_schema:
+  pdf_paths:
+    type: array
+    required: true
+    description: "List of PDF file paths to process directly (no email fetch)"
+  confidence_threshold:
+    type: number
+    default: 0.5
+    description: "Minimum classifier confidence for auto-accept"
+  output_dir:
+    type: string
+    default: "./data/invoices"
+    description: "Output directory for generated reports"
+
+steps:
+  - name: acquire_documents
+    service: document_extractor
+    method: acquire_from_email
+    for_each: "{{ input.pdf_paths }}"
+    config:
+      email_id: "offline:{{ item }}"
+      file_path: "{{ item }}"
+      has_attachment: false
+      attachments: []
+      body_snippet: ""
+    retry:
+      max_retries: 2
+      backoff_base: 1.0
+      backoff_max: 10.0
+    concurrency: 3
+    timeout: 180
+
+  - name: classify_invoices
+    service: classifier
+    method: classify
+    depends_on: [acquire_documents]
+    for_each: "{{ acquire_documents.output.results }}"
+    config:
+      text: "{{ item.raw_text }}"
+      subject: "invoice_finder"
+      strategy: "llm_only"
+    retry:
+      max_retries: 2
+      backoff_base: 1.0
+      backoff_max: 10.0
+    concurrency: 5
+    timeout: 60
+
+  - name: extract_fields
+    service: document_extractor
+    method: extract
+    depends_on: [classify_invoices, acquire_documents]
+    for_each: "{{ acquire_documents.output.results }}"
+    config:
+      file_path: "{{ item.file_path }}"
+      config_name: "invoice-hu"
+    retry:
+      max_retries: 2
+      backoff_base: 1.0
+      backoff_max: 10.0
+    concurrency: 3
+    timeout: 180
+
+  - name: check_payment_status
+    service: payment_status
+    method: check
+    depends_on: [extract_fields]
+    for_each: "{{ extract_fields.output.results }}"
+    config:
+      invoice_number: "{{ item.fields.invoice_number }}"
+      due_date: "{{ item.fields.due_date }}"
+      amount: "{{ item.fields.gross_total }}"
+    concurrency: 5
+    timeout: 60
+
+  - name: generate_report
+    service: report_generator
+    method: generate
+    depends_on: [extract_fields, check_payment_status]
+    config:
+      invoices: "{{ extract_fields.output.results }}"
+      payment_statuses: "{{ check_payment_status.output.results }}"
+      file_paths: "{{ input.pdf_paths }}"
+    timeout: 120
+
+metadata:
+  author: "AIFlow"
+  category: "document_processing"
+  tier: "2"
+  cycle: "B3.E2E.P2"

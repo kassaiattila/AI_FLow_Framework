@@ -2,6 +2,7 @@
 
 All API endpoints should use these instead of creating their own connections.
 """
+
 from __future__ import annotations
 
 import os

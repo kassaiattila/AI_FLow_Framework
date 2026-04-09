@@ -1,0 +1,17 @@
+# Cubix Course Capture — full PII protection, large input (transcripts)
+input:
+  pii_masking: "on"
+  allowed_pii: []
+  max_length: 50000
+  max_audio_length: 7200
+  check_injection: false
+output:
+  check_pii: true
+  check_safety: false
+  format_check: true
+scope:
+  allowed_topics: ["course", "video", "transcript", "lecture", "training", "education"]
+  blocked_topics: []
+  dangerous_patterns: []
+llm_fallback:
+  enabled: false

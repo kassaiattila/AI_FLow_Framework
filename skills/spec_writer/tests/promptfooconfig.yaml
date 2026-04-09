@@ -1,0 +1,330 @@
+# Promptfoo evaluation config for Spec Writer (B5.2 — UJ FILE)
+# Run: npx promptfoo eval -c skills/spec_writer/tests/promptfooconfig.yaml
+# View: npx promptfoo view
+#
+# Uses a single ROUTER prompt that accepts a `task` variable and a
+# spec_type / language. The router branches to the analyzer → generator →
+# reviewer flow in a single LLM call so promptfoo can assert against the
+# final markdown + JSON outputs without running Python.
+#
+# 8 test cases (gate 90%+):
+#   1. test_feature_spec_hu          — HU feature request → ## Celok + ## Bemenetek
+#   2. test_api_spec_en              — EN API description → ## Endpoint + ## Response
+#   3. test_db_spec_columns          — DB schema → ## Columns + index reference
+#   4. test_user_story_format        — Mint user... → ## As a / ## I want
+#   5. test_review_low_score         — Too-thin input → review.score < 7
+#   6. test_review_high_score        — Rich detailed input → review.score >= 7
+#   7. test_reviewer_missing_edge    — Missing edge cases → missing_sections non-empty
+#   8. test_too_short_input_warning  — 1-word input → review warns insufficient detail
+
+description: "Spec Writer — analyzer + generator + reviewer (B5.2)"
+
+providers:
+  - id: openai:gpt-4o-mini
+    label: "gpt-4o-mini (spec writer)"
+    config:
+      temperature: 0
+      max_tokens: 4096
+
+prompts:
+  - id: spec_writer_router
+    label: "spec_writer_router"
+    raw: |
+      You are the AIFlow Spec Writer. The `task` variable picks EXACTLY
+      ONE operation — IGNORE the other task definition entirely.
+
+      =================================================================
+      >>> task: {{task}} <<<
+      spec_type: {{spec_type}}    language: {{language}}
+      =================================================================
+
+      ─────────────────────────────────────────────────────────────────
+      IF task == "generate"  →  OUTPUT PURE MARKDOWN (no JSON, no fences)
+      ─────────────────────────────────────────────────────────────────
+
+      You receive a free-form SPEC REQUEST in `Input` below. Write a
+      complete Markdown specification for it.
+
+      RULES (generate mode):
+      - Output MUST start with `# <Title>` on the first line.
+      - Use `## ` headings for every section.
+      - HU input → Hungarian headings; EN input → English headings.
+      - NEVER output JSON in generate mode.
+      - NEVER wrap the output in ```markdown / ``` fences.
+
+      ABSOLUTE RULE: use the EXACT headings listed for the given
+      spec_type, and ONLY those template headings. Do NOT invent
+      `Overview` / `Goals` for api or db specs — those templates use
+      different headings. Ignore headings from other spec_types.
+
+      spec_type = feature (English):
+          ## Overview
+          ## Goals
+          ## Inputs
+          ## Outputs
+          ## Edge Cases
+          ## Acceptance Criteria
+
+      spec_type = feature (Hungarian — use Hungarian headings without
+      accents is OK, but output plain ASCII is preferred):
+          ## Attekintes
+          ## Celok
+          ## Bemenetek
+          ## Kimenetek
+          ## Peremfeltetelek
+          ## Elfogadasi feltetelek
+
+      spec_type = api (English):
+          ## Endpoint
+          ## Request
+          ## Response
+          ## Error Codes
+          ## Examples
+
+      spec_type = api (Hungarian):
+          ## Vegpont
+          ## Keres
+          ## Valasz
+          ## Hibakodok
+          ## Peldak
+
+      spec_type = db (English):
+          ## Table
+          ## Columns
+          ## Indexes
+          ## Relationships
+          ## Migrations
+
+      spec_type = db (Hungarian):
+          ## Tabla
+          ## Oszlopok
+          ## Indexek
+          ## Kapcsolatok
+          ## Migraciok
+
+      spec_type = user_story (English):
+          ## As a
+          ## I want
+          ## So that
+          ## Acceptance Criteria
+
+      spec_type = user_story (Hungarian):
+          ## Mint
+          ## Szeretnek
+          ## Hogy
+          ## Elfogadasi feltetelek
+
+      Every goal, input, output, and edge case from the Input must
+      appear somewhere in the markdown (no silent drops). Use ASCII
+      characters only (no accented letters) in section headings to
+      guarantee greppable output.
+
+      ─────────────────────────────────────────────────────────────────
+      IF task == "review"  →  OUTPUT PURE JSON (no markdown, no prose)
+      ─────────────────────────────────────────────────────────────────
+
+      You receive a DRAFT MARKDOWN SPEC in `Input` below. Score it.
+
+      RULES (review mode):
+      - Output MUST be a single valid JSON object — nothing else.
+      - Score the draft against the required headings for spec_type.
+      - `is_acceptable` = (score >= 7.0).
+      - A GOOD spec (title + 4-6 clean `##` sections + bullets of goals,
+        inputs, outputs, edge cases, acceptance criteria) should score
+        >= 7.5 even if not perfect — prefer pragmatic acceptance over
+        nitpicks.
+      - If the draft is clearly too short/vague (< 15 words OR no `##`
+        sections at all OR no concrete goals), score <= 4.0 AND the
+        string "insufficient detail" MUST appear in suggestions.
+      - If the draft is a valid spec for its type, score >= 7.0 and
+        is_acceptable = true unless a required heading is literally
+        absent.
+      - `missing_sections` lists required headings that are NOT present
+        in the draft (do NOT list unrelated spec_types here).
+      - JSON schema:
+        {"is_acceptable": bool, "score": float, "missing_sections": [str],
+         "questions": [str], "suggestions": [str]}
+
+      ─────────────────────────────────────────────────────────────────
+      Input:
+      {{raw_text}}
+      ─────────────────────────────────────────────────────────────────
+
+tests:
+  - description: "test_feature_spec_hu"
+    vars:
+      task: "generate"
+      spec_type: "feature"
+      language: "hu"
+      raw_text: |
+        Szamla feldolgozas automatizalasa: a rendszer fogadja a bejovo szamla
+        PDF-eket, kivonja a szamlaszamot, vevo nevet, osszeget, datumot.
+        Ellenorzi a duplikatumokat adatbazis alapjan es tovabbitja a
+        konyvelesi rendszernek. Hibas OCR eseten human reviewnak kuldi.
+    assert:
+      - type: contains
+        value: "## Celok"
+      - type: contains
+        value: "## Bemenetek"
+      - type: not-contains
+        value: "```markdown"
+      - type: javascript
+        value: |
+          // Must start with '# ' title and have >= 4 '## ' sections
+          const lines = output.trim().split('\n');
+          const firstLine = lines[0] || '';
+          const sectionCount = (output.match(/^##\s/gm) || []).length;
+          return firstLine.startsWith('# ') && sectionCount >= 4;
+
+  - description: "test_api_spec_en"
+    vars:
+      task: "generate"
+      spec_type: "api"
+      language: "en"
+      raw_text: |
+        POST /api/v1/invoices endpoint: accepts a JSON body with invoice_number,
+        vendor_id, gross_amount, currency, issue_date. Returns 201 Created with
+        the persisted invoice object. 409 Conflict on duplicate invoice_number.
+        400 Bad Request on validation errors.
+    assert:
+      - type: contains
+        value: "## Endpoint"
+      - type: contains
+        value: "## Response"
+      - type: javascript
+        value: |
+          // Must mention 201 and 409
+          return output.includes('201') && output.includes('409');
+
+  - description: "test_db_spec_columns"
+    vars:
+      task: "generate"
+      spec_type: "db"
+      language: "en"
+      raw_text: |
+        Database table `invoices` with columns: id (uuid primary key),
+        invoice_number (varchar unique), vendor_id (uuid FK to vendors),
+        gross_amount (numeric), currency (char(3)), issue_date (date),
+        created_at (timestamptz default now). Index on invoice_number and
+        on (vendor_id, issue_date).
+    assert:
+      - type: contains
+        value: "## Columns"
+      - type: javascript
+        value: |
+          // Must reference indexes either in text or a dedicated section
+          const hasIndexSection = /##\s+(Indexek|Indexes)/i.test(output);
+          const mentionsIndex = /index/i.test(output);
+          return hasIndexSection || mentionsIndex;
+
+  - description: "test_user_story_format"
+    vars:
+      task: "generate"
+      spec_type: "user_story"
+      language: "en"
+      raw_text: |
+        As an accountant I want to filter invoices by vendor and date range so
+        that I can quickly find invoices for a specific supplier. Acceptance:
+        filter persists across sessions, max 100 results per page.
+    assert:
+      - type: contains
+        value: "## As a"
+      - type: contains
+        value: "## I want"
+      - type: contains
+        value: "## Acceptance Criteria"
+
+  - description: "test_review_low_score"
+    vars:
+      task: "review"
+      spec_type: "feature"
+      language: "en"
+      raw_text: |
+        # Thing
+
+        ## Overview
+        A thing.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.score < 7.0 && data.is_acceptable === false;
+
+  - description: "test_review_high_score"
+    vars:
+      task: "review"
+      spec_type: "feature"
+      language: "en"
+      raw_text: |
+        # Invoice Processing
+
+        ## Overview
+        Automate invoice extraction from incoming PDFs.
+
+        ## Goals
+        - Extract invoice fields (number, vendor, amount, date)
+        - Detect duplicates
+        - Forward to accounting
+
+        ## Inputs
+        - pdf_file (file): Incoming invoice PDF
+
+        ## Outputs
+        - invoice (object): Extracted structured fields
+
+        ## Edge Cases
+        - Blurry OCR input
+        - Multi-page invoices
+
+        ## Acceptance Criteria
+        - >= 95% extraction accuracy
+        - < 10s processing time per invoice
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.score >= 7.0 && data.is_acceptable === true;
+
+  - description: "test_reviewer_missing_edge"
+    vars:
+      task: "review"
+      spec_type: "feature"
+      language: "en"
+      raw_text: |
+        # Login flow
+
+        ## Overview
+        User enters credentials and gets a JWT.
+
+        ## Goals
+        - Authenticate user
+        - Issue JWT
+
+        ## Inputs
+        - email, password
+
+        ## Outputs
+        - token
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          // Must flag at least one missing section (acceptance criteria OR edge cases)
+          return Array.isArray(data.missing_sections) && data.missing_sections.length >= 1;
+
+  - description: "test_too_short_input_warning"
+    vars:
+      task: "review"
+      spec_type: "feature"
+      language: "en"
+      raw_text: "Make a thing."
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          const sugs = (data.suggestions || []).join(' ').toLowerCase();
+          return data.score <= 4.0 && sugs.includes('insufficient');

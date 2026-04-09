@@ -5,6 +5,7 @@ Provides three cache namespaces:
 - llm: prompt_hash+input_hash -> LLM response (TTL: 24 hours)
 - vector_query: query_hash -> top-K search results (TTL: 1 hour)
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -13,7 +14,6 @@ from typing import Any
 
 import redis.asyncio as aioredis
 import structlog
-from pydantic import Field
 
 from aiflow.services.base import BaseService, ServiceConfig
 
@@ -104,9 +104,7 @@ class CacheService(BaseService):
         assert self._redis is not None
         key = self._key("emb", self._hash_text(text))
         data = json.dumps(embedding)
-        await self._redis.set(
-            key, data, ex=self._cache_config.embedding_ttl_seconds
-        )
+        await self._redis.set(key, data, ex=self._cache_config.embedding_ttl_seconds)
 
     # --- LLM response cache ---
 
@@ -143,9 +141,7 @@ class CacheService(BaseService):
         )
         key = self._key("llm", hash_input)
         data = json.dumps(response, ensure_ascii=False)
-        await self._redis.set(
-            key, data, ex=self._cache_config.llm_response_ttl_seconds
-        )
+        await self._redis.set(key, data, ex=self._cache_config.llm_response_ttl_seconds)
 
     # --- Vector query cache ---
 
@@ -179,9 +175,7 @@ class CacheService(BaseService):
         )
         key = self._key("vec", hash_input)
         data = json.dumps(results, ensure_ascii=False, default=str)
-        await self._redis.set(
-            key, data, ex=self._cache_config.vector_query_ttl_seconds
-        )
+        await self._redis.set(key, data, ex=self._cache_config.vector_query_ttl_seconds)
 
     # --- Invalidation ---
 
@@ -194,7 +188,7 @@ class CacheService(BaseService):
         assert self._redis is not None
         count = 0
         pattern = f"{self._cache_config.key_prefix}vec:*"
-        async for key in self._redis.scan_iter(match=pattern, count=100):
+        async for _key in self._redis.scan_iter(match=pattern, count=100):
             count += 1
         # Delete matching keys in bulk
         if count > 0:
@@ -220,9 +214,7 @@ class CacheService(BaseService):
             keys.append(key)
         if keys:
             deleted = await self._redis.delete(*keys)
-            self._logger.info(
-                "namespace_invalidated", namespace=namespace, deleted=deleted
-            )
+            self._logger.info("namespace_invalidated", namespace=namespace, deleted=deleted)
             return deleted
         return 0
 

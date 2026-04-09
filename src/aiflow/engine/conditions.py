@@ -3,13 +3,13 @@
 Supports simple expression evaluation on step outputs.
 Example: "output.category == 'process'" or "output.score >= 8"
 """
+
 import operator
 import re
 from typing import Any
 
-from pydantic import BaseModel
-
 import structlog
+from pydantic import BaseModel
 
 __all__ = ["Condition", "evaluate_condition"]
 
@@ -27,13 +27,12 @@ OPS = {
 }
 
 # Pattern: "output.field op value" or "output.field op 'string'"
-CONDITION_PATTERN = re.compile(
-    r"^(output\.[\w.]+)\s*(==|!=|>=|<=|>|<|in)\s*(.+)$"
-)
+CONDITION_PATTERN = re.compile(r"^(output\.[\w.]+)\s*(==|!=|>=|<=|>|<|in)\s*(.+)$")
 
 
 class Condition(BaseModel):
     """A condition that evaluates against step output."""
+
     expression: str
     target_steps: list[str] = []
 
@@ -62,8 +61,9 @@ def _parse_value(value_str: str) -> Any:
     """Parse a value string into Python type."""
     value_str = value_str.strip()
     # String (single or double quotes)
-    if (value_str.startswith("'") and value_str.endswith("'")) or \
-       (value_str.startswith('"') and value_str.endswith('"')):
+    if (value_str.startswith("'") and value_str.endswith("'")) or (
+        value_str.startswith('"') and value_str.endswith('"')
+    ):
         return value_str[1:-1]
     # Boolean
     if value_str.lower() == "true":
@@ -108,8 +108,13 @@ def evaluate_condition(expression: str, output: dict[str, Any]) -> bool:
 
     try:
         result = op_func(actual, expected)
-        logger.debug("condition_evaluated", expression=expression, result=result,
-                     actual=actual, expected=expected)
+        logger.debug(
+            "condition_evaluated",
+            expression=expression,
+            result=result,
+            actual=actual,
+            expected=expected,
+        )
         return bool(result)
     except (TypeError, ValueError) as e:
         logger.warning("condition_evaluation_error", expression=expression, error=str(e))

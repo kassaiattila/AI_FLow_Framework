@@ -15,8 +15,6 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-
-from aiflow.engine.step import step
 from skills.invoice_processor import models_client, prompt_manager
 from skills.invoice_processor.models import (
     InvoiceHeader,
@@ -27,6 +25,8 @@ from skills.invoice_processor.models import (
     ProcessedInvoice,
     VatSummaryLine,
 )
+
+from aiflow.engine.step import step
 
 __all__ = [
     "parse_invoice",
@@ -144,7 +144,7 @@ def _parse_single_pdf_sync(pdf_path: Path) -> dict[str, Any]:
             "file_size_kb": pdf_path.stat().st_size / 1024,
         }
     except Exception as pdfium_err:
-        raise RuntimeError(f"All parsers failed for {pdf_path.name}: docling={docling_error}, pypdfium2={pdfium_err}")
+        raise RuntimeError(f"All parsers failed for {pdf_path.name}: docling={docling_error}, pypdfium2={pdfium_err}") from pdfium_err
 
 
 async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:

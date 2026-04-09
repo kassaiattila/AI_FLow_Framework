@@ -2,9 +2,11 @@
 
 Inspired by CrewAI's event system. Supports sync and async handlers.
 """
+
 import asyncio
 from collections import defaultdict
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 import structlog
 
@@ -27,7 +29,9 @@ class EventBus:
     def on(self, event_name: str, handler: Handler) -> None:
         """Register a handler for an event."""
         self._handlers[event_name].append(handler)
-        logger.debug("event_handler_registered", event_name=event_name, handler_name=handler.__name__)
+        logger.debug(
+            "event_handler_registered", event_name=event_name, handler_name=handler.__name__
+        )
 
     def off(self, event_name: str, handler: Handler) -> None:
         """Unregister a handler."""
@@ -49,7 +53,9 @@ class EventBus:
                 else:
                     handler(**kwargs)
             except Exception:
-                logger.exception("event_handler_error", event_name=event_name, handler=handler.__name__)
+                logger.exception(
+                    "event_handler_error", event_name=event_name, handler=handler.__name__
+                )
 
     def clear(self) -> None:
         """Remove all handlers (useful for testing)."""

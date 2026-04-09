@@ -1,7 +1,9 @@
 """Workflow worker that processes jobs from the queue."""
+
 from __future__ import annotations
 
-from typing import Any, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 import structlog
 

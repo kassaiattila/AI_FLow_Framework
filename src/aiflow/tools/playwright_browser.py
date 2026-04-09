@@ -20,14 +20,14 @@ Usage::
         await browser.click("#submit")
         text = await browser.get_text(".results")
 """
+
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 from typing import Any
 
 import structlog
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 __all__ = ["PlaywrightBrowser", "BrowserConfig"]
 
@@ -37,6 +37,7 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+
 
 class BrowserConfig(BaseModel):
     """Configuration for a managed Playwright browser instance."""
@@ -55,6 +56,7 @@ class BrowserConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # Browser wrapper
 # ---------------------------------------------------------------------------
+
 
 class PlaywrightBrowser:
     """Async Playwright browser wrapper with session management.
@@ -304,6 +306,4 @@ class PlaywrightBrowser:
     def _ensure_page(self) -> None:
         """Raise if the browser page is not initialised."""
         if self._page is None:
-            raise RuntimeError(
-                "Browser page not initialised. Call launch() or use 'async with'."
-            )
+            raise RuntimeError("Browser page not initialised. Call launch() or use 'async with'.")

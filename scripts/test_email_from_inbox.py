@@ -8,6 +8,7 @@ Ket hasznalati mod:
 Az Azure Document Intelligence integracioval a csatolmanyokat is feldolgozza
 (ha AZURE_DI_ENDPOINT es AZURE_DI_API_KEY konfiguralt a .env-ben).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -19,16 +20,22 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 
 async def process_eml_files(eml_dir: str) -> None:
     """Process .eml files from a directory."""
-    from aiflow.tools.email_parser import EmailParser
     from skills.email_intent_processor.workflows.classify import (
-        parse_email, process_attachments, classify_intent,
-        extract_entities, score_priority, decide_routing,
+        classify_intent,
+        decide_routing,
+        extract_entities,
+        parse_email,
+        process_attachments,
+        score_priority,
     )
+
+    from aiflow.tools.email_parser import EmailParser
 
     eml_path = Path(eml_dir)
     eml_files = sorted(eml_path.glob("*.eml"))
@@ -38,7 +45,7 @@ async def process_eml_files(eml_dir: str) -> None:
         print("Tipp: Outlook-bol exportalj emaileket .eml formatumba ebbe a mappaba.")
         return
 
-    print(f"Email Intent Processor - Valos Teszt")
+    print("Email Intent Processor - Valos Teszt")
     print(f"Forras: {eml_dir}")
     print(f"Emailek: {len(eml_files)}")
     print(f"Azure DI: {'KONFIGURALT' if os.getenv('AZURE_DI_ENDPOINT') else 'NEM KONFIGURALT'}")
@@ -48,7 +55,7 @@ async def process_eml_files(eml_dir: str) -> None:
     results = []
 
     for i, eml_file in enumerate(eml_files):
-        print(f"\n[{i+1}/{len(eml_files)}] {eml_file.name}")
+        print(f"\n[{i + 1}/{len(eml_files)}] {eml_file.name}")
 
         try:
             parsed = parser.parse_eml(eml_file)
@@ -94,7 +101,8 @@ async def process_eml_files(eml_dir: str) -> None:
                 priority = priority_data.get("priority_level", 3)
             else:
                 priority = priority_data
-            entities = r4.get("extracted_entities", [])
+            entities_data = r4.get("entities", {})
+            entities = entities_data.get("entities", []) if isinstance(entities_data, dict) else []
             routing_data = r6.get("routing", {})
             if isinstance(routing_data, dict):
                 queue = routing_data.get("queue_id", r6.get("routed_to", ""))
@@ -108,16 +116,18 @@ async def process_eml_files(eml_dir: str) -> None:
             for e in entities[:3]:
                 print(f"     - {e.get('type', '?')}: {e.get('value', '?')}")
 
-            results.append({
-                "file": eml_file.name,
-                "subject": parsed.subject,
-                "intent": intent,
-                "confidence": confidence,
-                "priority": priority,
-                "routing": queue,
-                "entities": len(entities),
-                "attachments": len(parsed.attachments),
-            })
+            results.append(
+                {
+                    "file": eml_file.name,
+                    "subject": parsed.subject,
+                    "intent": intent,
+                    "confidence": confidence,
+                    "priority": priority,
+                    "routing": queue,
+                    "entities": len(entities),
+                    "attachments": len(parsed.attachments),
+                }
+            )
 
         except Exception as e:
             print(f"  !! HIBA: {e}")
@@ -136,10 +146,12 @@ async def process_eml_files(eml_dir: str) -> None:
     print(f"Report: {out_path}")
 
 
-async def fetch_from_imap(server: str, email_addr: str, password: str, folder: str, limit: int) -> None:
+async def fetch_from_imap(
+    server: str, email_addr: str, password: str, folder: str, limit: int
+) -> None:
     """Fetch emails from IMAP server and process them."""
-    import imaplib
     import email as email_lib
+    import imaplib
 
     print(f"IMAP letoltes: {server} / {email_addr}")
     print(f"Mappa: {folder}, Limit: {limit}")
@@ -193,6 +205,8 @@ if __name__ == "__main__":
     else:
         print("Hasznalat:")
         print("  .eml fajlokbol: python scripts/test_email_from_inbox.py --eml-dir ./test_emails/")
-        print("  IMAP-bol:       python scripts/test_email_from_inbox.py --imap --email user@co.hu --password xxx")
+        print(
+            "  IMAP-bol:       python scripts/test_email_from_inbox.py --imap --email user@co.hu --password xxx"
+        )
         print("")
         print("Elokeszites: exportalj 5-10 emailt .eml formatumba a test_emails/ mappaba")

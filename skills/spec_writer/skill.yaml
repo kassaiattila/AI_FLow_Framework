@@ -1,0 +1,21 @@
+name: spec_writer
+display_name: "Spec Writer"
+version: "1.0.0"
+skill_type: ai
+description: "LLM-driven requirement specification writer — turns raw descriptions into Markdown specs (feature / api / db / user_story) with HU/EN support."
+author: "BestIxCom Kft"
+framework_requires: ">=0.1.0"
+capabilities:
+  - requirement_analysis
+  - spec_drafting
+  - quality_review
+  - multi_language_hu_en
+required_models:
+  - {name: "openai/gpt-4o-mini", type: llm, usage: "Analyzer + Generator + Reviewer"}
+workflows: [spec-writer]
+agent_types: []
+prompts: [spec-writer/analyzer, spec-writer/generator, spec-writer/reviewer]
+tools: []
+dependencies: []
+estimated_cost_per_run: 0.002
+tags: [spec, writer, specification, markdown, requirements, b5]

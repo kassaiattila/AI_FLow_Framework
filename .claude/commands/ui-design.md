@@ -17,7 +17,7 @@ ls 01_PLAN/F*_*JOURNEY*.md 2>/dev/null || echo "GATE 1 FAIL: Journey fajl HIANYZ
 # Ha NINCS FAJL → **STOP** — futtasd `/ui-journey` ELOSZOR!
 
 # GATE CHECK 2: API endpoint valos adatot ad?
-curl -sf http://localhost:8100/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', 'NO BACKEND DATA'" || echo "GATE 2-3 FAIL!"
+curl -sf http://localhost:8102/api/v1/{endpoint} | python -c "import sys,json; d=json.load(sys.stdin); assert d.get('source')=='backend', 'NO BACKEND DATA'" || echo "GATE 2-3 FAIL!"
 # Ha FAIL → **STOP** — implementald az API-t ELOSZOR!
 
 # GATE CHECK 3: Figma MCP elerheto?

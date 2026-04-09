@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from aiflow.core.context import ExecutionContext
 from aiflow.pipeline.adapter_base import (
@@ -23,7 +23,6 @@ from aiflow.pipeline.adapter_base import (
     BaseAdapter,
     ServiceAdapter,
 )
-
 
 # --- Test fixtures ---
 
@@ -50,7 +49,11 @@ class DummyAdapter(BaseAdapter):
         config: dict[str, Any],
         ctx: ExecutionContext,
     ) -> dict[str, Any]:
-        data = input_data if isinstance(input_data, DummyInput) else DummyInput.model_validate(input_data)
+        data = (
+            input_data
+            if isinstance(input_data, DummyInput)
+            else DummyInput.model_validate(input_data)
+        )
         return {
             "result": data.text * data.count,
             "length": len(data.text) * data.count,

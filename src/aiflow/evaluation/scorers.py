@@ -3,6 +3,7 @@
 Each scorer returns a tuple of (score: float, passed: bool).
 Score is typically 0.0-1.0 where 1.0 means perfect.
 """
+
 from __future__ import annotations
 
 import json
@@ -16,7 +17,6 @@ __all__ = [
     "json_field_equals",
     "threshold_check",
     "regex_match",
-    "llm_rubric_placeholder",
 ]
 
 
@@ -162,7 +162,9 @@ def threshold_check(
     return (0.0, False)
 
 
-def regex_match(actual: Any, expected: Any = None, *, pattern: str = "", **kwargs: Any) -> tuple[float, bool]:
+def regex_match(
+    actual: Any, expected: Any = None, *, pattern: str = "", **kwargs: Any
+) -> tuple[float, bool]:
     """Check if actual output matches a regex pattern.
 
     Args:
@@ -182,14 +184,3 @@ def regex_match(actual: Any, expected: Any = None, *, pattern: str = "", **kwarg
         return (1.0, True) if match else (0.0, False)
     except re.error:
         return (0.0, False)
-
-
-def llm_rubric_placeholder(actual: Any, expected: Any = None, **kwargs: Any) -> tuple[float, bool]:
-    """Placeholder for LLM-based rubric scoring.
-
-    Will be implemented with actual LLM calls in a future phase.
-
-    Returns:
-        (0.5, True) as a placeholder neutral score.
-    """
-    return (0.5, True)

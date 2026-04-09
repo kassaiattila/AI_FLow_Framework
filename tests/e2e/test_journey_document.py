@@ -14,6 +14,7 @@ Tests the full document browsing flow across multiple pages.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, journey, documents, playwright]
 """
+
 from __future__ import annotations
 
 from playwright.sync_api import Page, expect
@@ -57,8 +58,7 @@ class TestDocumentJourney:
         # Should show either table data or empty state
         has_table = page.locator("table").count() > 0
         has_content = any(
-            w in body
-            for w in ["Document", "Dokumentum", "No data", "Nincs", "Upload", "Feltolt"]
+            w in body for w in ["Document", "Dokumentum", "No data", "Nincs", "Upload", "Feltolt"]
         )
         assert has_table or has_content, "Documents page has no table or content"
 
@@ -115,10 +115,18 @@ class TestDocumentJourney:
         page.wait_for_timeout(500)
 
         real_errors = [
-            e for e in errors
-            if not any(x in e for x in [
-                "favicon", "ResizeObserver", "Failed to fetch",
-                "Failed to load resource", "Maximum update depth",
-            ])
+            e
+            for e in errors
+            if not any(
+                x in e
+                for x in [
+                    "favicon",
+                    "ResizeObserver",
+                    "Failed to fetch",
+                    "Failed to load resource",
+                    "Maximum update depth",
+                    "CORS policy",
+                ]
+            )
         ]
         assert not real_errors, f"Console errors during document journey: {real_errors}"

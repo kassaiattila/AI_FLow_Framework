@@ -1,4 +1,5 @@
 """Service management API — discovery, health, cache stats, rate limit info."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -12,7 +13,6 @@ from aiflow.services import (
     CacheService,
     RateLimiterConfig,
     RateLimiterService,
-    RateLimitRule,
     ResilienceService,
     SchemaRegistryConfig,
     SchemaRegistryService,
@@ -98,15 +98,11 @@ async def _get_registry() -> ServiceRegistry:
     settings = get_settings()
 
     # Cache service
-    cache = CacheService(
-        CacheConfig(redis_url=settings.redis.url)
-    )
+    cache = CacheService(CacheConfig(redis_url=settings.redis.url))
     registry.register(cache)
 
     # Rate limiter
-    rate_limiter = RateLimiterService(
-        RateLimiterConfig(redis_url=settings.redis.url)
-    )
+    rate_limiter = RateLimiterService(RateLimiterConfig(redis_url=settings.redis.url))
     registry.register(rate_limiter)
 
     # Resilience (no external deps)
@@ -114,9 +110,7 @@ async def _get_registry() -> ServiceRegistry:
     registry.register(resilience)
 
     # Schema registry
-    schema_reg = SchemaRegistryService(
-        SchemaRegistryConfig(skills_dir="skills")
-    )
+    schema_reg = SchemaRegistryService(SchemaRegistryConfig(skills_dir="skills"))
     registry.register(schema_reg)
 
     # Start all services

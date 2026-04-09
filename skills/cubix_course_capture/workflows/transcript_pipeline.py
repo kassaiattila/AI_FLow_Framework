@@ -11,6 +11,7 @@ Steps:
     5. merge_transcripts - timestamp-aware merge with deduplication
     6. structure_transcript - LLM structuring via prompt template
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -20,13 +21,6 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-
-from aiflow.engine.step import step
-from aiflow.engine.workflow import WorkflowBuilder, workflow
-from aiflow.models.backends.litellm_backend import LiteLLMBackend
-from aiflow.models.client import ModelClient
-from aiflow.prompts.manager import PromptManager
-
 from skills.cubix_course_capture.config import TranscriptPipelineConfig
 from skills.cubix_course_capture.models import (
     AudioProbeResult,
@@ -36,8 +30,16 @@ from skills.cubix_course_capture.models import (
     ExtractAudioOutput,
     MergedTranscript,
     StructuredTranscript,
+    TopicSection,
     TranscriptSegment,
+    VocabularyItem,
 )
+
+from aiflow.engine.step import step
+from aiflow.engine.workflow import WorkflowBuilder, workflow
+from aiflow.models.backends.litellm_backend import LiteLLMBackend
+from aiflow.models.client import ModelClient
+from aiflow.prompts.manager import PromptManager
 
 __all__ = [
     "probe_audio",
@@ -67,6 +69,7 @@ config = TranscriptPipelineConfig()
 # Step 1 - probe_audio
 # ---------------------------------------------------------------------------
 
+
 @step(name="probe_audio", step_type="shell")
 async def probe_audio(data: dict[str, Any]) -> dict[str, Any]:
     """Probe an audio or video file with ffprobe and return stream metadata."""
@@ -78,8 +81,10 @@ async def probe_audio(data: dict[str, Any]) -> dict[str, Any]:
 
     proc = await asyncio.create_subprocess_exec(
         config.ffprobe_path,
-        "-v", "quiet",
-        "-print_format", "json",
+        "-v",
+        "quiet",
+        "-print_format",
+        "json",
         "-show_format",
         "-show_streams",
         str(path),
@@ -89,9 +94,7 @@ async def probe_audio(data: dict[str, Any]) -> dict[str, Any]:
     stdout, stderr = await proc.communicate()
 
     if proc.returncode != 0:
-        raise RuntimeError(
-            f"ffprobe failed (rc={proc.returncode}): {stderr.decode().strip()}"
-        )
+        raise RuntimeError(f"ffprobe failed (rc={proc.returncode}): {stderr.decode().strip()}")
 
     probe = json.loads(stdout.decode())
 
@@ -130,6 +133,7 @@ async def probe_audio(data: dict[str, Any]) -> dict[str, Any]:
 # Step 2 - extract_audio
 # ---------------------------------------------------------------------------
 
+
 @step(name="extract_audio", step_type="shell")
 async def extract_audio(data: dict[str, Any]) -> dict[str, Any]:
     """Extract audio track from a video file using ffmpeg."""
@@ -148,8 +152,10 @@ async def extract_audio(data: dict[str, Any]) -> dict[str, Any]:
         # Re-probe to check for video
         proc = await asyncio.create_subprocess_exec(
             config.ffprobe_path,
-            "-v", "quiet",
-            "-print_format", "json",
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
             "-show_streams",
             str(path),
             stdout=asyncio.subprocess.PIPE,
@@ -168,12 +174,17 @@ async def extract_audio(data: dict[str, Any]) -> dict[str, Any]:
     if has_video:
         cmd = [
             config.ffmpeg_path,
-            "-i", str(path),
+            "-i",
+            str(path),
             "-vn",
-            "-acodec", "aac",
-            "-ar", str(data.get("sample_rate", config.sample_rate)),
-            "-ac", str(data.get("channels", config.audio_channels)),
-            "-b:a", config.audio_bitrate,
+            "-acodec",
+            "aac",
+            "-ar",
+            str(data.get("sample_rate", config.sample_rate)),
+            "-ac",
+            str(data.get("channels", config.audio_channels)),
+            "-b:a",
+            config.audio_bitrate,
             "-y",
             str(output_path),
         ]
@@ -182,11 +193,16 @@ async def extract_audio(data: dict[str, Any]) -> dict[str, Any]:
         # codec/container mismatches (e.g. PCM WAV → M4A needs AAC encoding)
         cmd = [
             config.ffmpeg_path,
-            "-i", str(path),
-            "-acodec", "aac",
-            "-ar", str(data.get("sample_rate", config.sample_rate)),
-            "-ac", str(data.get("channels", config.audio_channels)),
-            "-b:a", config.audio_bitrate,
+            "-i",
+            str(path),
+            "-acodec",
+            "aac",
+            "-ar",
+            str(data.get("sample_rate", config.sample_rate)),
+            "-ac",
+            str(data.get("channels", config.audio_channels)),
+            "-b:a",
+            config.audio_bitrate,
             "-y",
             str(output_path),
         ]
@@ -224,6 +240,7 @@ async def extract_audio(data: dict[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Step 3 - chunk_audio
 # ---------------------------------------------------------------------------
+
 
 @step(name="chunk_audio", step_type="shell")
 async def chunk_audio(data: dict[str, Any]) -> dict[str, Any]:
@@ -264,10 +281,14 @@ async def chunk_audio(data: dict[str, Any]) -> dict[str, Any]:
         chunk_path = output_dir / f"{stem}_chunk{i:03d}.{config.audio_format}"
         cmd = [
             config.ffmpeg_path,
-            "-i", str(audio_path),
-            "-ss", str(start),
-            "-t", str(seg_duration),
-            "-acodec", "copy",
+            "-i",
+            str(audio_path),
+            "-ss",
+            str(start),
+            "-t",
+            str(seg_duration),
+            "-acodec",
+            "copy",
             "-y",
             str(chunk_path),
         ]
@@ -281,8 +302,7 @@ async def chunk_audio(data: dict[str, Any]) -> dict[str, Any]:
 
         if proc.returncode != 0:
             raise RuntimeError(
-                f"ffmpeg chunk {i} failed (rc={proc.returncode}): "
-                f"{stderr.decode().strip()}"
+                f"ffmpeg chunk {i} failed (rc={proc.returncode}): {stderr.decode().strip()}"
             )
 
         chunks.append(
@@ -296,13 +316,16 @@ async def chunk_audio(data: dict[str, Any]) -> dict[str, Any]:
         )
 
     result = ChunkOutput(chunks=chunks, total_chunks=len(chunks))
-    logger.info("chunk_audio.done", total_chunks=len(chunks), chunk_duration=round(chunk_duration, 1))
+    logger.info(
+        "chunk_audio.done", total_chunks=len(chunks), chunk_duration=round(chunk_duration, 1)
+    )
     return result.model_dump()
 
 
 # ---------------------------------------------------------------------------
 # Step 4 - transcribe
 # ---------------------------------------------------------------------------
+
 
 @step(name="transcribe")
 async def transcribe(data: dict[str, Any]) -> dict[str, Any]:
@@ -387,6 +410,7 @@ async def transcribe(data: dict[str, Any]) -> dict[str, Any]:
 # Step 5 - merge_transcripts
 # ---------------------------------------------------------------------------
 
+
 def _segments_overlap(text_a: str, text_b: str, threshold: float = 0.6) -> bool:
     """Return True if two segment texts are similar enough to be duplicates."""
     ratio = difflib.SequenceMatcher(None, text_a.strip(), text_b.strip()).ratio()
@@ -438,10 +462,7 @@ async def merge_transcripts(data: dict[str, Any]) -> dict[str, Any]:
             # Deduplicate: check if last merged segment is similar (overlap region)
             if merged_segments:
                 last = merged_segments[-1]
-                if (
-                    adjusted_start <= last.end + 1.0
-                    and _segments_overlap(last.text, seg.text)
-                ):
+                if adjusted_start <= last.end + 1.0 and _segments_overlap(last.text, seg.text):
                     # Skip duplicate segment from overlap
                     continue
 
@@ -463,9 +484,7 @@ async def merge_transcripts(data: dict[str, Any]) -> dict[str, Any]:
     srt_lines: list[str] = []
     for seg in merged_segments:
         srt_lines.append(str(seg.id + 1))
-        srt_lines.append(
-            f"{_format_srt_time(seg.start)} --> {_format_srt_time(seg.end)}"
-        )
+        srt_lines.append(f"{_format_srt_time(seg.start)} --> {_format_srt_time(seg.end)}")
         srt_lines.append(seg.text.strip())
         srt_lines.append("")
     srt_content = "\n".join(srt_lines)
@@ -505,17 +524,39 @@ def _format_srt_time(seconds: float) -> str:
 # Step 6 - structure_transcript
 # ---------------------------------------------------------------------------
 
-@step(name="structure_transcript")
-async def structure_transcript(data: dict[str, Any]) -> dict[str, Any]:
-    """Structure a merged transcript into sections and vocabulary using LLM."""
-    # Accept either a nested merged_transcript dict or flat data
-    merged = data.get("merged_transcript", data)
-    full_text = merged.get("full_text", "")
-    title = merged.get("title", data.get("title", "Untitled"))
-    total_duration = merged.get("total_duration_seconds", 0.0)
-    duration_minutes = round(total_duration / 60.0, 1)
 
-    prompt_def = _prompts.get("cubix/transcript_structurer")
+async def _call_section_detector(
+    title: str, full_text: str, total_duration: float
+) -> tuple[list[dict[str, Any]], float]:
+    """Run the section_detector prompt and return (sections, cost)."""
+    prompt_def = _prompts.get("cubix/section_detector")
+    messages = prompt_def.compile(
+        variables={
+            "course_title": title,
+            "duration_seconds": str(round(total_duration, 1)),
+            "transcript_text": full_text,
+        }
+    )
+    result = await _models.generate(
+        messages=messages,
+        model=config.structuring_model,
+        temperature=0.2,
+        max_tokens=4096,
+    )
+    raw = result.output.text or "{}"
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        parsed = {"sections": []}
+    sections = parsed.get("sections", []) if isinstance(parsed, dict) else []
+    return sections, result.cost_usd
+
+
+async def _call_summary_generator(
+    title: str, full_text: str, duration_minutes: float
+) -> tuple[dict[str, Any], float]:
+    """Run the summary_generator prompt and return (summary_dict, cost)."""
+    prompt_def = _prompts.get("cubix/summary_generator")
     messages = prompt_def.compile(
         variables={
             "course_title": title,
@@ -523,18 +564,101 @@ async def structure_transcript(data: dict[str, Any]) -> dict[str, Any]:
             "transcript_text": full_text,
         }
     )
-
     result = await _models.generate(
         messages=messages,
         model=config.structuring_model,
         temperature=0.3,
-        max_tokens=8192,
-        response_model=StructuredTranscript,
+        max_tokens=1024,
     )
+    raw = result.output.text or "{}"
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        parsed = {}
+    return (parsed if isinstance(parsed, dict) else {}), result.cost_usd
 
-    structured: StructuredTranscript = result.output.structured
-    structured.title = title
-    structured.structuring_cost = result.cost_usd
+
+async def _call_vocabulary_extractor(
+    title: str, full_text: str
+) -> tuple[list[dict[str, Any]], float]:
+    """Run the vocabulary_extractor prompt and return (terms, cost)."""
+    prompt_def = _prompts.get("cubix/vocabulary_extractor")
+    messages = prompt_def.compile(
+        variables={
+            "course_title": title,
+            "transcript_text": full_text,
+        }
+    )
+    result = await _models.generate(
+        messages=messages,
+        model=config.structuring_model,
+        temperature=0.2,
+        max_tokens=2048,
+    )
+    raw = result.output.text or "{}"
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        parsed = {"terms": []}
+    terms = parsed.get("terms", []) if isinstance(parsed, dict) else []
+    return terms, result.cost_usd
+
+
+@step(name="structure_transcript")
+async def structure_transcript(data: dict[str, Any]) -> dict[str, Any]:
+    """Structure a merged transcript via 3 split prompts running in parallel.
+
+    B4.2 split: section_detector + summary_generator + vocabulary_extractor.
+    The 3 calls only depend on the merged transcript text, so we run them
+    concurrently to keep latency comparable to the previous monolithic call.
+    """
+    # Accept either a nested merged_transcript dict or flat data
+    merged = data.get("merged_transcript", data)
+    full_text = merged.get("full_text", "")
+    title = merged.get("title", data.get("title", "Untitled"))
+    total_duration = merged.get("total_duration_seconds", 0.0)
+    duration_minutes = round(total_duration / 60.0, 1)
+
+    sections_task = _call_section_detector(title, full_text, total_duration)
+    summary_task = _call_summary_generator(title, full_text, duration_minutes)
+    vocab_task = _call_vocabulary_extractor(title, full_text)
+
+    (
+        (sections_raw, sections_cost),
+        (summary_dict, summary_cost),
+        (
+            vocab_raw,
+            vocab_cost,
+        ),
+    ) = await asyncio.gather(sections_task, summary_task, vocab_task)
+
+    # Coerce into the existing StructuredTranscript schema for backward compat
+    structured = StructuredTranscript(
+        title=title,
+        summary=str(summary_dict.get("summary", ""))[:500],
+        key_topics=[str(t) for t in (summary_dict.get("key_topics") or []) if t],
+        sections=[
+            TopicSection(
+                title=str(s.get("title", "")),
+                start_time=float(s.get("start_time", 0.0) or 0.0),
+                end_time=float(s.get("end_time", 0.0) or 0.0),
+                summary=str(s.get("summary", "")),
+                content=str(s.get("content", "")),
+            )
+            for s in sections_raw
+            if isinstance(s, dict)
+        ],
+        vocabulary=[
+            VocabularyItem(
+                term=str(v.get("term", "")),
+                definition=str(v.get("definition", "")),
+            )
+            for v in vocab_raw
+            if isinstance(v, dict) and v.get("term")
+        ],
+        cleaned_text=full_text,
+        structuring_cost=sections_cost + summary_cost + vocab_cost,
+    )
 
     logger.info(
         "structure_transcript.done",
@@ -542,7 +666,8 @@ async def structure_transcript(data: dict[str, Any]) -> dict[str, Any]:
         sections=len(structured.sections),
         topics=len(structured.key_topics),
         vocabulary=len(structured.vocabulary),
-        cost=round(result.cost_usd, 4),
+        cost=round(structured.structuring_cost, 4),
+        prompts_used="section_detector+summary_generator+vocabulary_extractor",
     )
     return structured.model_dump()
 
@@ -550,6 +675,7 @@ async def structure_transcript(data: dict[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Workflow definition
 # ---------------------------------------------------------------------------
+
 
 @workflow(name="transcript-pipeline", version="1.0.0", skill="cubix_course_capture")
 def transcript_pipeline(wf: WorkflowBuilder) -> None:

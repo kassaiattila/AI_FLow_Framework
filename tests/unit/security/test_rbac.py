@@ -9,8 +9,10 @@
     requires_services: []
     tags: [security, rbac, roles, permissions]
 """
+
 import pytest
-from aiflow.security.rbac import Role, Permission, RBACManager
+
+from aiflow.security.rbac import Permission, RBACManager, Role
 
 
 class TestRole:
@@ -70,9 +72,13 @@ class TestRBACManager:
         assert rbac.check_permission("viewer", "workflow:write") is False
 
     def test_has_any(self, rbac):
-        assert rbac.has_any(Role.VIEWER, Permission.WORKFLOW_READ, Permission.WORKFLOW_WRITE) is True
+        assert (
+            rbac.has_any(Role.VIEWER, Permission.WORKFLOW_READ, Permission.WORKFLOW_WRITE) is True
+        )
         assert rbac.has_any(Role.VIEWER, Permission.WORKFLOW_WRITE, Permission.ADMIN_ALL) is False
 
     def test_has_all(self, rbac):
         assert rbac.has_all(Role.ADMIN, Permission.WORKFLOW_READ, Permission.ADMIN_ALL) is True
-        assert rbac.has_all(Role.VIEWER, Permission.WORKFLOW_READ, Permission.WORKFLOW_WRITE) is False
+        assert (
+            rbac.has_all(Role.VIEWER, Permission.WORKFLOW_READ, Permission.WORKFLOW_WRITE) is False
+        )

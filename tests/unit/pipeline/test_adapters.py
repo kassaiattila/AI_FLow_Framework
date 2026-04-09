@@ -20,13 +20,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 import pytest
 
 from aiflow.core.context import ExecutionContext
 from aiflow.pipeline.adapter_base import adapter_registry
-
 
 # --- Fake service stubs (unit test: mock the service, test the adapter logic) ---
 
@@ -89,7 +87,10 @@ class FakeMediaJobRecord:
 
 @dataclass
 class FakeDiagramRecord:
-    diagram_id: str = "diag-1"
+    # B5.1: DiagramRecord exposes the PK as `id` (not `diagram_id`), matching
+    # the real pydantic model in aiflow.services.diagram_generator.service.
+    id: str = "diag-1"
+    user_input: str = "Invoice processing workflow"
     mermaid_code: str = "graph TD; A-->B"
     svg_content: str = "<svg>...</svg>"
 
@@ -129,7 +130,7 @@ class FakeMediaService:
 
 
 class FakeDiagramService:
-    async def generate(self, user_input, created_by=None):
+    async def generate(self, user_input, diagram_type="flowchart", created_by=None):
         return FakeDiagramRecord()
 
 
@@ -143,9 +144,7 @@ class TestEmailFetchAdapter:
 
         adapter = EmailFetchAdapter(service=FakeEmailService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"connector_id": "cfg-1", "limit": 10}, {}, ctx
-        )
+        result = await adapter.execute({"connector_id": "cfg-1", "limit": 10}, {}, ctx)
         assert result["total"] == 2
         assert len(result["emails"]) == 2
         assert result["emails"][0]["subject"] == "Test Subject"
@@ -157,9 +156,7 @@ class TestEmailFetchAdapter:
 
         adapter = EmailFetchAdapter(service=FakeEmailService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"connector_id": "cfg-1", "since_days": 7}, {}, ctx
-        )
+        result = await adapter.execute({"connector_id": "cfg-1", "since_days": 7}, {}, ctx)
         assert result["total"] == 2
 
     @pytest.mark.asyncio
@@ -182,9 +179,7 @@ class TestClassifierAdapter:
 
         adapter = ClassifierAdapter(service=FakeClassifierService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"text": "Please process this invoice"}, {}, ctx
-        )
+        result = await adapter.execute({"text": "Please process this invoice"}, {}, ctx)
         assert result["label"] == "invoice"
         assert result["confidence"] == pytest.approx(0.92)
         assert result["method"] == "llm"
@@ -195,9 +190,7 @@ class TestClassifierAdapter:
 
         adapter = ClassifierAdapter(service=FakeClassifierService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"text": "body text", "subject": "Invoice #123"}, {}, ctx
-        )
+        result = await adapter.execute({"text": "body text", "subject": "Invoice #123"}, {}, ctx)
         assert result["label"] == "invoice"
 
     @pytest.mark.asyncio
@@ -220,9 +213,7 @@ class TestDocumentExtractAdapter:
 
         adapter = DocumentExtractAdapter(service=FakeDocumentExtractorService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"file_path": "/tmp/invoice.pdf"}, {}, ctx
-        )
+        result = await adapter.execute({"file_path": "/tmp/invoice.pdf"}, {}, ctx)
         assert result["document_id"] == "doc-123"
         assert result["fields"]["vendor"] == "ACME"
         assert result["confidence"] == pytest.approx(0.88)
@@ -318,9 +309,7 @@ class TestMediaProcessAdapter:
 
         adapter = MediaProcessAdapter(service=FakeMediaService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"file_path": "/tmp/video.mkv"}, {}, ctx
-        )
+        result = await adapter.execute({"file_path": "/tmp/video.mkv"}, {}, ctx)
         assert result["job_id"] == "job-1"
         assert result["transcript"] == "Transcribed text here."
         assert result["status"] == "completed"
@@ -347,23 +336,35 @@ class TestDiagramGenerateAdapter:
 
         adapter = DiagramGenerateAdapter(service=FakeDiagramService())
         ctx = ExecutionContext()
-        result = await adapter.execute(
-            {"description": "Invoice processing workflow"}, {}, ctx
-        )
+        result = await adapter.execute({"description": "Invoice processing workflow"}, {}, ctx)
         assert result["diagram_id"] == "diag-1"
         assert "graph TD" in result["mermaid_code"]
-        assert result["diagram_type"] == "mermaid"
+        # B5.1: default semantic is "flowchart" (was legacy "mermaid").
+        assert result["diagram_type"] == "flowchart"
 
     @pytest.mark.asyncio
     async def test_generate_with_type(self):
+        """B5.1: diagram_type is a semantic (flowchart/sequence/bpmn_swimlane)."""
         from aiflow.pipeline.adapters.diagram_adapter import DiagramGenerateAdapter
 
         adapter = DiagramGenerateAdapter(service=FakeDiagramService())
         ctx = ExecutionContext()
         result = await adapter.execute(
-            {"description": "Flow diagram", "diagram_type": "bpmn"}, {}, ctx
+            {"description": "Flow diagram", "diagram_type": "bpmn_swimlane"}, {}, ctx
         )
-        assert result["diagram_type"] == "bpmn"
+        assert result["diagram_type"] == "bpmn_swimlane"
+
+    @pytest.mark.asyncio
+    async def test_generate_unknown_type_falls_back_to_flowchart(self):
+        """Unknown semantic values (legacy 'bpmn', 'drawio') fall back to flowchart."""
+        from aiflow.pipeline.adapters.diagram_adapter import DiagramGenerateAdapter
+
+        adapter = DiagramGenerateAdapter(service=FakeDiagramService())
+        ctx = ExecutionContext()
+        result = await adapter.execute(
+            {"description": "Legacy type", "diagram_type": "bpmn"}, {}, ctx
+        )
+        assert result["diagram_type"] == "flowchart"
 
 
 # --- Global registry tests ---
@@ -373,12 +374,12 @@ class TestGlobalAdapterRegistry:
     def test_registry_has_all_core_adapters(self):
         """After importing all adapter modules, the global registry has them all."""
         # Force imports (normally done by discover_adapters)
-        import aiflow.pipeline.adapters.email_adapter  # noqa: F401
         import aiflow.pipeline.adapters.classifier_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.document_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.rag_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.media_adapter  # noqa: F401
         import aiflow.pipeline.adapters.diagram_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.document_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.email_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.media_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.rag_adapter  # noqa: F401
 
         expected = [
             ("email_connector", "fetch_emails"),

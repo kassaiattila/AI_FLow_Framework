@@ -9,9 +9,12 @@
     requires_services: []
     tags: [execution, worker, async]
 """
-import pytest
+
 from unittest.mock import AsyncMock
-from aiflow.execution.queue import WorkflowJob, JobStatus, InMemoryJobQueue
+
+import pytest
+
+from aiflow.execution.queue import InMemoryJobQueue, JobStatus, WorkflowJob
 from aiflow.execution.worker import WorkflowWorker
 
 

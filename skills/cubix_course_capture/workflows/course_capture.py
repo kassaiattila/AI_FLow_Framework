@@ -22,10 +22,6 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-
-from aiflow.engine.step import step
-from aiflow.engine.workflow import WorkflowBuilder, workflow
-
 from skills.cubix_course_capture.models import (
     CourseConfig,
     CourseStructure,
@@ -38,9 +34,12 @@ from skills.cubix_course_capture.models import (
 from skills.cubix_course_capture.platforms import get_platform_config
 from skills.cubix_course_capture.state import FileStateManager
 
+from aiflow.engine.step import step
+from aiflow.engine.workflow import WorkflowBuilder, workflow
+
 # Robot Framework runner (optional - for RF-based RPA)
 try:
-    from aiflow.tools.robotframework_runner import RobotFrameworkRunner, RobotResult
+    from aiflow.tools.robotframework_runner import RobotFrameworkRunner
     _rf_runner = RobotFrameworkRunner()
     _RF_AVAILABLE = True
 except ImportError:
@@ -263,8 +262,7 @@ async def resolve_and_login(data: dict[str, Any]) -> dict[str, Any]:
 
     # --- Direct Playwright path ---
     try:
-        from aiflow.contrib.playwright import PlaywrightBrowser
-        from aiflow.contrib.playwright.browser import BrowserConfig
+        from aiflow.tools.playwright_browser import BrowserConfig, PlaywrightBrowser
     except ImportError:
         logger.error("no_rpa_backend", rf=_RF_AVAILABLE, playwright=False)
         return {
@@ -434,8 +432,7 @@ async def scan_course_structure(data: dict[str, Any]) -> dict[str, Any]:
         return await _scan_structure_rf(data, robot_dir)
 
     try:
-        from aiflow.contrib.playwright import PlaywrightBrowser
-        from aiflow.contrib.playwright.browser import BrowserConfig
+        from aiflow.tools.playwright_browser import BrowserConfig, PlaywrightBrowser
     except ImportError:
         logger.error("no_rpa_backend")
         return {"structure": {}, "total_lessons": 0, "video_lessons": 0}
@@ -475,10 +472,7 @@ async def scan_course_structure(data: dict[str, Any]) -> dict[str, Any]:
         raw_result = await browser.evaluate_js(f"({js_code})()")
 
         # Parse JS result (may be JSON string or dict depending on platform)
-        if isinstance(raw_result, str):
-            weeks_data = json.loads(raw_result)
-        else:
-            weeks_data = raw_result
+        weeks_data = json.loads(raw_result) if isinstance(raw_result, str) else raw_result
 
         # Handle result format: may be a list of weeks or a dict with weeks key
         if isinstance(weeks_data, dict):
@@ -590,13 +584,12 @@ async def process_all_lessons(data: dict[str, Any]) -> dict[str, Any]:
          "total_cost_usd": float}
     """
     try:
-        from aiflow.contrib.playwright import PlaywrightBrowser
-        from aiflow.contrib.playwright.browser import BrowserConfig
+        from aiflow.tools.playwright_browser import BrowserConfig, PlaywrightBrowser
     except ImportError:
         logger.error("playwright_not_available_for_lessons")
         return {"results": [], "completed": 0, "failed": 0, "total_cost_usd": 0.0}
 
-    from aiflow.contrib.human_loop import HumanLoopManager
+    from aiflow.tools.human_loop import HumanLoopManager
 
     # Parse inputs
     structure_data = data.get("structure", {})
@@ -761,8 +754,7 @@ async def _process_video_lesson(
     and cost information.
     """
     try:
-        from aiflow.contrib.playwright import PlaywrightBrowser
-        from aiflow.contrib.playwright.browser import BrowserConfig
+        from aiflow.tools.playwright_browser import BrowserConfig, PlaywrightBrowser
     except ImportError:
         return {"error": "playwright not installed"}
 
@@ -1095,26 +1087,26 @@ async def generate_course_report(data: dict[str, Any]) -> dict[str, Any]:
     # --- Generate batch_report.md ---
     report_lines: list[str] = [
         f"# Course Capture Report: {course_title}",
-        f"",
+        "",
         f"**Generated:** {now}",
         f"**Course:** {course_title}",
         f"**URL:** {structure_data.get('url', 'N/A')}",
         f"**Platform:** {structure_data.get('platform', 'N/A')}",
-        f"",
-        f"## Summary",
-        f"",
-        f"| Metric | Value |",
-        f"|--------|-------|",
+        "",
+        "## Summary",
+        "",
+        "| Metric | Value |",
+        "|--------|-------|",
         f"| Total lessons | {len(results)} |",
         f"| Completed | {completed} |",
         f"| Failed | {failed} |",
         f"| Skipped | {len(results) - completed - failed} |",
         f"| Total cost (USD) | ${total_cost:.4f} |",
-        f"",
-        f"## Lesson Details",
-        f"",
-        f"| Week | Lesson | Title | Status | Cost | Error |",
-        f"|------|--------|-------|--------|------|-------|",
+        "",
+        "## Lesson Details",
+        "",
+        "| Week | Lesson | Title | Status | Cost | Error |",
+        "|------|--------|-------|--------|------|-------|",
     ]
 
     for r in results:
@@ -1220,7 +1212,7 @@ async def process_course(config: CourseConfig) -> dict[str, Any]:
     """
     output_dir = Path(config.output_base_dir) / config.course_name
     state_mgr = FileStateManager(output_dir=str(output_dir))
-    state = state_mgr.load()
+    _state = state_mgr.load()
 
     common_data = {
         "course_name": config.course_name,

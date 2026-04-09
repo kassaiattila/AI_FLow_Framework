@@ -66,9 +66,7 @@ class MetadataEnricherAdapter(BaseAdapter):
         result = await svc.enrich(
             text=config.get("text", input_data.text),
             config=EnrichmentConfig(
-                extract_keywords=config.get(
-                    "extract_keywords", input_data.extract_keywords
-                ),
+                extract_keywords=config.get("extract_keywords", input_data.extract_keywords),
                 language=config.get("language", input_data.language),
             ),
         )

@@ -32,16 +32,12 @@ class TestResolveValue:
         assert resolver.resolve_value(None, {}) is None
 
     def test_simple_variable(self, resolver):
-        result = resolver.resolve_value(
-            "{{ input.name }}", {"input": {"name": "test"}}
-        )
+        result = resolver.resolve_value("{{ input.name }}", {"input": {"name": "test"}})
         assert result == "test"
 
     def test_nested_variable(self, resolver):
         ctx = {"step1": {"output": {"emails": [{"subject": "Hi"}]}}}
-        result = resolver.resolve_value(
-            "{{ step1.output.emails[0].subject }}", ctx
-        )
+        result = resolver.resolve_value("{{ step1.output.emails[0].subject }}", ctx)
         assert result == "Hi"
 
     def test_integer_coercion(self, resolver):
@@ -55,9 +51,7 @@ class TestResolveValue:
 
     def test_string_concat(self, resolver):
         ctx = {"item": {"first": "John", "last": "Doe"}}
-        result = resolver.resolve_value(
-            "{{ item.first }} {{ item.last }}", ctx
-        )
+        result = resolver.resolve_value("{{ item.first }} {{ item.last }}", ctx)
         assert result == "John Doe"
 
 
@@ -94,9 +88,7 @@ class TestResolveConfig:
 class TestResolveExpression:
     def test_wrapped_expression(self, resolver):
         ctx = {"step1": {"output": {"emails": [1, 2, 3]}}}
-        result = resolver.resolve_expression(
-            "{{ step1.output.emails }}", ctx
-        )
+        result = resolver.resolve_expression("{{ step1.output.emails }}", ctx)
         # compile_expression returns native Python objects, not strings
         assert result == [1, 2, 3]
 

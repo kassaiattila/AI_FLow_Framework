@@ -24,18 +24,13 @@ import pytest
 
 from aiflow.pipeline.templates import TemplateInfo, TemplateRegistry
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
 # Path to the built-in templates directory
 BUILTIN_DIR = (
-    Path(__file__).parent.parent.parent.parent
-    / "src"
-    / "aiflow"
-    / "pipeline"
-    / "builtin_templates"
+    Path(__file__).parent.parent.parent.parent / "src" / "aiflow" / "pipeline" / "builtin_templates"
 )
 
 
@@ -54,8 +49,7 @@ class TestTemplateRegistry:
         """Discover finds all YAML files in the template directory."""
         templates = registry.discover()
         assert len(templates) >= 6, (
-            f"Expected at least 6 templates, found {len(templates)}: "
-            f"{[t.name for t in templates]}"
+            f"Expected at least 6 templates, found {len(templates)}: {[t.name for t in templates]}"
         )
         assert all(isinstance(t, TemplateInfo) for t in templates)
 
@@ -112,42 +106,32 @@ class TestTemplateRegistry:
     def test_template_has_metadata(self, registry: TemplateRegistry) -> None:
         """Each template has required metadata fields."""
         for tmpl in registry.list_all():
-            assert tmpl.name, f"Template missing name"
+            assert tmpl.name, "Template missing name"
             assert tmpl.version, f"Template {tmpl.name} missing version"
-            assert tmpl.step_count > 0, (
-                f"Template {tmpl.name} has 0 steps"
-            )
+            assert tmpl.step_count > 0, f"Template {tmpl.name} has 0 steps"
 
-    def test_knowledge_base_template_steps(
-        self, registry: TemplateRegistry
-    ) -> None:
+    def test_knowledge_base_template_steps(self, registry: TemplateRegistry) -> None:
         """Knowledge base template has 5 steps."""
         info = registry.get("knowledge_base_update")
         assert info is not None
         assert info.step_count == 5
         assert info.category == "rag"
 
-    def test_email_triage_template_steps(
-        self, registry: TemplateRegistry
-    ) -> None:
+    def test_email_triage_template_steps(self, registry: TemplateRegistry) -> None:
         """Email triage template has 4 steps."""
         info = registry.get("email_triage")
         assert info is not None
         assert info.step_count == 4
         assert info.category == "email"
 
-    def test_advanced_rag_template_steps(
-        self, registry: TemplateRegistry
-    ) -> None:
+    def test_advanced_rag_template_steps(self, registry: TemplateRegistry) -> None:
         """Advanced RAG ingest template has 5 steps."""
         info = registry.get("advanced_rag_ingest")
         assert info is not None
         assert info.step_count == 5
         assert info.category == "rag"
 
-    def test_contract_analysis_template_steps(
-        self, registry: TemplateRegistry
-    ) -> None:
+    def test_contract_analysis_template_steps(self, registry: TemplateRegistry) -> None:
         """Contract analysis template has 5 steps."""
         info = registry.get("contract_analysis")
         assert info is not None
@@ -169,9 +153,7 @@ class TestTemplateRegistry:
 
     def test_nonexistent_dir(self, tmp_path: Path) -> None:
         """Registry with nonexistent directory returns no templates."""
-        reg = TemplateRegistry(
-            template_dir=tmp_path / "nonexistent_dir_abc"
-        )
+        reg = TemplateRegistry(template_dir=tmp_path / "nonexistent_dir_abc")
         templates = reg.discover()
         assert templates == []
 

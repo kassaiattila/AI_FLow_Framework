@@ -20,12 +20,10 @@ Fuggosegek:
     - openai (opcionalis)
 """
 
-import time
 import json
-from typing import Optional
+import time
 
 import numpy as np
-
 
 # =============================================================================
 # 1. EMBEDDING GENERALAS
@@ -50,7 +48,7 @@ def generate_mock_embedding(text: str, dim: int = 384) -> np.ndarray:
 
 def generate_openai_embedding(
     text: str, model: str = "text-embedding-3-small"
-) -> Optional[np.ndarray]:
+) -> np.ndarray | None:
     """OpenAI embedding generalas API-n keresztul. None ha nem elerheto."""
     try:
         from openai import OpenAI
@@ -147,7 +145,7 @@ class SimpleVectorStore:
         self.payloads: list[dict] = []
         self.ids: list[str] = []
 
-    def add(self, id: str, vector: np.ndarray, payload: Optional[dict] = None):
+    def add(self, id: str, vector: np.ndarray, payload: dict | None = None):
         """Egy vektor hozzaadasa az adatbazishoz."""
         if vector.shape[0] != self.dimension:
             raise ValueError(f"Dimenzio: vart {self.dimension}, kapott {vector.shape[0]}")
@@ -156,16 +154,16 @@ class SimpleVectorStore:
         self.ids.append(id)
 
     def add_batch(self, ids: list[str], vectors: np.ndarray,
-                  payloads: Optional[list[dict]] = None):
+                  payloads: list[dict] | None = None):
         """Tobb vektor hozzaadasa egyszerre."""
         if payloads is None:
             payloads = [{}] * len(ids)
-        for i, (doc_id, vec) in enumerate(zip(ids, vectors)):
+        for i, (doc_id, vec) in enumerate(zip(ids, vectors, strict=False)):
             self.add(doc_id, vec, payloads[i])
 
     def search(self, query_vector: np.ndarray, top_k: int = 5,
                score_threshold: float = 0.0,
-               filter_fn: Optional[callable] = None) -> list[dict]:
+               filter_fn: callable | None = None) -> list[dict]:
         """
         Top-K kereses cosine similarity alapjan, opcionalis szuressel.
         Return: [{"id": ..., "score": ..., "payload": ...}, ...]
@@ -318,11 +316,11 @@ def demo_chromadb():
     results = collection.query(query_embeddings=[q_emb], n_results=3)
     print(f"\nKereses: '{query}'")
     for i, (doc, dist) in enumerate(zip(results["documents"][0],
-                                         results["distances"][0])):
+                                         results["distances"][0], strict=False)):
         print(f"  [{i+1}] (dist={dist:.4f}) {doc[:65]}")
 
     # Metadata filterrel
-    print(f"\nMetadata filter (category='database'):")
+    print("\nMetadata filter (category='database'):")
     res = collection.query(query_embeddings=[q_emb], n_results=3,
                            where={"category": "database"})
     for i, doc in enumerate(res["documents"][0]):
@@ -414,7 +412,7 @@ def demo_semantic_search():
     dim = 384
     store = SimpleVectorStore(dimension=dim)
     embeddings = batch_generate_embeddings(corpus, dim=dim)
-    for i, (text, emb) in enumerate(zip(corpus, embeddings)):
+    for i, (text, emb) in enumerate(zip(corpus, embeddings, strict=False)):
         store.add(f"sem_{i}", emb, {"text": text, "word_count": len(text.split())})
 
     print(f"Korpusz: {len(store)} dokumentum")
@@ -452,15 +450,13 @@ class RetrieveAndRerank:
 
     def retrieve(self, query: str, top_k: int = 10,
                  score_threshold: float = 0.0,
-                 category_filter: Optional[str] = None,
-                 min_word_count: Optional[int] = None) -> list[dict]:
+                 category_filter: str | None = None,
+                 min_word_count: int | None = None) -> list[dict]:
         """Retrieve fazis: vektorkeresessel jelolteket gyujtunk."""
         def filt(payload):
             if category_filter and payload.get("category") != category_filter:
                 return False
-            if min_word_count and payload.get("word_count", 0) < min_word_count:
-                return False
-            return True
+            return not (min_word_count and payload.get("word_count", 0) < min_word_count)
 
         q_emb = generate_mock_embedding(query, dim=self.store.dimension)
         return self.store.search(q_emb, top_k=top_k,
@@ -519,7 +515,7 @@ def demo_retrieve_and_rerank():
     dim = 384
     store = SimpleVectorStore(dimension=dim)
     embeddings = batch_generate_embeddings([d["text"] for d in documents], dim=dim)
-    for i, (doc, emb) in enumerate(zip(documents, embeddings)):
+    for i, (doc, emb) in enumerate(zip(documents, embeddings, strict=False)):
         store.add(f"rr_{i}", emb, doc)
 
     pipeline = RetrieveAndRerank(store)
@@ -541,13 +537,13 @@ def demo_retrieve_and_rerank():
               f"orig={r['original_score']:.4f}) {r['payload']['text'][:50]}")
 
     # Kategoria filter
-    print(f"\n--- Kategoria filter: 'config' ---")
+    print("\n--- Kategoria filter: 'config' ---")
     for r in pipeline.retrieve(query, top_k=5, category_filter="config"):
         print(f"  [{r['score']:.4f}] [{r['payload']['category']}] "
               f"{r['payload']['text'][:55]}")
 
     # Szohossz szures
-    print(f"\n--- Szohossz filter: min 8 szo ---")
+    print("\n--- Szohossz filter: min 8 szo ---")
     for r in pipeline.retrieve(query, top_k=5, min_word_count=8):
         print(f"  [{r['score']:.4f}] ({r['payload']['word_count']} szo) "
               f"{r['payload']['text'][:55]}")

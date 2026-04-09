@@ -7,8 +7,6 @@ Usage:
 """
 
 import subprocess
-import sys
-from typing import Optional
 
 import structlog
 import typer
@@ -33,14 +31,14 @@ def _run_compose(args: list[str], capture: bool = False) -> subprocess.Completed
             capture_output=capture,
             text=True,
         )
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         typer.echo("Error: 'docker' not found. Install Docker Desktop first.", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from exc
     except subprocess.CalledProcessError as exc:
         typer.echo(f"Error: docker compose failed (exit {exc.returncode}).", err=True)
         if exc.stderr:
             typer.echo(exc.stderr, err=True)
-        raise typer.Exit(code=exc.returncode)
+        raise typer.Exit(code=exc.returncode) from exc
 
 
 @app.command("up")
@@ -95,7 +93,7 @@ def dev_down(
 
 @app.command("logs")
 def dev_logs(
-    service: Optional[str] = typer.Argument(
+    service: str | None = typer.Argument(
         None,
         help="Specific service name (e.g., postgres, redis). Default: all.",
     ),

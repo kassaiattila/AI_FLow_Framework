@@ -48,6 +48,7 @@ interface DiagramsResponse {
 export function ProcessDocs() {
   const translate = useTranslate();
   const [input, setInput] = useState("");
+  const [diagramType, setDiagramType] = useState<"flowchart" | "sequence" | "bpmn_swimlane">("flowchart");
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [fileProgress, setFileProgress] = useState<FileProgress[]>([]);
@@ -75,12 +76,12 @@ export function ProcessDocs() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ user_input: input }),
+        body: JSON.stringify({ user_input: input, diagram_type: diagramType }),
       });
 
       if (!resp.ok || !resp.body) {
         // Fallback to regular endpoint
-        const res = await fetchApi<{ mermaid_code: string }>("POST", "/api/v1/process-docs/generate", { user_input: input });
+        const res = await fetchApi<{ mermaid_code: string }>("POST", "/api/v1/process-docs/generate", { user_input: input, diagram_type: diagramType });
         setResult(res.mermaid_code);
         setFileProgress(prev => prev.map(fp => ({ ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) })));
         refetch();
@@ -177,10 +178,21 @@ export function ProcessDocs() {
               </button>
             ))}
           </div>
-          <button onClick={handleGenerate} disabled={generating || !input.trim()}
-            className="mt-3 w-full rounded-lg bg-brand-500 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50">
-            {generating ? translate("aiflow.common.loading") : translate("aiflow.processDocs.generate")}
-          </button>
+          <div className="mt-3 flex items-center gap-2">
+            <select
+              value={diagramType}
+              onChange={(e) => setDiagramType(e.target.value as "flowchart" | "sequence" | "bpmn_swimlane")}
+              className="rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400"
+            >
+              <option value="flowchart">Flowchart</option>
+              <option value="sequence">Sequence</option>
+              <option value="bpmn_swimlane">BPMN Swimlane</option>
+            </select>
+            <button onClick={handleGenerate} disabled={generating || !input.trim()}
+              className="flex-1 rounded-lg bg-brand-500 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50">
+              {generating ? translate("aiflow.common.loading") : translate("aiflow.processDocs.generate")}
+            </button>
+          </div>
         </div>
         {/* Output */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">

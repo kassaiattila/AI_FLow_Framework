@@ -9,6 +9,7 @@
     requires_services: []
     tags: [skills, instance, registry]
 """
+
 import pytest
 
 from aiflow.skills.instance import InstanceConfig, PromptConfig

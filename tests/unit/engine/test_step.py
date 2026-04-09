@@ -9,16 +9,20 @@
     requires_services: []
     tags: [engine, step, decorator, retry, async]
 """
+
 import asyncio
+
 import pytest
 from pydantic import BaseModel
-from aiflow.engine.step import step, get_step_definition, is_step, StepDefinition
-from aiflow.engine.policies import RetryPolicy
+
 from aiflow.core.errors import LLMTimeoutError
+from aiflow.engine.policies import RetryPolicy
+from aiflow.engine.step import get_step_definition, is_step, step
 
 
 class SampleInput(BaseModel):
     text: str
+
 
 class SampleOutput(BaseModel):
     result: str
@@ -116,6 +120,7 @@ class TestStepDecorator:
     def test_not_a_step(self):
         def regular_function():
             pass
+
         assert is_step(regular_function) is False
         assert get_step_definition(regular_function) is None
 
@@ -123,4 +128,5 @@ class TestStepDecorator:
         @step(name="named")
         async def my_function():
             pass
+
         assert my_function.__name__ == "my_function"

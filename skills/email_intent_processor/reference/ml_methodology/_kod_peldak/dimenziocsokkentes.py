@@ -20,19 +20,17 @@ Tartalomjegyzék:
 Forrás: Cubix ML Engineer – Unsupervised Learning tananyag (6. hét)
 """
 
-import warnings
 import time
+import warnings
 
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
-
-from sklearn.datasets import load_digits, load_iris
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA, TruncatedSVD, KernelPCA
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.manifold import MDS, Isomap, LocallyLinearEmbedding, TSNE
+import numpy as np
 from scipy.sparse import csr_matrix
+from sklearn.datasets import load_digits
+from sklearn.decomposition import PCA, KernelPCA, TruncatedSVD
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.manifold import MDS, TSNE, Isomap, LocallyLinearEmbedding
+from sklearn.preprocessing import StandardScaler
 
 # UMAP opcionális – csak akkor használjuk, ha telepítve van
 try:

@@ -1,0 +1,370 @@
+# Promptfoo evaluation config for Invoice Finder (B4.2 — UJ FILE)
+# Run: npx promptfoo eval -c skills/invoice_finder/tests/promptfooconfig.yaml
+# View: npx promptfoo view
+#
+# Test data: real Phase 0 mailbox subjects (data/e2e_results/outlook_fetch/invoice_candidates.json)
+# combined with plausible email body fragments. 12 test cases covering:
+#   - invoice_classifier (HU + EN, marketing filter)
+#   - field_extractor (HU + EN format, missing due_date)
+#   - payment_status (overdue / due_today / paid)
+#   - report_generator (markdown structure)
+#
+# DESIGN: a single ROUTER prompt branches on the `task` variable and emits the
+# correct schema. This avoids promptfoo's 1-test-per-prompt cross-product.
+
+description: "Invoice Finder — email-to-invoice extraction & report (B4.2)"
+
+providers:
+  - id: openai:gpt-4o-mini
+    label: "gpt-4o-mini (invoice finder)"
+    config:
+      temperature: 0
+      max_tokens: 2048
+      response_format:
+        type: json_object
+
+prompts:
+  - id: invoice_finder_router
+    label: "invoice_finder_router"
+    raw: |
+      You are the Invoice Finder assistant. The `task` variable selects which
+      operation to perform. Return JSON only — no markdown fences.
+
+      ─────────────────────────────────────────────────────────────────
+      task: "{{task}}"
+      ─────────────────────────────────────────────────────────────────
+
+      ## TASK = classify
+      Determine whether the given email is an invoice candidate.
+      Hungarian invoice signals: "számla", "díjbekérő", "fizetési határidő",
+      "ÁFA", "Ft", "HUF", adószám pattern (XXXXXXXX-X-XX).
+      English invoice signals: "invoice", "receipt", "due date", "amount", "VAT".
+      Marketing signals (NOT invoice): "akció", "kupon", "newsletter",
+      "limited offer", "follow us", "subscribe".
+
+      Output schema (when task=classify):
+      {
+        "is_invoice_candidate": true | false,
+        "doc_type": "invoice" | "receipt" | "marketing" | "notification" | "other",
+        "language": "hu" | "en" | "de" | "other",
+        "confidence": 0.0-1.0,
+        "reason": "<short>"
+      }
+
+      ## TASK = extract
+      Extract invoice fields from the body. Date formats:
+      - HU "2026.04.20." → "2026-04-20"
+      - ISO "2026-04-20" → "2026-04-20"
+      - EN MM/DD/YYYY "04/20/2026" → "2026-04-20"
+      Number parsing:
+      - HU thousands separator is `.` or space, decimal is `,`. "12.345 Ft" = 12345.
+      - EN format: "$1,234.56" = 1234.56
+      Missing due_date → null (NOT empty string).
+
+      Output schema (when task=extract):
+      {
+        "invoice_number": "",
+        "invoice_date": "YYYY-MM-DD",
+        "due_date": "YYYY-MM-DD" | null,
+        "vendor_name": "",
+        "vendor_tax_number": "",
+        "total_amount": 0.0,
+        "currency": "HUF" | "EUR" | "USD" | "GBP",
+        "language": "hu" | "en"
+      }
+
+      ## TASK = payment_status
+      Today is `{{today}}`. Rules (apply in order):
+      1. If `marker` contains "FIZETVE" / "PAID" / "kifizetve" → "paid"
+      2. due_date < today → "overdue"
+      3. due_date == today → "due_today"
+      4. today < due_date <= today + 30 days → "due_soon"
+      5. due_date > today + 30 days → "not_due"
+      6. due_date missing/empty → "unknown"
+
+      `days_to_due` SIGN CONVENTION (CRITICAL):
+      - Compute as: (due_date - today) in calendar days.
+      - If due_date is in the PAST (overdue): days_to_due is NEGATIVE.
+      - If due_date == today: days_to_due is 0.
+      - If due_date is in the FUTURE: days_to_due is POSITIVE.
+      Example: today=2026-04-08, due_date=2026-03-01 → days_to_due = -38 (NEGATIVE).
+
+      Output schema (when task=payment_status):
+      {
+        "payment_status": "paid" | "overdue" | "due_today" | "due_soon" | "not_due" | "unknown",
+        "days_to_due": 0,
+        "confidence": 0.0-1.0
+      }
+
+      ## TASK = report
+      Generate a Markdown report from the given invoice list. Use proper markdown:
+      - `# Title` heading
+      - `## Section` sub-headings
+      - `|` table for the invoice list
+      - `**bold**` for amounts
+
+      Output schema (when task=report):
+      {
+        "markdown": "# ...\n\n..."
+      }
+
+      ─────────────────────────────────────────────────────────────────
+      INPUT
+      ─────────────────────────────────────────────────────────────────
+      Subject: {{subject}}
+      Sender:  {{sender}}
+      Body:
+      {{body}}
+
+      Invoice number: {{invoice_number}}
+      Due date:       {{due_date}}
+      Amount:         {{amount}}
+      Marker:         {{marker}}
+
+      Report date:    {{report_date}}
+      Invoices JSON:
+      {{invoices_json}}
+
+# Default empty values for unused vars per task — promptfoo strict mode requires
+# all template vars to be defined.
+defaultTest:
+  vars:
+    subject: ""
+    sender: ""
+    body: ""
+    today: ""
+    invoice_number: ""
+    due_date: ""
+    amount: ""
+    marker: ""
+    report_date: ""
+    invoices_json: ""
+
+tests:
+  # =====================================================================
+  # CLASSIFIER TESTS (5)
+  # =====================================================================
+
+  - description: "test_classifier_real_bestix_billingo — Hungarian invoice notification"
+    vars:
+      task: "classify"
+      subject: "Számlája érkezett"
+      sender: "noreply@billingo.hu"
+      body: |
+        Tisztelt Ügyfelünk!
+        Új számlája érkezett a Billingo rendszerben. Kérjük, töltse le a számlát
+        a Billingo felületéről. A számla bruttó végösszege: 25 400 Ft.
+        Fizetési határidő: 2026.04.20.
+        Üdvözlettel, Billingo Team
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).is_invoice_candidate === true"
+      - type: javascript
+        value: "JSON.parse(output).language === 'hu'"
+
+  - description: "test_classifier_kodosok_dijbekero — Hungarian díjbekérő (proforma)"
+    vars:
+      task: "classify"
+      subject: "Uj szamla / dijbekero - #339377 :: 3 in 1 Hosting Bt."
+      sender: "admin@megacp.com"
+      body: |
+        Tisztelt Ügyfél!
+        Új díjbekérő készült Önnek (#339377). Bruttó összeg: 12 700 Ft.
+        Fizetési határidő: 2026.04.30.
+        A kifizetés után automatikusan elküldjük a végszámlát.
+        3 in 1 Hosting Bt.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).is_invoice_candidate === true"
+
+  - description: "test_classifier_anthropic_receipt — English receipt"
+    vars:
+      task: "classify"
+      subject: "Your receipt from Anthropic, PBC #2297-2158-5569"
+      sender: "invoice+statements@mail.anthropic.com"
+      body: |
+        Receipt from Anthropic, PBC
+        Invoice #2297-2158-5569
+        Date: April 3, 2026
+        Amount: $20.00 USD
+        Method: Credit card
+        Description: Claude API usage
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).is_invoice_candidate === true"
+      - type: javascript
+        value: "JSON.parse(output).language === 'en'"
+
+  - description: "test_classifier_marketing_filter — pure marketing → NOT invoice"
+    vars:
+      task: "classify"
+      subject: "Tavaszi akció — 50% kedvezmény minden termékre!"
+      sender: "newsletter@webshop.hu"
+      body: |
+        Kedves Vásárlónk!
+        A tavasz beköszöntével hatalmas kedvezményekkel várunk!
+        50% minden szezonális termékre, csak ezen a héten.
+        Kattints ide és nézd meg a teljes kínálatot!
+        Iratkozz fel hírlevelünkre további akciókért.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).is_invoice_candidate === false"
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          return j.doc_type === 'marketing' || j.doc_type === 'other';
+
+  - description: "test_classifier_telekom_notification — utility bill notification (HU)"
+    vars:
+      task: "classify"
+      subject: "Telekom számlaértesítő"
+      sender: "noreply@telekom.hu"
+      body: |
+        Tisztelt Ügyfelünk!
+        Új havi számlája elérhető a Telekom Online rendszerben.
+        Számla összege: 8 990 Ft
+        Fizetési határidő: 2026.04.25.
+        Belépéshez kattintson a linkre.
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).is_invoice_candidate === true"
+
+  # =====================================================================
+  # FIELD EXTRACTOR TESTS (3)
+  # =====================================================================
+
+  - description: "test_extractor_hu_format — HU date + thousand separator"
+    vars:
+      task: "extract"
+      body: |
+        SZÁMLA
+        Számlaszám: HU-2026-04-001
+        Kelt: 2026.04.01.
+        Fizetési határidő: 2026.04.30.
+        Szállító: Példa Kft. (adószám: 12345678-2-42)
+        Vevő: BestIx Kft.
+        Bruttó végösszeg: 12.345 Ft
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          return j.invoice_number === 'HU-2026-04-001'
+                 && j.due_date === '2026-04-30'
+                 && j.currency === 'HUF';
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          return j.total_amount > 10000 && j.total_amount < 20000;
+
+  - description: "test_extractor_en_format — English / USD invoice"
+    vars:
+      task: "extract"
+      body: |
+        INVOICE #ANT-2026-0042
+        Date: 04/03/2026
+        Due: 05/03/2026
+        From: Anthropic, PBC
+        Amount: $1,234.56 USD
+        Description: Claude API usage
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          return j.currency === 'USD' && Math.abs(j.total_amount - 1234.56) < 0.01;
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          return j.due_date === '2026-05-03';
+
+  - description: "test_extractor_missing_due — no due_date in body → null"
+    vars:
+      task: "extract"
+      body: |
+        SZÁMLA
+        Számlaszám: NO-DUE-001
+        Kelt: 2026.03.15.
+        Szállító: Cég Kft.
+        Bruttó: 5 000 Ft
+        (Megjegyzés: nincs feltüntetve fizetési határidő)
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          return !j.due_date || j.due_date === '' || j.due_date === null;
+
+  # =====================================================================
+  # PAYMENT STATUS TESTS (3)
+  # =====================================================================
+
+  - description: "test_payment_status_overdue — due 2026-03-01, today 2026-04-08 → overdue"
+    vars:
+      task: "payment_status"
+      today: "2026-04-08"
+      invoice_number: "OD-001"
+      due_date: "2026-03-01"
+      amount: "10000 Ft"
+      marker: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).payment_status === 'overdue'"
+      - type: javascript
+        value: "JSON.parse(output).days_to_due < 0"
+
+  - description: "test_payment_status_due_today — due == today → due_today"
+    vars:
+      task: "payment_status"
+      today: "2026-04-08"
+      invoice_number: "DT-001"
+      due_date: "2026-04-08"
+      amount: "5000 Ft"
+      marker: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).payment_status === 'due_today'"
+
+  - description: "test_payment_status_paid — explicit FIZETVE marker → paid"
+    vars:
+      task: "payment_status"
+      today: "2026-04-08"
+      invoice_number: "PD-001"
+      due_date: "2026-04-30"
+      amount: "12345 Ft"
+      marker: "FIZETVE"
+    assert:
+      - type: is-json
+      - type: javascript
+        value: "JSON.parse(output).payment_status === 'paid'"
+
+  # =====================================================================
+  # REPORT GENERATOR TEST (1)
+  # =====================================================================
+
+  - description: "test_report_generator_markdown — 3 invoices → valid markdown"
+    vars:
+      task: "report"
+      report_date: "2026-04-08"
+      invoices_json: |
+        [
+          {"invoice_number": "INV-001", "vendor": "Cég A", "amount": 12000, "currency": "HUF", "due_date": "2026-04-15", "status": "due_soon"},
+          {"invoice_number": "INV-002", "vendor": "Cég B", "amount": 35000, "currency": "HUF", "due_date": "2026-03-01", "status": "overdue"},
+          {"invoice_number": "INV-003", "vendor": "Cég C", "amount": 8500, "currency": "HUF", "due_date": "2026-05-20", "status": "not_due"}
+        ]
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const md = JSON.parse(output).markdown || '';
+          // Must contain markdown headings + a table
+          return /^#\s/m.test(md) && /\|/.test(md);
+
+outputPath: test_output/promptfoo/invoice_finder_results.json

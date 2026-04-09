@@ -29,15 +29,9 @@ class PipelineTriggerDef(BaseModel):
     """Pipeline trigger configuration."""
 
     type: TriggerType = TriggerType.MANUAL
-    cron_expression: str | None = Field(
-        None, description="Cron expression (for type=cron)"
-    )
-    event_type: str | None = Field(
-        None, description="Event type name (for type=event)"
-    )
-    webhook_path: str | None = Field(
-        None, description="Webhook URL path (for type=webhook)"
-    )
+    cron_expression: str | None = Field(None, description="Cron expression (for type=cron)")
+    event_type: str | None = Field(None, description="Event type name (for type=event)")
+    webhook_path: str | None = Field(None, description="Webhook URL path (for type=webhook)")
 
 
 class StepRetryPolicy(BaseModel):
@@ -58,22 +52,12 @@ class PipelineStepDef(BaseModel):
         default_factory=dict,
         description="Step config (values can contain Jinja2 templates)",
     )
-    depends_on: list[str] = Field(
-        default_factory=list, description="Names of prerequisite steps"
-    )
-    for_each: str | None = Field(
-        None, description="Jinja2 expression that evaluates to a list"
-    )
-    condition: str | None = Field(
-        None, description="Condition: 'output.field op value'"
-    )
-    retry: StepRetryPolicy | None = Field(
-        None, description="Retry policy for this step"
-    )
+    depends_on: list[str] = Field(default_factory=list, description="Names of prerequisite steps")
+    for_each: str | None = Field(None, description="Jinja2 expression that evaluates to a list")
+    condition: str | None = Field(None, description="Condition: 'output.field op value'")
+    retry: StepRetryPolicy | None = Field(None, description="Retry policy for this step")
     timeout: int | None = Field(None, description="Timeout in seconds", ge=1)
-    concurrency: int = Field(
-        5, description="Max parallel iterations for for_each", ge=1, le=100
-    )
+    concurrency: int = Field(5, description="Max parallel iterations for for_each", ge=1, le=100)
 
     @field_validator("name")
     @classmethod
@@ -81,9 +65,7 @@ class PipelineStepDef(BaseModel):
         if not v.strip():
             raise ValueError("Step name cannot be empty")
         if not v.replace("_", "").replace("-", "").isalnum():
-            raise ValueError(
-                f"Step name must be alphanumeric with _ or -: '{v}'"
-            )
+            raise ValueError(f"Step name must be alphanumeric with _ or -: '{v}'")
         return v
 
 
@@ -94,12 +76,8 @@ class PipelineDefinition(BaseModel):
     version: str = Field("1.0.0", description="Semantic version")
     description: str = Field("", description="Human-readable description")
     trigger: PipelineTriggerDef = Field(default_factory=PipelineTriggerDef)
-    input_schema: dict[str, Any] = Field(
-        default_factory=dict, description="Input parameter schema"
-    )
-    steps: list[PipelineStepDef] = Field(
-        ..., min_length=1, description="Pipeline steps"
-    )
+    input_schema: dict[str, Any] = Field(default_factory=dict, description="Input parameter schema")
+    steps: list[PipelineStepDef] = Field(..., min_length=1, description="Pipeline steps")
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("name")
@@ -112,7 +90,8 @@ class PipelineDefinition(BaseModel):
     @field_validator("steps")
     @classmethod
     def validate_unique_step_names(
-        cls, steps: list[PipelineStepDef],
+        cls,
+        steps: list[PipelineStepDef],
     ) -> list[PipelineStepDef]:
         names = [s.name for s in steps]
         dupes = [n for n in names if names.count(n) > 1]

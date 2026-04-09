@@ -16,9 +16,7 @@ class ClassifyInput(BaseModel):
     text: str = Field(..., description="Text to classify")
     subject: str = Field("", description="Optional subject line")
     strategy: str | None = Field(None, description="Classification strategy override")
-    schema_labels: list[dict[str, Any]] | None = Field(
-        None, description="Custom label definitions"
-    )
+    schema_labels: list[dict[str, Any]] | None = Field(None, description="Custom label definitions")
 
 
 class ClassifyOutput(BaseModel):

@@ -9,7 +9,7 @@
     requires_services: []
     tags: [engine, conditions, branching, expressions]
 """
-import pytest
+
 from aiflow.engine.conditions import Condition, evaluate_condition
 
 

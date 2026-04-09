@@ -22,12 +22,9 @@ from aiflow.pipeline.schema import (
     TriggerType,
 )
 
-
 MINIMAL_PIPELINE = {
     "name": "test_pipeline",
-    "steps": [
-        {"name": "step1", "service": "email_connector", "method": "fetch_emails"}
-    ],
+    "steps": [{"name": "step1", "service": "email_connector", "method": "fetch_emails"}],
 }
 
 FULL_PIPELINE = {
@@ -133,13 +130,15 @@ class TestPipelineDefinition:
 
     def test_duplicate_step_names_rejected(self):
         with pytest.raises(Exception):
-            PipelineDefinition.model_validate({
-                "name": "p",
-                "steps": [
-                    {"name": "s1", "service": "a", "method": "b"},
-                    {"name": "s1", "service": "c", "method": "d"},
-                ],
-            })
+            PipelineDefinition.model_validate(
+                {
+                    "name": "p",
+                    "steps": [
+                        {"name": "s1", "service": "a", "method": "b"},
+                        {"name": "s1", "service": "c", "method": "d"},
+                    ],
+                }
+            )
 
     def test_get_step(self):
         p = PipelineDefinition.model_validate(FULL_PIPELINE)

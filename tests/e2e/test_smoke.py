@@ -11,6 +11,7 @@ Smoke tests — verify every page loads without crash or JS errors.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, smoke, playwright]
 """
+
 from __future__ import annotations
 
 import pytest
@@ -111,8 +112,11 @@ class TestSmokeAllPages:
 
         # Filter benign errors
         real_errors = [
-            e for e in errors
-            if not any(x in e for x in ["favicon", "ResizeObserver", "Failed to fetch"])
+            e
+            for e in errors
+            if not any(
+                x in e for x in ["favicon", "ResizeObserver", "Failed to fetch", "CORS policy"]
+            )
         ]
         assert not real_errors, f"{name} ({path}) JS errors: {real_errors}"
 

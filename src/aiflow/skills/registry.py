@@ -3,15 +3,14 @@
 Uses the core Registry[SkillManifest] internally and adds a structured
 9-step installation process with dependency checking and version tracking.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
-
-from pydantic import BaseModel, Field
 
 import structlog
+from pydantic import BaseModel, Field
 
 from aiflow.core.registry import Registry
 from aiflow.skills.manifest import (
@@ -87,14 +86,9 @@ class SkillRegistry:
         install_log.append(f"3. Framework compatibility OK ({manifest.framework_requires})")
 
         # Step 4: Check dependencies
-        missing_deps = [
-            dep for dep in manifest.depends_on
-            if not self._registry.has(dep)
-        ]
+        missing_deps = [dep for dep in manifest.depends_on if not self._registry.has(dep)]
         if missing_deps:
-            raise ValueError(
-                f"Skill '{manifest.name}' has unmet dependencies: {missing_deps}"
-            )
+            raise ValueError(f"Skill '{manifest.name}' has unmet dependencies: {missing_deps}")
         install_log.append(f"4. Dependencies satisfied ({len(manifest.depends_on)} checked)")
 
         # Step 5: Register workflows (placeholder)
@@ -145,9 +139,7 @@ class SkillRegistry:
         # Check if other skills depend on this one
         for key, record in self._registry.list_items():
             if skill_name in record.manifest.depends_on:
-                raise ValueError(
-                    f"Cannot uninstall '{skill_name}': skill '{key}' depends on it"
-                )
+                raise ValueError(f"Cannot uninstall '{skill_name}': skill '{key}' depends on it")
 
         self._registry.unregister(skill_name)
         logger.info("skill_uninstalled", name=skill_name)

@@ -7,15 +7,14 @@ from aiflow.observability.cost_tracker import (
     CostTracker,
 )
 from aiflow.observability.logging import get_logger, setup_logging
-from aiflow.observability.metrics import InMemoryMetrics, MetricsCollector
 from aiflow.observability.sla_monitor import SLADefinition, SLAMonitor, SLAResult
 from aiflow.observability.tracing import (
     InMemoryTracer,
     LangfuseTracer,
     SpanRecord,
     TraceManager,
-    TraceRecord,
     TracerBackend,
+    TraceRecord,
     get_langfuse_client,
     trace_llm_call,
 )
@@ -38,9 +37,6 @@ __all__ = [
     "BudgetStatus",
     "CostRecord",
     "CostTracker",
-    # Metrics
-    "InMemoryMetrics",
-    "MetricsCollector",
     # SLA
     "SLADefinition",
     "SLAMonitor",

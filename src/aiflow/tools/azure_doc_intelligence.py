@@ -1,4 +1,5 @@
 """Azure Document Intelligence client - REST API (no SDK needed)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -18,9 +19,7 @@ class AzureDocIntelligence:
         self.endpoint = endpoint.rstrip("/")
         self.api_key = api_key
 
-    async def analyze(
-        self, content: bytes, model: str = "prebuilt-layout"
-    ) -> dict[str, Any]:
+    async def analyze(self, content: bytes, model: str = "prebuilt-layout") -> dict[str, Any]:
         """Analyze a document using Azure DI."""
         url = (
             f"{self.endpoint}/documentintelligence/documentModels/"
@@ -35,9 +34,7 @@ class AzureDocIntelligence:
             # Start analysis
             resp = await client.post(url, headers=headers, content=content)
             if resp.status_code != 202:
-                raise RuntimeError(
-                    f"Azure DI error {resp.status_code}: {resp.text[:200]}"
-                )
+                raise RuntimeError(f"Azure DI error {resp.status_code}: {resp.text[:200]}")
 
             # Poll for result
             result_url = resp.headers.get("Operation-Location", "")
@@ -52,13 +49,9 @@ class AzureDocIntelligence:
                 )
                 status = poll.json().get("status", "")
                 if status == "succeeded":
-                    return self._parse_result(
-                        poll.json().get("analyzeResult", {})
-                    )
+                    return self._parse_result(poll.json().get("analyzeResult", {}))
                 elif status == "failed":
-                    raise RuntimeError(
-                        f"Azure DI analysis failed: {poll.json()}"
-                    )
+                    raise RuntimeError(f"Azure DI analysis failed: {poll.json()}")
 
             raise RuntimeError("Azure DI analysis timed out")
 
@@ -111,8 +104,7 @@ class AzureDocIntelligence:
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 resp = await client.get(
-                    f"{self.endpoint}/documentintelligence/info"
-                    f"?api-version=2024-11-30",
+                    f"{self.endpoint}/documentintelligence/info?api-version=2024-11-30",
                     headers={"Ocp-Apim-Subscription-Key": self.api_key},
                 )
                 return resp.status_code == 200

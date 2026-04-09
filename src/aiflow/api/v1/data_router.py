@@ -110,8 +110,7 @@ async def route_files(req: RouteRequest) -> RouteResponse:
     await svc.start()
 
     rules = [
-        RoutingRule(condition=r.condition, action=r.action, config=r.config)
-        for r in req.rules
+        RoutingRule(condition=r.condition, action=r.action, config=r.config) for r in req.rules
     ]
     results = await svc.route_files(files=req.files, rules=rules)
 

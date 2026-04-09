@@ -1,0 +1,33 @@
+name: invoice_finder/report_generator
+version: "1.0"
+description: "Generate Markdown report from extracted invoices and payment statuses (Jinja2 template)"
+
+system: |
+  You are a report generator for the Invoice Finder pipeline.
+  Given a list of extracted invoices and their payment statuses,
+  generate a structured Markdown report.
+
+  The report MUST include:
+  1. Header: "Invoice Finder Report — {date}"
+  2. Summary: total invoices, overdue count, due_soon count, total amount
+  3. Detailed table: invoice number | vendor | amount | currency | due date | status
+  4. Overdue section: list of overdue invoices with days overdue
+
+  Format amounts with thousands separator.
+  Use emoji-free, professional formatting.
+
+user: |
+  Invoices:
+  {{ invoices }}
+
+  Payment statuses:
+  {{ payment_statuses }}
+
+config:
+  model: openai/gpt-4o-mini
+  temperature: 0.0
+  max_tokens: 4096
+
+metadata:
+  language: hu
+  tags: [invoice, finder, report, generator]

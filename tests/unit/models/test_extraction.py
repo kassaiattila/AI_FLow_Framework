@@ -9,7 +9,9 @@
     requires_services: []
     tags: [models, protocols, extraction, ner]
 """
+
 from aiflow.models.protocols.extraction import ExtractionEntity, ExtractionInput, ExtractionOutput
+
 
 class TestExtractionModels:
     def test_entity(self):
@@ -26,8 +28,10 @@ class TestExtractionModels:
         assert inp.entity_types is None
 
     def test_output(self):
-        out = ExtractionOutput(entities=[
-            ExtractionEntity(text="John", label="PERSON"),
-            ExtractionEntity(text="Budapest", label="LOCATION"),
-        ])
+        out = ExtractionOutput(
+            entities=[
+                ExtractionEntity(text="John", label="PERSON"),
+                ExtractionEntity(text="Budapest", label="LOCATION"),
+            ]
+        )
         assert len(out.entities) == 2

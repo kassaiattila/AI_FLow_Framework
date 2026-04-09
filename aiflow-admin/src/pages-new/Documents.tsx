@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
 import { fetchApi, uploadFile, streamApi } from "../lib/api-client";
@@ -454,9 +454,14 @@ interface ConfigsResponse { configs: ExtractorConfig[]; total: number; source: s
 export function Documents() {
   const translate = useTranslate();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const filterParam = searchParams.get("filter") ?? "";
   const [tab, setTab] = useState<"list" | "upload">("list");
-  const [selectedConfig, setSelectedConfig] = useState<string>("all");
-  const { data, loading, error, refetch } = useApi<DocsResponse>("/api/v1/documents");
+  const [selectedConfig, setSelectedConfig] = useState<string>(filterParam || "all");
+  const apiPath = selectedConfig !== "all"
+    ? `/api/v1/documents?config=${encodeURIComponent(selectedConfig)}`
+    : "/api/v1/documents";
+  const { data, loading, error, refetch } = useApi<DocsResponse>(apiPath);
   const { data: configsData } = useApi<ConfigsResponse>("/api/v1/documents/extractor/configs");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);

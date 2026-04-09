@@ -11,10 +11,11 @@ E2E test fixtures for AIFlow admin dashboard.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, playwright, ui]
 """
+
 from __future__ import annotations
 
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page
 
 # AIFlow admin runs on Vite dev server with hash router
 BASE_URL = "http://localhost:5174"
@@ -40,12 +41,13 @@ def authenticated_page(page: Page) -> Page:
     page.wait_for_load_state("networkidle")
 
     # Fill login form
-    page.fill('input#email', AUTH_EMAIL)
-    page.fill('input#password', AUTH_PASSWORD)
+    page.fill("input#email", AUTH_EMAIL)
+    page.fill("input#password", AUTH_PASSWORD)
     page.click('button[type="submit"]')
 
-    # Wait for sidebar nav to appear (means login succeeded)
-    page.locator("nav").wait_for(state="visible", timeout=15000)
+    # Wait for sidebar nav to appear (means login succeeded).
+    # Use longer timeout for sequential test runs where browser overhead accumulates.
+    page.locator("nav").wait_for(state="visible", timeout=30000)
     page.wait_for_load_state("networkidle")
 
     return page
@@ -68,11 +70,16 @@ def navigate_to(page: Page, path: str) -> None:
 def assert_no_console_errors(errors: list[str]) -> None:
     """Assert no JS console errors occurred (ignoring known benign ones)."""
     real_errors = [
-        e for e in errors
-        if not any(ignore in e for ignore in [
-            "favicon.ico",
-            "ResizeObserver",
-            "Failed to fetch",  # API may not be running
-        ])
+        e
+        for e in errors
+        if not any(
+            ignore in e
+            for ignore in [
+                "favicon.ico",
+                "ResizeObserver",
+                "Failed to fetch",  # API may not be running
+                "CORS policy",  # Vite dev proxy redirect triggers CORS on localhost
+            ]
+        )
     ]
     assert not real_errors, f"Console errors: {real_errors}"

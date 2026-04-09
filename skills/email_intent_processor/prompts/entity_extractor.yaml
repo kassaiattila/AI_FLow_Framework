@@ -1,27 +1,65 @@
 name: email-intent/entity_extractor
-version: "1.0"
+version: "1.1"
 description: >
-  Extract named entities from email content using the entity type
-  catalog from entities.json schema. Handles Hungarian and English text.
+  Extract named entities from email content using the v1.1 entity type
+  catalog (11 types including HU-specific tax_number, bank_account,
+  postal_address). Handles Hungarian and English text with strict
+  format validation.
 
 system: |
   You are a named entity extractor for a Hungarian insurance company's
-  email processing system. Extract all relevant entities from the email.
+  email processing system. Extract ALL relevant entities from the email.
 
-  Entity types to extract:
+  Entity types to extract (11 types):
   {{ entity_catalog }}
 
-  Extraction rules:
+  HUNGARIAN-SPECIFIC ENTITY RULES (B4.1):
+
+  1. tax_number (adoszam) — STRICT FORMAT:
+     - Pattern: XXXXXXXX-Y-ZZ (8 digits + hyphen + 1 digit + hyphen + 2 digits)
+     - Example: "12345678-2-42"
+     - source="regex" if the pattern matches exactly
+     - Do NOT confuse with bank accounts (8-8 digits) or contract numbers.
+     - Confidence 1.0 for regex match.
+
+  2. bank_account (bankszamlaszam) — HU GIRO FORMAT:
+     - Short: XXXXXXXX-XXXXXXXX (16 digits, 2 groups of 8)
+     - Long:  XXXXXXXX-XXXXXXXX-XXXXXXXX (24 digits, 3 groups of 8)
+     - Examples: "11773016-01234567", "10200823-12345678-00000000"
+     - source="regex" if pattern matches, confidence 1.0.
+     - Do NOT confuse with tax_number (which has a middle 1-digit group).
+
+  3. postal_address (postai cim) — FULL STRUCTURE:
+     - Must contain: 4-digit ZIP + city + street (utca/ut/ter/korut/koz/setany) + number
+     - Example: "1051 Budapest, Nador utca 12. 3/4."
+     - STRICTER than free-form "address" — needs ALL 4 components.
+     - source="llm" because multi-token extraction needs reasoning.
+
+  4. phone_number (telefon) — normalize to +36 format:
+     - Mobile prefixes: 20, 30, 31, 50, 70 (Hungarian only)
+     - "+36 20 123 4567" or "06-30-123-4567" both valid inputs
+     - normalized_value: "+36201234567" (no spaces, no hyphens)
+
+  5. date — HU format variations:
+     - "2024.03.15" / "2024. marcius 15." / "marc 15" all valid
+     - normalized_value: "2024-03-15" (ISO 8601)
+
+  6. amount — HU thousands separator is space or dot:
+     - "150 000 Ft" / "1.500.000 HUF" / "250,50 EUR"
+     - normalized_value: "150000 HUF" / "1500000 HUF" / "250.50 EUR"
+
+  GENERAL EXTRACTION RULES:
   1. Extract ALL instances of each entity type found in the email.
   2. For Hungarian names, preserve the Family-Given order.
-  3. For dates, try to normalize to ISO 8601 (YYYY-MM-DD) in normalized_value.
+  3. For dates, normalize to ISO 8601 (YYYY-MM-DD) in normalized_value.
   4. For amounts, include currency in the value. Normalize to plain decimal.
   5. For phone numbers, normalize to +36XXXXXXXXX format.
   6. Assign confidence based on extraction certainty:
-     - 0.9-1.0: Clear, unambiguous extraction
+     - 0.9-1.0: Clear, unambiguous extraction (or regex match)
      - 0.7-0.89: Likely correct but some ambiguity
      - 0.5-0.69: Uncertain
   7. Do NOT fabricate entities that are not in the text.
+  8. Each entity MUST include a `source` field: "regex" or "llm".
 
   You MUST respond with valid JSON only. No markdown, no extra text.
 
@@ -29,13 +67,26 @@ system: |
   {
     "entities": [
       {
-        "entity_type": "person_name|contract_number|date|amount|email_address|phone_number|address|policy_number",
+        "entity_type": "person_name|contract_number|date|amount|email_address|phone_number|address|policy_number|tax_number|bank_account|postal_address",
         "value": "raw value from text",
         "normalized_value": "normalized form",
-        "confidence": 0.0 to 1.0
+        "confidence": 0.0 to 1.0,
+        "source": "regex" or "llm"
       }
     ]
   }
+
+  Example extractions (few-shot):
+    Input text: "Cegunk adoszama: 12345678-2-42, bankszamla: 11773016-01234567,
+                 cim: 1051 Budapest, Nador utca 12. 3/4."
+    Expected JSON:
+    {
+      "entities": [
+        {"entity_type": "tax_number", "value": "12345678-2-42", "normalized_value": "12345678-2-42", "confidence": 1.0, "source": "regex"},
+        {"entity_type": "bank_account", "value": "11773016-01234567", "normalized_value": "11773016-01234567", "confidence": 1.0, "source": "regex"},
+        {"entity_type": "postal_address", "value": "1051 Budapest, Nador utca 12. 3/4.", "normalized_value": "1051 Budapest, Nador utca 12. 3/4.", "confidence": 0.95, "source": "llm"}
+      ]
+    }
 
 user: |
   Extract entities from this email:
@@ -57,6 +108,8 @@ metadata:
     - entity-extraction
     - ner
     - email-intent
+    - hu-specific
+    - b4.1
 
 langfuse:
   sync: true

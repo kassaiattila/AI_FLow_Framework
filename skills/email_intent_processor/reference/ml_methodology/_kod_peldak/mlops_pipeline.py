@@ -21,13 +21,14 @@ Tesztek futtatasa:
     pytest mlops_pipeline.py -v
 """
 
-import os
-import sys
 import json
-import time
+import os
+
+# Pickle a modell es artifact menteshez
+import pickle
 import tempfile
+import time
 import warnings
-from pathlib import Path
 from datetime import datetime
 
 import numpy as np
@@ -36,29 +37,23 @@ import pandas as pd
 # Sklearn - adatgeneralas
 from sklearn.datasets import make_classification
 
-# Sklearn - eloeldolgozas
-from sklearn.preprocessing import OneHotEncoder, MinMaxScaler, LabelEncoder
-from sklearn.impute import SimpleImputer
-from sklearn.model_selection import train_test_split
-
 # Sklearn - modell (fallback, ha XGBoost nem elerheto)
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.impute import SimpleImputer
 
 # Sklearn - metrikak
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
     f1_score,
-    precision_score,
-    recall_score,
 )
+from sklearn.model_selection import train_test_split
 
 # Sklearn - pipeline
 from sklearn.pipeline import Pipeline
 
-# Pickle a modell es artifact menteshez
-import pickle
+# Sklearn - eloeldolgozas
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 # XGBoost - opcionalis import
 try:
@@ -71,7 +66,7 @@ except ImportError:
 
 # Flask - opcionalis import (REST API-hoz)
 try:
-    from flask import Flask, request, jsonify
+    from flask import Flask, jsonify, request
     FLASK_ELERHETO = True
 except ImportError:
     FLASK_ELERHETO = False
@@ -80,7 +75,7 @@ except ImportError:
 
 # flask-restx - opcionalis import (Swagger dokumentaciohoz)
 try:
-    from flask_restx import Api, Resource, Namespace
+    from flask_restx import Api, Namespace, Resource
     FLASK_RESTX_ELERHETO = True
 except ImportError:
     FLASK_RESTX_ELERHETO = False
@@ -522,7 +517,7 @@ class MLModel:
             X, y, test_size=TEST_SIZE, random_state=RANDOM_SEED, stratify=y
         )
 
-        print(f"\n[Train] Modell tanitas inditasa...")
+        print("\n[Train] Modell tanitas inditasa...")
         print(f"  Train meret: {X_train.shape[0]}, Test meret: {X_test.shape[0]}")
         print(f"  Feature-ok szama: {X_train.shape[1]}")
 
@@ -568,7 +563,7 @@ class MLModel:
         print(f"  Tanitasi ido:   {train_time:.2f}s")
 
         # Reszletes riport
-        print(f"\n  Classification Report (test):")
+        print("\n  Classification Report (test):")
         report = classification_report(y_test, y_pred_test, zero_division=0)
         for line in report.split("\n"):
             print(f"    {line}")
@@ -710,7 +705,7 @@ class MLModel:
         # Metadata betoltese
         meta_path = os.path.join(self.model_dir, "metadata.json")
         if os.path.exists(meta_path):
-            with open(meta_path, "r", encoding="utf-8") as f:
+            with open(meta_path, encoding="utf-8") as f:
                 metadata = json.load(f)
             self.train_columns = metadata.get("train_columns")
             self.categorical_cols = metadata.get("categorical_cols", [])
@@ -769,7 +764,7 @@ def batch_inference(model, df):
     probabilities = []
     errors = []
 
-    for idx, row in df.iterrows():
+    for _idx, row in df.iterrows():
         row_dict = row.to_dict()
         # Target eltavolitasa, ha van
         row_dict.pop("target", None)
@@ -794,7 +789,7 @@ def batch_inference(model, df):
     success_count = sum(1 for e in errors if e is None)
     error_count = sum(1 for e in errors if e is not None)
 
-    print(f"[Batch Inference] Kesz.")
+    print("[Batch Inference] Kesz.")
     print(f"  Sikeres: {success_count}, Hibas: {error_count}")
     print(f"  Ido: {elapsed:.2f}s ({elapsed/len(df)*1000:.1f}ms/sor)")
 
@@ -1217,7 +1212,7 @@ def test_artifact_save_load():
     model1 = MLModel(model_dir=model_dir)
     df = szintetikus_adat_generalas(n_samples=200)
     processed = model1.preprocessing_pipeline(df)
-    accuracy1 = model1.train_and_save_model(processed)
+    model1.train_and_save_model(processed)
 
     # Masodik modell: betoltes az elozo artifact-ekbol
     model2 = MLModel(model_dir=model_dir)
@@ -1351,7 +1346,7 @@ def deployment_strategia_demo():
     print("  2. Atkapcsolas: Load Balancer --> Green")
     print(f"     Green acc: {model_v2_accuracy:.2f}")
     print("  3. Ha problema van: azonnali rollback Blue-ra")
-    print(f"     Rollback ido: < 1 masodperc")
+    print("     Rollback ido: < 1 masodperc")
 
 
 # =============================================================================
@@ -1396,12 +1391,12 @@ if __name__ == "__main__":
     prediction = model.predict(sample)
     proba = model.predict_proba(sample)
 
-    print(f"  Bemeneti adatsor (elso 5 feature):")
+    print("  Bemeneti adatsor (elso 5 feature):")
     for i, (k, v) in enumerate(sample.items()):
         if i >= 5:
             break
         print(f"    {k}: {v}")
-    print(f"  ...")
+    print("  ...")
     print(f"  Predikio: {prediction} (valos: {sample_target})")
     print(f"  Valoszinusegek: {', '.join(f'class_{i}={p:.4f}' for i, p in enumerate(proba))}")
 
@@ -1411,7 +1406,7 @@ if __name__ == "__main__":
     print("\n--- 5. Batch Inference ---")
     batch_df = df.sample(20, random_state=RANDOM_SEED)
     result_df = batch_inference(model, batch_df)
-    print(f"  Elso 5 eredmeny:")
+    print("  Elso 5 eredmeny:")
     for _, row in result_df.head(5).iterrows():
         print(f"    Pred: {row['prediction']}, Conf: {row['confidence']:.4f}, "
               f"Valos: {row.get('target', 'N/A')}")
@@ -1441,7 +1436,7 @@ if __name__ == "__main__":
     test_artifact_save_load()
     test_batch_inference()
     test_model_not_overfitting()
-    print(f"\n  Osszes teszt SIKERES (9/9)")
+    print("\n  Osszes teszt SIKERES (9/9)")
 
     # -----------------------------------------------------------------
     # 8. Sklearn Pipeline demo

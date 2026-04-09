@@ -15,11 +15,11 @@ from __future__ import annotations
 import pytest
 
 from aiflow.api.v1.pipelines import (
-    RunPipelineRequest,
-    RunPipelineResponse,
     RunDetailResponse,
     RunItem,
     RunListResponse,
+    RunPipelineRequest,
+    RunPipelineResponse,
 )
 
 

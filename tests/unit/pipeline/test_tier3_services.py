@@ -24,16 +24,6 @@ from typing import Any
 
 import pytest
 
-# ---------------------------------------------------------------------------
-# Service imports
-# ---------------------------------------------------------------------------
-
-from aiflow.services.reranker.service import (
-    RankedResult,
-    RerankConfig,
-    RerankerConfig,
-    RerankerService,
-)
 from aiflow.services.advanced_chunker.service import (
     AdvancedChunkerConfig,
     AdvancedChunkerService,
@@ -41,11 +31,20 @@ from aiflow.services.advanced_chunker.service import (
     ChunkResult,
     ChunkStrategy,
 )
+from aiflow.services.advanced_parser.service import (
+    AdvancedParserConfig,
+    AdvancedParserService,
+    ParsedDocument,
+)
 from aiflow.services.data_cleaner.service import (
     CleanedDocument,
     CleaningConfig,
     DataCleanerConfig,
     DataCleanerService,
+)
+from aiflow.services.graph_rag.service import (
+    GraphRAGConfig,
+    GraphRAGService,
 )
 from aiflow.services.metadata_enricher.service import (
     EnrichedMetadata,
@@ -53,22 +52,21 @@ from aiflow.services.metadata_enricher.service import (
     MetadataEnricherConfig,
     MetadataEnricherService,
 )
+
+# ---------------------------------------------------------------------------
+# Service imports
+# ---------------------------------------------------------------------------
+from aiflow.services.reranker.service import (
+    RankedResult,
+    RerankConfig,
+    RerankerConfig,
+    RerankerService,
+)
 from aiflow.services.vector_ops.service import (
     CollectionHealth,
     VectorOpsConfig,
     VectorOpsService,
 )
-from aiflow.services.advanced_parser.service import (
-    AdvancedParserConfig,
-    AdvancedParserService,
-    ParsedDocument,
-    ParserConfig,
-)
-from aiflow.services.graph_rag.service import (
-    GraphRAGConfig,
-    GraphRAGService,
-)
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -147,10 +145,7 @@ class TestRerankerService:
     @pytest.mark.asyncio
     async def test_score_threshold(self, reranker_svc: RerankerService) -> None:
         """Score threshold filters out low-scoring candidates."""
-        candidates = [
-            {"content": f"Result {i}", "chunk_id": f"c{i}"}
-            for i in range(10)
-        ]
+        candidates = [{"content": f"Result {i}", "chunk_id": f"c{i}"} for i in range(10)]
         await reranker_svc.start()
         results = await reranker_svc.rerank(
             query="test",
@@ -299,7 +294,9 @@ class TestMetadataEnricherService:
 
     @pytest.mark.asyncio
     async def test_keyword_extraction(self, enricher_svc: MetadataEnricherService) -> None:
-        text = "Python programming language. Python is great. Python for data science. Python modules."
+        text = (
+            "Python programming language. Python is great. Python for data science. Python modules."
+        )
         await enricher_svc.start()
         result = await enricher_svc.enrich(
             text=text,
@@ -392,9 +389,7 @@ class TestAdvancedParserService:
         assert result.parser_used in ("raw", "none", "")
 
     @pytest.mark.asyncio
-    async def test_parse_text_file(
-        self, parser_svc: AdvancedParserService, tmp_path: Any
-    ) -> None:
+    async def test_parse_text_file(self, parser_svc: AdvancedParserService, tmp_path: Any) -> None:
         """Plain text file can be read as raw text."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("Hello world from test file.", encoding="utf-8")
@@ -474,16 +469,16 @@ class TestGraphRAGService:
 class TestAdapterRegistration:
     def test_all_tier3_adapters_registered(self) -> None:
         """Verify all 7 Tier 3 adapters are registered in the adapter registry."""
-        from aiflow.pipeline.adapter_base import adapter_registry
+        import aiflow.pipeline.adapters.advanced_parser_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.chunker_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.data_cleaner_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.graph_rag_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.metadata_enricher_adapter  # noqa: F401
 
         # Force import of all Tier 3 adapter modules to trigger registration
         import aiflow.pipeline.adapters.reranker_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.chunker_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.data_cleaner_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.metadata_enricher_adapter  # noqa: F401
         import aiflow.pipeline.adapters.vector_ops_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.advanced_parser_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.graph_rag_adapter  # noqa: F401
+        from aiflow.pipeline.adapter_base import adapter_registry
 
         expected = [
             ("reranker", "rerank"),
@@ -505,15 +500,14 @@ class TestAdapterRegistration:
         """Each adapter must have Pydantic BaseModel input/output schemas."""
         from pydantic import BaseModel as PydanticBaseModel
 
-        from aiflow.pipeline.adapter_base import adapter_registry
-
-        import aiflow.pipeline.adapters.reranker_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.advanced_parser_adapter  # noqa: F401
         import aiflow.pipeline.adapters.chunker_adapter  # noqa: F401
         import aiflow.pipeline.adapters.data_cleaner_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.metadata_enricher_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.vector_ops_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.advanced_parser_adapter  # noqa: F401
         import aiflow.pipeline.adapters.graph_rag_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.metadata_enricher_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.reranker_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.vector_ops_adapter  # noqa: F401
+        from aiflow.pipeline.adapter_base import adapter_registry
 
         tier3_keys = [
             ("reranker", "rerank"),
@@ -536,15 +530,14 @@ class TestAdapterRegistration:
 
     def test_adapter_service_method_names(self) -> None:
         """Each adapter's service_name and method_name must match the expected values."""
-        from aiflow.pipeline.adapter_base import adapter_registry
-
-        import aiflow.pipeline.adapters.reranker_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.advanced_parser_adapter  # noqa: F401
         import aiflow.pipeline.adapters.chunker_adapter  # noqa: F401
         import aiflow.pipeline.adapters.data_cleaner_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.metadata_enricher_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.vector_ops_adapter  # noqa: F401
-        import aiflow.pipeline.adapters.advanced_parser_adapter  # noqa: F401
         import aiflow.pipeline.adapters.graph_rag_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.metadata_enricher_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.reranker_adapter  # noqa: F401
+        import aiflow.pipeline.adapters.vector_ops_adapter  # noqa: F401
+        from aiflow.pipeline.adapter_base import adapter_registry
 
         tier3_keys = [
             ("reranker", "rerank"),

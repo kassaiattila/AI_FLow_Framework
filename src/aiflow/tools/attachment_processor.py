@@ -1,12 +1,13 @@
 """Multi-layer attachment processor - docling (local) -> Azure DI (cloud) -> LLM vision."""
+
 from __future__ import annotations
 
 import tempfile
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
 __all__ = ["AttachmentProcessor", "ProcessedAttachment", "AttachmentConfig"]
 logger = structlog.get_logger(__name__)
@@ -52,9 +53,7 @@ class AttachmentProcessor:
     def __init__(self, config: AttachmentConfig | None = None):
         self.config = config or AttachmentConfig()
 
-    async def process(
-        self, filename: str, content: bytes, mime_type: str
-    ) -> ProcessedAttachment:
+    async def process(self, filename: str, content: bytes, mime_type: str) -> ProcessedAttachment:
         """Process attachment with intelligent routing.
 
         Cost-optimized 3-layer strategy:
@@ -135,17 +134,13 @@ class AttachmentProcessor:
             processor_used="none",
         )
 
-    async def _process_docling(
-        self, filename: str, content: bytes
-    ) -> ProcessedAttachment:
+    async def _process_docling(self, filename: str, content: bytes) -> ProcessedAttachment:
         try:
             from aiflow.ingestion.parsers.docling_parser import DoclingParser
 
             parser = DoclingParser()
 
-            with tempfile.NamedTemporaryFile(
-                suffix=Path(filename).suffix, delete=False
-            ) as f:
+            with tempfile.NamedTemporaryFile(suffix=Path(filename).suffix, delete=False) as f:
                 f.write(content)
                 f.flush()
                 tmp_path = f.name
@@ -173,9 +168,7 @@ class AttachmentProcessor:
         try:
             from aiflow.tools.azure_doc_intelligence import AzureDocIntelligence
 
-            client = AzureDocIntelligence(
-                self.config.azure_endpoint, self.config.azure_api_key
-            )
+            client = AzureDocIntelligence(self.config.azure_endpoint, self.config.azure_api_key)
             result = await client.analyze(content, model=self.config.azure_model)
 
             return ProcessedAttachment(
@@ -225,6 +218,7 @@ class AttachmentProcessor:
 # Quality scoring
 # ---------------------------------------------------------------------------
 
+
 class _QualityResult:
     """Multi-factor quality assessment for extracted text."""
 
@@ -235,9 +229,7 @@ class _QualityResult:
         self.factors = factors
 
 
-def _compute_quality_score(
-    result: ProcessedAttachment, file_size_kb: float
-) -> _QualityResult:
+def _compute_quality_score(result: ProcessedAttachment, file_size_kb: float) -> _QualityResult:
     """Compute structural quality score for extracted text (0.0 - 1.0).
 
     Factors (weighted):
@@ -280,7 +272,8 @@ def _compute_quality_score(
     lines = text.split("\n")
     if lines:
         meaningful = sum(
-            1 for line in lines
+            1
+            for line in lines
             if len(line.strip()) > 10  # More than just a number or header artifact
         )
         factors["line_structure"] = min(1.0, meaningful / max(len(lines), 1))

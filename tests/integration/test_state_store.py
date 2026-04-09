@@ -9,16 +9,15 @@
     requires_services: [postgres]
     tags: [integration, state, postgres, async]
 """
+
 import os
 import uuid
 
 import pytest
 import pytest_asyncio
-
 from sqlalchemy import text as sa_text
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from aiflow.state.models import Base, WorkflowRunModel, StepRunModel
 from aiflow.state.repository import StateRepository
 
 # Use Docker Compose DB (port 5433) or override via env
@@ -104,7 +103,8 @@ class TestWorkflowRunCRUD:
         )
         await repo.update_workflow_run_status(run.id, "running")
         await repo.update_workflow_run_status(
-            run.id, "completed",
+            run.id,
+            "completed",
             output_data={"result": "ok"},
             total_cost_usd=0.05,
         )
@@ -122,7 +122,8 @@ class TestWorkflowRunCRUD:
             input_data={},
         )
         await repo.update_workflow_run_status(
-            run.id, "failed",
+            run.id,
+            "failed",
             error="timeout occurred",
             error_type="LLMTimeoutError",
         )

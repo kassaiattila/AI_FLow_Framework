@@ -16,34 +16,33 @@ Tartalomjegyzek:
 Forras: Cubix EDU - ML Engineering, 3. het tananyag
 """
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from scipy import stats
 
+# Sklearn - Pipeline es ColumnTransformer
+from sklearn.compose import ColumnTransformer
+
 # Sklearn - Imputalas
-from sklearn.impute import SimpleImputer, KNNImputer
+from sklearn.impute import KNNImputer, SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
+
+# Sklearn - Modell (a vegso pipeline peldahoz)
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
 
 # Sklearn - Encoding
 from sklearn.preprocessing import (
     LabelEncoder,
+    MinMaxScaler,
     OneHotEncoder,
     OrdinalEncoder,
-    StandardScaler,
-    MinMaxScaler,
-    RobustScaler,
     PolynomialFeatures,
-    FunctionTransformer,
+    RobustScaler,
+    StandardScaler,
 )
-
-# Sklearn - Pipeline es ColumnTransformer
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-
-# Sklearn - Modell (a vegso pipeline peldahoz)
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
 
 # Sklearn - TargetEncoder (sklearn >= 1.3)
 try:
@@ -227,7 +226,7 @@ def hianyzoo_ertekek_kezelese(df):
     eredeti_atlag = df["jovedelem"].mean()
     median_atlag = df_imputed_median["jovedelem"].mean()
     knn_atlag = df_knn["jovedelem"].mean()
-    print(f"\nJovedelem atlag osszehasonlitas:")
+    print("\nJovedelem atlag osszehasonlitas:")
     print(f"  Eredeti (NaN nelkul): {eredeti_atlag:,.0f} Ft")
     print(f"  Median imputalas:     {median_atlag:,.0f} Ft")
     print(f"  KNN imputalas:        {knn_atlag:,.0f} Ft")
@@ -388,7 +387,7 @@ def feature_engineering(df):
         df_fe["tapasztalat_ev"] / munka_evek.clip(lower=1)
     )
 
-    print(f"Uj feature-ok: jovedelem_per_kor, tapasztalat_arany")
+    print("Uj feature-ok: jovedelem_per_kor, tapasztalat_arany")
     print(df_fe[["jovedelem_per_kor", "tapasztalat_arany"]].describe().round(2))
 
     # --- 3.2 Polinomialis feature-ok ---
@@ -397,7 +396,7 @@ def feature_engineering(df):
     print("\n--- 3.2 Polinomialis feature-ok (fokszam=2) ---")
     poly = PolynomialFeatures(degree=2, include_bias=False, interaction_only=False)
     numerikus_cols = ["kor", "jovedelem"]
-    poly_features = poly.fit_transform(df_fe[numerikus_cols].fillna(0))
+    poly.fit_transform(df_fe[numerikus_cols].fillna(0))
     poly_nevek = poly.get_feature_names_out(numerikus_cols)
     print(f"Eredeti feature-ok szama: {len(numerikus_cols)}")
     print(f"Polinomialis feature-ok szama: {len(poly_nevek)}")
@@ -408,7 +407,7 @@ def feature_engineering(df):
     poly_inter = PolynomialFeatures(
         degree=2, include_bias=False, interaction_only=True
     )
-    inter_features = poly_inter.fit_transform(df_fe[numerikus_cols].fillna(0))
+    poly_inter.fit_transform(df_fe[numerikus_cols].fillna(0))
     inter_nevek = poly_inter.get_feature_names_out(numerikus_cols)
     print(f"Interakcios feature-ok: {list(inter_nevek)}")
     # Pelda: kor * jovedelem -> magasabb erteku idosebb, jomodunak
@@ -448,7 +447,7 @@ def feature_engineering(df):
         bins=[0, 25, 35, 45, 55, 100],
         labels=["fiatal", "fiatal_felnottt", "kozepkoru", "idosebb", "idos"],
     )
-    print(f"Kor csoportok eloszlasa:")
+    print("Kor csoportok eloszlasa:")
     print(df_fe["kor_csoport"].value_counts().sort_index())
 
     return df_fe
@@ -490,9 +489,9 @@ def encoding_bemutatasa(df):
     print("\n--- 4.1 LabelEncoder ---")
     le = LabelEncoder()
     df_enc["nem_label"] = le.fit_transform(df_enc["nem"])
-    print(f"Nem oszlop kodolasa: {dict(zip(le.classes_, le.transform(le.classes_)))}")
-    print(f"FIGYELEM: LabelEncoder hamis sorrendet feltetelezhet az "
-          f"algoritmusnal!")
+    print(f"Nem oszlop kodolasa: {dict(zip(le.classes_, le.transform(le.classes_), strict=False))}")
+    print("FIGYELEM: LabelEncoder hamis sorrendet feltetelezhet az "
+          "algoritmusnal!")
 
     # --- 4.2 OrdinalEncoder ---
     # Akkor hasznaljuk, ha VAN termeszetes sorrend a kategoriak kozott
@@ -504,8 +503,8 @@ def encoding_bemutatasa(df):
     df_enc["vegzettseg_ordinal"] = oe.fit_transform(
         df_enc[["vegzettseg"]]
     ).astype(int)
-    print(f"Vegzettseg ordinalis kodolasa:")
-    vegz_mapping = dict(zip(sorrend[0], range(len(sorrend[0]))))
+    print("Vegzettseg ordinalis kodolasa:")
+    vegz_mapping = dict(zip(sorrend[0], range(len(sorrend[0])), strict=False))
     print(f"  {vegz_mapping}")
 
     # --- 4.3 OneHotEncoder ---
@@ -516,7 +515,7 @@ def encoding_bemutatasa(df):
     varos_encoded = ohe.fit_transform(df_enc[["varos"]])
     varos_nevek = ohe.get_feature_names_out(["varos"])
     print(f"Varos OneHot oszlopok: {list(varos_nevek)}")
-    print(f"Pelda (elso 3 sor):")
+    print("Pelda (elso 3 sor):")
     print(pd.DataFrame(varos_encoded[:3], columns=varos_nevek))
 
     # Dummy encoding (drop='first' -> egy oszloppal kevesebb)
@@ -525,7 +524,7 @@ def encoding_bemutatasa(df):
     ohe_dummy = OneHotEncoder(
         sparse_output=False, drop="first", handle_unknown="ignore"
     )
-    varos_dummy = ohe_dummy.fit_transform(df_enc[["varos"]])
+    ohe_dummy.fit_transform(df_enc[["varos"]])
     varos_dummy_nevek = ohe_dummy.get_feature_names_out(["varos"])
     print(f"Dummy oszlopok (egy kevesebbel): {list(varos_dummy_nevek)}")
 
@@ -538,7 +537,7 @@ def encoding_bemutatasa(df):
         df_enc["varos_target"] = te.fit_transform(
             df_enc[["varos"]], df_enc["vasarolt"]
         )
-        print(f"Varos TargetEncoder ertekek (elso 5 sor):")
+        print("Varos TargetEncoder ertekek (elso 5 sor):")
         print(df_enc[["varos", "varos_target"]].head(10))
     else:
         print("\n--- 4.4 TargetEncoder ---")
@@ -803,7 +802,7 @@ def teljes_pipeline():
     pontossag = accuracy_score(y_test, y_pred)
 
     print(f"\nModell pontossag (accuracy): {pontossag:.4f}")
-    print(f"\nReszletes kiertekeles:")
+    print("\nReszletes kiertekeles:")
     print(classification_report(
         y_test, y_pred, target_names=["Nem vasarolt", "Vasarolt"]
     ))
@@ -844,7 +843,7 @@ if __name__ == "__main__":
     df = minta_adathalmaz_letrehozasa()
     print(f"\nMinta adathalmaz letrehozva: {df.shape[0]} sor, {df.shape[1]} oszlop")
     print(f"Oszlopok: {list(df.columns)}")
-    print(f"\nElso 5 sor:")
+    print("\nElso 5 sor:")
     print(df.head())
 
     # 1. Hianyzoo ertekek kezelese

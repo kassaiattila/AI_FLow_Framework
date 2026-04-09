@@ -1,17 +1,18 @@
-"""Security layer: authentication, RBAC, and input/output guardrails."""
+"""Security layer: authentication, RBAC, guardrails, and upload safety."""
 
 from aiflow.security.auth import (
+    APIKeyProvider,
+    AuthProvider,
     AuthResult,
     TokenPayload,
-    AuthProvider,
-    APIKeyProvider,
 )
-from aiflow.security.rbac import Role, Permission, RBACManager
 from aiflow.security.guardrails import (
     GuardrailResult,
     InputGuardrail,
     OutputGuardrail,
 )
+from aiflow.security.rbac import Permission, RBACManager, Role
+from aiflow.security.upload import secure_filename, validate_upload_path
 
 __all__ = [
     "AuthResult",
@@ -24,4 +25,6 @@ __all__ = [
     "GuardrailResult",
     "InputGuardrail",
     "OutputGuardrail",
+    "secure_filename",
+    "validate_upload_path",
 ]

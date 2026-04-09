@@ -1,4 +1,5 @@
 """Request-scoped execution context that flows through every component."""
+
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -10,6 +11,7 @@ __all__ = ["ExecutionContext", "TraceContext"]
 
 class TraceContext(BaseModel):
     """Tracing information for Langfuse + OpenTelemetry."""
+
     trace_id: str = Field(default_factory=lambda: str(uuid4()))
     span_id: str | None = None
     langfuse_trace_id: str | None = None
@@ -55,7 +57,9 @@ class ExecutionContext(BaseModel):
 
     def with_checkpoint(self, data: dict[str, Any]) -> "ExecutionContext":
         """Return new context with updated checkpoint."""
-        return self.model_copy(update={
-            "checkpoint_data": data,
-            "checkpoint_version": self.checkpoint_version + 1,
-        })
+        return self.model_copy(
+            update={
+                "checkpoint_data": data,
+                "checkpoint_version": self.checkpoint_version + 1,
+            }
+        )

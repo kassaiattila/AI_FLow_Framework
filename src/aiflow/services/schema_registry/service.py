@@ -3,6 +3,7 @@
 Wraps the file-based SchemaRegistry as a BaseService with lifecycle management.
 Supports customer-specific overrides and schema caching.
 """
+
 from __future__ import annotations
 
 import json
@@ -56,9 +57,7 @@ class SchemaRegistryService(BaseService):
 
     async def _start(self) -> None:
         if not self._skills_dir.exists():
-            self._logger.warning(
-                "skills_dir_missing", path=str(self._skills_dir)
-            )
+            self._logger.warning("skills_dir_missing", path=str(self._skills_dir))
 
     async def _stop(self) -> None:
         self._cache.clear()
@@ -106,9 +105,7 @@ class SchemaRegistryService(BaseService):
 
         data = json.loads(path.read_text(encoding="utf-8"))
         self._cache[cache_key] = data
-        self._logger.info(
-            "schema_loaded", skill=skill_name, type=schema_type, version=version
-        )
+        self._logger.info("schema_loaded", skill=skill_name, type=schema_type, version=version)
         return data
 
     def list_versions(self, skill_name: str) -> list[str]:
@@ -116,15 +113,9 @@ class SchemaRegistryService(BaseService):
         schema_dir = self._skills_dir / skill_name / "schemas"
         if not schema_dir.exists():
             return []
-        return sorted(
-            d.name
-            for d in schema_dir.iterdir()
-            if d.is_dir() and d.name.startswith("v")
-        )
+        return sorted(d.name for d in schema_dir.iterdir() if d.is_dir() and d.name.startswith("v"))
 
-    def list_schema_types(
-        self, skill_name: str, version: str = "latest"
-    ) -> list[str]:
+    def list_schema_types(self, skill_name: str, version: str = "latest") -> list[str]:
         """List available schema types for a version."""
         schema_dir = self._skills_dir / skill_name / "schemas"
         if version == "latest":
@@ -134,16 +125,12 @@ class SchemaRegistryService(BaseService):
             return []
         return sorted(f.stem for f in ver_dir.glob("*.json"))
 
-    def get_items(
-        self, skill_name: str, schema_type: str, version: str = "latest"
-    ) -> list[dict]:
+    def get_items(self, skill_name: str, schema_type: str, version: str = "latest") -> list[dict]:
         """Get the main items list from a schema."""
         schema = self.load_schema(skill_name, schema_type, version)
         for key in [
             schema_type,
-            f"{schema_type[:-1]}_types"
-            if schema_type.endswith("s")
-            else schema_type,
+            f"{schema_type[:-1]}_types" if schema_type.endswith("s") else schema_type,
             "items",
             "definitions",
         ]:
@@ -157,9 +144,7 @@ class SchemaRegistryService(BaseService):
 
     def _find_latest_version(self, schema_dir: Path) -> str:
         versions = sorted(
-            d.name
-            for d in schema_dir.iterdir()
-            if d.is_dir() and d.name.startswith("v")
+            d.name for d in schema_dir.iterdir() if d.is_dir() and d.name.startswith("v")
         )
         if not versions:
             raise FileNotFoundError(f"No versions in {schema_dir}")

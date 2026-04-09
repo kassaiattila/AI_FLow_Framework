@@ -27,7 +27,6 @@ from aiflow.pipeline.adapters.data_router_adapter import (
     RouteFilesOutput,
 )
 
-
 # --- Fake service ---
 
 
@@ -195,7 +194,5 @@ class TestRouteAdapter:
         assert len(inp.files) == 1
 
     def test_route_output_schema(self) -> None:
-        out = RouteFilesOutput(
-            routed_files=[], total=3, success_count=2, failed_count=1
-        )
+        out = RouteFilesOutput(routed_files=[], total=3, success_count=2, failed_count=1)
         assert out.failed_count == 1

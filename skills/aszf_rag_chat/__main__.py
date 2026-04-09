@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import sys
 import time
 from pathlib import Path
@@ -19,14 +18,19 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 
 async def run_ingest(source_path: str, collection: str, language: str) -> None:
     """Process documents through the ingestion pipeline."""
     from skills.aszf_rag_chat.workflows.ingest import (
-        load_documents, parse_documents, chunk_documents,
-        generate_embeddings, store_chunks, verify_ingestion,
+        chunk_documents,
+        generate_embeddings,
+        load_documents,
+        parse_documents,
+        store_chunks,
+        verify_ingestion,
     )
 
     source = Path(source_path)
@@ -74,8 +78,12 @@ async def run_query(
 ) -> None:
     """Ask a question against the ingested documents."""
     from skills.aszf_rag_chat.workflows.query import (
-        rewrite_query, search_documents, build_context,
-        generate_answer, extract_citations, detect_hallucination,
+        build_context,
+        detect_hallucination,
+        extract_citations,
+        generate_answer,
+        rewrite_query,
+        search_documents,
     )
 
     print("ASZF RAG Query Pipeline")
@@ -115,7 +123,7 @@ async def run_query(
     print(f"Valasz ({role}):")
     print(f"{'=' * 60}")
     print(r6["answer"])
-    print(f"\nHivatkozasok:")
+    print("\nHivatkozasok:")
     for cit in r6.get("citations", []):
         doc = cit.get("document_name", "?")
         sec = cit.get("section", "")

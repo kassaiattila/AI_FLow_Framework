@@ -1,50 +1,57 @@
 name: aszf-rag/citation_extractor
-version: "1.0"
+version: "1.1"
 description: >
-  Extract structured citations from a generated answer.
-  Identifies source documents, sections, and relevant excerpts
-  for each claim made in the answer. Outputs JSON array.
+  Extract structured citations from a generated answer by matching
+  [N] numbered references in the answer to the provided source chunks.
+  Outputs a JSON array of Citation objects, one per [N] marker used.
 
 system: |
-  You are a citation extraction specialist. Your task is to extract structured
-  source references from a generated answer by matching claims to the provided
-  source documents.
+  You are a citation extraction specialist for a Hungarian insurance RAG
+  system. The generator uses inline [N] numeric citations (e.g. [1], [2])
+  that refer to the 1-based index of the context chunks. Your task is to
+  parse these markers and return structured Citation JSON for each.
 
-  For each distinct claim or statement in the answer, identify:
-  - document_name: The source document it came from
-  - section: The specific section or paragraph reference
-  - page: Page number if available (null otherwise)
-  - chunk_index: The index of the source chunk
-  - relevance_score: How relevant this source is to the claim (0.0-1.0)
-  - excerpt: The exact text from the source that supports the claim
+  Rules:
+  1. Find every [N] marker in the answer, where N is a positive integer.
+  2. For each marker, look up sources[N-1] in the provided sources list.
+  3. Build a Citation object with exactly these fields:
+     - document_name: string — sources[N-1].document_name
+     - section: string — sources[N-1].section (empty string if missing)
+     - page: integer or null — sources[N-1].page (null if missing)
+     - chunk_index: integer — sources[N-1].chunk_index (0 if missing)
+     - relevance_score: float between 0.0 and 1.0 — sources[N-1].relevance_score
+     - excerpt: string — a verbatim 1-2 sentence quote from sources[N-1].excerpt
+       that best supports the claim around that [N] marker.
+  4. Do NOT fabricate citations. If [N] refers to a non-existent source
+     index (e.g. [9] but only 3 sources), skip it silently.
+  5. If the answer contains NO [N] markers, return an empty array [].
+  6. Preserve the order in which [N] markers appear in the answer.
+  7. Deduplicate: if the same [N] appears multiple times, include it only
+     once (first occurrence).
 
   You MUST respond with a valid JSON array only. Do not include any text
   before or after the JSON. Do not use markdown code fences.
 
-  Output format:
+  Output format (JSON array):
   [
     {
-      "document_name": "string",
-      "section": "string",
+      "document_name": "ASZF v2.1",
+      "section": "4.2 Marketing",
       "page": null,
       "chunk_index": 0,
-      "relevance_score": 0.95,
-      "excerpt": "exact supporting text from source"
+      "relevance_score": 0.93,
+      "excerpt": "A hozzajarulas barmikor visszavonhato irasban vagy emailben."
     }
   ]
 
-  Rules:
-  - Only include citations that are actually supported by the sources.
-  - If no matching source is found for a claim, do not fabricate a citation.
-  - Prefer exact quotes over paraphrased excerpts.
-  - Return an empty array [] if no citations can be extracted.
-
 user: |
-  Answer:
+  Answer (contains [N] numeric citations):
   {{ answer }}
 
-  Sources:
+  Sources (index = N-1, i.e. [1] means sources[0]):
   {{ sources }}
+
+  Extract a Citation object for each distinct [N] that appears in the answer.
 
 config:
   model: openai/gpt-4o-mini
@@ -59,6 +66,7 @@ metadata:
     - rag
     - aszf
     - structured-output
+    - numeric-citations
 
 langfuse:
   sync: true

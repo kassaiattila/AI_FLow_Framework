@@ -9,23 +9,41 @@
     requires_services: []
     tags: [errors, exceptions, hierarchy]
 """
+
 import pytest
+
 from aiflow.core.errors import (
-    AIFlowError, TransientError, PermanentError,
-    LLMTimeoutError, LLMRateLimitError, ExternalServiceError,
-    BudgetExceededError, QualityGateFailedError, InvalidInputError,
-    WorkflowNotFoundError, AuthorizationError, CircuitBreakerOpenError,
-    HumanReviewRequiredError, ConfigurationError,
+    AIFlowError,
+    AuthorizationError,
+    BudgetExceededError,
+    CircuitBreakerOpenError,
+    ConfigurationError,
+    ExternalServiceError,
+    HumanReviewRequiredError,
+    InvalidInputError,
+    LLMRateLimitError,
+    LLMTimeoutError,
+    PermanentError,
+    QualityGateFailedError,
+    TransientError,
+    WorkflowNotFoundError,
 )
 
 
 class TestErrorHierarchy:
     def test_all_errors_inherit_from_aiflow_error(self):
         errors = [
-            LLMTimeoutError, LLMRateLimitError, ExternalServiceError,
-            BudgetExceededError, QualityGateFailedError, InvalidInputError,
-            WorkflowNotFoundError, AuthorizationError, CircuitBreakerOpenError,
-            HumanReviewRequiredError, ConfigurationError,
+            LLMTimeoutError,
+            LLMRateLimitError,
+            ExternalServiceError,
+            BudgetExceededError,
+            QualityGateFailedError,
+            InvalidInputError,
+            WorkflowNotFoundError,
+            AuthorizationError,
+            CircuitBreakerOpenError,
+            HumanReviewRequiredError,
+            ConfigurationError,
         ]
         for error_cls in errors:
             assert issubclass(error_cls, AIFlowError)
@@ -37,8 +55,13 @@ class TestErrorHierarchy:
             assert issubclass(error_cls, TransientError)
 
     def test_permanent_errors_are_not_transient(self):
-        permanent = [BudgetExceededError, QualityGateFailedError, InvalidInputError,
-                     WorkflowNotFoundError, AuthorizationError]
+        permanent = [
+            BudgetExceededError,
+            QualityGateFailedError,
+            InvalidInputError,
+            WorkflowNotFoundError,
+            AuthorizationError,
+        ]
         for error_cls in permanent:
             assert error_cls.is_transient is False
             assert issubclass(error_cls, PermanentError)

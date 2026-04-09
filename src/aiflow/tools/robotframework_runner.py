@@ -13,17 +13,16 @@ Usage:
         output_dir=Path("output/robot_logs"),
     )
 """
+
 from __future__ import annotations
 
 import asyncio
 import sys
 import time
 from pathlib import Path
-from typing import Any
-
-from pydantic import BaseModel, Field
 
 import structlog
+from pydantic import BaseModel
 
 from aiflow.core.errors import AIFlowError
 
@@ -197,20 +196,12 @@ class RobotFrameworkRunner:
                 stdout=stdout_bytes.decode("utf-8", errors="replace"),
                 stderr=stderr_bytes.decode("utf-8", errors="replace"),
                 duration_ms=round(duration, 2),
-                log_html=(
-                    str(out_dir / "log.html")
-                    if (out_dir / "log.html").exists()
-                    else ""
-                ),
+                log_html=(str(out_dir / "log.html") if (out_dir / "log.html").exists() else ""),
                 report_html=(
-                    str(out_dir / "report.html")
-                    if (out_dir / "report.html").exists()
-                    else ""
+                    str(out_dir / "report.html") if (out_dir / "report.html").exists() else ""
                 ),
                 output_xml=(
-                    str(out_dir / "output.xml")
-                    if (out_dir / "output.xml").exists()
-                    else ""
+                    str(out_dir / "output.xml") if (out_dir / "output.xml").exists() else ""
                 ),
             )
 
@@ -224,11 +215,9 @@ class RobotFrameworkRunner:
 
             return result
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             duration = (time.monotonic() - start) * 1000
-            logger.error(
-                "robot_task_timeout", task=task_name, timeout=effective_timeout
-            )
+            logger.error("robot_task_timeout", task=task_name, timeout=effective_timeout)
             try:
                 proc.kill()
                 await proc.wait()

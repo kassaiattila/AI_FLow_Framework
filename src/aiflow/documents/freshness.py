@@ -3,6 +3,7 @@
 Determines whether documents are still valid based on their effective dates
 and status, producing per-collection freshness reports.
 """
+
 from __future__ import annotations
 
 from datetime import date
@@ -64,10 +65,7 @@ class FreshnessEnforcer:
         if document.effective_from is not None and document.effective_from > self._today:
             return False
 
-        if document.effective_until is not None and document.effective_until < self._today:
-            return False
-
-        return True
+        return not (document.effective_until is not None and document.effective_until < self._today)
 
     def classify(self, document: Document) -> str:
         """Classify a document as 'active', 'expired', 'future', or 'stale'.

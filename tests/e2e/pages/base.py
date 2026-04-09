@@ -1,7 +1,8 @@
 """Base Page Object for AIFlow admin E2E tests."""
+
 from __future__ import annotations
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page
 
 BASE_URL = "http://localhost:5174"
 

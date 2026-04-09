@@ -6,25 +6,26 @@ Pipeline: rewrite_query -> search_documents -> build_context
 Answers user questions by retrieving relevant ASZF document chunks
 via hybrid search and generating grounded, cited responses.
 """
+
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 from typing import Any
 
 import asyncpg
 import structlog
+from skills.aszf_rag_chat.models import Citation, RoleType
 
 from aiflow.engine.step import step
-from aiflow.engine.workflow import workflow, WorkflowBuilder
-from aiflow.models.client import ModelClient
+from aiflow.engine.workflow import WorkflowBuilder, workflow
 from aiflow.models.backends.litellm_backend import LiteLLMBackend
+from aiflow.models.client import ModelClient
 from aiflow.prompts.manager import PromptManager
-from aiflow.vectorstore.pgvector_store import PgVectorStore
 from aiflow.vectorstore.embedder import Embedder
+from aiflow.vectorstore.pgvector_store import PgVectorStore
 from aiflow.vectorstore.search import HybridSearchEngine, SearchConfig
-
-from skills.aszf_rag_chat.models import Citation, RoleType
 
 __all__ = [
     "rewrite_query",
@@ -49,7 +50,10 @@ _prompt_manager = PromptManager()
 _prompt_manager.register_yaml_dir(Path(__file__).parent.parent / "prompts")
 
 import os as _os
-_db_url = _os.getenv("AIFLOW_DATABASE_URL", "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev")
+
+_db_url = _os.getenv(
+    "AIFLOW_DATABASE_URL", "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev"
+)
 _vector_store = PgVectorStore(database_url=_db_url, table_name="rag_chunks")
 _embedder = Embedder(
     _model_client,
@@ -82,6 +86,7 @@ _ROLE_PROMPT_MAP = {
 # Steps
 # ---------------------------------------------------------------------------
 
+
 @step(name="rewrite_query", description="Expand query with Hungarian legal terms")
 async def rewrite_query(data: dict) -> dict:
     """Rewrite user question for optimal retrieval.
@@ -104,10 +109,12 @@ async def rewrite_query(data: dict) -> dict:
         raise ValueError("Question cannot be empty")
 
     prompt = _prompt_manager.get("aszf-rag/query_rewriter")
-    messages = prompt.compile(variables={
-        "question": question,
-        "language": language,
-    })
+    messages = prompt.compile(
+        variables={
+            "question": question,
+            "language": language,
+        }
+    )
 
     result = await _model_client.generate(
         messages=messages,
@@ -246,15 +253,17 @@ async def build_context(data: dict) -> dict:
 
         context_parts.append(f"{source_line}\nContent: {content}")
 
-        sources.append({
-            "index": idx,
-            "document_name": doc_name,
-            "section": section,
-            "page": page,
-            "chunk_index": chunk_meta.get("chunk_index", 0),
-            "relevance_score": score,
-            "excerpt": content[:200] if content else "",
-        })
+        sources.append(
+            {
+                "index": idx,
+                "document_name": doc_name,
+                "section": section,
+                "page": page,
+                "chunk_index": chunk_meta.get("chunk_index", 0),
+                "relevance_score": score,
+                "excerpt": content[:200] if content else "",
+            }
+        )
 
     context = "\n\n".join(context_parts)
 
@@ -304,20 +313,24 @@ async def generate_answer(data: dict) -> dict:
     prompt_name = _ROLE_PROMPT_MAP.get(role, _ROLE_PROMPT_MAP[RoleType.BASELINE])
     try:
         system_prompt = _prompt_manager.get(prompt_name)
-        system_messages = system_prompt.compile(variables={
-            "context": context,
-            "question": question,
-            "company_name": data.get("company_name", "Allianz Hungaria Zrt."),
-            "history": str(conversation_history[-6:]) if conversation_history else "",
-        })
+        system_messages = system_prompt.compile(
+            variables={
+                "context": context,
+                "question": question,
+                "company_name": data.get("company_name", "Allianz Hungaria Zrt."),
+                "history": str(conversation_history[-6:]) if conversation_history else "",
+            }
+        )
         # Ensure the context + question are in a user message
         # (role prompts may only have system: without user:)
         has_user_msg = any(m.get("role") == "user" for m in system_messages)
         if not has_user_msg:
-            system_messages.append({
-                "role": "user",
-                "content": f"Kontextus a dokumentumokbol:\n\n{context}\n\n---\nKerdes: {question}",
-            })
+            system_messages.append(
+                {
+                    "role": "user",
+                    "content": f"Kontextus a dokumentumokbol:\n\n{context}\n\n---\nKerdes: {question}",
+                }
+            )
     except Exception as exc:
         logger.warning(
             "generate_answer.prompt_fallback",
@@ -347,10 +360,12 @@ async def generate_answer(data: dict) -> dict:
         # Insert history messages before the last user message
         history_messages = []
         for msg in conversation_history:
-            history_messages.append({
-                "role": msg.get("role", "user"),
-                "content": msg.get("content", ""),
-            })
+            history_messages.append(
+                {
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", ""),
+                }
+            )
         # system + history + user
         if len(system_messages) >= 2:
             system_messages = [system_messages[0]] + history_messages + system_messages[1:]
@@ -409,11 +424,13 @@ async def extract_citations(data: dict) -> dict:
     search_results = data.get("search_results", [])
 
     prompt = _prompt_manager.get("aszf-rag/citation_extractor")
-    messages = prompt.compile(variables={
-        "answer": answer,
-        "context": context,
-        "sources": str(sources),
-    })
+    messages = prompt.compile(
+        variables={
+            "answer": answer,
+            "context": context,
+            "sources": str(sources),
+        }
+    )
 
     result = await _model_client.generate(
         messages=messages,
@@ -427,8 +444,7 @@ async def extract_citations(data: dict) -> dict:
     # Convert Citation objects to dicts
     if isinstance(citations_raw, list):
         citations = [
-            c.model_dump(mode="json") if hasattr(c, "model_dump") else c
-            for c in citations_raw
+            c.model_dump(mode="json") if hasattr(c, "model_dump") else c for c in citations_raw
         ]
     else:
         citations = []
@@ -470,19 +486,18 @@ async def detect_hallucination(data: dict) -> dict:
     """
     answer = data.get("answer", "")
     citations = data.get("citations", [])
-    sources = data.get("sources", [])
     search_results = data.get("search_results", [])
 
     # Reconstruct context from sources for verification
-    context_for_check = "\n\n".join(
-        r.get("content", "") for r in search_results
-    )
+    context_for_check = "\n\n".join(r.get("content", "") for r in search_results)
 
     prompt = _prompt_manager.get("aszf-rag/hallucination_detector")
-    messages = prompt.compile(variables={
-        "answer": answer,
-        "context": context_for_check,
-    })
+    messages = prompt.compile(
+        variables={
+            "answer": answer,
+            "context": context_for_check,
+        }
+    )
 
     result = await _model_client.generate(
         messages=messages,
@@ -491,23 +506,38 @@ async def detect_hallucination(data: dict) -> dict:
         max_tokens=prompt.config.max_tokens,
     )
 
-    # Parse score from response (expect a float between 0.0 and 1.0)
+    # Parse score from response. Accept three formats:
+    #   1. Strict JSON dict: {"score": float, "claims": [...], "hallucinated_claims": [...]}
+    #   2. Bare JSON scalar: 0.85  (legacy prompt returned a float)
+    #   3. Plain text float: "0.85 some explanation"  (final fallback)
     score_text = result.output.text.strip()
+    hallucinated_claims: list[str] = []
     try:
-        hallucination_score = float(score_text.split()[0])
-        hallucination_score = max(0.0, min(1.0, hallucination_score))
-    except (ValueError, IndexError):
-        # Fallback: if we can't parse, assume moderate grounding
-        logger.warning(
-            "detect_hallucination.parse_error",
-            raw=score_text[:100],
-        )
-        hallucination_score = 0.5
+        payload = json.loads(score_text)
+        if isinstance(payload, dict):
+            raw_score = payload.get("score", 0.5)
+            hallucinated_claims = payload.get("hallucinated_claims", []) or []
+        else:
+            # bare JSON scalar (int, float, bool)
+            raw_score = payload
+        hallucination_score = max(0.0, min(1.0, float(raw_score)))
+    except (json.JSONDecodeError, TypeError, ValueError):
+        # Legacy fallback: bare float as first token in plain text
+        try:
+            hallucination_score = float(score_text.split()[0])
+            hallucination_score = max(0.0, min(1.0, hallucination_score))
+        except (ValueError, IndexError):
+            logger.warning(
+                "detect_hallucination.parse_error",
+                raw=score_text[:100],
+            )
+            hallucination_score = 0.5
 
     logger.info(
         "detect_hallucination.done",
         score=hallucination_score,
-        grounded=hallucination_score >= 0.7,
+        grounded=hallucination_score >= 0.9,
+        unsupported_claim_count=len(hallucinated_claims),
     )
 
     # Build final QueryOutput-compatible dict
@@ -516,6 +546,7 @@ async def detect_hallucination(data: dict) -> dict:
         "citations": citations,
         "search_results": search_results,
         "hallucination_score": hallucination_score,
+        "hallucinated_claims": hallucinated_claims,
         "processing_time_ms": 0.0,  # filled by runner
         "tokens_used": 0,
         "cost_usd": result.cost_usd,
@@ -592,23 +623,26 @@ async def log_query(data: dict) -> dict:
     Output:
         Same as input (pass-through).
     """
-    await _log_query_to_db({
-        "collection": data.get("collection", "default"),
-        "question": data.get("question", data.get("original_question", "")),
-        "rewritten_query": data.get("rewritten_query", ""),
-        "answer": data.get("answer", ""),
-        "sources_count": len(data.get("search_results", [])),
-        "hallucination_score": data.get("hallucination_score"),
-        "response_time_ms": data.get("processing_time_ms"),
-        "cost_usd": data.get("cost_usd", 0.0),
-        "role": data.get("role", "baseline"),
-    })
+    await _log_query_to_db(
+        {
+            "collection": data.get("collection", "default"),
+            "question": data.get("question", data.get("original_question", "")),
+            "rewritten_query": data.get("rewritten_query", ""),
+            "answer": data.get("answer", ""),
+            "sources_count": len(data.get("search_results", [])),
+            "hallucination_score": data.get("hallucination_score"),
+            "response_time_ms": data.get("processing_time_ms"),
+            "cost_usd": data.get("cost_usd", 0.0),
+            "role": data.get("role", "baseline"),
+        }
+    )
     return data
 
 
 # ---------------------------------------------------------------------------
 # Workflow registration
 # ---------------------------------------------------------------------------
+
 
 @workflow(name="aszf-rag-query", version="1.0.0", skill="aszf_rag_chat")
 def aszf_rag_query(wf: WorkflowBuilder) -> None:

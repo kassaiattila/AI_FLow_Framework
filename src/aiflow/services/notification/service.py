@@ -275,9 +275,7 @@ class NotificationService(BaseService):
         config.updated_at = str(row[2])  # type: ignore[index]
         return config
 
-    async def update_channel(
-        self, channel_id: str, config: ChannelConfig
-    ) -> ChannelConfig:
+    async def update_channel(self, channel_id: str, config: ChannelConfig) -> ChannelConfig:
         if self._session_factory is None:
             raise RuntimeError("No session factory — cannot persist channel")
         import json

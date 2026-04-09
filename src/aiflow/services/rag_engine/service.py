@@ -6,11 +6,11 @@ Generalizes the aszf_rag_chat skill into a reusable service supporting:
 - Hybrid RAG query (vector + BM25 + RRF → LLM generation)
 - Feedback collection + statistics
 """
+
 from __future__ import annotations
 
 import os
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +29,7 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Config & Models
 # ---------------------------------------------------------------------------
+
 
 class RAGEngineConfig(ServiceConfig):
     """Configuration for the RAG Engine service."""
@@ -95,6 +96,7 @@ class CollectionStats(BaseModel):
 # Service
 # ---------------------------------------------------------------------------
 
+
 class RAGEngineService(BaseService):
     """Multi-collection RAG Engine service.
 
@@ -141,11 +143,11 @@ class RAGEngineService(BaseService):
         sync_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
 
         try:
-            from aiflow.vectorstore.pgvector_store import PgVectorStore
-            from aiflow.vectorstore.embedder import Embedder
-            from aiflow.vectorstore.search import HybridSearchEngine, SearchConfig
-            from aiflow.models.client import ModelClient
             from aiflow.models.backends.litellm_backend import LiteLLMBackend
+            from aiflow.models.client import ModelClient
+            from aiflow.vectorstore.embedder import Embedder
+            from aiflow.vectorstore.pgvector_store import PgVectorStore
+            from aiflow.vectorstore.search import HybridSearchEngine, SearchConfig
 
             backend = LiteLLMBackend()
             self._model_client = ModelClient(
@@ -166,9 +168,7 @@ class RAGEngineService(BaseService):
                 top_k=self._ext_config.default_top_k,
                 search_mode="hybrid",
             )
-            self._search_engine = HybridSearchEngine.from_config(
-                self._vector_store, search_config
-            )
+            self._search_engine = HybridSearchEngine.from_config(self._vector_store, search_config)
             self._logger.info("rag_engine_modules_initialized")
         except ImportError as e:
             self._logger.warning("rag_engine_modules_partial", error=str(e))
@@ -370,14 +370,16 @@ class RAGEngineService(BaseService):
         total_chunks = 0
 
         try:
+            from aiflow.ingestion.chunkers.recursive_chunker import ChunkingConfig, RecursiveChunker
             from aiflow.ingestion.parsers.docling_parser import DoclingParser
-            from aiflow.ingestion.chunkers.recursive_chunker import RecursiveChunker, ChunkingConfig
 
             parser = DoclingParser()
-            chunker = RecursiveChunker(ChunkingConfig(
-                chunk_size=self._ext_config.default_chunk_size,
-                chunk_overlap=self._ext_config.default_chunk_overlap,
-            ))
+            chunker = RecursiveChunker(
+                ChunkingConfig(
+                    chunk_size=self._ext_config.default_chunk_size,
+                    chunk_overlap=self._ext_config.default_chunk_overlap,
+                )
+            )
 
             for fp in file_paths:
                 try:
@@ -389,11 +391,14 @@ class RAGEngineService(BaseService):
                         continue
 
                     # Chunk
-                    chunks = chunker.chunk_text(doc_text, metadata={
-                        "document_name": doc.file_name or Path(fp).name,
-                        "file_type": doc.file_type,
-                        "language": language or coll.language,
-                    })
+                    chunks = chunker.chunk_text(
+                        doc_text,
+                        metadata={
+                            "document_name": doc.file_name or Path(fp).name,
+                            "file_type": doc.file_type,
+                            "language": language or coll.language,
+                        },
+                    )
 
                     if not chunks:
                         errors.append(f"{Path(fp).name}: no chunks generated")
@@ -444,7 +449,11 @@ class RAGEngineService(BaseService):
                             updated_at = NOW()
                         WHERE id = :id
                     """),
-                    {"docs": len(file_paths) - len(errors), "chunks": total_chunks, "id": collection_id},
+                    {
+                        "docs": len(file_paths) - len(errors),
+                        "chunks": total_chunks,
+                        "id": collection_id,
+                    },
                 )
                 await session.commit()
 
@@ -486,7 +495,8 @@ class RAGEngineService(BaseService):
         if coll.chunk_count == 0:
             elapsed = (time.time() - start) * 1000
             return QueryResult(
-                query_id=query_id, question=question,
+                query_id=query_id,
+                question=question,
                 answer="A kollekcio ures. Tolts fel dokumentumokat eloszor.",
                 response_time_ms=elapsed,
             )
@@ -495,7 +505,8 @@ class RAGEngineService(BaseService):
             elapsed = (time.time() - start) * 1000
             logger.error("query_failed_no_embedder", collection_id=collection_id)
             return QueryResult(
-                query_id=query_id, question=question,
+                query_id=query_id,
+                question=question,
                 answer="Embedder not initialized. Check OPENAI_API_KEY environment variable.",
                 response_time_ms=elapsed,
             )
@@ -517,13 +528,15 @@ class RAGEngineService(BaseService):
         context_parts = []
         for i, r in enumerate(results, 1):
             context_parts.append(f"[{i}] {r.content}")
-            sources.append({
-                "index": i,
-                "content": r.content[:200],
-                "score": round(r.score, 3),
-                "document_title": r.document_title,
-                "section_title": r.section_title,
-            })
+            sources.append(
+                {
+                    "index": i,
+                    "content": r.content[:200],
+                    "score": round(r.score, 3),
+                    "document_title": r.document_title,
+                    "section_title": r.section_title,
+                }
+            )
 
         context = "\n\n".join(context_parts) if context_parts else "No relevant documents found."
 

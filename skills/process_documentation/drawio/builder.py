@@ -14,8 +14,6 @@ import html
 from pathlib import Path
 from typing import Any
 
-from .colors import COLORS
-
 __all__ = ["DrawioBuilder"]
 
 
@@ -309,10 +307,7 @@ class DrawioBuilder:
         Returns:
             The cell ID string.
         """
-        if isinstance(shape_info, dict):
-            b64 = shape_info["b64"]
-        else:
-            b64 = shape_info
+        b64 = shape_info["b64"] if isinstance(shape_info, dict) else shape_info
         parts = [
             f"shape=stencil({b64})",
             "verticalLabelPosition=bottom", "verticalAlign=top",

@@ -9,13 +9,16 @@
     requires_services: []
     tags: [execution, scheduler, trigger, cron]
 """
+
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
+
 from aiflow.execution.scheduler import (
-    TriggerType,
-    ScheduleDefinition,
     CronTrigger,
+    ScheduleDefinition,
     Scheduler,
+    TriggerType,
 )
 
 
@@ -94,12 +97,12 @@ class TestCronTrigger:
 
     def test_specific_minute_match(self):
         trigger = CronTrigger("30 * * * *")
-        dt = datetime(2026, 3, 28, 10, 30, 0, tzinfo=timezone.utc)
+        dt = datetime(2026, 3, 28, 10, 30, 0, tzinfo=UTC)
         assert trigger.should_fire(dt) is True
 
     def test_specific_minute_no_match(self):
         trigger = CronTrigger("30 * * * *")
-        dt = datetime(2026, 3, 28, 10, 15, 0, tzinfo=timezone.utc)
+        dt = datetime(2026, 3, 28, 10, 15, 0, tzinfo=UTC)
         assert trigger.should_fire(dt) is False
 
     def test_invalid_expression_raises(self):

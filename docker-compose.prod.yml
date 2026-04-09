@@ -1,0 +1,110 @@
+# AIFlow Production Stack
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
+# Or:    make deploy
+
+services:
+  # --- Infrastructure ---
+
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: aiflow
+      POSTGRES_USER: aiflow
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-aiflow_prod_password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aiflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --maxmemory 512mb
+      --maxmemory-policy volatile-lru
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kroki:
+    image: yuzutech/kroki
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # --- Application ---
+
+  api:
+    build:
+      context: .
+      target: api
+    environment:
+      AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:${DB_PASSWORD:-aiflow_prod_password}@db:5432/aiflow
+      AIFLOW_REDIS__URL: redis://redis:6379/0
+      AIFLOW_ENVIRONMENT: production
+      AIFLOW_DEBUG: "false"
+      AIFLOW_LOG_LEVEL: INFO
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      AIFLOW_SECURITY__JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private
+      AIFLOW_SECURITY__JWT_PUBLIC_KEY_PATH: /run/secrets/jwt_public
+      AIFLOW_KROKI__BASE_URL: http://kroki:8000
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health/live', timeout=3).raise_for_status()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    secrets:
+      - jwt_private
+      - jwt_public
+
+  worker:
+    build:
+      context: .
+      target: worker
+    environment:
+      AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:${DB_PASSWORD:-aiflow_prod_password}@db:5432/aiflow
+      AIFLOW_REDIS__URL: redis://redis:6379/0
+      AIFLOW_ENVIRONMENT: production
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      AIFLOW_KROKI__BASE_URL: http://kroki:8000
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  ui:
+    build:
+      context: ./aiflow-admin
+    ports:
+      - "${UI_PORT:-80}:80"
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health-ui"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+secrets:
+  jwt_private:
+    file: ./jwt_private.pem
+  jwt_public:
+    file: ./jwt_public.pem
+
+volumes:
+  pgdata:
+  redisdata:

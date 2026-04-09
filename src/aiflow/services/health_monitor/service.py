@@ -1,10 +1,11 @@
 """HealthMonitorService — checks DB, Redis, LLM, and all F0-F4 services."""
+
 from __future__ import annotations
 
 import os
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -33,6 +34,7 @@ class HealthMonitorService:
     async def _get_pool(self):
         if self._pool is None:
             import asyncpg
+
             url = self._db_url or os.getenv(
                 "AIFLOW_DATABASE__URL",
                 "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
@@ -54,16 +56,19 @@ class HealthMonitorService:
             self._check_service_table("human_review", "human_review_queue"),
         ]
         import asyncio
+
         results = await asyncio.gather(*checks, return_exceptions=True)
         health_list = []
         for r in results:
             if isinstance(r, Exception):
-                health_list.append(ServiceHealth(
-                    service_name="unknown",
-                    status="unhealthy",
-                    details={"error": str(r)},
-                    checked_at=datetime.now(timezone.utc).isoformat(),
-                ))
+                health_list.append(
+                    ServiceHealth(
+                        service_name="unknown",
+                        status="unhealthy",
+                        details={"error": str(r)},
+                        checked_at=datetime.now(UTC).isoformat(),
+                    )
+                )
             else:
                 health_list.append(r)
         # Persist results
@@ -129,7 +134,7 @@ class HealthMonitorService:
                 status="healthy",
                 latency_ms=round(latency, 1),
                 details={"version": "PostgreSQL 16+"},
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             return ServiceHealth(
@@ -137,13 +142,14 @@ class HealthMonitorService:
                 status="unhealthy",
                 latency_ms=round((time.monotonic() - t0) * 1000, 1),
                 details={"error": str(e)},
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
 
     async def _check_redis(self) -> ServiceHealth:
         t0 = time.monotonic()
         try:
             import redis.asyncio as aioredis
+
             r = aioredis.from_url(os.getenv("AIFLOW_REDIS__URL", "redis://localhost:6379/0"))
             await r.ping()
             await r.aclose()
@@ -152,7 +158,7 @@ class HealthMonitorService:
                 service_name="redis",
                 status="healthy",
                 latency_ms=round(latency, 1),
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             return ServiceHealth(
@@ -160,13 +166,20 @@ class HealthMonitorService:
                 status="unhealthy",
                 latency_ms=round((time.monotonic() - t0) * 1000, 1),
                 details={"error": str(e)},
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
 
-    _ALLOWED_TABLES: frozenset[str] = frozenset({
-        "documents", "email_connector_configs", "rag_collections",
-        "generated_diagrams", "media_jobs", "rpa_configs", "human_review_queue",
-    })
+    _ALLOWED_TABLES: frozenset[str] = frozenset(
+        {
+            "documents",
+            "email_connector_configs",
+            "rag_collections",
+            "generated_diagrams",
+            "media_jobs",
+            "rpa_configs",
+            "human_review_queue",
+        }
+    )
 
     async def _check_service_table(self, service_name: str, table_name: str) -> ServiceHealth:
         if table_name not in self._ALLOWED_TABLES:
@@ -182,7 +195,7 @@ class HealthMonitorService:
                 status="healthy",
                 latency_ms=round(latency, 1),
                 details={"record_count": count},
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             return ServiceHealth(
@@ -190,7 +203,7 @@ class HealthMonitorService:
                 status="unhealthy",
                 latency_ms=round((time.monotonic() - t0) * 1000, 1),
                 details={"error": str(e)},
-                checked_at=datetime.now(timezone.utc).isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
 
     async def _persist_check(self, health: ServiceHealth) -> None:
@@ -198,6 +211,7 @@ class HealthMonitorService:
             pool = await self._get_pool()
             async with pool.acquire() as conn:
                 import json
+
                 await conn.execute(
                     """INSERT INTO service_health_log (id, service_name, status, latency_ms, details)
                        VALUES ($1, $2, $3, $4, $5)""",

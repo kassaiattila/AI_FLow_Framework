@@ -1,4 +1,5 @@
 """Email parser - extract headers, body, and attachments from .eml/.msg files."""
+
 from __future__ import annotations
 
 import email
@@ -7,8 +8,8 @@ from email import message_from_bytes, message_from_string
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
 __all__ = ["EmailParser", "ParsedEmail", "EmailAttachment"]
 logger = structlog.get_logger(__name__)
@@ -77,9 +78,7 @@ class EmailParser:
         date = str(msg.get("Date", ""))
         message_id = str(msg.get("Message-ID", ""))
         in_reply_to = str(msg.get("In-Reply-To", ""))
-        references = [
-            r.strip() for r in str(msg.get("References", "")).split() if r.strip()
-        ]
+        references = [r.strip() for r in str(msg.get("References", "")).split() if r.strip()]
 
         # Body
         body_text = ""

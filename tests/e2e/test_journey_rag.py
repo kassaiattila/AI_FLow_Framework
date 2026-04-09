@@ -14,6 +14,7 @@ Tests the AI services browsing flow.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, journey, rag, services, playwright]
 """
+
 from __future__ import annotations
 
 from playwright.sync_api import Page, expect
@@ -52,10 +53,9 @@ class TestRagJourney:
 
         # Services catalog should have content
         body = page.locator("body").text_content() or ""
-        assert any(
-            w in body
-            for w in ["Service", "service", "Szolg", "rag", "RAG", "adapter"]
-        ), "Services catalog missing content"
+        assert any(w in body for w in ["Service", "service", "Szolg", "rag", "RAG", "adapter"]), (
+            "Services catalog missing content"
+        )
 
     def test_services_catalog_has_cards(self, authenticated_page: Page) -> None:
         """Journey: Services → verify service cards are rendered."""
@@ -70,9 +70,16 @@ class TestRagJourney:
         has_services = any(
             w in body
             for w in [
-                "document_extractor", "rag_engine", "classifier",
-                "email_connector", "cache", "monitoring",
-                "Document", "RAG", "Email", "Cache",
+                "document_extractor",
+                "rag_engine",
+                "classifier",
+                "email_connector",
+                "cache",
+                "monitoring",
+                "Document",
+                "RAG",
+                "Email",
+                "Cache",
             ]
         )
         assert has_services, "Services catalog doesn't list expected services"
@@ -114,10 +121,18 @@ class TestRagJourney:
         page.wait_for_timeout(500)
 
         real_errors = [
-            e for e in errors
-            if not any(x in e for x in [
-                "favicon", "ResizeObserver", "Failed to fetch",
-                "Failed to load resource", "Maximum update depth",
-            ])
+            e
+            for e in errors
+            if not any(
+                x in e
+                for x in [
+                    "favicon",
+                    "ResizeObserver",
+                    "Failed to fetch",
+                    "Failed to load resource",
+                    "Maximum update depth",
+                    "CORS policy",
+                ]
+            )
         ]
         assert not real_errors, f"Console errors during RAG journey: {real_errors}"

@@ -9,10 +9,11 @@
     requires_services: []
     tags: [api, fastapi, app-factory]
 """
-import pytest
+
 from fastapi import FastAPI
-from aiflow.api.app import create_app
+
 from aiflow._version import __version__
+from aiflow.api.app import create_app
 
 
 class TestCreateApp:

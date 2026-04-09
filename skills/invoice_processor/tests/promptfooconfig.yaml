@@ -23,11 +23,12 @@ prompts:
         "buyer": {"name": "", "address": "", "tax_number": null},
         "header": {
           "invoice_number": "", "invoice_date": "YYYY-MM-DD", "fulfillment_date": "YYYY-MM-DD",
-          "due_date": "YYYY-MM-DD", "currency": "", "payment_method": "", "invoice_type": "invoice"
+          "due_date": "YYYY-MM-DD", "currency": "", "payment_method": "", "invoice_type": "invoice",
+          "vat_status": "standard"
         },
         "line_items": [
           {"description": "", "quantity": 0, "unit": "", "unit_price": 0, "net_amount": 0,
-           "vat_rate": 0.27, "vat_amount": 0, "gross_amount": 0}
+           "vat_rate": 0.27, "vat_amount": 0, "gross_amount": 0, "currency": null}
         ],
         "totals": {"net_total": 0, "vat_total": 0, "gross_total": 0},
         "confidence": 0.95
@@ -35,7 +36,39 @@ prompts:
 
       CURRENCY: ALWAYS use ISO 4217 codes: HUF (not Ft), EUR (not €), USD (not $), GBP (not £), CHF.
       Do NOT default to HUF — detect from symbols in the text.
-      Numbers: Hungarian format uses space for thousands, comma for decimal (1 234 567,89).
+
+      HUNGARIAN NUMBER FORMAT (CRITICAL):
+      - Hungarian uses period `.` OR space ` ` as thousands separator, comma `,` as decimal.
+      - "1.500.000,50 Ft" = 1500000.50  (NOT 1.5)
+      - "1 234 567,89" = 1234567.89
+      - "12.345 Ft" = 12345  (NOT 12.345)
+      - English/EUR/USD format: "1,234.56" = 1234.56 (comma thousands, period decimal)
+      - When you see periods between digit groups in HU context, they are thousands separators.
+
+      VAT-EXEMPT ("AAM" / "Tax-free" / "0%"):
+      - If invoice mentions "AAM" (Alanyi Adómentes) → set vat_rate=0 on all line items
+        AND set header.vat_status="exempt" AND vat_amount=0 AND gross_amount=net_amount.
+      - "Tax-free", "VAT 0%", "Mentes" all map to the same vat_status="exempt".
+
+      VAT RATE READING (literal):
+      - Read each line item's VAT rate EXACTLY as it appears in the source text.
+        If the text says "5%", set vat_rate=0.05. If it says "18%", set vat_rate=0.18.
+        DO NOT replace unusual rates with the country's "standard" rate (e.g. do not
+        replace 5% with 27% just because 27% is the Hungarian standard VAT).
+      - The Hungarian VAT rates are: 27% (standard), 18% (some dairy/bakery), 5%
+        (basic food, books), 0% (AAM/exempt).
+
+      MULTI-CURRENCY (mixed currencies on a single invoice):
+      - If different line items use different currencies (e.g. HUF and EUR rows on the
+        same invoice), set each line_item.currency individually (ISO code).
+      - The header.currency should be the dominant or primary currency.
+      - DO NOT cross-convert; preserve each line's original currency value.
+
+      MULTI-PAGE CONTINUATION:
+      - If you see markers like "Folytatás a következő oldalon", "(folyt.)", "Continued",
+        "(continued)", "page 2 of 2" — capture ALL line items across the marker; do not
+        truncate. Each `description` followed by amount belongs to line_items.
+
       invoice_type: "invoice", "proforma", "credit_note", "díjbekérő" as appropriate.
       confidence: Set below 0.5 if text is garbled, illegible, or missing critical fields.
 
@@ -274,5 +307,141 @@ tests:
       - type: is-json
       - type: javascript
         value: "JSON.parse(output).header?.currency === 'GBP'"
+
+  # --- B4.2: HU thousands separator (period as thousands marker) ---
+  - description: "test_hu_thousands_separator — '1.500.000,50 Ft' must NOT become 1.5"
+    vars:
+      invoice_text: |
+        SZÁMLA
+        Számlaszám: HU-2024-TS-001
+        Kelt: 2024.05.10.
+        Teljesítés: 2024.05.10.
+        Fizetési határidő: 2024.06.10.
+        Fizetés módja: Átutalás
+
+        Szállító: Nagy Számla Kft., 1122 Budapest, Fő u. 99., Adószám: 22334455-2-42
+        Vevő: Vásárló Zrt., 3344 Debrecen, Új u. 1., Adószám: 99887766-2-09
+
+        Tétel              Menny.  Egys.  Nettó            ÁFA 27%       Bruttó
+        Tanácsadás         1       db     1.500.000,50 Ft  405.000,14 Ft 1.905.000,64 Ft
+
+        Nettó összesen: 1.500.000,50 Ft
+        ÁFA (27%): 405.000,14 Ft
+        Bruttó összesen: 1.905.000,64 Ft
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          // Net total must be ~1500000, NOT ~1.5
+          const net = j.totals?.net_total ?? 0;
+          return net > 1000000 && net < 2000000;
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          // Gross total must also be ~1900000, NOT ~1.9
+          const gross = j.totals?.gross_total ?? 0;
+          return gross > 1500000 && gross < 2500000;
+
+  # --- B4.2: VAT-exempt (AAM / Alanyi Adómentes) ---
+  - description: "test_vat_aam_exempt — AAM marker → vat_rate=0 + vat_status=exempt"
+    vars:
+      invoice_text: |
+        SZÁMLA
+        Számlaszám: AAM-2024-001
+        Kelt: 2024.04.15.
+        Teljesítés: 2024.04.15.
+        Fizetési határidő: 2024.05.15.
+        Fizetés módja: Átutalás
+
+        Szállító: Egyéni Vállalkozó, 1011 Budapest, Vár u. 5., Adószám: 88776655-1-41
+        Megjegyzés: AAM (Alanyi Adómentes)
+        Vevő: Megrendelő Bt., 9999 Sopron, Liszt u. 4.
+
+        Tétel                Menny.  Egys.  Nettó       ÁFA      Bruttó
+        Grafikai munka       10      óra    8 000 Ft    AAM      80 000 Ft
+
+        Nettó összesen: 80 000 Ft
+        ÁFA: 0 Ft (AAM)
+        Bruttó összesen: 80 000 Ft
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          // First line item should have vat_rate=0
+          const li = (j.line_items || [])[0] || {};
+          return li.vat_rate === 0 || li.vat_rate === '0' || li.vat_rate < 0.01;
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          // VAT total must be 0
+          const vat = j.totals?.vat_total ?? -1;
+          return vat === 0;
+
+  # --- B4.2: Multi-currency on single invoice ---
+  - description: "test_multi_currency — HUF + EUR rows on same invoice → both preserved"
+    vars:
+      invoice_text: |
+        INVOICE / SZÁMLA
+        Number: MC-2024-007
+        Date: 2024.06.01.
+        Due: 2024.07.01.
+        Payment: Wire transfer
+
+        Vendor: International Services Kft., 1051 Budapest, Bank u. 8., Tax: 11223344-2-41
+        Buyer: Global Corp, 1052 Budapest, Deák tér 2.
+
+        Item                       Qty   Net          Currency  VAT 27%      Gross
+        Magyar tanácsadás          10    250 000 Ft   HUF       675 000 Ft   3 175 000 Ft
+        EU consulting              5     €500.00      EUR       €675.00      €3 175.00
+
+        Total HUF net: 2 500 000 Ft
+        Total EUR net: €2 500.00
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          const items = j.line_items || [];
+          // Find at least one EUR-tagged line item OR header.currency reflects mixed-handling.
+          const currencies = new Set(items.map(li => li.currency || j.header?.currency).filter(Boolean));
+          return currencies.size >= 2 || items.some(li => (li.currency || '').toUpperCase() === 'EUR');
+
+  # --- B4.2: Multi-page continuation ---
+  - description: "test_multi_page_continuation — items across page break must be captured"
+    vars:
+      invoice_text: |
+        SZÁMLA
+        Számlaszám: MP-2024-099
+        Kelt: 2024.07.01.
+        Teljesítés: 2024.07.01.
+        Fizetési határidő: 2024.08.01.
+        Fizetés módja: Átutalás
+
+        Szállító: Sok Tételes Kft., 1144 Budapest, Hosszú u. 1., Adószám: 33445566-2-42
+        Vevő: Vásárló Kft., 4455 Eger, Vár u. 6.
+
+        --- 1. oldal ---
+        Tétel A    1 db    100 000 Ft   ÁFA 27%   127 000 Ft
+        Tétel B    2 db    50 000 Ft    ÁFA 27%   127 000 Ft
+        Tétel C    1 db    75 000 Ft    ÁFA 27%   95 250 Ft
+
+        Folytatás a következő oldalon...
+
+        --- 2. oldal (folytatás) ---
+        Tétel D    3 db    20 000 Ft    ÁFA 27%   76 200 Ft
+        Tétel E    1 db    40 000 Ft    ÁFA 27%   50 800 Ft
+
+        Nettó összesen: 375 000 Ft
+        ÁFA összesen: 101 250 Ft
+        Bruttó összesen: 476 250 Ft
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const j = JSON.parse(output);
+          // All 5 line items (A, B, C, D, E) must be present
+          return (j.line_items || []).length >= 5;
 
 outputPath: test_output/promptfoo/invoice_results.json

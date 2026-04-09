@@ -11,9 +11,10 @@ Documents page E2E tests.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, documents, playwright]
 """
+
 from __future__ import annotations
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page
 
 from tests.e2e.conftest import navigate_to
 
@@ -37,11 +38,17 @@ class TestDocumentsPage:
         body = authenticated_page.locator("body").text_content() or ""
         # Should have some action capability — upload, process, or pipeline button
         has_action = any(
-            w in body for w in [
-                "Upload", "Feltolt", "upload",
-                "Process", "Feldolgoz",
-                "Pipeline", "Automate",
-                "Document", "Dokumentum",
+            w in body
+            for w in [
+                "Upload",
+                "Feltolt",
+                "upload",
+                "Process",
+                "Feldolgoz",
+                "Pipeline",
+                "Automate",
+                "Document",
+                "Dokumentum",
             ]
         )
         assert has_action, "Documents page missing action area"
@@ -51,6 +58,6 @@ class TestDocumentsPage:
 
         body = authenticated_page.locator("body").text_content() or ""
         # Should show backend/demo source indicator
-        has_source = any(s in body.lower() for s in ["backend", "demo", "live"])
+        _has_source = any(s in body.lower() for s in ["backend", "demo", "live"])
         # Source badge may be in the PageLayout — it's OK if API is down
         assert len(body.strip()) > 20, "Documents page is empty"

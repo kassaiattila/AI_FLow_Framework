@@ -4,6 +4,7 @@ Splits text on section boundaries (Markdown headings, double newlines) and
 merges short fragments to reach target token counts, applying overlap between
 consecutive chunks.
 """
+
 from __future__ import annotations
 
 import re

@@ -2,17 +2,21 @@
 
 Wraps litellm.acompletion and litellm.aembedding with retry, cost tracking, and structured output.
 """
+
 import time
-from typing import Any
 
 import structlog
 
 from aiflow.models.protocols.base import ModelCallResult
-from aiflow.models.protocols.generation import (
-    GenerationInput, GenerationOutput, TextGenerationProtocol,
-)
 from aiflow.models.protocols.embedding import (
-    EmbeddingInput, EmbeddingOutput, EmbeddingProtocol,
+    EmbeddingInput,
+    EmbeddingOutput,
+    EmbeddingProtocol,
+)
+from aiflow.models.protocols.generation import (
+    GenerationInput,
+    GenerationOutput,
+    TextGenerationProtocol,
 )
 
 __all__ = ["LiteLLMBackend"]
@@ -38,6 +42,7 @@ class LiteLLMBackend(TextGenerationProtocol, EmbeddingProtocol):
             if input_data.response_model is not None:
                 # Structured output via instructor
                 import instructor
+
                 client = instructor.from_litellm(litellm.acompletion)
                 result = await client.create(
                     model=model,
@@ -117,7 +122,8 @@ class LiteLLMBackend(TextGenerationProtocol, EmbeddingProtocol):
     async def health_check(self) -> bool:
         """Check LiteLLM availability."""
         try:
-            import litellm
-            return True
-        except ImportError:
+            import importlib.util
+
+            return importlib.util.find_spec("litellm") is not None
+        except (ImportError, ModuleNotFoundError):
             return False

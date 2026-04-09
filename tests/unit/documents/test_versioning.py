@@ -9,12 +9,13 @@
     requires_services: []
     tags: [documents, versioning, supersede]
 """
+
 from pathlib import Path
 
 import pytest
 
 from aiflow.documents.registry import DocumentRegistry, DocumentStatus
-from aiflow.documents.versioning import DocumentVersion, get_version_chain, supersede
+from aiflow.documents.versioning import get_version_chain, supersede
 
 
 @pytest.fixture

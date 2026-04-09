@@ -9,20 +9,21 @@
     requires_services: []
     tags: [skills, manifest, yaml, parsing, validation]
 """
+
 from pathlib import Path
 
 import pytest
 import yaml
 
-from aiflow.skills.manifest import (
-    SkillManifest,
-    RequiredModel,
-    VectorStoreConfig,
-    load_manifest,
-    check_framework_compatibility,
-    _parse_version,
-)
 from aiflow.core.types import SkillType
+from aiflow.skills.manifest import (
+    RequiredModel,
+    SkillManifest,
+    VectorStoreConfig,
+    _parse_version,
+    check_framework_compatibility,
+    load_manifest,
+)
 
 
 @pytest.fixture
@@ -199,22 +200,23 @@ class TestLoadManifest:
 
 class TestFrameworkCompatibility:
     def test_gte_compatible(self):
-        # Current version is 0.1.0
+        # Current version is 1.3.0
         assert check_framework_compatibility(">=0.1.0") is True
+        assert check_framework_compatibility(">=1.3.0") is True
 
     def test_gte_incompatible(self):
         assert check_framework_compatibility(">=99.0.0") is False
 
     def test_lte_compatible(self):
-        assert check_framework_compatibility("<=1.0.0") is True
+        assert check_framework_compatibility("<=2.0.0") is True
 
     def test_exact_match(self):
-        assert check_framework_compatibility("==0.1.0") is True
+        assert check_framework_compatibility("==1.3.0") is True
         assert check_framework_compatibility("==9.9.9") is False
 
     def test_range_constraint(self):
-        assert check_framework_compatibility(">=0.1.0,<1.0.0") is True
-        assert check_framework_compatibility(">=0.2.0,<1.0.0") is False
+        assert check_framework_compatibility(">=0.1.0,<2.0.0") is True
+        assert check_framework_compatibility(">=2.0.0,<3.0.0") is False
 
     def test_parse_version(self):
         assert _parse_version("1.2.3") == (1, 2, 3)

@@ -1,42 +1,50 @@
-"""Input/output guardrails for content safety."""
+"""Input/output guardrails for content safety.
+
+.. deprecated::
+    This module is a backward-compatibility shim.  The canonical
+    implementation lives in :mod:`aiflow.guardrails`.  Import from
+    there for new code.
+"""
+
 from __future__ import annotations
 
-import re
-
-import structlog
-from pydantic import BaseModel
+from aiflow.guardrails.base import GuardrailResult as _NewResult
+from aiflow.guardrails.input_guard import INJECTION_PATTERNS
+from aiflow.guardrails.input_guard import InputGuard as _NewInputGuard
+from aiflow.guardrails.output_guard import OutputGuard as _NewOutputGuard
 
 __all__ = ["GuardrailResult", "InputGuardrail", "OutputGuardrail"]
 
-logger = structlog.get_logger(__name__)
 
-# Common PII patterns
-PII_PATTERNS = [
-    r"\b\d{3}-\d{2}-\d{4}\b",  # US SSN
-    r"\b\d{9}\b",  # 9-digit number (potential SSN without dashes)
-    r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",  # Email
-    r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b",  # US phone
-]
+class GuardrailResult:
+    """Legacy result model — thin adapter over the new GuardrailResult.
 
-# Forbidden patterns (prompt injection, etc.)
-FORBIDDEN_PATTERNS = [
-    r"ignore\s+(previous|all)\s+instructions",
-    r"system\s*prompt",
-    r"<script[\s>]",
-    r"javascript:",
-]
+    Preserves the old interface (``passed``, ``violations: list[str]``,
+    ``sanitized_text``) so that existing callers keep working.
+    """
 
+    def __init__(
+        self,
+        passed: bool = True,
+        violations: list[str] | None = None,
+        sanitized_text: str | None = None,
+    ) -> None:
+        self.passed = passed
+        self.violations: list[str] = violations or []
+        self.sanitized_text = sanitized_text
 
-class GuardrailResult(BaseModel):
-    """Result of a guardrail check."""
-
-    passed: bool = True
-    violations: list[str] = []
-    sanitized_text: str | None = None
+    @classmethod
+    def from_new(cls, result: _NewResult) -> GuardrailResult:
+        """Convert a new-style result to the legacy format."""
+        return cls(
+            passed=result.passed,
+            violations=result.violation_messages,
+            sanitized_text=result.sanitized_text,
+        )
 
 
 class InputGuardrail:
-    """Validates and sanitizes user input."""
+    """Legacy input guardrail — delegates to :class:`aiflow.guardrails.InputGuard`."""
 
     def __init__(
         self,
@@ -44,55 +52,29 @@ class InputGuardrail:
         check_pii: bool = True,
         check_injection: bool = True,
     ) -> None:
-        self._max_length = max_length
-        self._check_pii = check_pii
-        self._check_injection = check_injection
+        self._delegate = _NewInputGuard(
+            max_length=max_length,
+            check_pii=check_pii,
+            check_injection=check_injection,
+        )
 
     def check(self, text: str) -> GuardrailResult:
-        """Run all input guardrail checks."""
-        violations: list[str] = []
-
-        # Length check
-        if len(text) > self._max_length:
-            violations.append(
-                f"Input exceeds maximum length ({len(text)} > {self._max_length})"
-            )
-
-        # Forbidden patterns (prompt injection)
-        if self._check_injection:
-            for pattern in FORBIDDEN_PATTERNS:
-                if re.search(pattern, text, re.IGNORECASE):
-                    violations.append(f"Forbidden pattern detected: {pattern}")
-
-        # PII detection
-        if self._check_pii:
-            for pattern in PII_PATTERNS:
-                if re.search(pattern, text):
-                    violations.append(f"Potential PII detected: {pattern}")
-
-        return GuardrailResult(
-            passed=len(violations) == 0,
-            violations=violations,
-        )
+        """Run all input guardrail checks (legacy interface)."""
+        result = self._delegate.check(text)
+        return GuardrailResult.from_new(result)
 
 
 class OutputGuardrail:
-    """Validates and sanitizes LLM output."""
+    """Legacy output guardrail — delegates to :class:`aiflow.guardrails.OutputGuard`."""
 
     def __init__(self, check_pii: bool = True) -> None:
-        self._check_pii = check_pii
+        self._delegate = _NewOutputGuard(check_pii=check_pii, check_safety=False)
 
     def check(self, text: str) -> GuardrailResult:
-        """Run all output guardrail checks."""
-        violations: list[str] = []
+        """Run all output guardrail checks (legacy interface)."""
+        result = self._delegate.check(text)
+        return GuardrailResult.from_new(result)
 
-        # PII in output
-        if self._check_pii:
-            for pattern in PII_PATTERNS:
-                if re.search(pattern, text):
-                    violations.append(f"PII detected in output: {pattern}")
 
-        return GuardrailResult(
-            passed=len(violations) == 0,
-            violations=violations,
-        )
+# Keep the old module-level constants importable for any direct references
+FORBIDDEN_PATTERNS = [p for p, _ in INJECTION_PATTERNS]

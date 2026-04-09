@@ -9,18 +9,16 @@
     requires_services: []
     tags: [evaluation, scorers, exact-match, json, regex, threshold]
 """
+
 import json
 
-import pytest
-
 from aiflow.evaluation.scorers import (
-    exact_match,
     contains,
-    json_valid,
+    exact_match,
     json_field_equals,
-    threshold_check,
+    json_valid,
     regex_match,
-    llm_rubric_placeholder,
+    threshold_check,
 )
 
 
@@ -164,10 +162,3 @@ class TestRegexMatch:
     def test_invalid_regex(self):
         score, passed = regex_match("test", pattern="[invalid")
         assert passed is False
-
-
-class TestLlmRubricPlaceholder:
-    def test_returns_neutral_score(self):
-        score, passed = llm_rubric_placeholder("any output", "any expected")
-        assert score == 0.5
-        assert passed is True

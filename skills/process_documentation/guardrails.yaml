@@ -1,0 +1,19 @@
+# Process Documentation — full PII protection, diagram support
+input:
+  pii_masking: "on"
+  allowed_pii: []
+  max_length: 10000
+  check_injection: true
+output:
+  check_pii: true
+  check_safety: true
+  mermaid_syntax_check: true
+  max_diagram_nodes: 50
+scope:
+  allowed_topics: ["process", "workflow", "bpmn", "diagram", "documentation", "flowchart"]
+  blocked_topics: ["politika", "orvosi"]
+  dangerous_patterns: ["how\\s+to\\s+hack"]
+llm_fallback:
+  enabled: true
+  content_safety_classifier: true
+  confidence_threshold: 0.8

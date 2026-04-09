@@ -21,9 +21,8 @@ Usage:
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field
@@ -42,13 +41,14 @@ logger = structlog.get_logger(__name__)
 # Models
 # ---------------------------------------------------------------------------
 
+
 class BudgetAlert(str, Enum):
     """Budget alert levels."""
 
     NONE = "none"
-    WARNING = "warning"      # >= 80 %
-    CRITICAL = "critical"    # >= 95 %
-    EXCEEDED = "exceeded"    # >= 100 %
+    WARNING = "warning"  # >= 80 %
+    CRITICAL = "critical"  # >= 95 %
+    EXCEEDED = "exceeded"  # >= 100 %
 
 
 class CostRecord(BaseModel):
@@ -62,7 +62,7 @@ class CostRecord(BaseModel):
     output_tokens: int = 0
     cost_usd: float = 0.0
     team_id: str | None = None
-    recorded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    recorded_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class BudgetStatus(BaseModel):
@@ -79,6 +79,7 @@ class BudgetStatus(BaseModel):
 # ---------------------------------------------------------------------------
 # Tracker
 # ---------------------------------------------------------------------------
+
 
 class CostTracker:
     """In-memory cost tracker with budget enforcement.

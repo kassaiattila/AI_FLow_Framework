@@ -8,12 +8,13 @@ Usage:
     aiflow instance disable <instance-name>
     aiflow instance validate <yaml-path>
 """
+
 from pathlib import Path
 
 import structlog
 import typer
 
-from aiflow.skills.instance_loader import load_instance_config, load_all_instances
+from aiflow.skills.instance_loader import load_all_instances, load_instance_config
 from aiflow.skills.instance_registry import InstanceRegistry
 
 __all__ = ["app"]
@@ -97,29 +98,29 @@ def show_instance(
     typer.echo(f"Version:        {config.version}")
     typer.echo(f"Customer:       {config.customer}")
     typer.echo(f"Enabled:        {config.enabled}")
-    typer.echo(f"")
-    typer.echo(f"Models:")
+    typer.echo("")
+    typer.echo("Models:")
     typer.echo(f"  Default:      {config.models.default}")
     typer.echo(f"  Fallback:     {config.models.fallback}")
     if config.models.per_agent:
         for agent, model in config.models.per_agent.items():
             typer.echo(f"  {agent}: {model}")
-    typer.echo(f"")
-    typer.echo(f"Prompts:")
+    typer.echo("")
+    typer.echo("Prompts:")
     typer.echo(f"  Namespace:    {config.prompts.namespace}")
     typer.echo(f"  Label:        {config.prompts.label}")
-    typer.echo(f"")
-    typer.echo(f"Budget:")
+    typer.echo("")
+    typer.echo("Budget:")
     typer.echo(f"  Monthly:      ${config.budget.monthly_usd:.2f}")
     typer.echo(f"  Per run:      ${config.budget.per_run_usd:.2f}")
     typer.echo(f"  Alert at:     {config.budget.alert_threshold:.0%}")
-    typer.echo(f"")
-    typer.echo(f"SLA:")
+    typer.echo("")
+    typer.echo("SLA:")
     typer.echo(f"  Target:       {config.sla.target_seconds}s")
     typer.echo(f"  P95:          {config.sla.p95_target_seconds}s")
     typer.echo(f"  Availability: {config.sla.availability:.1%}")
-    typer.echo(f"")
-    typer.echo(f"Routing:")
+    typer.echo("")
+    typer.echo("Routing:")
     typer.echo(f"  Input:        {config.routing.input_channel}")
     typer.echo(f"  Output:       {config.routing.output_channel}")
     if config.routing.queue_name:
@@ -134,10 +135,12 @@ def validate_instance(
     file_path = Path(path)
     try:
         config = load_instance_config(file_path)
-        typer.echo(f"Valid: {config.instance_name} (skill={config.skill_template}, customer={config.customer})")
+        typer.echo(
+            f"Valid: {config.instance_name} (skill={config.skill_template}, customer={config.customer})"
+        )
     except (FileNotFoundError, ValueError) as exc:
         typer.echo(f"Invalid: {exc}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from exc
 
 
 @app.command("enable")

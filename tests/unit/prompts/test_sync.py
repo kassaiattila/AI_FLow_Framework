@@ -9,6 +9,7 @@
     requires_services: []
     tags: [prompts, sync, langfuse, yaml, diff]
 """
+
 import pytest
 
 from aiflow.prompts.sync import DiffResult, PromptSyncer, SyncResult

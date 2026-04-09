@@ -11,7 +11,12 @@
       "checking": "Checking...",
       "connected": "Backend connected",
       "offline": "Backend offline",
-      "openViewer": "Open viewer"
+      "openViewer": "Open viewer",
+      "journeyDocSub": "Invoice and document processing",
+      "journeyRagSub": "RAG-powered knowledge base",
+      "journeyGenSub": "AI-generated output",
+      "journeyMonSub": "System governance",
+      "pipelineRunning": "Pipeline running"
     },
     "skills": {
       "process_documentation": "Process Documentation",
@@ -115,7 +120,11 @@
       "attachmentsSection": "Attachments",
       "processing": "Processing",
       "processingTime": "Processing Time",
-      "pipelineVersion": "Pipeline Version"
+      "pipelineVersion": "Pipeline Version",
+      "scanMailbox": "Scan Mailbox",
+      "scanning": "Scanning...",
+      "scanComplete": "Scan complete",
+      "noPipeline": "No invoice_finder pipeline available"
     },
     "connectors": {
       "title": "Email Connectors",
@@ -158,7 +167,30 @@
       "operations": "Operations",
       "data": "Data",
       "aiServices": "AI Services",
-      "orchestration": "Orchestration"
+      "orchestration": "Orchestration",
+      "documentProcessing": "Document Processing",
+      "documents": "Documents",
+      "emailScan": "Email Scanning",
+      "verification": "Verification",
+      "knowledgeBase": "Knowledge Base",
+      "collections": "Collections",
+      "generation": "Generation",
+      "diagrams": "Diagrams",
+      "specWriter": "Spec Writer",
+      "mediaProcessing": "Media Processing",
+      "monitoring": "Monitoring",
+      "pipelineRuns": "Pipeline Runs",
+      "costs": "Costs",
+      "serviceHealth": "Service Health",
+      "llmQuality": "LLM Quality",
+      "auditLog": "Audit Log",
+      "settings": "Settings",
+      "usersApi": "Users & API",
+      "pipelineTemplates": "Pipeline Templates",
+      "serviceCatalog": "Service Catalog",
+      "more": "More",
+      "rpaBrowser": "RPA Browser",
+      "cubixCourse": "Cubix Courses"
     },
     "monitoring": {
       "title": "Monitoring",
@@ -252,6 +284,27 @@
       "deleteTitle": "Delete Diagram?",
       "deleteConfirm": "Are you sure you want to delete this diagram?",
       "deleted": "Diagram deleted"
+    },
+    "specWriter": {
+      "title": "Spec Writer",
+      "inputLabel": "Description",
+      "placeholder": "Describe what to specify (feature, API, DB, user story)...",
+      "specType": "Spec type",
+      "language": "Language",
+      "write": "Generate Spec",
+      "outputLabel": "Generated spec",
+      "outputPlaceholder": "The generated spec will appear here",
+      "download": "Download",
+      "accepted": "Accepted",
+      "needsWork": "Needs work",
+      "suggestions": "Suggestions",
+      "savedSpecs": "Saved specs",
+      "colTitle": "Title",
+      "colType": "Type",
+      "colLanguage": "Language",
+      "colScore": "Score",
+      "colSections": "Sections",
+      "colCreated": "Created"
     },
     "ragChat": {
       "title": "RAG Chat",
@@ -500,7 +553,18 @@
       "kbNav": "navigate",
       "kbConfirm": "confirm",
       "kbEdit": "edit",
-      "kbCancel": "cancel"
+      "kbCancel": "cancel",
+      "saveDraft": "Save Draft",
+      "approveAll": "Approve All",
+      "reject": "Reject",
+      "approved": "Document approved",
+      "rejected": "Document rejected",
+      "rejectReason": "Rejection reason",
+      "rejectReasonRequired": "Reason is required for rejection",
+      "pendingReview": "This document is pending human review",
+      "confidence": "Confidence",
+      "reviewMovedBanner": "Review functionality has been moved to the Verification page.",
+      "goToVerification": "Go to Verification"
     },
     "costs": {
       "title": "Cost Analytics",
@@ -557,7 +621,16 @@
     "empty": "No pipelines yet",
     "createFirst": "Create your first pipeline",
     "cancel": "Cancel",
-    "create": "Create"
+    "create": "Create",
+    "tabPipelines": "Pipelines",
+    "tabTemplates": "Templates",
+    "templateName": "Name",
+    "templateVersion": "Version",
+    "templateCategory": "Category",
+    "templateSteps": "Steps",
+    "templateDescription": "Description",
+    "templatesEmpty": "No templates available",
+    "deploy": "Deploy"
   },
   "pipelineDetail": {
     "overview": "Overview",

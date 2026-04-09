@@ -22,8 +22,9 @@ import functools
 import time
 import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field
@@ -46,13 +47,14 @@ logger = structlog.get_logger(__name__)
 # Models
 # ---------------------------------------------------------------------------
 
+
 class SpanRecord(BaseModel):
     """A single span within a trace."""
 
     span_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     trace_id: str
     name: str
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     ended_at: datetime | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     status: str = "running"
@@ -63,7 +65,7 @@ class TraceRecord(BaseModel):
 
     trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     ended_at: datetime | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     spans: dict[str, SpanRecord] = Field(default_factory=dict)
@@ -74,6 +76,7 @@ class TraceRecord(BaseModel):
 # Abstract backend
 # ---------------------------------------------------------------------------
 
+
 class TracerBackend(ABC):
     """Abstract tracing backend interface."""
 
@@ -82,11 +85,15 @@ class TracerBackend(ABC):
         """Create a new trace and return its ID."""
 
     @abstractmethod
-    async def create_span(self, trace_id: str, name: str, metadata: dict[str, Any] | None = None) -> str:
+    async def create_span(
+        self, trace_id: str, name: str, metadata: dict[str, Any] | None = None
+    ) -> str:
         """Create a span within a trace and return its ID."""
 
     @abstractmethod
-    async def finish_span(self, trace_id: str, span_id: str, metadata: dict[str, Any] | None = None) -> None:
+    async def finish_span(
+        self, trace_id: str, span_id: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         """Mark a span as completed."""
 
     @abstractmethod
@@ -102,6 +109,7 @@ class TracerBackend(ABC):
 # In-memory implementation (testing / local dev)
 # ---------------------------------------------------------------------------
 
+
 class InMemoryTracer(TracerBackend):
     """In-memory tracer that stores traces in a dict. Ideal for tests."""
 
@@ -114,7 +122,9 @@ class InMemoryTracer(TracerBackend):
         logger.debug("trace_created", trace_id=trace.trace_id, name=name)
         return trace.trace_id
 
-    async def create_span(self, trace_id: str, name: str, metadata: dict[str, Any] | None = None) -> str:
+    async def create_span(
+        self, trace_id: str, name: str, metadata: dict[str, Any] | None = None
+    ) -> str:
         trace = self._traces.get(trace_id)
         if trace is None:
             raise ValueError(f"Trace '{trace_id}' not found")
@@ -123,14 +133,16 @@ class InMemoryTracer(TracerBackend):
         logger.debug("span_created", trace_id=trace_id, span_id=span.span_id, name=name)
         return span.span_id
 
-    async def finish_span(self, trace_id: str, span_id: str, metadata: dict[str, Any] | None = None) -> None:
+    async def finish_span(
+        self, trace_id: str, span_id: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         trace = self._traces.get(trace_id)
         if trace is None:
             raise ValueError(f"Trace '{trace_id}' not found")
         span = trace.spans.get(span_id)
         if span is None:
             raise ValueError(f"Span '{span_id}' not found in trace '{trace_id}'")
-        span.ended_at = datetime.now(timezone.utc)
+        span.ended_at = datetime.now(UTC)
         span.status = "completed"
         if metadata:
             span.metadata.update(metadata)
@@ -140,7 +152,7 @@ class InMemoryTracer(TracerBackend):
         trace = self._traces.get(trace_id)
         if trace is None:
             raise ValueError(f"Trace '{trace_id}' not found")
-        trace.ended_at = datetime.now(timezone.utc)
+        trace.ended_at = datetime.now(UTC)
         trace.status = "completed"
         if metadata:
             trace.metadata.update(metadata)
@@ -191,11 +203,12 @@ class LangfuseTracer(TracerBackend):
         self._enabled = enabled and bool(public_key) and bool(secret_key)
         self._client: Any = None
         self._traces: dict[str, Any] = {}  # trace_id -> langfuse trace object
-        self._spans: dict[str, Any] = {}   # span_id -> langfuse span object
+        self._spans: dict[str, Any] = {}  # span_id -> langfuse span object
 
         if self._enabled:
             try:
                 from langfuse import Langfuse
+
                 self._client = Langfuse(
                     public_key=self._public_key,
                     secret_key=self._secret_key,
@@ -240,7 +253,9 @@ class LangfuseTracer(TracerBackend):
             logger.info("langfuse_trace_created", trace_id=trace_id, name=name, fallback=True)
         return trace_id
 
-    async def create_span(self, trace_id: str, name: str, metadata: dict[str, Any] | None = None) -> str:
+    async def create_span(
+        self, trace_id: str, name: str, metadata: dict[str, Any] | None = None
+    ) -> str:
         """Create a child span within a trace."""
         span_id = str(uuid.uuid4())
         root_span = self._traces.get(trace_id)
@@ -257,10 +272,18 @@ class LangfuseTracer(TracerBackend):
             except Exception as exc:
                 logger.warning("langfuse_span_create_failed", error=str(exc), span_id=span_id)
         else:
-            logger.info("langfuse_span_created", trace_id=trace_id, span_id=span_id, name=name, fallback=True)
+            logger.info(
+                "langfuse_span_created",
+                trace_id=trace_id,
+                span_id=span_id,
+                name=name,
+                fallback=True,
+            )
         return span_id
 
-    async def finish_span(self, trace_id: str, span_id: str, metadata: dict[str, Any] | None = None) -> None:
+    async def finish_span(
+        self, trace_id: str, span_id: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         """End a span. Updates output metadata then ends the observation."""
         span_obj = self._spans.pop(span_id, None)
         if span_obj:
@@ -314,7 +337,9 @@ class LangfuseTracer(TracerBackend):
             except Exception as exc:
                 logger.warning("langfuse_score_failed", error=str(exc), trace_id=trace_id)
         else:
-            logger.info("langfuse_score_recorded", trace_id=trace_id, name=name, value=value, fallback=True)
+            logger.info(
+                "langfuse_score_recorded", trace_id=trace_id, name=name, value=value, fallback=True
+            )
 
     def generation(
         self,
@@ -342,19 +367,27 @@ class LangfuseTracer(TracerBackend):
                     metadata=metadata or {},
                 )
                 gen_span.end()
-                logger.debug("langfuse_generation_recorded", trace_id=trace_id, name=name, model=model)
+                logger.debug(
+                    "langfuse_generation_recorded", trace_id=trace_id, name=name, model=model
+                )
             except Exception as exc:
                 logger.warning("langfuse_generation_failed", error=str(exc), trace_id=trace_id)
         else:
             logger.info(
                 "langfuse_generation_recorded",
-                trace_id=trace_id, name=name, model=model, fallback=True,
+                trace_id=trace_id,
+                name=name,
+                model=model,
+                fallback=True,
             )
 
     async def check_health(self) -> dict[str, Any]:
         """Check Langfuse connectivity. Returns status dict."""
         if not self._enabled:
-            return {"status": "disabled", "message": "Langfuse not enabled (missing keys or enabled=false)"}
+            return {
+                "status": "disabled",
+                "message": "Langfuse not enabled (missing keys or enabled=false)",
+            }
         if not self._client:
             return {"status": "error", "message": "Langfuse client failed to initialize"}
         try:
@@ -380,6 +413,7 @@ class LangfuseTracer(TracerBackend):
 # trace_llm_call decorator
 # ---------------------------------------------------------------------------
 
+
 def trace_llm_call(
     name: str | None = None,
     *,
@@ -393,6 +427,7 @@ def trace_llm_call(
         async def classify(self, text: str, ...) -> dict:
             ...
     """
+
     def decorator(fn: Callable) -> Callable:
         trace_name = name or f"{fn.__module__}.{fn.__qualname__}"
 
@@ -444,6 +479,7 @@ def trace_llm_call(
                 raise
 
         return wrapper
+
     return decorator
 
 
@@ -476,6 +512,7 @@ def _safe_serialize_output(result: Any) -> Any:
 # High-level manager
 # ---------------------------------------------------------------------------
 
+
 class TraceManager:
     """High-level tracing API that delegates to a pluggable backend."""
 
@@ -491,11 +528,15 @@ class TraceManager:
         """Start a new trace and return its ID."""
         return await self._backend.create_trace(name, metadata or {})
 
-    async def start_span(self, trace_id: str, name: str, metadata: dict[str, Any] | None = None) -> str:
+    async def start_span(
+        self, trace_id: str, name: str, metadata: dict[str, Any] | None = None
+    ) -> str:
         """Start a span within an existing trace and return its ID."""
         return await self._backend.create_span(trace_id, name, metadata)
 
-    async def end_span(self, trace_id: str, span_id: str, metadata: dict[str, Any] | None = None) -> None:
+    async def end_span(
+        self, trace_id: str, span_id: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         """End a span."""
         await self._backend.finish_span(trace_id, span_id, metadata)
 

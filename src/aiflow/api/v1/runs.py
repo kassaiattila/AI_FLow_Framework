@@ -1,8 +1,7 @@
 """Workflow run listing and detail endpoints."""
+
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
 import structlog
@@ -19,6 +18,7 @@ router = APIRouter(prefix="/api/v1/runs", tags=["runs"])
 
 class StepRunItem(BaseModel):
     """A single step execution within a workflow run."""
+
     step_name: str
     status: str
     duration_ms: float | None = None
@@ -31,6 +31,7 @@ class StepRunItem(BaseModel):
 
 class RunItem(BaseModel):
     """A workflow run summary."""
+
     run_id: str
     workflow_name: str
     skill_name: str | None = None
@@ -44,6 +45,7 @@ class RunItem(BaseModel):
 
 class RunListResponse(BaseModel):
     """Paginated list of workflow runs."""
+
     runs: list[RunItem]
     total: int
 
@@ -118,39 +120,45 @@ async def list_runs(
                     rid = str(sr["workflow_run_id"])
                     if rid not in steps_by_run:
                         steps_by_run[rid] = []
-                    steps_by_run[rid].append(StepRunItem(
-                        step_name=sr["step_name"],
-                        status=sr["status"],
-                        duration_ms=sr["duration_ms"],
-                        cost_usd=sr["cost_usd"] or 0.0,
-                        model_used=sr["model_used"],
-                        input_tokens=sr["input_tokens"],
-                        output_tokens=sr["output_tokens"],
-                        error=sr["error"],
-                    ))
+                    steps_by_run[rid].append(
+                        StepRunItem(
+                            step_name=sr["step_name"],
+                            status=sr["status"],
+                            duration_ms=sr["duration_ms"],
+                            cost_usd=sr["cost_usd"] or 0.0,
+                            model_used=sr["model_used"],
+                            input_tokens=sr["input_tokens"],
+                            output_tokens=sr["output_tokens"],
+                            error=sr["error"],
+                        )
+                    )
 
             for row in rows:
                 rid = str(row["id"])
-                runs.append(RunItem(
-                    run_id=rid,
-                    workflow_name=row["workflow_name"],
-                    skill_name=row["skill_name"],
-                    status=row["status"],
-                    started_at=row["started_at"].isoformat() if row["started_at"] else None,
-                    completed_at=row["completed_at"].isoformat() if row["completed_at"] else None,
-                    total_duration_ms=row["total_duration_ms"],
-                    total_cost_usd=row["total_cost_usd"] or 0.0,
-                    steps=steps_by_run.get(rid, []),
-                ))
+                runs.append(
+                    RunItem(
+                        run_id=rid,
+                        workflow_name=row["workflow_name"],
+                        skill_name=row["skill_name"],
+                        status=row["status"],
+                        started_at=row["started_at"].isoformat() if row["started_at"] else None,
+                        completed_at=row["completed_at"].isoformat()
+                        if row["completed_at"]
+                        else None,
+                        total_duration_ms=row["total_duration_ms"],
+                        total_cost_usd=row["total_cost_usd"] or 0.0,
+                        steps=steps_by_run.get(rid, []),
+                    )
+                )
     except Exception as e:
         logger.warning("runs_db_failed", error=str(e))
-
 
     return RunListResponse(runs=runs, total=total)
 
 
 class DailyStats(BaseModel):
     """Stats for a single day."""
+
     date: str
     run_count: int
     cost_usd: float
@@ -160,6 +168,7 @@ class DailyStats(BaseModel):
 
 class RunStatsResponse(BaseModel):
     """7-day trend statistics for dashboard."""
+
     daily: list[DailyStats]
     total_runs: int
     total_cost_usd: float
@@ -193,13 +202,15 @@ async def get_run_stats() -> RunStatsResponse:
                 """
             )
             for row in rows:
-                daily.append(DailyStats(
-                    date=row["day"].isoformat(),
-                    run_count=row["run_count"],
-                    cost_usd=float(row["cost_usd"]),
-                    success_count=row["success_count"],
-                    failed_count=row["failed_count"],
-                ))
+                daily.append(
+                    DailyStats(
+                        date=row["day"].isoformat(),
+                        run_count=row["run_count"],
+                        cost_usd=float(row["cost_usd"]),
+                        success_count=row["success_count"],
+                        failed_count=row["failed_count"],
+                    )
+                )
                 total_runs += row["run_count"]
                 total_cost += float(row["cost_usd"])
                 total_success += row["success_count"]
@@ -271,4 +282,4 @@ async def get_run(run_id: str) -> RunItem:
         raise
     except Exception as e:
         logger.warning("run_detail_db_failed", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

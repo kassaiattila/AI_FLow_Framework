@@ -13,9 +13,8 @@ Forrasok:
 Hasznos referencia: https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf
 """
 
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 
 # ============================================================================
 # 1. DATAFRAME LETREHOZAS
@@ -107,8 +106,8 @@ def csv_beolvasas_es_mentes():
     })
 
     # Ideiglenes konyvtar hasznalata a fajlmuveletekhez
-    import tempfile
     import os
+    import tempfile
     tmpdir = tempfile.mkdtemp()
 
     # CSV mentes
@@ -181,7 +180,7 @@ def alap_muveletek():
     print(df.tail())
 
     # shape - sorok es oszlopok szama
-    print(f"\n--- df.shape ---")
+    print("\n--- df.shape ---")
     print(f"Merete: {df.shape} (sorok: {df.shape[0]}, oszlopok: {df.shape[1]})")
 
     # dtypes - oszlopok tipusai
@@ -189,7 +188,7 @@ def alap_muveletek():
     print(df.dtypes)
 
     # columns - oszlopnevek
-    print(f"\n--- df.columns - Oszlopnevek ---")
+    print("\n--- df.columns - Oszlopnevek ---")
     print(df.columns.tolist())
 
     # info() - atfogo informacio a DataFrame-rol

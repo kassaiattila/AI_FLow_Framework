@@ -10,7 +10,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
-
 from skills.cubix_course_capture.models import (
     FileProcessingState,
     PipelineState,

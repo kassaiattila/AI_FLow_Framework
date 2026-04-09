@@ -1,4 +1,5 @@
 """Skill listing endpoint."""
+
 from __future__ import annotations
 
 import structlog
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/api/v1/skills", tags=["skills"])
 
 class SkillInfoItem(BaseModel):
     """Skill metadata."""
+
     name: str
     display_name: str
     status: str
@@ -22,6 +24,7 @@ class SkillInfoItem(BaseModel):
 
 class SkillListResponse(BaseModel):
     """List of installed skills."""
+
     skills: list[SkillInfoItem]
     total: int
 
@@ -63,18 +66,12 @@ _SKILLS: list[SkillInfoItem] = [
         skill_type="ai",
         description="PDF invoice data extraction (Docling + GPT-4o)",
     ),
-    SkillInfoItem(
-        name="qbpp_test_automation",
-        display_name="QBPP Test Automation",
-        status="stub",
-        skill_type="rpa",
-        description="Insurance calculator test automation",
-    ),
 ]
 
 
 class SkillSummaryItem(BaseModel):
     """Skill with run statistics for dashboard."""
+
     name: str
     display_name: str
     status: str
@@ -87,6 +84,7 @@ class SkillSummaryItem(BaseModel):
 
 class SkillSummaryResponse(BaseModel):
     """Skills with run stats for dashboard cards."""
+
     skills: list[SkillSummaryItem]
     total: int
     source: str = "backend"
@@ -136,15 +134,17 @@ async def get_skills_summary() -> SkillSummaryResponse:
     items = []
     for s in _SKILLS:
         stats = skill_stats.get(s.name, {})
-        items.append(SkillSummaryItem(
-            name=s.name,
-            display_name=s.display_name,
-            status=s.status,
-            skill_type=s.skill_type,
-            description=s.description,
-            run_count=stats.get("run_count", 0),
-            last_run_at=stats.get("last_run_at"),
-            success_rate=stats.get("success_rate", 0.0),
-        ))
+        items.append(
+            SkillSummaryItem(
+                name=s.name,
+                display_name=s.display_name,
+                status=s.status,
+                skill_type=s.skill_type,
+                description=s.description,
+                run_count=stats.get("run_count", 0),
+                last_run_at=stats.get("last_run_at"),
+                success_rate=stats.get("success_rate", 0.0),
+            )
+        )
 
     return SkillSummaryResponse(skills=items, total=len(items))

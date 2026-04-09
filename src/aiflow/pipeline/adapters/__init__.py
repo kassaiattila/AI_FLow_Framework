@@ -23,9 +23,7 @@ def discover_adapters() -> list[str]:
 
     imported: list[str] = []
     package = importlib.import_module(__name__)
-    for _importer, modname, _ispkg in pkgutil.iter_modules(
-        package.__path__, prefix=f"{__name__}."
-    ):
+    for _importer, modname, _ispkg in pkgutil.iter_modules(package.__path__, prefix=f"{__name__}."):
         if modname.endswith("_adapter"):
             try:
                 importlib.import_module(modname)

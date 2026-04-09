@@ -9,6 +9,7 @@
     requires_services: []
     tags: [skills, loader, discovery, progressive-disclosure]
 """
+
 from pathlib import Path
 
 import pytest
@@ -78,9 +79,7 @@ class TestSkillLoaderLoad:
             loader.load(tmp_path / "missing" / "skill.yaml")
 
     def test_load_incompatible_framework(self, tmp_path: Path):
-        path = _write_skill_yaml(
-            tmp_path, "future-skill", framework_requires=">=99.0.0"
-        )
+        path = _write_skill_yaml(tmp_path, "future-skill", framework_requires=">=99.0.0")
         loader = SkillLoader()
         with pytest.raises(ValueError, match="incompatible"):
             loader.load(path)

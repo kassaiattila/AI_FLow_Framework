@@ -15,12 +15,10 @@
 from __future__ import annotations
 
 import uuid
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from skills.aszf_rag_chat.models import (
     Citation,
     ConversationMessage,
@@ -31,7 +29,6 @@ from skills.aszf_rag_chat.models import (
     RoleType,
     SearchResult,
 )
-
 
 # ── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -433,7 +430,7 @@ class TestGenerateAnswer:
             pm.get.return_value = mock_prompt
             mc.generate = AsyncMock(return_value=mock_generate_result)
 
-            result = await qmod.generate_answer({
+            await qmod.generate_answer({
                 "context": "ctx",
                 "question": "Follow-up?",
                 "sources": [],

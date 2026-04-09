@@ -21,15 +21,9 @@ router = APIRouter(prefix="/api/v1/quality", tags=["quality"])
 
 class EvaluateRequest(BaseModel):
     actual: str = Field(..., description="Actual LLM output to evaluate")
-    rubric: str = Field(
-        ..., description="Rubric name or custom rubric text"
-    )
-    expected: str | None = Field(
-        None, description="Expected output for comparison"
-    )
-    model: str | None = Field(
-        None, description="Model to use for evaluation"
-    )
+    rubric: str = Field(..., description="Rubric name or custom rubric text")
+    expected: str | None = Field(None, description="Expected output for comparison")
+    model: str | None = Field(None, description="Model to use for evaluation")
 
 
 class RubricEvalResponse(BaseModel):
@@ -51,12 +45,8 @@ class QualityOverviewResponse(BaseModel):
 
 
 class CostEstimateRequest(BaseModel):
-    steps: list[dict[str, Any]] = Field(
-        ..., description="Pipeline steps [{service, method}, ...]"
-    )
-    model: str | None = Field(
-        None, description="Model to estimate cost for"
-    )
+    steps: list[dict[str, Any]] = Field(..., description="Pipeline steps [{service, method}, ...]")
+    model: str | None = Field(None, description="Model to estimate cost for")
 
 
 class CostEstimateResponse(BaseModel):

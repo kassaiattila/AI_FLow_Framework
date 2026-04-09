@@ -9,7 +9,9 @@
     requires_services: []
     tags: [di, container, injection]
 """
+
 import pytest
+
 from aiflow.core.di import Container
 
 
@@ -40,10 +42,12 @@ class TestContainer:
 
     def test_factory_lazy_creation(self, container):
         created = []
+
         def factory():
             db = FakeDatabase("lazy://")
             created.append(db)
             return db
+
         container.register_factory(FakeDatabase, factory)
         assert len(created) == 0  # not created yet
         result = container.resolve(FakeDatabase)
@@ -52,10 +56,12 @@ class TestContainer:
 
     def test_factory_called_once(self, container):
         call_count = 0
+
         def factory():
             nonlocal call_count
             call_count += 1
             return FakeDatabase()
+
         container.register_factory(FakeDatabase, factory)
         container.resolve(FakeDatabase)
         container.resolve(FakeDatabase)

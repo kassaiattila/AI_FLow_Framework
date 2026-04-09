@@ -15,7 +15,7 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from aiflow.core.context import ExecutionContext
-from aiflow.observability.tracing import LangfuseTracer, TraceManager, get_langfuse_client
+from aiflow.observability.tracing import TraceManager
 from aiflow.pipeline.adapter_base import AdapterRegistry
 from aiflow.pipeline.compiler import PipelineCompiler
 from aiflow.pipeline.parser import PipelineParser
@@ -371,6 +371,7 @@ async def _record_pipeline_cost(
     """Persist pipeline step cost to cost_records table (best-effort)."""
     try:
         from aiflow.api.cost_recorder import record_cost
+
         model = "unknown"
         input_tokens = 0
         output_tokens = 0

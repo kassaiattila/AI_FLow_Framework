@@ -1,5 +1,7 @@
 """Model metadata, types, and lifecycle definitions."""
+
 from enum import StrEnum
+
 from pydantic import BaseModel
 
 __all__ = ["ModelType", "ModelLifecycle", "ServingMode", "ModelMetadata"]
@@ -33,6 +35,7 @@ class ServingMode(StrEnum):
 
 class ModelMetadata(BaseModel):
     """Metadata for a registered model."""
+
     name: str
     model_type: ModelType
     provider: str

@@ -9,8 +9,10 @@
     requires_services: []
     tags: [state, orm, models]
 """
+
 import uuid
-from aiflow.state.models import Base, WorkflowRunModel, StepRunModel
+
+from aiflow.state.models import Base, StepRunModel, WorkflowRunModel
 
 
 class TestWorkflowRunModel:

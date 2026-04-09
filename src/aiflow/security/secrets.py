@@ -1,4 +1,5 @@
 """Secret management with pluggable providers and TTL caching."""
+
 from __future__ import annotations
 
 import abc
@@ -21,6 +22,7 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Abstract provider
 # ---------------------------------------------------------------------------
+
 
 class SecretProvider(abc.ABC):
     """Abstract interface for secret storage backends."""
@@ -45,6 +47,7 @@ class SecretProvider(abc.ABC):
 # ---------------------------------------------------------------------------
 # Environment variable provider (dev / CI)
 # ---------------------------------------------------------------------------
+
 
 class EnvSecretProvider(SecretProvider):
     """Reads secrets from environment variables.
@@ -80,17 +83,14 @@ class EnvSecretProvider(SecretProvider):
 
     def list_keys(self) -> list[str]:
         prefix = self._prefix
-        keys = [
-            k[len(prefix) :].lower()
-            for k in os.environ
-            if k.startswith(prefix)
-        ]
+        keys = [k[len(prefix) :].lower() for k in os.environ if k.startswith(prefix)]
         return sorted(keys)
 
 
 # ---------------------------------------------------------------------------
 # HashiCorp Vault provider (production placeholder)
 # ---------------------------------------------------------------------------
+
 
 class VaultSecretProvider(SecretProvider):
     """Placeholder for HashiCorp Vault integration.
@@ -105,21 +105,30 @@ class VaultSecretProvider(SecretProvider):
         logger.info("vault_secret_provider_initialized", vault_url=vault_url)
 
     def get_secret(self, key: str) -> str | None:
-        raise NotImplementedError("VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default")
+        raise NotImplementedError(
+            "VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default"
+        )
 
     def set_secret(self, key: str, value: str) -> None:
-        raise NotImplementedError("VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default")
+        raise NotImplementedError(
+            "VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default"
+        )
 
     def delete_secret(self, key: str) -> None:
-        raise NotImplementedError("VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default")
+        raise NotImplementedError(
+            "VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default"
+        )
 
     def list_keys(self) -> list[str]:
-        raise NotImplementedError("VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default")
+        raise NotImplementedError(
+            "VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default"
+        )
 
 
 # ---------------------------------------------------------------------------
 # Secret manager with TTL cache
 # ---------------------------------------------------------------------------
+
 
 class _CacheEntry:
     """Internal cache record."""

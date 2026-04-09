@@ -9,13 +9,16 @@
     requires_services: []
     tags: [execution, queue, priority, async]
 """
+
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timezone, timedelta
+
 from aiflow.execution.queue import (
-    JobPriority,
-    WorkflowJob,
-    JobStatus,
     InMemoryJobQueue,
+    JobPriority,
+    JobStatus,
+    WorkflowJob,
 )
 
 
@@ -121,12 +124,12 @@ class TestInMemoryJobQueue:
         low_job = WorkflowJob(
             workflow_name="low",
             priority=JobPriority.LOW,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         high_job = WorkflowJob(
             workflow_name="high",
             priority=JobPriority.HIGH,
-            created_at=datetime.now(timezone.utc) + timedelta(seconds=1),
+            created_at=datetime.now(UTC) + timedelta(seconds=1),
         )
         await queue.enqueue(low_job)
         await queue.enqueue(high_job)

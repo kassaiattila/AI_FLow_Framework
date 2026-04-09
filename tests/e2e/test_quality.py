@@ -11,6 +11,7 @@ Quality page E2E tests — KPIs, rubrics, external tools.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, quality, playwright]
 """
+
 from __future__ import annotations
 
 from playwright.sync_api import Page, expect
@@ -37,9 +38,7 @@ class TestQualityPage:
 
         body = authenticated_page.locator("body").text_content() or ""
         # Page should have the title (in either HU or EN)
-        assert any(
-            w in body for w in ["Minoseg", "Quality"]
-        ), "Quality page title missing"
+        assert any(w in body for w in ["Minoseg", "Quality"]), "Quality page title missing"
 
     def test_quality_has_content_or_error(self, authenticated_page: Page) -> None:
         _wait_for_quality_loaded(authenticated_page)
@@ -47,10 +46,15 @@ class TestQualityPage:
         body = authenticated_page.locator("body").text_content() or ""
         # After loading, should show either KPI content, error state, or retry button
         has_content = any(
-            w in body for w in [
-                "Total Evaluations", "Osszes ertekeles",  # KPI loaded
-                "Promptfoo", "Langfuse",                  # External tools loaded
-                "retry", "Ujraprob", "Failed",            # Error state
+            w in body
+            for w in [
+                "Total Evaluations",
+                "Osszes ertekeles",  # KPI loaded
+                "Promptfoo",
+                "Langfuse",  # External tools loaded
+                "retry",
+                "Ujraprob",
+                "Failed",  # Error state
             ]
         )
         assert has_content, f"Quality page has no meaningful content after load: {body[:200]}"

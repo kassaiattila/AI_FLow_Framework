@@ -1,10 +1,11 @@
 """Async job queue for workflow execution."""
+
 from __future__ import annotations
 
 import asyncio
 import itertools
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import IntEnum
 from typing import Any
 
@@ -51,7 +52,7 @@ class WorkflowJob(BaseModel):
     priority: int = JobPriority.NORMAL
     team_id: str | None = None
     user_id: str | None = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     status: str = JobStatus.PENDING
     result: Any | None = None
     error: str | None = None

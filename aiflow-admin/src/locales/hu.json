@@ -11,7 +11,12 @@
       "checking": "Ellenorzes...",
       "connected": "Backend kapcsolodva",
       "offline": "Backend offline",
-      "openViewer": "Megnyitas"
+      "openViewer": "Megnyitas",
+      "journeyDocSub": "Szamla es dokumentum feldolgozas",
+      "journeyRagSub": "RAG-alapu tudasbazis",
+      "journeyGenSub": "AI altal generalt kimenet",
+      "journeyMonSub": "Rendszer governance",
+      "pipelineRunning": "Pipeline fut"
     },
     "skills": {
       "process_documentation": "Process Documentation",
@@ -115,7 +120,11 @@
       "attachmentsSection": "Csatolmanyok",
       "processing": "Feldolgozas",
       "processingTime": "Feldolgozasi ido",
-      "pipelineVersion": "Pipeline verzio"
+      "pipelineVersion": "Pipeline verzio",
+      "scanMailbox": "Levelada szkenneles",
+      "scanning": "Szkenneles...",
+      "scanComplete": "Szkenneles befejezve",
+      "noPipeline": "Nincs elerheto invoice_finder pipeline"
     },
     "connectors": {
       "title": "Email Connectorok",
@@ -158,7 +167,30 @@
       "operations": "Muveletek",
       "data": "Adatok",
       "aiServices": "AI Szolgaltatasok",
-      "orchestration": "Orchestracio"
+      "orchestration": "Orchestracio",
+      "documentProcessing": "Dokumentum feldolgozas",
+      "documents": "Dokumentumok",
+      "emailScan": "Email feldolgozas",
+      "verification": "Verifikacio",
+      "knowledgeBase": "Tudasbazis",
+      "collections": "Kollekcok",
+      "generation": "Generalas",
+      "diagrams": "Diagramok",
+      "specWriter": "Spec Writer",
+      "mediaProcessing": "Media feldolgozas",
+      "monitoring": "Monitoring",
+      "pipelineRuns": "Pipeline futasok",
+      "costs": "Koltsegek",
+      "serviceHealth": "Szolgaltatas allapot",
+      "llmQuality": "LLM minoseg",
+      "auditLog": "Audit naplo",
+      "settings": "Beallitasok",
+      "usersApi": "Felhasznalok es API",
+      "pipelineTemplates": "Pipeline sablonok",
+      "serviceCatalog": "Szolgaltatas katalogus",
+      "more": "Tobbi",
+      "rpaBrowser": "RPA Browser",
+      "cubixCourse": "Cubix Kurzusok"
     },
     "monitoring": {
       "title": "Monitoring",
@@ -252,6 +284,27 @@
       "deleteTitle": "Diagram torlese?",
       "deleteConfirm": "Biztosan torli ezt a diagramot?",
       "deleted": "Diagram torolve"
+    },
+    "specWriter": {
+      "title": "Spec Writer",
+      "inputLabel": "Szobeli leiras",
+      "placeholder": "Ird le mit szeretnel specifikalni (feature, API, DB, user story)...",
+      "specType": "Spec tipus",
+      "language": "Nyelv",
+      "write": "Spec generalas",
+      "outputLabel": "Generalt specifikacio",
+      "outputPlaceholder": "A generalt spec itt jelenik meg",
+      "download": "Letoltes",
+      "accepted": "Elfogadott",
+      "needsWork": "Javitas kell",
+      "suggestions": "Javaslatok",
+      "savedSpecs": "Mentett specek",
+      "colTitle": "Cim",
+      "colType": "Tipus",
+      "colLanguage": "Nyelv",
+      "colScore": "Pontszam",
+      "colSections": "Szekciok",
+      "colCreated": "Letrehozva"
     },
     "ragChat": {
       "title": "RAG Chat",
@@ -500,7 +553,18 @@
       "kbNav": "navigacio",
       "kbConfirm": "jovahagyas",
       "kbEdit": "szerkesztes",
-      "kbCancel": "megse"
+      "kbCancel": "megse",
+      "saveDraft": "Piszkozat mentese",
+      "approveAll": "Elfogadas",
+      "reject": "Elutasitas",
+      "approved": "Dokumentum elfogadva",
+      "rejected": "Dokumentum elutasitva",
+      "rejectReason": "Elutasitas indoka",
+      "rejectReasonRequired": "Az indok megadasa kotelezo",
+      "pendingReview": "Ez a dokumentum emberi ellenorzesre var",
+      "confidence": "Konfidencia",
+      "reviewMovedBanner": "A review funkcio athelyezve a Verifikacio oldalra.",
+      "goToVerification": "Ugras a Verifikacihoz"
     },
     "costs": {
       "title": "Koltseg analitika",
@@ -557,7 +621,16 @@
     "empty": "Meg nincs pipeline",
     "createFirst": "Hozza letre az elso pipeline-t",
     "cancel": "Megse",
-    "create": "Letrehozas"
+    "create": "Letrehozas",
+    "tabPipelines": "Pipeline-ok",
+    "tabTemplates": "Sablonok",
+    "templateName": "Nev",
+    "templateVersion": "Verzio",
+    "templateCategory": "Kategoria",
+    "templateSteps": "Lepesek",
+    "templateDescription": "Leiras",
+    "templatesEmpty": "Nincs elerheto sablon",
+    "deploy": "Telepites"
   },
   "pipelineDetail": {
     "overview": "Attekintes",

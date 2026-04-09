@@ -1,4 +1,5 @@
 """Service registry for managing AIFlow infrastructure and domain services."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -27,8 +28,7 @@ class ServiceRegistry:
         name = service.service_name
         if name in self._services:
             raise ValueError(
-                f"Service '{name}' already registered. "
-                f"Registered: {list(self._services.keys())}"
+                f"Service '{name}' already registered. Registered: {list(self._services.keys())}"
             )
         self._services[name] = service
         logger.info("service_registered", service=name)
@@ -36,10 +36,7 @@ class ServiceRegistry:
     def get(self, name: str) -> BaseService:
         """Get a service by name. Raises KeyError if not found."""
         if name not in self._services:
-            raise KeyError(
-                f"Service '{name}' not found. "
-                f"Available: {list(self._services.keys())}"
-            )
+            raise KeyError(f"Service '{name}' not found. Available: {list(self._services.keys())}")
         return self._services[name]
 
     def get_or_none(self, name: str) -> BaseService | None:

@@ -1,0 +1,37 @@
+# Spec Writer — guardrail profile (B5.2)
+#
+# The spec writer accepts free-form descriptions of features / APIs / DB
+# schemas / user stories. We do NOT expect production secrets or PII in
+# these prompts (they are design-time documents), but we still run light
+# scope and injection checks on input and output.
+
+input:
+  pii_masking: "off"          # specs may include email addresses of actors
+  allowed_pii:
+    - email                    # ok — e.g. "contact: admin@example.com"
+  max_length: 20000            # ~5k tokens of free-form description
+  check_injection: true        # generic prompt-injection detection
+
+output:
+  check_pii: false             # output is a spec doc, author's responsibility
+  check_safety: true           # block toxic / adult / self-harm content
+  format_check: true           # draft must start with `#` title + `##` sections
+
+scope:
+  allowed_topics:
+    - feature
+    - api
+    - database
+    - user_story
+    - specification
+    - requirement
+    - documentation
+    - workflow
+  blocked_topics: []
+  dangerous_patterns:
+    - "ignore previous instructions"
+    - "forget your instructions"
+    - "system prompt"
+
+llm_fallback:
+  enabled: false

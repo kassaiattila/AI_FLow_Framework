@@ -62,6 +62,14 @@ export async function fetchApi<T>(
   const response = await fetch(url, init);
 
   if (!response.ok) {
+    // 401 on non-login paths = session expired → force logout
+    if (response.status === 401 && !url.includes("/api/v1/auth/login")) {
+      const { logout } = await import("./auth");
+      logout();
+      window.location.href = "/login";
+      throw new ApiClientError(401, "Session expired — please log in again");
+    }
+
     let detail: unknown;
     try {
       detail = await response.json();

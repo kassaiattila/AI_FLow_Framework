@@ -26,10 +26,10 @@ python -c "from aiflow.services.{name} import {ServiceClass}"
 ### 2. API ENDPOINT CHECK
 ```bash
 # Health check
-curl -s http://localhost:8100/health | python -m json.tool
+curl -s http://localhost:8102/health | python -m json.tool
 
 # Service-specifikus endpoint (VALOS adat, NEM stub!):
-curl -s http://localhost:8100/api/v1/{endpoint} | python -m json.tool
+curl -s http://localhost:8102/api/v1/{endpoint} | python -m json.tool
 
 # Ellenorizd:
 # - HTTP 200 (vagy megfelelo status kod)

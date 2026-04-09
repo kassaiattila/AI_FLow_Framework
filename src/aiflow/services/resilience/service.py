@@ -3,12 +3,14 @@
 Provides retry with exponential backoff and circuit breaker pattern.
 Configurable per-service (e.g., different settings for LLM vs email vs DB).
 """
+
 from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 import structlog
 from pydantic import Field
@@ -102,9 +104,7 @@ class ResilienceService(BaseService):
     def __init__(self, config: ResilienceConfig | None = None) -> None:
         self._res_config = config or ResilienceConfig()
         super().__init__(self._res_config)
-        self._rules: dict[str, ResilienceRule] = {
-            r.key: r for r in self._res_config.rules
-        }
+        self._rules: dict[str, ResilienceRule] = {r.key: r for r in self._res_config.rules}
         self._breakers: dict[str, _CircuitBreaker] = {}
 
     @property
@@ -165,8 +165,7 @@ class ResilienceService(BaseService):
                 failures=breaker.failure_count,
             )
             raise CircuitBreakerOpenError(
-                f"Circuit breaker open for '{key}' "
-                f"(failures: {breaker.failure_count})"
+                f"Circuit breaker open for '{key}' (failures: {breaker.failure_count})"
             )
 
         last_error: Exception | None = None
@@ -177,9 +176,7 @@ class ResilienceService(BaseService):
                 result = await func(*args, **kwargs)
                 breaker.record_success()
                 if attempt > 0:
-                    self._logger.info(
-                        "retry_succeeded", key=key, attempt=attempt + 1
-                    )
+                    self._logger.info("retry_succeeded", key=key, attempt=attempt + 1)
                 return result
             except Exception as exc:
                 last_error = exc

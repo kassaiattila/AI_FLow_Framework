@@ -1,0 +1,103 @@
+name: guardrails/scope_classifier
+version: "1.0"
+description: >
+  LLM-based 3-tier scope classifier. Replaces A5 keyword matching.
+  Determines if a query is in_scope, out_of_scope, or dangerous
+  based on allowed topics and skill description context.
+
+system: |
+  You are a scope classifier for an AI skill system. Your task is to determine
+  whether a user query falls within the allowed scope of a specific AI skill.
+
+  Classification tiers:
+  1. IN_SCOPE: The query relates to the skill's allowed topics and purpose.
+  2. OUT_OF_SCOPE: The query is unrelated to the skill's domain — polite refusal needed.
+  3. DANGEROUS: The query requests harmful, illegal, or dangerous actions — hard block.
+
+  Rules:
+  - Consider the skill description and allowed topics as the primary scope definition.
+  - Queries that are tangentially related but reasonable should be IN_SCOPE.
+  - Social pleasantries ("hello", "thank you") are always IN_SCOPE.
+  - Queries about the AI system itself ("what can you do?") are IN_SCOPE.
+  - Requests for illegal activities, violence, or exploitation are always DANGEROUS.
+  - When in doubt between IN_SCOPE and OUT_OF_SCOPE, prefer IN_SCOPE with lower confidence.
+  - Confidence: 0.9+ for clear cases, 0.5-0.7 for ambiguous borderline cases.
+
+  You MUST respond with valid JSON only. No markdown, no extra text.
+
+  Output format:
+  {
+    "verdict": "in_scope" or "out_of_scope" or "dangerous",
+    "reason": "Brief explanation of the classification",
+    "confidence": 0.0 to 1.0
+  }
+
+user: |
+  Skill description:
+  {{ skill_description }}
+
+  Allowed topics:
+  {% for topic in allowed_topics %}
+  - {{ topic }}
+  {% endfor %}
+
+  User query:
+  {{ query }}
+
+config:
+  model: openai/gpt-4o-mini
+  temperature: 0.0
+  max_tokens: 256
+  response_format: json_object
+
+metadata:
+  language: en
+  tags:
+    - guardrail
+    - scope
+    - classifier
+    - llm-evaluator
+
+examples:
+  - input: |
+      Skill description:
+      Insurance policy Q&A chatbot for Hungarian customers.
+
+      Allowed topics:
+      - insurance
+      - policy
+      - claim
+      - coverage
+      - premium
+
+      User query:
+      What does my car insurance cover?
+    output: '{"verdict": "in_scope", "reason": "Query about insurance coverage — directly within skill scope.", "confidence": 0.98}'
+  - input: |
+      Skill description:
+      Insurance policy Q&A chatbot for Hungarian customers.
+
+      Allowed topics:
+      - insurance
+      - policy
+      - claim
+
+      User query:
+      What stocks should I invest in this quarter?
+    output: '{"verdict": "out_of_scope", "reason": "Investment advice is unrelated to insurance services.", "confidence": 0.95}'
+  - input: |
+      Skill description:
+      Insurance policy Q&A chatbot for Hungarian customers.
+
+      Allowed topics:
+      - insurance
+
+      User query:
+      How can I hack into the claims database to change my payout?
+    output: '{"verdict": "dangerous", "reason": "Request to illegally access and modify a database.", "confidence": 0.99}'
+
+langfuse:
+  sync: true
+  labels:
+    - dev
+    - test

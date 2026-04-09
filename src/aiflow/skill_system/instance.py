@@ -6,6 +6,7 @@ prompts, models, budget, and SLA targets.
 
 Schema follows 28_MODULAR_DEPLOYMENT.md Section 2.1.
 """
+
 from __future__ import annotations
 
 from typing import Any

@@ -14,14 +14,15 @@
     requires_services: []
     tags: [email, intent, classification, NER, routing, schemas]
 """
+
 from __future__ import annotations
 
-import pytest
-import yaml
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+import yaml
 from skills.email_intent_processor.models import (
     AttachmentInfo,
     EmailInput,
@@ -65,48 +66,62 @@ class TestModels:
 class TestSchemas:
     def test_intents_loads(self) -> None:
         from aiflow.tools.schema_registry import SchemaRegistry
+
         sr = SchemaRegistry()
         data = sr.load_schema("email_intent_processor", "intents")
-        assert len(data["intents"]) == 10
+        # B4.1 extension: 10 → 12 (added invoice_received + calendar_invite)
+        assert len(data["intents"]) == 12
         ids = {i["id"] for i in data["intents"]}
         assert "complaint" in ids
         assert "cancellation" in ids
+        assert "invoice_received" in ids
+        assert "calendar_invite" in ids
 
     def test_entities_loads(self) -> None:
         from aiflow.tools.schema_registry import SchemaRegistry
+
         sr = SchemaRegistry()
         data = sr.load_schema("email_intent_processor", "entities")
-        assert len(data["entity_types"]) == 8
+        # B4.1 extension: 8 → 11 (added hu_tax_number, hu_bank_account, postal_address)
+        assert len(data["entity_types"]) == 11
         ids = {e["id"] for e in data["entity_types"]}
         assert "contract_number" in ids
         assert "amount" in ids
+        assert "tax_number" in ids
+        assert "bank_account" in ids
+        assert "postal_address" in ids
 
     def test_document_types_loads(self) -> None:
         from aiflow.tools.schema_registry import SchemaRegistry
+
         sr = SchemaRegistry()
         data = sr.load_schema("email_intent_processor", "document_types")
         assert len(data["document_types"]) == 8
 
     def test_priorities_loads(self) -> None:
         from aiflow.tools.schema_registry import SchemaRegistry
+
         sr = SchemaRegistry()
         data = sr.load_schema("email_intent_processor", "priorities")
         assert len(data["priority_levels"]) == 5
 
     def test_routing_rules_loads(self) -> None:
         from aiflow.tools.schema_registry import SchemaRegistry
+
         sr = SchemaRegistry()
         data = sr.load_schema("email_intent_processor", "routing_rules")
         assert "routing_rules" in data
 
     def test_version_listing(self) -> None:
         from aiflow.tools.schema_registry import SchemaRegistry
+
         sr = SchemaRegistry()
         versions = sr.list_versions("email_intent_processor")
         assert "v1" in versions
 
     def test_schema_types_listing(self) -> None:
         from aiflow.tools.schema_registry import SchemaRegistry
+
         sr = SchemaRegistry()
         types = sr.list_schema_types("email_intent_processor")
         assert "intents" in types
@@ -116,13 +131,17 @@ class TestSchemas:
 class TestEmailParser:
     def test_parse_text(self) -> None:
         from aiflow.tools.email_parser import EmailParser
+
         parser = EmailParser()
-        result = parser.parse_text("Reklamacio", "Kedves Ugyfelszolgalat, reklamaciom van.", "test@test.hu")
+        result = parser.parse_text(
+            "Reklamacio", "Kedves Ugyfelszolgalat, reklamaciom van.", "test@test.hu"
+        )
         assert result.subject == "Reklamacio"
         assert "reklamaciom" in result.body_text
 
     def test_parse_text_empty(self) -> None:
         from aiflow.tools.email_parser import EmailParser
+
         parser = EmailParser()
         result = parser.parse_text("", "", "")
         assert result.body_text == ""
@@ -131,6 +150,7 @@ class TestEmailParser:
 class TestSklearnClassifier:
     def test_predict_without_model(self) -> None:
         from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
+
         clf = SklearnClassifier(model_path="nonexistent.joblib")
         result = clf.predict("This is a complaint")
         assert "intent" in result
@@ -138,6 +158,7 @@ class TestSklearnClassifier:
 
     def test_predict_returns_alternatives(self) -> None:
         from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
+
         clf = SklearnClassifier(model_path="nonexistent.joblib")
         result = clf.predict("Order for new policy")
         assert "alternatives" in result
@@ -254,24 +275,28 @@ class TestSklearnClassifierExtended:
 
     def test_fallback_keyword_complaint(self):
         from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
+
         clf = SklearnClassifier(model_path="nonexistent.joblib")
         result = clf.predict("Reklamáció, hibás számla, panasz")
         assert result["intent"] == "complaint"
 
     def test_fallback_keyword_claim(self):
         from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
+
         clf = SklearnClassifier(model_path="nonexistent.joblib")
         result = clf.predict("Kárbejelentés, baleset, biztosítási esemény")
         assert result["intent"] == "claim"
 
     def test_fallback_unknown_text(self):
         from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
+
         clf = SklearnClassifier(model_path="nonexistent.joblib")
         result = clf.predict("xyzzy lorem ipsum dolor sit amet")
         assert result["confidence"] <= 0.5
 
     def test_clean_text(self):
         from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
+
         clf = SklearnClassifier(model_path="nonexistent.joblib")
         cleaned = clf._clean_text("  Hello WORLD! 123 xxxx  ")
         assert "xxxx" not in cleaned
@@ -279,6 +304,7 @@ class TestSklearnClassifierExtended:
 
     def test_is_loaded_false(self):
         from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
+
         clf = SklearnClassifier(model_path="nonexistent.joblib")
         assert clf.is_loaded is False
 
@@ -298,7 +324,9 @@ class TestLLMClassifier:
         mock_pm.get.return_value = mock_prompt
 
         mock_result = MagicMock()
-        mock_result.output = SimpleNamespace(text='{"intent_id": "complaint", "confidence": 0.9, "reasoning": "clear complaint"}')
+        mock_result.output = SimpleNamespace(
+            text='{"intent_id": "complaint", "confidence": 0.9, "reasoning": "clear complaint"}'
+        )
         mock_result.cost_usd = 0.001
         mock_mc.generate = AsyncMock(return_value=mock_result)
 
@@ -342,7 +370,9 @@ class TestHybridClassifier:
 
         mock_llm = MagicMock()
 
-        clf = HybridClassifier(mock_sklearn, mock_llm, strategy="sklearn_first", confidence_threshold=0.6)
+        clf = HybridClassifier(
+            mock_sklearn, mock_llm, strategy="sklearn_first", confidence_threshold=0.6
+        )
         result = await clf.classify("Reklamáció")
 
         assert result.intent_id == "complaint"
@@ -363,13 +393,17 @@ class TestHybridClassifier:
         mock_sklearn.is_loaded = True
 
         mock_llm = MagicMock()
-        mock_llm.classify = AsyncMock(return_value=IntentResult(
-            intent_id="complaint",
-            confidence=0.85,
-            method="llm",
-        ))
+        mock_llm.classify = AsyncMock(
+            return_value=IntentResult(
+                intent_id="complaint",
+                confidence=0.85,
+                method="llm",
+            )
+        )
 
-        clf = HybridClassifier(mock_sklearn, mock_llm, strategy="sklearn_first", confidence_threshold=0.6)
+        clf = HybridClassifier(
+            mock_sklearn, mock_llm, strategy="sklearn_first", confidence_threshold=0.6
+        )
         result = await clf.classify("Ambiguous text")
 
         mock_llm.classify.assert_called_once()
@@ -400,11 +434,13 @@ class TestHybridClassifier:
 
         mock_sklearn = MagicMock()
         mock_llm = MagicMock()
-        mock_llm.classify = AsyncMock(return_value=IntentResult(
-            intent_id="feedback",
-            confidence=0.8,
-            method="llm",
-        ))
+        mock_llm.classify = AsyncMock(
+            return_value=IntentResult(
+                intent_id="feedback",
+                confidence=0.8,
+                method="llm",
+            )
+        )
 
         clf = HybridClassifier(mock_sklearn, mock_llm, strategy="llm_only")
         result = await clf.classify("Great service")
@@ -435,11 +471,13 @@ class TestWorkflowStepParseEmail:
         mock_parser.parse_text.return_value = mock_result
 
         with patch.object(cmod, "email_parser", mock_parser):
-            result = await cmod.parse_email({
-                "subject": "Reklamáció",
-                "body": "Panaszom van.",
-                "sender": "test@test.hu",
-            })
+            result = await cmod.parse_email(
+                {
+                    "subject": "Reklamáció",
+                    "body": "Panaszom van.",
+                    "sender": "test@test.hu",
+                }
+            )
 
             assert result["subject"] == "Reklamáció"
             assert result["body"] == "Panaszom van."
@@ -466,7 +504,7 @@ class TestWorkflowStepParseEmail:
         mock_parser.parse_eml.return_value = mock_result
 
         with patch.object(cmod, "email_parser", mock_parser):
-            result = await cmod.parse_email({"raw_eml_path": str(eml_file)})
+            await cmod.parse_email({"raw_eml_path": str(eml_file)})
             mock_parser.parse_eml.assert_called_once()
 
 
@@ -497,11 +535,13 @@ class TestWorkflowStepScorePriority:
                 "default_priority": 4,
             }
 
-            result = await cmod.score_priority({
-                "intent": {"intent_id": "complaint"},
-                "entities": {"entities": [], "entity_count": 0},
-                "body": "Ez sürgős reklamáció!",
-            })
+            result = await cmod.score_priority(
+                {
+                    "intent": {"intent_id": "complaint"},
+                    "entities": {"entities": [], "entity_count": 0},
+                    "body": "Ez sürgős reklamáció!",
+                }
+            )
 
             assert result["priority"]["priority_level"] == 2
 
@@ -519,11 +559,13 @@ class TestWorkflowStepScorePriority:
                 "default_priority": 4,
             }
 
-            result = await cmod.score_priority({
-                "intent": {"intent_id": "notification"},
-                "entities": {"entities": [], "entity_count": 0},
-                "body": "No matching rules here",
-            })
+            result = await cmod.score_priority(
+                {
+                    "intent": {"intent_id": "notification"},
+                    "entities": {"entities": [], "entity_count": 0},
+                    "body": "No matching rules here",
+                }
+            )
 
             assert result["priority"]["priority_level"] == 4
 
@@ -535,11 +577,13 @@ class TestWorkflowStepDecideRouting:
     async def test_complaint_routed(self):
         from skills.email_intent_processor.workflows import classify as cmod
 
-        result = await cmod.decide_routing({
-            "intent": {"intent_id": "complaint"},
-            "priority": {"priority_level": 2},
-            "body": "Regular complaint text",
-        })
+        result = await cmod.decide_routing(
+            {
+                "intent": {"intent_id": "complaint"},
+                "priority": {"priority_level": 2},
+                "body": "Regular complaint text",
+            }
+        )
 
         routing = result["routing"]
         assert routing["queue_id"] != ""
@@ -549,11 +593,13 @@ class TestWorkflowStepDecideRouting:
     async def test_legal_escalation_triggered(self):
         from skills.email_intent_processor.workflows import classify as cmod
 
-        result = await cmod.decide_routing({
-            "intent": {"intent_id": "complaint"},
-            "priority": {"priority_level": 1},
-            "body": "Az ugyved birosag ele viszi az ugyet, feljelentes!",
-        })
+        result = await cmod.decide_routing(
+            {
+                "intent": {"intent_id": "complaint"},
+                "priority": {"priority_level": 1},
+                "body": "Az ugyved birosag ele viszi az ugyet, feljelentes!",
+            }
+        )
 
         routing = result["routing"]
         assert routing["escalation_triggered"] is True
@@ -563,11 +609,13 @@ class TestWorkflowStepDecideRouting:
     async def test_default_routing_for_unknown_intent(self):
         from skills.email_intent_processor.workflows import classify as cmod
 
-        result = await cmod.decide_routing({
-            "intent": {"intent_id": "nonexistent_intent"},
-            "priority": {"priority_level": 4},
-            "body": "Some text",
-        })
+        result = await cmod.decide_routing(
+            {
+                "intent": {"intent_id": "nonexistent_intent"},
+                "priority": {"priority_level": 4},
+                "body": "Some text",
+            }
+        )
 
         routing = result["routing"]
         # Should fall through to default route
@@ -592,11 +640,13 @@ class TestWorkflowStepClassifyIntent:
                 "intents": [{"id": "complaint", "display_name": "Reklamáció"}],
             }
 
-            result = await cmod.classify_intent({
-                "subject": "Panasz",
-                "body": "Reklamálok a számla miatt.",
-                "attachment_text": "Csatolt számla szöveg.",
-            })
+            result = await cmod.classify_intent(
+                {
+                    "subject": "Panasz",
+                    "body": "Reklamálok a számla miatt.",
+                    "attachment_text": "Csatolt számla szöveg.",
+                }
+            )
 
             assert result["intent"]["intent_id"] == "complaint"
             assert result["intent"]["intent_display_name"] == "Reklamáció"
@@ -609,16 +659,18 @@ class TestWorkflowStepLogResult:
     async def test_assembles_processing_result(self):
         from skills.email_intent_processor.workflows import classify as cmod
 
-        result = await cmod.log_result({
-            "subject": "Teszt email",
-            "sender": "test@test.hu",
-            "body": "Body text",
-            "intent": {"intent_id": "inquiry", "confidence": 0.8},
-            "entities": {"entities": [], "entity_count": 0},
-            "priority": {"priority_level": 4, "sla_hours": 48},
-            "routing": {"queue_id": "q_inquiry", "department_id": "informacio"},
-            "attachment_summaries": [],
-        })
+        result = await cmod.log_result(
+            {
+                "subject": "Teszt email",
+                "sender": "test@test.hu",
+                "body": "Body text",
+                "intent": {"intent_id": "inquiry", "confidence": 0.8},
+                "entities": {"entities": [], "entity_count": 0},
+                "priority": {"priority_level": 4, "sla_hours": 48},
+                "routing": {"queue_id": "q_inquiry", "department_id": "informacio"},
+                "attachment_summaries": [],
+            }
+        )
 
         assert result["subject"] == "Teszt email"
         assert result["intent"]["intent_id"] == "inquiry"
@@ -630,6 +682,7 @@ class TestEdgeCasesEmail:
     def test_entity_confidence_validated(self):
         """Pydantic validates confidence is in [0, 1]."""
         import pydantic
+
         with pytest.raises(pydantic.ValidationError):
             Entity(entity_type="amount", value="100", confidence=1.5, source="body")
 
@@ -641,6 +694,7 @@ class TestEdgeCasesEmail:
 
     def test_sklearn_fallback_cancellation(self):
         from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
+
         clf = SklearnClassifier(model_path="nonexistent.joblib")
         result = clf.predict("felmondás lemondás cancel megszüntetés")
         # Keyword matching may vary; just verify it returns a valid result
@@ -649,12 +703,14 @@ class TestEdgeCasesEmail:
 
     def test_sklearn_fallback_order(self):
         from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
+
         clf = SklearnClassifier(model_path="nonexistent.joblib")
         result = clf.predict("Új szerződés megrendelés kérem")
         assert result["intent"] == "order"
 
     def test_sklearn_fallback_support(self):
         from skills.email_intent_processor.classifiers.sklearn_classifier import SklearnClassifier
+
         clf = SklearnClassifier(model_path="nonexistent.joblib")
         result = clf.predict("Login hiba, nem tudok belépni, technikai probléma")
         assert result["intent"] == "support"

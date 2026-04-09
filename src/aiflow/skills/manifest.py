@@ -3,15 +3,14 @@
 Each skill declares its metadata, dependencies, required models,
 workflows, agent types, prompts, and estimated cost.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
-
-import yaml
-from pydantic import BaseModel, Field
 
 import structlog
+import yaml
+from pydantic import BaseModel, Field
 
 from aiflow._version import __version__
 from aiflow.core.types import SkillType

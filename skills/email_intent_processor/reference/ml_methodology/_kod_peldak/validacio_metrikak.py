@@ -20,43 +20,41 @@ Tartalomjegyzek:
 Futtatas: python validacio_metrikak.py
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 from sklearn.datasets import load_breast_cancer, load_diabetes, load_iris
-from sklearn.model_selection import (
-    train_test_split,
-    KFold,
-    StratifiedKFold,
-    cross_val_score,
-    TimeSeriesSplit,
-    learning_curve,
-)
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import MinMaxScaler, label_binarize
 from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    RocCurveDisplay,
+    accuracy_score,
+    auc,
+    average_precision_score,
+    classification_report,
     # Osztalyozas
     confusion_matrix,
-    ConfusionMatrixDisplay,
-    accuracy_score,
-    precision_score,
-    recall_score,
     f1_score,
     fbeta_score,
-    classification_report,
-    roc_curve,
-    roc_auc_score,
-    RocCurveDisplay,
-    precision_recall_curve,
-    average_precision_score,
-    auc,
     # Regresszio
     mean_absolute_error,
-    mean_squared_error,
-    r2_score,
     mean_absolute_percentage_error,
+    mean_squared_error,
+    precision_recall_curve,
+    precision_score,
+    r2_score,
+    recall_score,
+    roc_auc_score,
+    roc_curve,
 )
+from sklearn.model_selection import (
+    KFold,
+    StratifiedKFold,
+    TimeSeriesSplit,
+    cross_val_score,
+    learning_curve,
+    train_test_split,
+)
+from sklearn.preprocessing import label_binarize
 
 
 # ============================================================================
@@ -158,7 +156,7 @@ def demo_kfold_cross_validation():
     print("\n--- 2b. StratifiedKFold (5 fold) ---")
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-    for fold_idx, (train_idx, val_idx) in enumerate(skf.split(X, y)):
+    for fold_idx, (_train_idx, val_idx) in enumerate(skf.split(X, y)):
         pos_ratio = np.mean(y[val_idx])
         print(f"  Fold {fold_idx + 1}: pozitiv arany a val-ban = {pos_ratio:.3f}")
 
@@ -200,7 +198,7 @@ def demo_timeseries_split():
     np.random.seed(42)
     n_samples = 100
     X_ts = np.arange(n_samples).reshape(-1, 1)
-    y_ts = np.sin(X_ts.ravel() / 10) + np.random.normal(0, 0.1, n_samples)
+    _y_ts = np.sin(X_ts.ravel() / 10) + np.random.normal(0, 0.1, n_samples)
 
     tscv = TimeSeriesSplit(n_splits=5)
     print(f"\nTimeSeriesSplit foldok ({tscv.get_n_splits()} split):")
@@ -544,7 +542,7 @@ def demo_regression_metrics():
     print(f"  {'MAPE (%)':<12s} {'':>10s} {mape_test:>10.2f}%")
 
     # Ertelmezesi segitseg
-    print(f"\n  Ertelmezesi tippek:")
+    print("\n  Ertelmezesi tippek:")
     print(f"    - MAE {mae_test:.1f} azt jelenti: atlagosan {mae_test:.1f} egysegnyi a hiba")
     print(f"    - R2 {r2_test:.3f} azt jelenti: a modell a variancia {r2_test*100:.1f}%-at magyarazza")
     if r2_train - r2_test > 0.1:
@@ -615,7 +613,7 @@ def demo_learning_curves():
         ("Overfitting (max_depth=None)", RandomForestClassifier(n_estimators=200, max_depth=None, random_state=0)),
     ]
 
-    for ax, (title, model) in zip(axes, models):
+    for ax, (title, model) in zip(axes, models, strict=False):
         # Learning curve szamitasa
         train_sizes, train_scores, val_scores = learning_curve(
             model, X, y,
@@ -726,12 +724,11 @@ def demo_multiclass_metrics():
     # --- Tobbosztalyos ROC gorbe (One-vs-Rest strategia) ---
     # Minden osztalyra kulon ROC gorbet rajzolunk
     y_test_bin = label_binarize(y_test, classes=[0, 1, 2])
-    n_classes = y_test_bin.shape[1]
 
     fig, ax = plt.subplots(figsize=(8, 6))
     colors = ["blue", "green", "red"]
 
-    for i, (color, name) in enumerate(zip(colors, class_names)):
+    for i, (color, name) in enumerate(zip(colors, class_names, strict=False)):
         fpr_i, tpr_i, _ = roc_curve(y_test_bin[:, i], y_proba[:, i])
         auc_i = roc_auc_score(y_test_bin[:, i], y_proba[:, i])
         ax.plot(fpr_i, tpr_i, color=color, lw=2, label=f"{name} (AUC = {auc_i:.3f})")

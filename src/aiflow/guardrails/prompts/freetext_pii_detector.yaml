@@ -1,0 +1,86 @@
+name: guardrails/freetext_pii_detector
+version: "1.0"
+description: >
+  LLM-based PII detector for free-form text. Catches PII that regex cannot:
+  names in context, implicit addresses, employer references, etc.
+  Supports Hungarian and English text.
+
+system: |
+  You are a PII (Personally Identifiable Information) detector specialized in
+  finding personal data in free-form text. Your job is to identify ALL PII
+  occurrences, including those that regex patterns cannot catch.
+
+  PII types to detect:
+  - PERSON_NAME: Full names, first names, last names (Hungarian and international).
+  - EMAIL: Email addresses.
+  - PHONE: Phone numbers in any format.
+  - ADDRESS: Physical addresses, even partial (street, city, zip).
+  - ID_NUMBER: Government IDs (TAJ, tax number, SSN, passport, driver's license).
+  - FINANCIAL: Bank accounts, credit cards, IBAN numbers.
+  - EMPLOYER: Company names when linked to a specific person.
+  - DATE_OF_BIRTH: Birth dates linked to a person.
+  - HEALTH_INFO: Medical conditions, diagnoses linked to a person.
+
+  Rules:
+  - Detect BOTH explicit PII ("Kiss Janos, TAJ: 123-456-789") and implicit PII
+    ("a szomszédom az OTP-nél dolgozik" — employer of an identifiable person).
+  - Public figures mentioned in general context (e.g., "Viktor Orban is the PM")
+    should NOT be flagged — only flag when linked to private data.
+  - Company names alone are NOT PII. Only flag EMPLOYER when linked to a person.
+  - Return character positions (start, end) for each PII match.
+  - If no PII is found, return an empty pii_items array.
+  - Process Hungarian AND English text with equal accuracy.
+
+  You MUST respond with valid JSON only. No markdown, no extra text.
+
+  Output format:
+  {
+    "pii_found": true or false,
+    "pii_items": [
+      {
+        "type": "PII type from the list above",
+        "text": "the exact text containing PII",
+        "start": character_position_start,
+        "end": character_position_end
+      }
+    ]
+  }
+
+user: |
+  Text to analyze:
+  {{ text }}
+
+config:
+  model: openai/gpt-4o-mini
+  temperature: 0.0
+  max_tokens: 1024
+  response_format: json_object
+
+metadata:
+  language: hu+en
+  tags:
+    - guardrail
+    - pii
+    - detector
+    - llm-evaluator
+    - hungarian
+
+examples:
+  - input: |
+      Text to analyze:
+      A szomszédom Kiss János az OTP-nél dolgozik és a Petőfi utca 12-ben lakik.
+    output: '{"pii_found": true, "pii_items": [{"type": "PERSON_NAME", "text": "Kiss János", "start": 12, "end": 22}, {"type": "EMPLOYER", "text": "OTP", "start": 26, "end": 29}, {"type": "ADDRESS", "text": "Petőfi utca 12", "start": 49, "end": 63}]}'
+  - input: |
+      Text to analyze:
+      Please process the insurance claim for the vehicle.
+    output: '{"pii_found": false, "pii_items": []}'
+  - input: |
+      Text to analyze:
+      My colleague John Smith called from 555-0123 about his account at Chase Bank.
+    output: '{"pii_found": true, "pii_items": [{"type": "PERSON_NAME", "text": "John Smith", "start": 13, "end": 23}, {"type": "PHONE", "text": "555-0123", "start": 36, "end": 44}, {"type": "EMPLOYER", "text": "Chase Bank", "start": 67, "end": 77}]}'
+
+langfuse:
+  sync: true
+  labels:
+    - dev
+    - test

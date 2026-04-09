@@ -3,15 +3,14 @@
 Datasets are collections of EvalCases that can be loaded from and saved
 to JSON files, organized by skill and test type.
 """
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
-
-from pydantic import BaseModel, Field
 
 import structlog
+from pydantic import BaseModel, Field
 
 from aiflow.evaluation.framework import EvalCase
 

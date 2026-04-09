@@ -17,20 +17,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 
 async def main(input_source: str, subject: str, output_dir: str) -> None:
-    from aiflow.engine.skill_runner import SkillRunner
     from skills.email_intent_processor.workflows.classify import (
+        classify_intent,
+        decide_routing,
+        extract_entities,
+        log_result,
         parse_email,
         process_attachments,
-        classify_intent,
-        extract_entities,
         score_priority,
-        decide_routing,
-        log_result,
     )
+
+    from aiflow.engine.skill_runner import SkillRunner
 
     runner = SkillRunner.from_env(
         default_model="openai/gpt-4o-mini",
@@ -116,6 +118,7 @@ async def main(input_source: str, subject: str, output_dir: str) -> None:
 async def cmd_discover(args: argparse.Namespace) -> None:
     """Discover intent categories from real emails."""
     import json as _json
+
     from skills.email_intent_processor.discovery.intent_discoverer import discover_intents
 
     print("=" * 60)
@@ -137,7 +140,7 @@ async def cmd_discover(args: argparse.Namespace) -> None:
         if intent.keywords_hu:
             print(f"    Keywords: {', '.join(intent.keywords_hu[:5])}")
 
-    print(f"\nSchema comparison:")
+    print("\nSchema comparison:")
     for comp in result.schema_comparison:
         icon = {"validated": "+", "missing_from_data": "-", "new_in_data": "*"}.get(comp.status, "?")
         name = comp.schema_intent_id or comp.discovered_match

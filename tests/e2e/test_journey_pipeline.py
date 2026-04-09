@@ -14,6 +14,7 @@ Tests the pipeline orchestration browsing flow.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, journey, pipelines, services, playwright]
 """
+
 from __future__ import annotations
 
 from playwright.sync_api import Page, expect
@@ -51,10 +52,9 @@ class TestPipelineJourney:
         assert "services" in page.url
 
         svc_body = page.locator("body").text_content() or ""
-        assert any(
-            w in svc_body
-            for w in ["Service", "service", "Szolg", "adapter"]
-        ), "Services page missing content"
+        assert any(w in svc_body for w in ["Service", "service", "Szolg", "adapter"]), (
+            "Services page missing content"
+        )
 
         # Back to Pipelines
         pip_link = page.locator('a[href*="pipelines"]').first
@@ -77,8 +77,7 @@ class TestPipelineJourney:
 
         body = page.locator("body").text_content() or ""
         assert any(
-            w in body
-            for w in ["Run", "Futtat", "run", "Execution", "No data", "Nincs", "Status"]
+            w in body for w in ["Run", "Futtat", "run", "Execution", "No data", "Nincs", "Status"]
         ), f"Runs page missing content: {body[:200]}"
 
     def test_pipeline_services_runs_costs_loop(self, authenticated_page: Page) -> None:
@@ -95,11 +94,19 @@ class TestPipelineJourney:
             assert len(body.strip()) > 20, f"Page {path} rendered empty"
 
         real_errors = [
-            e for e in errors
-            if not any(x in e for x in [
-                "favicon", "ResizeObserver", "Failed to fetch",
-                "Failed to load resource", "Maximum update depth",
-            ])
+            e
+            for e in errors
+            if not any(
+                x in e
+                for x in [
+                    "favicon",
+                    "ResizeObserver",
+                    "Failed to fetch",
+                    "Failed to load resource",
+                    "Maximum update depth",
+                    "CORS policy",
+                ]
+            )
         ]
         assert not real_errors, f"Console errors during pipeline loop: {real_errors}"
 

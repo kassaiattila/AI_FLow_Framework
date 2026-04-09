@@ -9,27 +9,19 @@
     requires_services: []
     tags: [cubix, transcript, pipeline, ffmpeg, stt]
 """
+
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, mock_open, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from skills.cubix_course_capture.models import (
-    AudioProbeResult,
-    ChunkInfo,
-    ChunkOutput,
     ChunkTranscript,
-    MergedTranscript,
-    StructuredTranscript,
-    TopicSection,
     TranscriptSegment,
-    VocabularyItem,
 )
 
 # ---------------------------------------------------------------------------
@@ -75,9 +67,7 @@ def ffprobe_stdout() -> bytes:
 
 class TestProbeAudio:
     @pytest.mark.asyncio
-    async def test_probe_audio_parses_output(
-        self, ffprobe_stdout: bytes, tmp_path: Path
-    ) -> None:
+    async def test_probe_audio_parses_output(self, ffprobe_stdout: bytes, tmp_path: Path) -> None:
         """Mock subprocess to return ffprobe JSON with audio stream, verify parsed result."""
         # Create a real temp file so Path.exists() and stat() work
         audio_file = tmp_path / "lecture.mp4"
@@ -403,9 +393,7 @@ class TestMergeTranscripts:
 
         # The duplicate segment from chunk 1 should be removed
         texts = [seg["text"] for seg in result["segments"]]
-        count_valtozok = sum(
-            1 for t in texts if "valtozok es tipusok" in t
-        )
+        count_valtozok = sum(1 for t in texts if "valtozok es tipusok" in t)
         assert count_valtozok == 1, f"Expected 1 occurrence of overlap text, got {count_valtozok}"
         assert any("fuggvenyeket" in t for t in texts)
 
@@ -471,33 +459,57 @@ class TestMergeTranscripts:
 class TestStructureTranscript:
     @pytest.mark.asyncio
     async def test_structure_calls_llm(self) -> None:
-        """Mock ModelClient, verify prompt variables and response_model."""
-        # Build the expected structured result
-        structured = StructuredTranscript(
-            title="",
-            summary="Ez egy Python bevezeto kurzus.",
-            key_topics=["Python alapok", "Valtozok"],
-            sections=[
-                TopicSection(
-                    title="Bevezetes",
-                    start_time=0.0,
-                    end_time=60.0,
-                    summary="A kurzus bevezetese.",
-                    content="Bevezeto szoveg...",
-                )
-            ],
-            vocabulary=[
-                VocabularyItem(term="Python", definition="Programozasi nyelv"),
-            ],
-            cleaned_text="Tisztitott szoveg...",
-            structuring_cost=0.0,
+        """B4.2 split: 3 prompts must be called (section, summary, vocabulary)."""
+        import json
+
+        # JSON outputs each split prompt would return
+        sections_json = json.dumps(
+            {
+                "sections": [
+                    {
+                        "title": "Bevezetes",
+                        "start_time": 0.0,
+                        "end_time": 60.0,
+                        "summary": "A kurzus bevezetese.",
+                        "content": "Bevezeto szoveg...",
+                    }
+                ]
+            }
+        )
+        summary_json = json.dumps(
+            {
+                "summary": "Ez egy Python bevezeto kurzus.",
+                "key_topics": ["Python alapok", "Valtozok"],
+                "main_takeaways": ["Python ertelmezo nyelv"],
+            }
+        )
+        vocab_json = json.dumps(
+            {
+                "terms": [
+                    {
+                        "term": "Python",
+                        "definition": "Programozasi nyelv",
+                        "example_usage": "A Python interpretalt nyelv.",
+                        "language": "en",
+                    }
+                ]
+            }
         )
 
-        # Mock the _models.generate response (matches ModelCallResult structure)
-        mock_output = SimpleNamespace(text="", structured=structured, model_used="test")
-        mock_response = SimpleNamespace(output=mock_output, cost_usd=0.0042, model_used="test")
+        def _mk_response(text: str) -> SimpleNamespace:
+            mock_output = SimpleNamespace(text=text, structured=None, model_used="test")
+            return SimpleNamespace(output=mock_output, cost_usd=0.0014, model_used="test")
 
-        # Mock prompt definition
+        # Map prompt name → response. The 3 helpers run in parallel via asyncio.gather,
+        # so the AsyncMock side_effect must dispatch by call args (messages content).
+        # Easier: vary by call order — gather invokes deterministically per the
+        # task list (section, summary, vocab).
+        responses_in_order = [
+            _mk_response(sections_json),
+            _mk_response(summary_json),
+            _mk_response(vocab_json),
+        ]
+
         mock_prompt_def = MagicMock()
         mock_prompt_def.compile.return_value = [
             {"role": "system", "content": "You are a structuring assistant."},
@@ -512,7 +524,7 @@ class TestStructureTranscript:
                 "skills.cubix_course_capture.workflows.transcript_pipeline._prompts",
             ) as mock_prompts,
         ):
-            mock_models.generate = AsyncMock(return_value=mock_response)
+            mock_models.generate = AsyncMock(side_effect=responses_in_order)
             mock_prompts.get.return_value = mock_prompt_def
 
             from skills.cubix_course_capture.workflows.transcript_pipeline import (
@@ -527,27 +539,26 @@ class TestStructureTranscript:
                 }
             )
 
-        # Verify prompt was fetched with correct key
-        mock_prompts.get.assert_called_once_with("cubix/transcript_structurer")
+        # Verify all 3 split prompts were fetched (order is deterministic)
+        prompt_calls = [c.args[0] for c in mock_prompts.get.call_args_list]
+        assert "cubix/section_detector" in prompt_calls
+        assert "cubix/summary_generator" in prompt_calls
+        assert "cubix/vocabulary_extractor" in prompt_calls
+        assert len(prompt_calls) == 3
 
-        # Verify compile was called with correct variables
-        compile_call = mock_prompt_def.compile.call_args
-        variables = compile_call.kwargs.get("variables") or compile_call[1].get("variables")
-        assert variables["course_title"] == "Python Alapok"
-        assert variables["duration_minutes"] == "60.0"
-        assert "Python bevezeto" in variables["transcript_text"]
+        # Verify _models.generate was called exactly 3 times (one per split prompt)
+        assert mock_models.generate.call_count == 3
 
-        # Verify generate was called with correct params
-        gen_call = mock_models.generate.call_args
-        assert gen_call.kwargs["response_model"] is StructuredTranscript
-        assert gen_call.kwargs["temperature"] == 0.3
-        assert gen_call.kwargs["max_tokens"] == 8192
-
-        # Verify output
+        # Verify output: data from all 3 mocked responses is merged
         assert result["title"] == "Python Alapok"
-        assert result["structuring_cost"] == 0.0042
-        assert len(result["sections"]) == 1
+        assert result["summary"] == "Ez egy Python bevezeto kurzus."
         assert "Python alapok" in result["key_topics"]
+        assert len(result["sections"]) == 1
+        assert result["sections"][0]["title"] == "Bevezetes"
+        assert len(result["vocabulary"]) == 1
+        assert result["vocabulary"][0]["term"] == "Python"
+        # 3 calls × 0.0014 each = 0.0042
+        assert result["structuring_cost"] == pytest.approx(0.0042, abs=1e-6)
         assert result["vocabulary"][0]["term"] == "Python"
 
 

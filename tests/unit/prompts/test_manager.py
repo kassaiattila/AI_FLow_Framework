@@ -9,12 +9,12 @@
     requires_services: []
     tags: [prompts, manager, cache, yaml, fallback, langfuse]
 """
+
 import time
 
 import pytest
 
 from aiflow.prompts.manager import PromptManager
-from aiflow.prompts.schema import PromptDefinition
 
 
 @pytest.fixture

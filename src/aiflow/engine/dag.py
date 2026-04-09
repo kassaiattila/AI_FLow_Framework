@@ -4,12 +4,12 @@ Supports: node management, edge management with conditions, topological sort,
 cycle detection (loops allowed only via max_iterations), step readiness check,
 and comprehensive validation.
 """
+
 from collections import defaultdict, deque
 from typing import Any
 
-from pydantic import BaseModel
-
 import structlog
+from pydantic import BaseModel
 
 from aiflow.engine.conditions import Condition
 
@@ -20,6 +20,7 @@ logger = structlog.get_logger(__name__)
 
 class DAGValidationError(Exception):
     """Raised when DAG validation fails."""
+
     def __init__(self, errors: list[str]) -> None:
         self.errors = errors
         super().__init__(f"DAG validation failed: {'; '.join(errors)}")
@@ -27,6 +28,7 @@ class DAGValidationError(Exception):
 
 class DAGNode(BaseModel):
     """A node in the DAG representing a workflow step."""
+
     name: str
     step_func: Any = None  # The decorated step function
     is_terminal: bool = False
@@ -38,6 +40,7 @@ class DAGNode(BaseModel):
 
 class DAGEdge(BaseModel):
     """An edge connecting two DAG nodes, optionally with a condition."""
+
     from_node: str
     to_node: str
     condition: Condition | None = None
@@ -57,9 +60,15 @@ class DAG:
         self._adjacency: dict[str, list[str]] = defaultdict(list)
         self._reverse_adjacency: dict[str, list[str]] = defaultdict(list)
 
-    def add_node(self, name: str, step_func: Any = None, *,
-                 is_terminal: bool = False, max_iterations: int = 1,
-                 metadata: dict[str, Any] | None = None) -> None:
+    def add_node(
+        self,
+        name: str,
+        step_func: Any = None,
+        *,
+        is_terminal: bool = False,
+        max_iterations: int = 1,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
         """Add a step node to the DAG."""
         if name in self._nodes:
             raise ValueError(f"Node '{name}' already exists in DAG")
@@ -72,8 +81,7 @@ class DAG:
         )
         logger.debug("dag_node_added", node=name)
 
-    def add_edge(self, from_node: str, to_node: str, *,
-                 condition: Condition | None = None) -> None:
+    def add_edge(self, from_node: str, to_node: str, *, condition: Condition | None = None) -> None:
         """Add a directed edge between two nodes."""
         if from_node not in self._nodes:
             raise ValueError(f"Source node '{from_node}' not found in DAG")
@@ -137,8 +145,11 @@ class DAG:
         # Build in-degree map, ignoring loop-back edges
         loop_edges = set()
         for edge in self._edges:
-            if self._nodes[edge.to_node].max_iterations > 1 and \
-               edge.to_node in self._reverse_adjacency.get(edge.from_node, []):
+            if self._nodes[
+                edge.to_node
+            ].max_iterations > 1 and edge.to_node in self._reverse_adjacency.get(
+                edge.from_node, []
+            ):
                 # This might be a loop-back edge
                 loop_edges.add((edge.from_node, edge.to_node))
 

@@ -1,4 +1,5 @@
 """Audit logging helper — fire-and-forget audit entries for API actions."""
+
 import structlog
 
 __all__ = ["audit_log"]
@@ -12,6 +13,7 @@ def _get_service():
     global _service
     if _service is None:
         from aiflow.services.audit import AuditTrailService
+
         _service = AuditTrailService()
     return _service
 

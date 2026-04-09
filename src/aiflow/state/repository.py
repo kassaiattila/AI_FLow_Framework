@@ -2,23 +2,25 @@
 
 All database operations go through this layer. Never use Session directly in business logic.
 """
+
 import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-
 import structlog
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from aiflow.state.models import Base, WorkflowRunModel, StepRunModel
+from aiflow.state.models import StepRunModel, WorkflowRunModel
 
 __all__ = ["StateRepository", "create_session_factory"]
 
 logger = structlog.get_logger(__name__)
 
 
-def create_session_factory(database_url: str, pool_size: int = 20, echo: bool = False) -> async_sessionmaker[AsyncSession]:
+def create_session_factory(
+    database_url: str, pool_size: int = 20, echo: bool = False
+) -> async_sessionmaker[AsyncSession]:
     """Create an async session factory from a database URL."""
     engine = create_async_engine(database_url, pool_size=pool_size, echo=echo)
     return async_sessionmaker(engine, expire_on_commit=False)
@@ -185,11 +187,18 @@ class StateRepository:
                 values["completed_at"] = now
 
         for key, val in [
-            ("output_data", output_data), ("error", error), ("error_type", error_type),
-            ("duration_ms", duration_ms), ("cost_usd", cost_usd), ("model_used", model_used),
-            ("input_tokens", input_tokens), ("output_tokens", output_tokens),
-            ("scores", scores), ("quality_gate_passed", quality_gate_passed),
-            ("checkpoint_data", checkpoint_data), ("retry_count", retry_count),
+            ("output_data", output_data),
+            ("error", error),
+            ("error_type", error_type),
+            ("duration_ms", duration_ms),
+            ("cost_usd", cost_usd),
+            ("model_used", model_used),
+            ("input_tokens", input_tokens),
+            ("output_tokens", output_tokens),
+            ("scores", scores),
+            ("quality_gate_passed", quality_gate_passed),
+            ("checkpoint_data", checkpoint_data),
+            ("retry_count", retry_count),
         ]:
             if val is not None:
                 values[key] = val

@@ -48,9 +48,7 @@ class TemplateRegistry:
         self._yaml_cache.clear()
 
         if not self._dir.exists():
-            logger.warning(
-                "template_dir_not_found", path=str(self._dir)
-            )
+            logger.warning("template_dir_not_found", path=str(self._dir))
             return []
 
         discovered: list[TemplateInfo] = []
@@ -58,9 +56,7 @@ class TemplateRegistry:
             try:
                 info = self._parse_template_file(yaml_path)
                 self._templates[info.name] = info
-                self._yaml_cache[info.name] = yaml_path.read_text(
-                    encoding="utf-8"
-                )
+                self._yaml_cache[info.name] = yaml_path.read_text(encoding="utf-8")
                 discovered.append(info)
             except Exception:
                 logger.warning(
@@ -106,9 +102,7 @@ class TemplateRegistry:
         data = yaml.safe_load(content)
 
         if not isinstance(data, dict):
-            raise ValueError(
-                f"Template {path.name} does not contain a YAML mapping"
-            )
+            raise ValueError(f"Template {path.name} does not contain a YAML mapping")
 
         name = data.get("name", path.stem)
         version = str(data.get("version", "1.0.0"))

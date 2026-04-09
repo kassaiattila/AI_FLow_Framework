@@ -1,6 +1,9 @@
 """Persistent cost recording — writes LLM usage to cost_records table."""
+
 import uuid
+
 import structlog
+
 from aiflow.api.deps import get_pool
 
 __all__ = ["record_cost"]

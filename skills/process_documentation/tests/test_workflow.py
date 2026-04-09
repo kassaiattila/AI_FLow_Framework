@@ -14,10 +14,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-from aiflow.models.protocols.base import ModelCallResult
-from aiflow.models.protocols.generation import GenerationOutput
-from aiflow.prompts.schema import PromptConfig, PromptDefinition
 from skills.process_documentation.models import (
     Actor,
     ClassifyOutput,
@@ -36,6 +32,10 @@ from skills.process_documentation.workflow import (
     reject,
     review,
 )
+
+from aiflow.models.protocols.base import ModelCallResult
+from aiflow.models.protocols.generation import GenerationOutput
+from aiflow.prompts.schema import PromptConfig, PromptDefinition
 
 # ---------------------------------------------------------------------------
 # Shared test fixtures

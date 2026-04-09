@@ -9,19 +9,20 @@
     requires_services: []
     tags: [skills, instance, pydantic, config]
 """
+
 import pytest
 
 from aiflow.skills.instance import (
-    InstanceConfig,
-    DataSourceConfig,
+    BudgetConfig,
     CollectionRef,
+    DataSourceConfig,
+    InstanceConfig,
+    IntentConfig,
+    ModelConfig,
     PromptConfig,
     PromptOverride,
-    ModelConfig,
-    BudgetConfig,
-    SLAConfig,
-    IntentConfig,
     RoutingConfig,
+    SLAConfig,
 )
 
 

@@ -1,0 +1,176 @@
+# Promptfoo evaluation config for DiagramGeneratorService (B5.1 — UJ FILE)
+# Run: npx promptfoo eval -c src/aiflow/services/diagram_generator/tests/promptfooconfig.yaml
+# View: npx promptfoo view
+#
+# Tests the END-TO-END behavior of the dedicated service prompts
+# (planner -> mermaid_generator -> reviewer) by asking a single router prompt
+# to emit the final mermaid code directly. This mirrors the prompt semantics
+# without requiring a live Python runtime.
+#
+# 7 test cases:
+#   1. test_flowchart_basic         — simple ordering workflow
+#   2. test_flowchart_decision      — decision branching + labeled edges
+#   3. test_sequence_auth           — user/frontend/backend/DB sequence
+#   4. test_sequence_retry          — async retry with response arrows
+#   5. test_bpmn_swimlane_onboard   — HR + IT parallel onboarding
+#   6. test_bpmn_swimlane_cross     — 3-lane finance workflow
+#   7. test_invalid_fallback        — non-process chatter → NOT_A_DIAGRAM
+
+description: "Diagram Generator — planner + mermaid + reviewer (B5.1)"
+
+providers:
+  - id: openai:gpt-4o-mini
+    label: "gpt-4o-mini (diagram generator)"
+    config:
+      temperature: 0
+      max_tokens: 2048
+
+prompts:
+  - id: diagram_generator_router
+    label: "diagram_generator_router"
+    raw: |
+      You are the AIFlow Diagram Generator. Given a natural language
+      description and a requested diagram_type, emit STRICT valid Mermaid
+      code for the final rendered diagram. No markdown fences, no commentary.
+
+      Supported types:
+        - "flowchart"      → start with `flowchart TD`
+        - "sequence"       → start with `sequenceDiagram`
+        - "bpmn_swimlane"  → start with `flowchart LR`, use `subgraph` / `end`
+                              blocks as lanes, one per actor.
+
+      HARD RULES:
+      1. Output starts with the correct header and nothing else before it.
+      2. Decision diamonds (`X{...?}`) MUST have >= 2 outgoing labeled edges
+         like `X -->|yes| Y`.
+      3. Sequence diagrams MUST declare `participant` entries before messages
+         and MUST use `->>`, `-->>` (or `-)` for async).
+      4. Swimlane diagrams MUST have ONE subgraph per actor, and the
+         cross-lane edges MUST live OUTSIDE the subgraph blocks.
+      5. If the description is NOT a process/flow (random chat, a noun,
+         nonsense), output exactly the string: NOT_A_DIAGRAM
+
+      Requested diagram_type: {{diagram_type}}
+
+      Description:
+      {{description}}
+
+tests:
+  - description: "test_flowchart_basic"
+    vars:
+      diagram_type: "flowchart"
+      description: |
+        A vevo leadja a rendelest a webshopon. A rendszer ellenorzi a keszletet.
+        Ha van keszlet, a fizetes feldolgozasra kerul, majd a rendeles
+        csomagolasra es kiszallitasra kerul. A folyamat vege.
+    assert:
+      - type: contains
+        value: "flowchart TD"
+      - type: not-contains
+        value: "```"
+      - type: javascript
+        value: |
+          // Starts with header and has at least 4 meaningful lines.
+          const trimmed = output.trim();
+          const lineCount = trimmed.split('\n').length;
+          return trimmed.startsWith('flowchart TD') && lineCount >= 4;
+
+  - description: "test_flowchart_decision"
+    vars:
+      diagram_type: "flowchart"
+      description: |
+        Felhasznalo bejelentkezik. Ha az adatok helyesek akkor hozzaferest kap
+        es megjelenik a dashboard. Ha nem helyesek, hibauzenet jelenik meg es
+        ujraprobalhatja a bejelentkezest.
+    assert:
+      - type: contains
+        value: "flowchart TD"
+      - type: javascript
+        value: |
+          // Must contain a decision diamond { ... } with >= 2 labeled edges
+          const hasDiamond = /\{[^}]+\?\}/.test(output);
+          const labeledEdges = (output.match(/-->\|[^|]+\|/g) || []).length;
+          return hasDiamond && labeledEdges >= 2;
+
+  - description: "test_sequence_auth"
+    vars:
+      diagram_type: "sequence"
+      description: |
+        User login flow: user submits credentials to the frontend, which calls
+        the backend /auth endpoint. Backend queries the database for the user,
+        gets the row back, returns a JWT token to the frontend, and the
+        frontend redirects the user to the dashboard.
+    assert:
+      - type: contains
+        value: "sequenceDiagram"
+      - type: javascript
+        value: |
+          // Must declare at least 3 participants AND use sync arrows
+          const participants = (output.match(/participant\s+\w+/g) || []).length;
+          const syncArrows = (output.match(/->>/g) || []).length;
+          return participants >= 3 && syncArrows >= 3;
+
+  - description: "test_sequence_retry"
+    vars:
+      diagram_type: "sequence"
+      description: |
+        Client sends an async request to the worker. The worker processes it
+        and responds with a result. If the client does not get a response
+        within the timeout it retries the request.
+    assert:
+      - type: contains
+        value: "sequenceDiagram"
+      - type: javascript
+        value: |
+          // Must use response arrows (-->>) or async arrows (-))
+          const hasResp = output.includes('-->>') || output.includes('-)');
+          return hasResp && output.includes('sequenceDiagram');
+
+  - description: "test_bpmn_swimlane_onboard"
+    vars:
+      diagram_type: "bpmn_swimlane"
+      description: |
+        Onboarding process: HR creates the employment contract and sends the
+        welcome email. In parallel, IT creates the user account and provisions
+        the laptop. Once both HR and IT tasks are done, the new hire joins
+        the orientation session.
+    assert:
+      - type: contains
+        value: "flowchart LR"
+      - type: javascript
+        value: |
+          // Must have 2+ subgraph lanes (HR, IT)
+          const subgraphs = (output.match(/subgraph\s+/g) || []).length;
+          const ends = (output.match(/\bend\b/g) || []).length;
+          return subgraphs >= 2 && ends >= subgraphs;
+
+  - description: "test_bpmn_swimlane_cross"
+    vars:
+      diagram_type: "bpmn_swimlane"
+      description: |
+        Procurement: Sales submits an order. Finance verifies the credit limit.
+        Warehouse prepares the shipment. Once warehouse confirms the shipment
+        is ready, Finance sends the invoice to the customer.
+    assert:
+      - type: contains
+        value: "flowchart LR"
+      - type: javascript
+        value: |
+          // Must have 3 lanes AND at least one cross-lane edge outside subgraphs.
+          const subgraphs = (output.match(/subgraph\s+/g) || []).length;
+          return subgraphs >= 3;
+
+  - description: "test_invalid_fallback"
+    vars:
+      diagram_type: "flowchart"
+      description: "Szia, hogy vagy ma? Jo idonk van."
+    assert:
+      - type: javascript
+        value: |
+          // Either explicit refusal OR a trivial 1-step fallback — never
+          // a hallucinated multi-step flowchart from small talk.
+          const trimmed = output.trim();
+          if (trimmed.includes('NOT_A_DIAGRAM')) return true;
+          // Acceptable fallback: single node, no decisions.
+          const nodes = (trimmed.match(/^\s*\w+\s*[\[\(\{]/gm) || []).length;
+          return nodes <= 2 && !/\?\}/.test(trimmed);

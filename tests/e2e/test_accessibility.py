@@ -11,6 +11,7 @@ Accessibility audit: keyboard navigation, aria-labels, contrast basics.
     requires_services: [postgresql, redis, fastapi, vite]
     tags: [e2e, accessibility, a11y, playwright]
 """
+
 from __future__ import annotations
 
 import pytest
@@ -54,8 +55,7 @@ class TestKeyboardNavigation:
         interactive = {"a", "button", "input", "select", "textarea"}
         reached = any(t in interactive for t in focused_tags)
         assert reached, (
-            f"{name} ({path}): Tab did not reach any interactive element. "
-            f"Focused: {focused_tags}"
+            f"{name} ({path}): Tab did not reach any interactive element. Focused: {focused_tags}"
         )
 
     def test_sidebar_keyboard_accessible(self, authenticated_page: Page) -> None:

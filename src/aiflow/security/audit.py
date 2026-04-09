@@ -1,10 +1,11 @@
 """Audit trail for tracking all security-relevant actions."""
+
 from __future__ import annotations
 
 import enum
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -22,6 +23,7 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Enums & models
 # ---------------------------------------------------------------------------
+
 
 class AuditAction(str, enum.Enum):
     """Actions that are recorded in the audit trail."""
@@ -43,7 +45,7 @@ class AuditEntry(BaseModel):
     """Single audit log entry."""
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     user_id: str | None = None
     team_id: str | None = None
     action: AuditAction
@@ -57,6 +59,7 @@ class AuditEntry(BaseModel):
 # ---------------------------------------------------------------------------
 # Audit logger (in-memory)
 # ---------------------------------------------------------------------------
+
 
 class AuditLogger:
     """In-memory audit logger.

@@ -9,9 +9,11 @@
     requires_services: []
     tags: [engine, dag, topological-sort, validation, graph]
 """
+
 import pytest
-from aiflow.engine.dag import DAG, DAGNode, DAGEdge, DAGValidationError
+
 from aiflow.engine.conditions import Condition
+from aiflow.engine.dag import DAG, DAGValidationError
 
 
 class TestDAGNodeManagement:

@@ -20,19 +20,18 @@ Fuggosegek: numpy, scikit-learn, matplotlib (pandas opcionalis)
 """
 
 import warnings
-import time
-import numpy as np
-import matplotlib.pyplot as plt
 
-from sklearn.linear_model import Perceptron
-from sklearn.neural_network import MLPClassifier
+import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.datasets import make_classification, make_multilabel_classification
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Perceptron
 from sklearn.metrics import accuracy_score, hamming_loss
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
 
 try:
-    import pandas as pd
+    import pandas as pd  # noqa: F401
     PANDAS_AVAILABLE = True
 except ImportError:
     PANDAS_AVAILABLE = False
@@ -152,7 +151,7 @@ def demo_mlp_architectures():
         np.linspace(0.2, 0.8, len(results))), edgecolor="k")
     axes[0].set_xlabel("Pontossag"); axes[0].set_xlim(0.5, 1.0)
     axes[0].set_title("MLP architekturak", fontweight="bold")
-    for bar, a in zip(bars, accs):
+    for bar, a in zip(bars, accs, strict=False):
         axes[0].text(bar.get_width() + 0.005,
                      bar.get_y() + bar.get_height() / 2,
                      f"{a:.4f}", va="center", fontsize=9)
@@ -237,7 +236,7 @@ def demo_activation_functions():
     ]
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    for ax, (name, formula, val, deriv, color) in zip(axes.flat, funcs):
+    for ax, (name, formula, val, deriv, color) in zip(axes.flat, funcs, strict=False):
         d = deriv(val) if callable(deriv) else deriv
         ax.plot(x, val, color=color, linewidth=2.5, label=name)
         ax.plot(x, d, color=color, linewidth=1.5, linestyle="--", alpha=0.6,
@@ -261,7 +260,7 @@ def demo_activation_functions():
     fig, ax = plt.subplots(figsize=(8, 4))
     classes = [f"Osztaly {i}" for i in range(len(logits))]
     bars = ax.bar(classes, sm, color="steelblue", edgecolor="k")
-    for bar, val in zip(bars, sm):
+    for bar, val in zip(bars, sm, strict=False):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
                 f"{val:.3f}", ha="center")
     ax.set_ylabel("Valoszinuseg")

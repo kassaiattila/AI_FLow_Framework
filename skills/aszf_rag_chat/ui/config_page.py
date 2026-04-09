@@ -1,7 +1,7 @@
 """ASZF RAG Chat admin/config page."""
 import reflex as rx
-from src.aiflow.ui.components.forms.upload_widget import upload_widget
 from src.aiflow.ui.components.cards.kpi_card import kpi_card
+from src.aiflow.ui.components.forms.upload_widget import upload_widget
 
 
 class AszfAdminState(rx.State):

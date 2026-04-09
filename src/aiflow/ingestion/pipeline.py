@@ -4,6 +4,7 @@ This is the high-level entry point for ingesting a document into the AIFlow
 knowledge base.  Phase 3 provides the skeleton; embedding and vector-store
 upsert are wired in Phase 4.
 """
+
 from __future__ import annotations
 
 import time
@@ -12,7 +13,7 @@ from enum import StrEnum
 from pathlib import Path
 
 import structlog
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from aiflow.documents.registry import (
     DocumentRegistry,
