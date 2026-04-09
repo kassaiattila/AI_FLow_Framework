@@ -87,7 +87,10 @@ class FakeMediaJobRecord:
 
 @dataclass
 class FakeDiagramRecord:
-    diagram_id: str = "diag-1"
+    # B5.1: DiagramRecord exposes the PK as `id` (not `diagram_id`), matching
+    # the real pydantic model in aiflow.services.diagram_generator.service.
+    id: str = "diag-1"
+    user_input: str = "Invoice processing workflow"
     mermaid_code: str = "graph TD; A-->B"
     svg_content: str = "<svg>...</svg>"
 
@@ -127,7 +130,7 @@ class FakeMediaService:
 
 
 class FakeDiagramService:
-    async def generate(self, user_input, created_by=None):
+    async def generate(self, user_input, diagram_type="flowchart", created_by=None):
         return FakeDiagramRecord()
 
 
@@ -336,18 +339,32 @@ class TestDiagramGenerateAdapter:
         result = await adapter.execute({"description": "Invoice processing workflow"}, {}, ctx)
         assert result["diagram_id"] == "diag-1"
         assert "graph TD" in result["mermaid_code"]
-        assert result["diagram_type"] == "mermaid"
+        # B5.1: default semantic is "flowchart" (was legacy "mermaid").
+        assert result["diagram_type"] == "flowchart"
 
     @pytest.mark.asyncio
     async def test_generate_with_type(self):
+        """B5.1: diagram_type is a semantic (flowchart/sequence/bpmn_swimlane)."""
         from aiflow.pipeline.adapters.diagram_adapter import DiagramGenerateAdapter
 
         adapter = DiagramGenerateAdapter(service=FakeDiagramService())
         ctx = ExecutionContext()
         result = await adapter.execute(
-            {"description": "Flow diagram", "diagram_type": "bpmn"}, {}, ctx
+            {"description": "Flow diagram", "diagram_type": "bpmn_swimlane"}, {}, ctx
         )
-        assert result["diagram_type"] == "bpmn"
+        assert result["diagram_type"] == "bpmn_swimlane"
+
+    @pytest.mark.asyncio
+    async def test_generate_unknown_type_falls_back_to_flowchart(self):
+        """Unknown semantic values (legacy 'bpmn', 'drawio') fall back to flowchart."""
+        from aiflow.pipeline.adapters.diagram_adapter import DiagramGenerateAdapter
+
+        adapter = DiagramGenerateAdapter(service=FakeDiagramService())
+        ctx = ExecutionContext()
+        result = await adapter.execute(
+            {"description": "Legacy type", "diagram_type": "bpmn"}, {}, ctx
+        )
+        assert result["diagram_type"] == "flowchart"
 
 
 # --- Global registry tests ---
