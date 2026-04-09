@@ -16,6 +16,7 @@ import { Emails as EmailsNew } from "./pages-new/Emails";
 import { Rag as RagNew } from "./pages-new/Rag";
 import { RagDetail } from "./pages-new/RagDetail";
 import { ProcessDocs as ProcessDocsNew } from "./pages-new/ProcessDocs";
+import { SpecWriter } from "./pages-new/SpecWriter";
 import { Media as MediaNew } from "./pages-new/Media";
 import { Rpa as RpaNew } from "./pages-new/Rpa";
 import { Reviews as ReviewsNew } from "./pages-new/Reviews";
@@ -78,6 +79,7 @@ export const router = createHashRouter([
       { path: "rag/:id", element: <RagDetail /> },
       { path: "rag-chat", element: <Navigate to="/rag" replace /> },
       { path: "process-docs", element: <ProcessDocsNew /> },
+      { path: "spec-writer", element: <SpecWriter /> },
       { path: "media", element: <MediaNew /> },
       { path: "rpa", element: <RpaNew /> },
       { path: "reviews", element: <ReviewsNew /> },

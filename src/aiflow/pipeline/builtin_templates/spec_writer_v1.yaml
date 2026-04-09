@@ -1,0 +1,64 @@
+# Spec Writer Pipeline v1
+# Chain: raw description -> structured requirement -> Markdown spec draft ->
+# quality review -> finalized spec output. Wraps the spec-writer skill's
+# 5-step DAG behind a single pipeline step so it can be triggered through
+# the /api/v1/pipelines endpoint like any other skill.
+#
+# Prerequisites:
+#   - skills/spec_writer/ skill present with the 3 prompts registered
+#   - generated_specs table created (migration 030)
+#
+# Usage:
+#   POST /api/v1/pipelines  (create with this YAML)
+#   POST /api/v1/pipelines/{id}/run
+#     body: {"input_data": {
+#         "raw_text": "...",
+#         "spec_type": "feature",
+#         "language": "hu"
+#     }}
+
+name: spec_writer_v1
+version: "1.0.0"
+description: "Free-form description -> structured Markdown specification"
+
+trigger:
+  type: manual
+
+input_schema:
+  raw_text:
+    type: string
+    required: true
+    description: "Natural language description of what to spec out"
+  spec_type:
+    type: string
+    default: "feature"
+    description: "Spec template: feature | api | db | user_story"
+  language:
+    type: string
+    default: "hu"
+    description: "Output language: hu | en"
+  context:
+    type: string
+    required: false
+    description: "Optional extra context, constraints, or references"
+
+steps:
+  - name: write_spec
+    service: spec_writer
+    method: write
+    config:
+      raw_text: "{{ input.raw_text }}"
+      spec_type: "{{ input.spec_type }}"
+      language: "{{ input.language }}"
+      context: "{{ input.context }}"
+    retry:
+      max_retries: 2
+      backoff_base: 2.0
+      backoff_max: 20.0
+    timeout: 180
+
+metadata:
+  author: "AIFlow"
+  category: "documentation"
+  tier: "3"
+  cycle: "B5"

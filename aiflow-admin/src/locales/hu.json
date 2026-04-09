@@ -253,6 +253,27 @@
       "deleteConfirm": "Biztosan torli ezt a diagramot?",
       "deleted": "Diagram torolve"
     },
+    "specWriter": {
+      "title": "Spec Writer",
+      "inputLabel": "Szobeli leiras",
+      "placeholder": "Ird le mit szeretnel specifikalni (feature, API, DB, user story)...",
+      "specType": "Spec tipus",
+      "language": "Nyelv",
+      "write": "Spec generalas",
+      "outputLabel": "Generalt specifikacio",
+      "outputPlaceholder": "A generalt spec itt jelenik meg",
+      "download": "Letoltes",
+      "accepted": "Elfogadott",
+      "needsWork": "Javitas kell",
+      "suggestions": "Javaslatok",
+      "savedSpecs": "Mentett specek",
+      "colTitle": "Cim",
+      "colType": "Tipus",
+      "colLanguage": "Nyelv",
+      "colScore": "Pontszam",
+      "colSections": "Szekciok",
+      "colCreated": "Letrehozva"
+    },
     "ragChat": {
       "title": "RAG Chat",
       "placeholder": "Kerdezes...",

@@ -253,6 +253,27 @@
       "deleteConfirm": "Are you sure you want to delete this diagram?",
       "deleted": "Diagram deleted"
     },
+    "specWriter": {
+      "title": "Spec Writer",
+      "inputLabel": "Description",
+      "placeholder": "Describe what to specify (feature, API, DB, user story)...",
+      "specType": "Spec type",
+      "language": "Language",
+      "write": "Generate Spec",
+      "outputLabel": "Generated spec",
+      "outputPlaceholder": "The generated spec will appear here",
+      "download": "Download",
+      "accepted": "Accepted",
+      "needsWork": "Needs work",
+      "suggestions": "Suggestions",
+      "savedSpecs": "Saved specs",
+      "colTitle": "Title",
+      "colType": "Type",
+      "colLanguage": "Language",
+      "colScore": "Score",
+      "colSections": "Sections",
+      "colCreated": "Created"
+    },
     "ragChat": {
       "title": "RAG Chat",
       "placeholder": "Ask a question...",
