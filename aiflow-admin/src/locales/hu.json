@@ -15,7 +15,8 @@
       "journeyDocSub": "Szamla es dokumentum feldolgozas",
       "journeyRagSub": "RAG-alapu tudasbazis",
       "journeyGenSub": "AI altal generalt kimenet",
-      "journeyMonSub": "Rendszer governance"
+      "journeyMonSub": "Rendszer governance",
+      "pipelineRunning": "Pipeline fut"
     },
     "skills": {
       "process_documentation": "Process Documentation",
@@ -119,7 +120,11 @@
       "attachmentsSection": "Csatolmanyok",
       "processing": "Feldolgozas",
       "processingTime": "Feldolgozasi ido",
-      "pipelineVersion": "Pipeline verzio"
+      "pipelineVersion": "Pipeline verzio",
+      "scanMailbox": "Levelada szkenneles",
+      "scanning": "Szkenneles...",
+      "scanComplete": "Szkenneles befejezve",
+      "noPipeline": "Nincs elerheto invoice_finder pipeline"
     },
     "connectors": {
       "title": "Email Connectorok",

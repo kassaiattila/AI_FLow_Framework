@@ -215,6 +215,7 @@ export function DashboardNew() {
   ];
 
   const recentRuns = runs?.runs ?? [];
+  const runningPipelines = recentRuns.filter(r => r.status === "running");
   const dailyData = stats?.daily ?? [];
 
   return (
@@ -233,6 +234,20 @@ export function DashboardNew() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
           {serviceDown} {serviceDown === 1 ? "service needs attention" : "services need attention"}
+        </div>
+      )}
+
+      {/* Pipeline running banner */}
+      {runningPipelines.length > 0 && (
+        <div
+          className="mb-4 flex cursor-pointer items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+          onClick={() => navigate("/runs")}
+        >
+          <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          {translate("aiflow.dashboard.pipelineRunning")} ({runningPipelines.length})
         </div>
       )}
 

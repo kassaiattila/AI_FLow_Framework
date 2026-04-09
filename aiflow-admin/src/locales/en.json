@@ -15,7 +15,8 @@
       "journeyDocSub": "Invoice and document processing",
       "journeyRagSub": "RAG-powered knowledge base",
       "journeyGenSub": "AI-generated output",
-      "journeyMonSub": "System governance"
+      "journeyMonSub": "System governance",
+      "pipelineRunning": "Pipeline running"
     },
     "skills": {
       "process_documentation": "Process Documentation",
@@ -119,7 +120,11 @@
       "attachmentsSection": "Attachments",
       "processing": "Processing",
       "processingTime": "Processing Time",
-      "pipelineVersion": "Pipeline Version"
+      "pipelineVersion": "Pipeline Version",
+      "scanMailbox": "Scan Mailbox",
+      "scanning": "Scanning...",
+      "scanComplete": "Scan complete",
+      "noPipeline": "No invoice_finder pipeline available"
     },
     "connectors": {
       "title": "Email Connectors",

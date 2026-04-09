@@ -891,11 +891,59 @@ function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
 
 // --- Main ---
 
+// --- Pipeline Types ---
+
+interface PipelineListItem {
+  id: string;
+  name: string;
+  enabled: boolean;
+}
+
+interface PipelineListResponse {
+  pipelines: PipelineListItem[];
+  total: number;
+}
+
+interface PipelineRunResponse {
+  run_id: string;
+  pipeline_id: string;
+  pipeline_name: string;
+  status: string;
+}
+
 export function Emails() {
   const translate = useTranslate();
   const [tab, setTab] = useState<"inbox" | "upload" | "connectors">("inbox");
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
+
+  // Scan Mailbox state
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<{ status: string; runId: string } | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+
+  const handleScanMailbox = async () => {
+    setScanning(true);
+    setScanResult(null);
+    setScanError(null);
+    try {
+      // Find the invoice_finder pipeline
+      const list = await fetchApi<PipelineListResponse>("GET", "/api/v1/pipelines");
+      const pipeline = list.pipelines.find(p => p.name.includes("invoice_finder") && p.enabled);
+      if (!pipeline) {
+        setScanError(translate("aiflow.emails.noPipeline"));
+        return;
+      }
+      // Run the pipeline
+      const result = await fetchApi<PipelineRunResponse>("POST", `/api/v1/pipelines/${pipeline.id}/run`, { input_data: {} });
+      setScanResult({ status: result.status, runId: result.run_id });
+      triggerRefresh();
+    } catch (e) {
+      setScanError(e instanceof Error ? e.message : "Scan failed");
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const tabs = [
     { key: "inbox" as const, label: "Inbox" },
@@ -905,6 +953,27 @@ export function Emails() {
 
   return (
     <PageLayout titleKey="aiflow.emails.title" subtitleKey="aiflow.emails.detail">
+      {/* Scan Mailbox action bar */}
+      <div className="mb-4 flex items-center gap-3">
+        <button
+          onClick={() => void handleScanMailbox()}
+          disabled={scanning}
+          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 disabled:opacity-50"
+        >
+          {scanning ? translate("aiflow.emails.scanning") : translate("aiflow.emails.scanMailbox")}
+        </button>
+        {scanResult && (
+          <span className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+            {translate("aiflow.emails.scanComplete")} — {scanResult.status}
+          </span>
+        )}
+        {scanError && (
+          <span className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+            {scanError}
+          </span>
+        )}
+      </div>
+
       {/* Tabs */}
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex gap-6">
