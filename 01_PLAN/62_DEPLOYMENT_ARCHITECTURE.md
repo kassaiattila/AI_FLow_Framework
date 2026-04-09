@@ -113,46 +113,26 @@ services:
   #   ports: ["5174:80"]
 ```
 
-### docker-compose.prod.yml (B9-ben)
+### docker-compose.prod.yml — IMPLEMENTALVA (B9, 2026-04-09)
 
 ```yaml
+# 6 service: db + redis + kroki + api + worker + ui
+# Inditás: make deploy (vagy: docker compose -f docker-compose.prod.yml up -d --build)
 services:
-  api:
-    build: .
-    ports: ["8102:8102"]
-    environment:
-      - DATABASE_URL=postgresql://...
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8102/health"]
-      interval: 30s
+  db:        pgvector/pgvector:pg16      # healthcheck: pg_isready
+  redis:     redis:7-alpine              # healthcheck: redis-cli ping, 512mb, volatile-lru
+  kroki:     yuzutech/kroki              # healthcheck: wget
+  api:       build target: api           # healthcheck: httpx /health/live, JWT secrets mount
+  worker:    build target: worker        # depends: db, redis
+  ui:        build: ./aiflow-admin       # node:22→nginx multi-stage, port 80, /api proxy → api:8000
 
-  worker:
-    build: .
-    command: arq aiflow.execution.worker.WorkerSettings
-    depends_on: [postgres, redis]
-
-  ui:
-    build: ./aiflow-admin
-    ports: ["5174:80"]
-    # nginx serviralja a Vite build-et + proxy /api → api:8102
-
-  postgres:
-    image: pgvector/pgvector:pg16
-    volumes: [pgdata:/var/lib/postgresql/data]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aiflow"]
-
-  redis:
-    image: redis:7-alpine
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-
-  kroki:
-    image: yuzutech/kroki
+# Fajlok:
+#   docker-compose.prod.yml  — production compose (6 service)
+#   aiflow-admin/Dockerfile  — multi-stage (node:22-alpine build → nginx:alpine)
+#   aiflow-admin/nginx.conf  — SPA fallback + /api proxy + SSE support + gzip
+#   .dockerignore            — projekt szintu
+#   .env.production.example  — production config template
+#   Makefile: deploy, deploy-status, deploy-down, deploy-logs targetok
 ```
 
 ---
@@ -165,8 +145,8 @@ DEV (helyi)
   Fejlesztes + teszteles
        |
        v
-STAGING (B9-ben)
-  docker compose -f docker-compose.prod.yml up
+STAGING / PRODUCTION (B9 — IMPLEMENTALVA)
+  make deploy  # docker compose -f docker-compose.prod.yml up -d --build
   Teljes E2E teszt Docker-ben
   Playwright UI-bol pipeline trigger
        |
