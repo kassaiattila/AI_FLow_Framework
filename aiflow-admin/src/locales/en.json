@@ -89,6 +89,9 @@
       "vatTotal": "VAT Total",
       "validationSection": "Validation",
       "confidence": "Confidence",
+      "summaryApproved": "approved",
+      "summaryRejected": "rejected",
+      "summaryPending": "pending",
       "errors": "Errors",
       "parser": "Parser",
       "filterAll": "All",
@@ -124,7 +127,9 @@
       "scanMailbox": "Scan Mailbox",
       "scanning": "Scanning...",
       "scanComplete": "Scan complete",
-      "noPipeline": "No invoice_finder pipeline available"
+      "noPipeline": "No invoice_finder pipeline available",
+      "scanStart": "Start Scan",
+      "scanRunning": "Pipeline running..."
     },
     "connectors": {
       "title": "Email Connectors",
@@ -190,7 +195,10 @@
       "serviceCatalog": "Service Catalog",
       "more": "More",
       "rpaBrowser": "RPA Browser",
-      "cubixCourse": "Cubix Courses"
+      "cubixCourse": "Cubix Courses",
+      "pipelineAndRuns": "Pipelines & Runs",
+      "archive": "Archive",
+      "reviewQueue": "Review Queue"
     },
     "monitoring": {
       "title": "Monitoring",
@@ -211,7 +219,9 @@
       "uptimeLabel": "Uptime",
       "records": "records",
       "successRate": "Success rate",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "restartConfirm": "Restart {{service}}?",
+      "autoRefresh": "Auto-refresh"
     },
     "admin": {
       "title": "Users & API Keys",
@@ -239,7 +249,13 @@
       "createFailed": "Create failed",
       "deleteFailed": "Delete failed",
       "keyWarning": "This key will only be shown ONCE! Copy it now.",
-      "copied": "Copied to clipboard"
+      "copied": "Copied to clipboard",
+      "createUserTitle": "Create User",
+      "createUserSuccess": "User created successfully",
+      "generateKeyTitle": "Generate API Key",
+      "keyRevealWarning": "This key will not be shown again!",
+      "copyKey": "Copy",
+      "revokeKeyConfirm": "Revoke this API key?"
     },
     "audit": {
       "title": "Audit Log",
@@ -257,7 +273,9 @@
       "user": "User",
       "details": "Details",
       "noEntries": "No audit entries found",
-      "entryDetail": "Entry Details"
+      "entryDetail": "Entry Details",
+      "filterEntity": "Filter by entity",
+      "exportCsv": "Export CSV"
     },
     "processDocs": {
       "title": "Process Documentation",

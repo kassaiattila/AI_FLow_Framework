@@ -1,10 +1,10 @@
 /**
- * AIFlow Sidebar — 6 journey-based groups + bottom menu.
- * B8.1: Restructured from 5 technical groups to 6 journey-oriented groups.
+ * AIFlow Sidebar — Sprint C restructured groups.
+ * C0.3: documentProcessing, knowledgeBase, pipelineAndRuns, monitoring, admin, archive.
  */
 
 import { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 
 interface MenuItem {
@@ -17,6 +17,7 @@ interface MenuGroup {
   labelKey: string;
   defaultOpen: boolean;
   items: MenuItem[];
+  archive?: boolean;
 }
 
 const MENU_GROUPS: MenuGroup[] = [
@@ -26,7 +27,7 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { path: "/documents", labelKey: "aiflow.menu.documents", icon: "file-text" },
       { path: "/emails", labelKey: "aiflow.menu.emailScan", icon: "mail" },
-      { path: "/reviews", labelKey: "aiflow.menu.verification", icon: "check-circle" },
+      { path: "/reviews", labelKey: "aiflow.menu.reviewQueue", icon: "check-circle" },
     ],
   },
   {
@@ -37,39 +38,43 @@ const MENU_GROUPS: MenuGroup[] = [
     ],
   },
   {
-    labelKey: "aiflow.menu.generation",
+    labelKey: "aiflow.menu.pipelineAndRuns",
     defaultOpen: false,
-    items: [
-      { path: "/process-docs", labelKey: "aiflow.menu.diagrams", icon: "git-branch" },
-      { path: "/spec-writer", labelKey: "aiflow.menu.specWriter", icon: "file-plus" },
-      { path: "/media", labelKey: "aiflow.menu.mediaProcessing", icon: "headphones" },
-    ],
-  },
-  {
-    labelKey: "aiflow.menu.monitoring",
-    defaultOpen: true,
     items: [
       { path: "/runs", labelKey: "aiflow.menu.pipelineRuns", icon: "play-circle" },
-      { path: "/costs", labelKey: "aiflow.menu.costs", icon: "trending-up" },
-      { path: "/monitoring", labelKey: "aiflow.menu.serviceHealth", icon: "activity" },
-      { path: "/quality", labelKey: "aiflow.menu.llmQuality", icon: "bar-chart" },
-      { path: "/audit", labelKey: "aiflow.menu.auditLog", icon: "clock" },
-    ],
-  },
-  {
-    labelKey: "aiflow.menu.settings",
-    defaultOpen: false,
-    items: [
-      { path: "/admin", labelKey: "aiflow.menu.usersApi", icon: "users" },
       { path: "/pipelines", labelKey: "aiflow.menu.pipelineTemplates", icon: "layers" },
       { path: "/services", labelKey: "aiflow.menu.serviceCatalog", icon: "server" },
     ],
   },
-];
-
-const BOTTOM_ITEMS: MenuItem[] = [
-  { path: "/rpa", labelKey: "aiflow.menu.rpaBrowser", icon: "terminal" },
-  { path: "/cubix", labelKey: "aiflow.menu.cubixCourse", icon: "book" },
+  {
+    labelKey: "aiflow.menu.monitoring",
+    defaultOpen: false,
+    items: [
+      { path: "/costs", labelKey: "aiflow.menu.costs", icon: "trending-up" },
+      { path: "/monitoring", labelKey: "aiflow.menu.serviceHealth", icon: "activity" },
+      { path: "/quality", labelKey: "aiflow.menu.llmQuality", icon: "bar-chart" },
+    ],
+  },
+  {
+    labelKey: "aiflow.menu.admin",
+    defaultOpen: false,
+    items: [
+      { path: "/admin", labelKey: "aiflow.menu.usersApi", icon: "users" },
+      { path: "/audit", labelKey: "aiflow.menu.auditLog", icon: "clock" },
+    ],
+  },
+  {
+    labelKey: "aiflow.menu.archive",
+    defaultOpen: false,
+    archive: true,
+    items: [
+      { path: "/process-docs", labelKey: "aiflow.menu.diagrams", icon: "git-branch" },
+      { path: "/spec-writer", labelKey: "aiflow.menu.specWriter", icon: "file-plus" },
+      { path: "/media", labelKey: "aiflow.menu.mediaProcessing", icon: "headphones" },
+      { path: "/cubix", labelKey: "aiflow.menu.cubixCourse", icon: "book" },
+      { path: "/rpa", labelKey: "aiflow.menu.rpaBrowser", icon: "terminal" },
+    ],
+  },
 ];
 
 /** SVG icon set — 24x24 viewBox, stroke-based (Untitled UI / Heroicons style) */
@@ -108,6 +113,7 @@ function MenuIcon({ name }: { name: string }) {
 
 export function Sidebar() {
   const translate = useTranslate();
+  const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -122,9 +128,10 @@ export function Sidebar() {
     localStorage.setItem("aiflow_sidebar_groups", JSON.stringify(openGroups));
   }, [openGroups]);
 
-  // Auto-expand group containing active route
+  // Auto-expand group containing active route (skip archive)
   useEffect(() => {
     for (const group of MENU_GROUPS) {
+      if (group.archive) continue;
       if (group.items.some((item) => location.pathname.startsWith(item.path))) {
         setOpenGroups((prev) => ({ ...prev, [group.labelKey]: true }));
         break;
@@ -146,25 +153,40 @@ export function Sidebar() {
   };
 
   const isGroupActive = (group: MenuGroup) =>
-    group.items.some((item) => location.pathname.startsWith(item.path));
+    !group.archive && group.items.some((item) => location.pathname.startsWith(item.path));
 
-  const renderNavItem = (item: MenuItem) => (
-    <NavLink
-      key={item.path}
-      to={item.path}
-      title={collapsed ? translate(item.labelKey) : undefined}
-      className={({ isActive }) =>
-        `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-          isActive
-            ? "bg-brand-50 font-semibold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400"
-            : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-        } ${collapsed ? "justify-center" : ""}`
-      }
-    >
-      <MenuIcon name={item.icon} />
-      {!collapsed && <span>{translate(item.labelKey)}</span>}
-    </NavLink>
-  );
+  const renderNavItem = (item: MenuItem, isArchive?: boolean) => {
+    if (isArchive) {
+      return (
+        <button
+          key={item.path}
+          onClick={() => navigate("/")}
+          title={collapsed ? translate(item.labelKey) : undefined}
+          className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-gray-400 transition-colors hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800 ${collapsed ? "justify-center" : ""}`}
+        >
+          <MenuIcon name={item.icon} />
+          {!collapsed && <span>{translate(item.labelKey)}</span>}
+        </button>
+      );
+    }
+    return (
+      <NavLink
+        key={item.path}
+        to={item.path}
+        title={collapsed ? translate(item.labelKey) : undefined}
+        className={({ isActive }) =>
+          `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+            isActive
+              ? "bg-brand-50 font-semibold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400"
+              : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+          } ${collapsed ? "justify-center" : ""}`
+        }
+      >
+        <MenuIcon name={item.icon} />
+        {!collapsed && <span>{translate(item.labelKey)}</span>}
+      </NavLink>
+    );
+  };
 
   return (
     <aside className={`flex h-full flex-col border-r border-gray-200 bg-white transition-all dark:border-gray-700 dark:bg-gray-900 ${collapsed ? "w-14" : "w-[var(--sidebar-width)]"}`}>
@@ -194,9 +216,11 @@ export function Sidebar() {
               onClick={() => toggleGroup(group.labelKey)}
               title={collapsed ? translate(group.labelKey) : undefined}
               className={`flex w-full items-center justify-between px-3 py-1 text-xs font-semibold uppercase tracking-wider transition-colors ${
-                isGroupActive(group)
-                  ? "text-brand-500 dark:text-brand-400"
-                  : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                group.archive
+                  ? "text-gray-300 hover:text-gray-400 dark:text-gray-600 dark:hover:text-gray-500"
+                  : isGroupActive(group)
+                    ? "text-brand-500 dark:text-brand-400"
+                    : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
               } ${collapsed ? "justify-center" : ""}`}
             >
               {!collapsed && <span>{translate(group.labelKey)}</span>}
@@ -207,25 +231,13 @@ export function Sidebar() {
 
             {/* Group items */}
             {(openGroups[group.labelKey] || collapsed) && (
-              <div className={`mt-1 space-y-0.5 ${collapsed ? "" : ""}`}>
-                {group.items.map(renderNavItem)}
+              <div className="mt-1 space-y-0.5">
+                {group.items.map((item) => renderNavItem(item, group.archive))}
               </div>
             )}
           </div>
         ))}
       </nav>
-
-      {/* Bottom menu — separate section */}
-      <div className="border-t border-gray-200 px-2 py-2 dark:border-gray-700">
-        {!collapsed && (
-          <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-            {translate("aiflow.menu.more")}
-          </p>
-        )}
-        <div className="space-y-0.5">
-          {BOTTOM_ITEMS.map(renderNavItem)}
-        </div>
-      </div>
     </aside>
   );
 }
