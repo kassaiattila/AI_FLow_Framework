@@ -189,7 +189,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className={`flex h-full flex-col border-r border-gray-200 bg-white transition-all dark:border-gray-700 dark:bg-gray-900 ${collapsed ? "w-14" : "w-[var(--sidebar-width)]"}`}>
+    <aside aria-label="Main navigation" className={`flex h-full flex-col border-r border-gray-200 bg-white transition-all dark:border-gray-700 dark:bg-gray-900 ${collapsed ? "w-14" : "w-[var(--sidebar-width)]"}`}>
       {/* Dashboard link */}
       <nav className="flex-1 overflow-y-auto px-2 py-2">
         <NavLink
