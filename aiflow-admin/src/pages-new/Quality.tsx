@@ -161,7 +161,15 @@ export function Quality() {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {rubricEntries.map(([name, desc]) => (
-                  <tr key={name} className="bg-white dark:bg-gray-900">
+                  <tr
+                    key={name}
+                    onClick={() => setSelectedRubric(name)}
+                    className={`cursor-pointer transition-colors ${
+                      selectedRubric === name
+                        ? "bg-brand-50/50 dark:bg-brand-900/10"
+                        : "bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
+                    }`}
+                  >
                     <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-gray-100">{name}</td>
                     <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{desc}</td>
                   </tr>

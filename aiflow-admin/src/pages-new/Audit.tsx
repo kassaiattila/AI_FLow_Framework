@@ -1,6 +1,8 @@
 /**
  * AIFlow Audit — F6.5 audit trail with DataTable.
+ * S39: C2.6 — Filter dropdowns + CSV export.
  */
+import { useState, useMemo } from "react";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
 import { PageLayout } from "../layout/PageLayout";
@@ -12,7 +14,33 @@ interface AuditResponse { entries: AuditEntry[]; total: number; source: string; 
 
 export function Audit() {
   const translate = useTranslate();
-  const { data, loading, error, refetch } = useApi<AuditResponse>("/api/v1/admin/audit");
+  const [filterAction, setFilterAction] = useState("");
+  const [filterEntity, setFilterEntity] = useState("");
+
+  const auditUrl = useMemo(() => {
+    const p = new URLSearchParams();
+    if (filterAction) p.set("action", filterAction);
+    if (filterEntity) p.set("entity_type", filterEntity);
+    const qs = p.toString();
+    return `/api/v1/admin/audit${qs ? `?${qs}` : ""}`;
+  }, [filterAction, filterEntity]);
+
+  const { data, loading, error, refetch } = useApi<AuditResponse>(auditUrl);
+
+  const handleExportCsv = () => {
+    if (!data?.entries?.length) return;
+    const header = "timestamp,action,resource,user_id,details\n";
+    const rows = data.entries.map((e) =>
+      `"${e.created_at}","${e.action}","${e.resource}","${e.user_id}","${JSON.stringify(e.details ?? {}).replace(/"/g, '""')}"`
+    ).join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `audit-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const columns: Column<Record<string, unknown>>[] = [
     { key: "created_at", label: translate("aiflow.audit.timestamp"), render: (item) => <span className="text-xs text-gray-500">{new Date(String(item.created_at)).toLocaleString()}</span> },
@@ -24,8 +52,35 @@ export function Audit() {
 
   return (
     <PageLayout titleKey="aiflow.audit.title" subtitleKey="aiflow.audit.subtitle" source={data?.source}
-      actions={<button className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400">{translate("aiflow.audit.export")}</button>}
+      actions={
+        <button onClick={handleExportCsv}
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800">
+          {translate("aiflow.audit.exportCsv")}
+        </button>
+      }
     >
+      {/* Filter controls */}
+      <div className="mb-4 flex items-center gap-3">
+        <select value={filterAction} onChange={(e) => setFilterAction(e.target.value)}
+          className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+          <option value="">{translate("aiflow.audit.all")} — {translate("aiflow.audit.filterAction")}</option>
+          <option value="create">create</option>
+          <option value="update">update</option>
+          <option value="delete">delete</option>
+          <option value="login">login</option>
+          <option value="evaluate">evaluate</option>
+        </select>
+        <select value={filterEntity} onChange={(e) => setFilterEntity(e.target.value)}
+          className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+          <option value="">{translate("aiflow.audit.all")} — {translate("aiflow.audit.filterEntity")}</option>
+          <option value="user">user</option>
+          <option value="api_key">api_key</option>
+          <option value="document">document</option>
+          <option value="pipeline">pipeline</option>
+          <option value="collection">collection</option>
+        </select>
+      </div>
+
       {error ? <ErrorState error={error} onRetry={refetch} /> :
         <DataTable data={(data?.entries ?? []) as unknown as Record<string, unknown>[]} columns={columns} loading={loading} searchKeys={["action", "resource", "user_id"]} />
       }
