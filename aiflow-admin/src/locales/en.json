@@ -56,6 +56,19 @@
       "started": "Started",
       "steps": "Steps"
     },
+    "runDetail": {
+      "title": "Run Details",
+      "backToRuns": "Back",
+      "pipeline": "Pipeline",
+      "retryPipeline": "Retry",
+      "retryConfirm": "Retry this pipeline?",
+      "exportJson": "Export JSON",
+      "stepLog": "Step Log",
+      "stepName": "Step",
+      "model": "Model",
+      "tokens": "Tokens",
+      "error": "Error"
+    },
     "documents": {
       "title": "Documents",
       "detail": "Document Details",

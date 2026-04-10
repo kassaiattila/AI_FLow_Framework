@@ -18,6 +18,7 @@ import { RagDetail } from "./pages-new/RagDetail";
 // J4 archived pages — redirected to dashboard (Sprint C)
 import { Reviews as ReviewsNew } from "./pages-new/Reviews";
 import { Runs as RunsNew } from "./pages-new/Runs";
+import { RunDetail } from "./pages-new/RunDetail";
 import { Costs as CostsNew } from "./pages-new/Costs";
 import { Monitoring as MonitoringNew } from "./pages-new/Monitoring";
 import { Audit as AuditNew } from "./pages-new/Audit";
@@ -56,6 +57,7 @@ export const router = createHashRouter([
 
       // Operations
       { path: "runs", element: <RunsNew /> },
+      { path: "runs/:id", element: <RunDetail /> },
       { path: "costs", element: <CostsNew /> },
       { path: "monitoring", element: <MonitoringNew /> },
       { path: "quality", element: <Quality /> },

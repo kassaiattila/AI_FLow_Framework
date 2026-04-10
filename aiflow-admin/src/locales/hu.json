@@ -56,6 +56,19 @@
       "started": "Inditva",
       "steps": "Lepesek"
     },
+    "runDetail": {
+      "title": "Run reszletek",
+      "backToRuns": "Vissza",
+      "pipeline": "Pipeline",
+      "retryPipeline": "Ujraindit",
+      "retryConfirm": "Biztosan ujrainditod ezt a pipeline-t?",
+      "exportJson": "Export JSON",
+      "stepLog": "Lepes naplo",
+      "stepName": "Lepes",
+      "model": "Modell",
+      "tokens": "Token",
+      "error": "Hiba"
+    },
     "documents": {
       "title": "Dokumentumok",
       "detail": "Dokumentum reszletek",
