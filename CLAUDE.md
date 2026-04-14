@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.3.0** — Sprint B COMPLETE (2026-04-09) | API: 8102 | UI: 5174
+**v1.4.0** — Sprint C COMPLETE (2026-04-14) | API: 8102 | UI: 5174
 
 ## Structure
 ```
@@ -19,7 +19,7 @@ tests/              — unit/, integration/, e2e/
 ## Key Numbers
 27 services | 175 API endpoints (27 routers) | 48 DB tables | 31 Alembic migrations
 22 pipeline adapters | 10 pipeline templates | 7 skills | 23 UI pages
-1443 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 121 E2E tests
+1443 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 169 E2E tests (58 journey)
 
 ## Build & Test
 ```bash
@@ -44,13 +44,13 @@ alembic upgrade head                      # DB migrations
 - **Services in Docker** (PostgreSQL 5433, Redis 6379, Kroki 8000), Python code locally from .venv
 
 ## Git Workflow
-- Branch: `main` (v1.3.0 merged) — NEVER commit to main directly
+- Branch: `feature/v1.4.0-ui-refinement` (v1.4.0 ready for merge) — NEVER commit to main directly
 - Commits: conventional (`feat`, `fix`, `docs`, `refactor`) + Co-Authored-By
 - NEVER commit: .env, credentials, API keys, failing tests
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
-`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint B (B0-B11) COMPLETE, v1.3.0 released
+`01_PLAN/65_SPRINT_C_UI_JOURNEY_FIRST_PLAN.md` — Sprint C (C0-C7) COMPLETE, v1.4.0 ready
 
 ## Slash Commands
 
@@ -73,9 +73,10 @@ alembic upgrade head                      # DB migrations
 - **Best practices reference:** `01_PLAN/60_CLAUDE_CODE_BEST_PRACTICES_REFERENCE.md`
 
 ## IMPORTANT: On Compaction
-Preserve: modified files list + test status + current B-phase + which command was running.
+Preserve: modified files list + test status + current C-phase + which command was running.
 
 ## References
+- Sprint C plan: `01_PLAN/65_SPRINT_C_UI_JOURNEY_FIRST_PLAN.md`
 - Sprint B plan: `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`
 - Command audit: `01_PLAN/59_COMMAND_WORKFLOW_AUDIT.md`
 - Best practices: `01_PLAN/60_CLAUDE_CODE_BEST_PRACTICES_REFERENCE.md`
