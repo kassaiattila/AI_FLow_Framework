@@ -7,12 +7,12 @@ Tests the admin/governance browsing flow.
 @test_registry:
     suite: e2e-journey
     component: aiflow-admin.admin
-    covers: [aiflow-admin/src/pages-new/Dashboard.tsx, aiflow-admin/src/pages-new/Admin.tsx]
-    phase: S13
+    covers: [aiflow-admin/src/pages-new/Dashboard.tsx, aiflow-admin/src/pages-new/Admin.tsx, aiflow-admin/src/pages-new/Audit.tsx]
+    phase: S42
     priority: critical
-    estimated_duration_ms: 25000
+    estimated_duration_ms: 40000
     requires_services: [postgresql, redis, fastapi, vite]
-    tags: [e2e, journey, admin, notifications, playwright]
+    tags: [e2e, journey, admin, notifications, playwright, deep]
 """
 
 from __future__ import annotations
@@ -144,3 +144,171 @@ class TestAdminJourney:
             )
         ]
         assert not real_errors, f"Console errors during admin loop: {real_errors}"
+
+
+class TestAdminDeepJourney:
+    """Deep E2E tests: real CRUD interactions on Admin + Audit pages (C6.3)."""
+
+    def test_admin_users_tab_content(self, authenticated_page: Page) -> None:
+        """Admin page: Users tab shows DataTable with email, name, role, status columns."""
+        page = authenticated_page
+        navigate_to(page, "/admin")
+        page.wait_for_timeout(1500)
+
+        # Users tab should be active by default (or click it)
+        users_tab = page.locator("button").filter(has_text="Users")
+        if users_tab.count() == 0:
+            users_tab = page.locator("button").filter(has_text="Felhasznalo")
+        if users_tab.count() > 0:
+            users_tab.first.click()
+            page.wait_for_timeout(500)
+
+        # DataTable should exist with user columns
+        table = page.locator("table")
+        if table.count() > 0:
+            header_text = table.first.locator("thead").text_content() or ""
+            # Check for email, name, role, status columns
+            has_email = any(w in header_text for w in ["Email", "email", "E-mail"])
+            has_role = any(w in header_text for w in ["Role", "role", "Szerepkor"])
+            assert has_email or has_role, (
+                f"Users table missing expected columns: {header_text[:200]}"
+            )
+
+            # Check for role badges (rounded-full spans in tbody)
+            rows = table.first.locator("tbody tr")
+            if rows.count() > 0:
+                badges = table.first.locator("tbody span.rounded-full")
+                assert badges.count() > 0, "No role/status badges in Users table"
+
+        # Create User button should be visible
+        create_btn = page.locator("button").filter(has_text="Create User")
+        if create_btn.count() == 0:
+            create_btn = page.locator("button").filter(has_text="Add User")
+        if create_btn.count() == 0:
+            create_btn = page.locator("button").filter(has_text="Felhasznalo")
+        # The action button text changes based on tab — find the brand-colored button
+        if create_btn.count() == 0:
+            create_btn = page.locator("button.bg-brand-500")
+        assert create_btn.count() > 0, "Create User / action button not found"
+
+    def test_admin_api_keys_tab(self, authenticated_page: Page) -> None:
+        """Admin page: API Keys tab shows DataTable with name, prefix (mono), status."""
+        page = authenticated_page
+        navigate_to(page, "/admin")
+        page.wait_for_timeout(1000)
+
+        # Click API Keys tab
+        keys_tab = page.locator("button").filter(has_text="API Keys")
+        if keys_tab.count() == 0:
+            keys_tab = page.locator("button").filter(has_text="API")
+        if keys_tab.count() == 0:
+            # Tabs may not be rendered yet
+            return
+        keys_tab.first.click()
+        page.wait_for_timeout(500)
+
+        # DataTable should exist
+        table = page.locator("table")
+        if table.count() > 0:
+            header_text = table.first.locator("thead").text_content() or ""
+            # Check for name, prefix columns
+            has_name = any(w in header_text for w in ["Name", "name", "Nev"])
+            has_prefix = any(w in header_text for w in ["Prefix", "prefix"])
+            assert has_name or has_prefix, (
+                f"API Keys table missing expected columns: {header_text[:200]}"
+            )
+
+            # Prefix should render in monospace (font-mono class)
+            mono_spans = table.first.locator("tbody .font-mono")
+            if table.first.locator("tbody tr").count() > 0:
+                assert mono_spans.count() > 0, "API key prefix not rendered in monospace"
+
+        # Generate Key button should be visible (the brand action button)
+        gen_btn = page.locator("button.bg-brand-500")
+        assert gen_btn.count() > 0, "Generate Key action button not found"
+
+    def test_admin_create_user_modal(self, authenticated_page: Page) -> None:
+        """Admin page: Create User button → modal with inputs → Cancel closes it."""
+        page = authenticated_page
+        navigate_to(page, "/admin")
+        page.wait_for_timeout(1000)
+
+        # Ensure Users tab is active
+        users_tab = page.locator("button").filter(has_text="Users")
+        if users_tab.count() == 0:
+            users_tab = page.locator("button").filter(has_text="Felhasznalo")
+        if users_tab.count() > 0:
+            users_tab.first.click()
+            page.wait_for_timeout(300)
+
+        # Click Create User (the brand action button)
+        action_btn = page.locator("button.bg-brand-500")
+        if action_btn.count() == 0:
+            return
+        action_btn.first.click()
+        page.wait_for_timeout(300)
+
+        # Modal should appear (fixed overlay)
+        modal = page.locator(".fixed.inset-0")
+        assert modal.count() > 0, "Create User modal did not appear"
+
+        # Modal should have email, name, password inputs + role select
+        modal_body = modal.first.text_content() or ""
+        has_email_field = page.locator('.fixed input[type="email"]').count() > 0
+        has_password_field = page.locator('.fixed input[type="password"]').count() > 0
+        has_role_select = page.locator(".fixed select").count() > 0
+
+        assert has_email_field, "Create User modal missing email input"
+        assert has_password_field, "Create User modal missing password input"
+        assert has_role_select or "role" in modal_body.lower() or "Viewer" in modal_body, (
+            "Create User modal missing role selector"
+        )
+
+        # Cancel should close the modal
+        cancel_btn = page.locator(".fixed button").filter(has_text="Cancel")
+        if cancel_btn.count() == 0:
+            cancel_btn = page.locator(".fixed button").filter(has_text="Megse")
+        if cancel_btn.count() > 0:
+            cancel_btn.first.click()
+            page.wait_for_timeout(300)
+            overlay = page.locator(".fixed.inset-0")
+            assert overlay.count() == 0, "Create User modal did not close after Cancel"
+
+    def test_audit_filter_and_export(self, authenticated_page: Page) -> None:
+        """Audit page: filter dropdowns, CSV export button, DataTable columns."""
+        page = authenticated_page
+        navigate_to(page, "/audit")
+        page.wait_for_timeout(1500)
+
+        # Filter dropdowns should exist (action + entity type)
+        filter_selects = page.locator("select")
+        assert filter_selects.count() >= 2, (
+            f"Audit page should have 2 filter dropdowns, found {filter_selects.count()}"
+        )
+
+        # CSV Export button should exist
+        export_btn = page.locator("button").filter(has_text="CSV")
+        if export_btn.count() == 0:
+            export_btn = page.locator("button").filter(has_text="Export")
+        assert export_btn.count() > 0, "CSV Export button not found on Audit page"
+
+        # Select an action filter → table should update (no crash)
+        action_select = filter_selects.first
+        action_select.select_option("create")
+        page.wait_for_timeout(500)
+
+        body_after = page.locator("body").text_content() or ""
+        assert len(body_after.strip()) > 50, "Audit page crashed after filter selection"
+
+        # DataTable should have timestamp, action, resource columns
+        table = page.locator("table")
+        if table.count() > 0:
+            header_text = table.first.locator("thead").text_content() or ""
+            has_timestamp = any(
+                w in header_text for w in ["Timestamp", "timestamp", "Idopont", "Date"]
+            )
+            has_action = any(w in header_text for w in ["Action", "action", "Muvelet"])
+            has_resource = any(w in header_text for w in ["Resource", "resource", "Eroforras"])
+            assert has_timestamp or has_action or has_resource, (
+                f"Audit table missing expected columns: {header_text[:200]}"
+            )

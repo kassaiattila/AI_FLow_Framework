@@ -15,12 +15,10 @@ import { Documents as DocumentsNew } from "./pages-new/Documents";
 import { Emails as EmailsNew } from "./pages-new/Emails";
 import { Rag as RagNew } from "./pages-new/Rag";
 import { RagDetail } from "./pages-new/RagDetail";
-import { ProcessDocs as ProcessDocsNew } from "./pages-new/ProcessDocs";
-import { SpecWriter } from "./pages-new/SpecWriter";
-import { Media as MediaNew } from "./pages-new/Media";
-import { Rpa as RpaNew } from "./pages-new/Rpa";
+// J4 archived pages — redirected to dashboard (Sprint C)
 import { Reviews as ReviewsNew } from "./pages-new/Reviews";
 import { Runs as RunsNew } from "./pages-new/Runs";
+import { RunDetail } from "./pages-new/RunDetail";
 import { Costs as CostsNew } from "./pages-new/Costs";
 import { Monitoring as MonitoringNew } from "./pages-new/Monitoring";
 import { Audit as AuditNew } from "./pages-new/Audit";
@@ -31,7 +29,7 @@ import { Pipelines } from "./pages-new/Pipelines";
 import { PipelineDetail } from "./pages-new/PipelineDetail";
 import { Quality } from "./pages-new/Quality";
 import { Services } from "./pages-new/Services";
-import { Cubix } from "./pages-new/Cubix";
+// Cubix archived (Sprint C)
 
 /** Auth guard */
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -59,6 +57,7 @@ export const router = createHashRouter([
 
       // Operations
       { path: "runs", element: <RunsNew /> },
+      { path: "runs/:id", element: <RunDetail /> },
       { path: "costs", element: <CostsNew /> },
       { path: "monitoring", element: <MonitoringNew /> },
       { path: "quality", element: <Quality /> },
@@ -78,12 +77,12 @@ export const router = createHashRouter([
       { path: "rag/collections/:id", element: <RagDetail /> },
       { path: "rag/:id", element: <RagDetail /> },
       { path: "rag-chat", element: <Navigate to="/rag" replace /> },
-      { path: "process-docs", element: <ProcessDocsNew /> },
-      { path: "spec-writer", element: <SpecWriter /> },
-      { path: "media", element: <MediaNew /> },
-      { path: "rpa", element: <RpaNew /> },
+      { path: "process-docs", element: <Navigate to="/" replace /> },
+      { path: "spec-writer", element: <Navigate to="/" replace /> },
+      { path: "media", element: <Navigate to="/" replace /> },
+      { path: "rpa", element: <Navigate to="/" replace /> },
       { path: "reviews", element: <ReviewsNew /> },
-      { path: "cubix", element: <Cubix /> },
+      { path: "cubix", element: <Navigate to="/" replace /> },
 
       // Orchestration (v1.2.0)
       { path: "services", element: <Services /> },

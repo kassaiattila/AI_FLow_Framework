@@ -56,6 +56,19 @@
       "started": "Inditva",
       "steps": "Lepesek"
     },
+    "runDetail": {
+      "title": "Run reszletek",
+      "backToRuns": "Vissza",
+      "pipeline": "Pipeline",
+      "retryPipeline": "Ujraindit",
+      "retryConfirm": "Biztosan ujrainditod ezt a pipeline-t?",
+      "exportJson": "Export JSON",
+      "stepLog": "Lepes naplo",
+      "stepName": "Lepes",
+      "model": "Modell",
+      "tokens": "Token",
+      "error": "Hiba"
+    },
     "documents": {
       "title": "Dokumentumok",
       "detail": "Dokumentum reszletek",
@@ -89,6 +102,9 @@
       "vatTotal": "AFA osszesen",
       "validationSection": "Validacio",
       "confidence": "Konfidencia",
+      "summaryApproved": "jovahagyva",
+      "summaryRejected": "elutasitva",
+      "summaryPending": "fuggoben",
       "errors": "Hibak",
       "parser": "Parser",
       "filterAll": "Mind",
@@ -124,7 +140,9 @@
       "scanMailbox": "Levelada szkenneles",
       "scanning": "Szkenneles...",
       "scanComplete": "Szkenneles befejezve",
-      "noPipeline": "Nincs elerheto invoice_finder pipeline"
+      "noPipeline": "Nincs elerheto invoice_finder pipeline",
+      "scanStart": "Scan Inditas",
+      "scanRunning": "Pipeline fut..."
     },
     "connectors": {
       "title": "Email Connectorok",
@@ -190,7 +208,10 @@
       "serviceCatalog": "Szolgaltatas katalogus",
       "more": "Tobbi",
       "rpaBrowser": "RPA Browser",
-      "cubixCourse": "Cubix Kurzusok"
+      "cubixCourse": "Cubix Kurzusok",
+      "pipelineAndRuns": "Pipeline & Futasok",
+      "archive": "Archiv",
+      "reviewQueue": "Ellenorzes"
     },
     "monitoring": {
       "title": "Monitoring",
@@ -211,7 +232,9 @@
       "uptimeLabel": "Uzemido",
       "records": "rekord",
       "successRate": "Sikeresseg",
-      "refresh": "Frissites"
+      "refresh": "Frissites",
+      "restartConfirm": "Biztosan ujrainditod a {{service}} szolgaltatast?",
+      "autoRefresh": "Auto-frissites"
     },
     "admin": {
       "title": "Felhasznalok es API kulcsok",
@@ -239,7 +262,13 @@
       "createFailed": "Letrehozas sikertelen",
       "deleteFailed": "Torles sikertelen",
       "keyWarning": "Ez a kulcs CSAK EGYSZER jelenik meg! Masold ki most.",
-      "copied": "Vazsolapra masolva"
+      "copied": "Vazsolapra masolva",
+      "createUserTitle": "Felhasznalo letrehozasa",
+      "createUserSuccess": "Felhasznalo sikeresen letrehozva",
+      "generateKeyTitle": "API Kulcs generalas",
+      "keyRevealWarning": "Ez a kulcs tobbe nem jelenik meg!",
+      "copyKey": "Masolas",
+      "revokeKeyConfirm": "Biztosan visszavonod ezt az API kulcsot?"
     },
     "audit": {
       "title": "Audit naplo",
@@ -257,7 +286,9 @@
       "user": "Felhasznalo",
       "details": "Reszletek",
       "noEntries": "Nincs audit bejegyzes",
-      "entryDetail": "Bejegyzes reszletei"
+      "entryDetail": "Bejegyzes reszletei",
+      "filterEntity": "Tipus szures",
+      "exportCsv": "Exportalas CSV"
     },
     "processDocs": {
       "title": "Process Documentation",

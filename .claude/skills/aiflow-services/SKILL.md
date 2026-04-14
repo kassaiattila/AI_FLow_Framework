@@ -43,7 +43,7 @@ skills/{name}/schemas/v1/
 - **sklearn ML** (TF-IDF + LinearSVC) — <1ms, $0 — fast screening
 - **LLM** (gpt-4o-mini) — if ML confidence < threshold
 
-## Skills (5 db)
+## Skills (7 db)
 
 | Skill | Tipus | Allapot | Promptfoo |
 |-------|-------|---------|-----------|
@@ -51,7 +51,9 @@ skills/{name}/schemas/v1/
 | aszf_rag_chat | AI | Production | 86% |
 | email_intent_processor | AI | Development | 85% |
 | invoice_processor | AI | Development | 80% |
+| invoice_finder | AI | Development | — |
 | cubix_course_capture | Hybrid | Production | 90% |
+| spec_writer | AI | Development | — |
 
 ## Skill Running
 
@@ -106,3 +108,12 @@ Rule-based (gyors, $0) → LLM-based (preciz, Sprint B B1) → Per-service confi
 - `deployments/{customer}/deployment.yaml` — per-customer config
 - Skill Instance = running config (YAML), multiple instances per customer
 - Docker Compose: PostgreSQL 5433, Redis 6379, Kroki 8000, API 8102, UI 5174
+
+## v2 Service Architecture (Phase 1a)
+
+- 13 Pydantic domain contracts (IntakePackage, RoutingDecision, ExtractionResult, etc.)
+- 7 state machines with idempotent replay (IntakePackage, IntakeFile, RoutingDecision, etc.)
+- Multi-tenant isolation: tenant_id boundary on DB + storage + API
+- HITL workload model: skill-based assignment, SLA escalation, bulk review
+- Backward compat shim layer: legacy pipeline YAML auto-upgraded
+- See: 01_PLAN/100_b_AIFLOW_v2_DOMAIN_CONTRACTS.md, 01_PLAN/100_c_AIFLOW_v2_STATE_LIFECYCLE_MODEL.md

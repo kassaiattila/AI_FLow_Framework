@@ -89,3 +89,5 @@ Minden szolgaltatasra tabla:
 | media_processor | cubix_course_capture | /api/v1/cubix | CubixViewer | F4b |
 | rpa_browser | cubix_course_capture | /api/v1/cubix | CubixViewer | F4c |
 | human_review | — | /api/v1/reviews | (uj oldal) | F4d |
+| invoice_finder | invoice_finder | /api/v1/invoices/find | — | — |
+| spec_writer | spec_writer | /api/v1/specs | — | — |

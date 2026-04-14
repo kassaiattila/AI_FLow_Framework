@@ -2,11 +2,12 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"name": "20260315_Heads up_ We noticed that you recently deleted a l.eml",
-			"uri": "eml:/?file:///c:/Users/kassaiattila/OneDrive - BestIxCom Kft/00_BESTIX_KFT/11_DEV/80_Sample_Projects/07_AI_Flow_Framwork/test_emails/bestix_real/20260315_Heads up_ We noticed that you recently deleted a l.eml"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"*.eml": "plaintext",
+			"*.msg": "plaintext"
+		}
+	}
 }

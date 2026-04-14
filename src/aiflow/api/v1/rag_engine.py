@@ -684,8 +684,10 @@ async def list_chunks(
     collection_id: str,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
+    q: str = Query("", description="Search chunks by content"),
+    document_name: str = Query("", description="Filter by document name"),
 ):
-    """List chunks in a collection (paginated)."""
+    """List chunks in a collection (paginated, with optional search)."""
     svc = await _get_service()
     coll = await svc.get_collection(collection_id)
     if not coll:
@@ -693,21 +695,36 @@ async def list_chunks(
 
     pool = await get_pool()
     async with pool.acquire() as conn:
+        conditions = ["collection = $1"]
+        params: list[object] = [coll.name]
+        idx = 2
+
+        if q.strip():
+            conditions.append(f"content ILIKE ${idx}")
+            params.append(f"%{q.strip()}%")
+            idx += 1
+
+        if document_name.strip():
+            conditions.append(f"document_name = ${idx}")
+            params.append(document_name.strip())
+            idx += 1
+
+        where = " AND ".join(conditions)
+        params.extend([limit, offset])
+
         rows = await conn.fetch(
-            """
+            f"""
             SELECT id, content, document_name, metadata, created_at
             FROM rag_chunks
-            WHERE collection = $1
+            WHERE {where}
             ORDER BY created_at DESC
-            LIMIT $2 OFFSET $3
+            LIMIT ${idx} OFFSET ${idx + 1}
             """,
-            coll.name,
-            limit,
-            offset,
+            *params,
         )
         total_row = await conn.fetchval(
-            "SELECT COUNT(*) FROM rag_chunks WHERE collection = $1",
-            coll.name,
+            f"SELECT COUNT(*) FROM rag_chunks WHERE {where}",
+            *params[:-2],
         )
 
     return ChunkListResponse(

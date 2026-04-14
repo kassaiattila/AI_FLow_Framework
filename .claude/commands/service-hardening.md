@@ -49,7 +49,7 @@ For the given skill/service, check EACH point and report PASS/FAIL:
 ### 9. INPUT GUARDRAIL
 - Injection vedelem aktiv (InputGuard)
 - PII masking helyes (per-skill config!):
-  - aszf_rag: ON | email_intent: PARTIAL | invoice: OFF | process_docs: ON | cubix: ON
+  - aszf_rag: ON | email_intent: PARTIAL | invoice: OFF | process_docs: ON | cubix: ON | invoice_finder: OFF | spec_writer: ON
 
 ### 10. OUTPUT GUARDRAIL
 - Hallucination check (OutputGuard)
@@ -78,4 +78,4 @@ SCORE: X/10
 VERDICT: PRODUCTION-READY / NEEDS WORK (lista)
 ```
 
-Ha "all": futtasd mind az 5 skill-re + az infrastruktura service-ekre.
+Ha "all": futtasd mind a 7 skill-re + az infrastruktura service-ekre.

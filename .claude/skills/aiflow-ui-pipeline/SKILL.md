@@ -113,3 +113,11 @@ cd aiflow-admin && npx tsc --noEmit     # 0 error
 ## Design System
 
 Untitled UI (React 19 + Tailwind v4), Figma channel: `hq5dlkhu`
+
+## v2 UI Requirements
+
+- HITL Bulk Review UI: queue view, bulk select, approve/reject, split-screen
+- Multi-tenant admin: tenant-scoped pages, X-Tenant-ID header
+- Intake dashboard: multi-source status, package tracking, file association
+- Cost dashboard: per-tenant, per-provider breakdown, cost cap monitoring
+- State machine visualization: entity lifecycle display

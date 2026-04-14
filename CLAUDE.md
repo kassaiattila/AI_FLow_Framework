@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.3.0** — Sprint B COMPLETE (2026-04-09) | API: 8102 | UI: 5174
+**v1.4.0** — Sprint C COMPLETE (2026-04-14) | API: 8102 | UI: 5174
 
 ## Structure
 ```
@@ -11,15 +11,15 @@ skills/             — 7 skill: process_docs, aszf_rag, email_intent, invoice_p
 aiflow-admin/       — React 19 + Tailwind v4 + Vite (admin dashboard, 23 pages)
 01_PLAN/            — Plans (58_POST_SPRINT_HARDENING_PLAN.md = CURRENT)
 tests/              — unit/, integration/, e2e/
-.claude/skills/     — 4 skill: aiflow-ui-pipeline, aiflow-testing, aiflow-pipeline, aiflow-services
-.claude/agents/     — 3 agent: security-reviewer, qa-tester, plan-validator
-.claude/commands/   — 20 slash command (Sprint B workflow)
+.claude/skills/     — 6 skill: aiflow-ui-pipeline, aiflow-testing, aiflow-pipeline, aiflow-services, aiflow-database, aiflow-observability
+.claude/agents/     — 4 agent: architect, security-reviewer, qa-tester, plan-validator
+.claude/commands/   — 25 slash command (Sprint D workflow, DOHA-aligned)
 ```
 
 ## Key Numbers
 27 services | 175 API endpoints (27 routers) | 48 DB tables | 31 Alembic migrations
 22 pipeline adapters | 10 pipeline templates | 7 skills | 23 UI pages
-1443 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 121 E2E tests
+1443 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 169 E2E tests (58 journey)
 
 ## Build & Test
 ```bash
@@ -44,17 +44,18 @@ alembic upgrade head                      # DB migrations
 - **Services in Docker** (PostgreSQL 5433, Redis 6379, Kroki 8000), Python code locally from .venv
 
 ## Git Workflow
-- Branch: `main` (v1.3.0 merged) — NEVER commit to main directly
+- Branch: `feature/v1.4.0-ui-refinement` (v1.4.0 ready for merge) — NEVER commit to main directly
 - Commits: conventional (`feat`, `fix`, `docs`, `refactor`) + Co-Authored-By
 - NEVER commit: .env, credentials, API keys, failing tests
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
-`01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md` — Sprint B (B0-B11) COMPLETE, v1.3.0 released
+`01_PLAN/65_SPRINT_C_UI_JOURNEY_FIRST_PLAN.md` — Sprint C (C0-C7) COMPLETE, v1.4.0 ready
 
 ## Slash Commands
 
-**Every task:** `/dev-step`, `/regression`, `/lint-check`
+**Session lifecycle:** `/status` → `/implement` → `/dev-step` → `/review` → `/session-close`
+**Quick checks:** `/smoke-test`, `/regression`, `/lint-check`
 **Prompts:** `/new-prompt`, `/prompt-tuning`, `/quality-check`
 **Services:** `/service-test`, `/service-hardening`, `/pipeline-test`, `/new-pipeline`
 **Generators:** `/new-step`, `/new-test`
@@ -64,20 +65,33 @@ alembic upgrade head                      # DB migrations
 ## IMPORTANT
 
 - **REAL testing only** — never mock PostgreSQL/Redis/LLM. Docker for real services.
-- **After EVERY session:** `/update-plan` → 58 progress table + key numbers
+- **Session end:** `/session-close` generates next session prompt (DOHA-style chaining)
+- **After EVERY session:** `/update-plan` → progress table + key numbers
 - **UI work:** 7 HARD GATES enforced — see skill `aiflow-ui-pipeline`
 - **A feature is DONE only after** Playwright E2E passes with real data
 - **Detailed testing rules:** see skill `aiflow-testing` (auto-loaded when testing)
 - **Pipeline dev rules:** see skill `aiflow-pipeline` (auto-loaded for pipeline work)
 - **Service conventions:** see skill `aiflow-services` (auto-loaded for service work)
 - **Best practices reference:** `01_PLAN/60_CLAUDE_CODE_BEST_PRACTICES_REFERENCE.md`
+- **DB changes:** see skill `aiflow-database` (Alembic rules, zero-downtime migration)
+- **Observability:** see skill `aiflow-observability` (structlog, Langfuse, metrics)
+- **Architecture review:** use agent `architect` for Go/No-Go decisions
+
+## v2 Architecture (Phase 1a — next sprint)
+- 13 Pydantic domain contracts (IntakePackage, RoutingDecision, ExtractionResult...)
+- 7 state machines with idempotent replay
+- Multi-tenant isolation (tenant_id boundary on DB + storage + API)
+- Cost-aware routing (policy constraints + cost cap)
+- Provider abstraction (parser/classifier/extractor/embedder pluggable)
+- Plans: `01_PLAN/100_*` through `01_PLAN/106_*`
 
 ## IMPORTANT: On Compaction
-Preserve: modified files list + test status + current B-phase + which command was running.
+Preserve: modified files list + test status + current C-phase + which command was running.
 
 ## References
+- v2 Architecture: `01_PLAN/100_AIFLOW_v2_ARCHITECTURE_REFINEMENT_OVERVIEW.md` (+ 100_b through 106)
+- Sprint C plan: `01_PLAN/65_SPRINT_C_UI_JOURNEY_FIRST_PLAN.md`
 - Sprint B plan: `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`
-- Command audit: `01_PLAN/59_COMMAND_WORKFLOW_AUDIT.md`
 - Best practices: `01_PLAN/60_CLAUDE_CODE_BEST_PRACTICES_REFERENCE.md`
-- Gap analysis: `01_PLAN/60_GAP_ANALYSIS_AND_ACTION_PLAN.md`
+- DOHA governance patterns: `DOHA/design_claude/` (reference implementation)
 - Full CLAUDE.md backup: `.claude/CLAUDE_v1.2.2_FULL_BACKUP.md`

@@ -11,6 +11,33 @@
         ]
       },
       {
+        "matcher": "Write(**/credentials*)|Write(**/secrets*)|Write(**/*.key)|Write(**/*.pem)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo {\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Credentials/secrets/key fajl irasa tiltott — hasznalj environment variable-t vagy Vault-ot\"}}"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git push --force*)|Bash(git push -f *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo {\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Force push tiltott — hasznalj normal push-t vagy kerj explicit engedelyt\"}}"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git reset --hard*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo {\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"git reset --hard tiltott — hasznalj git stash-t vagy kerj explicit engedelyt\"}}"
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {

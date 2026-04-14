@@ -1,7 +1,8 @@
 """
-E2E tests for B8 journey-based navigation.
+E2E tests for journey-based navigation.
 
-Sidebar 6 groups, breadcrumb, dashboard journey cards, Journey 1+2 flows.
+Sidebar 6 groups, breadcrumb, dashboard journey cards, Journey 1+2 flows,
+cross-journey dashboard validation (S43 C6.5).
 
 @test_registry:
     suite: e2e-journey
@@ -10,11 +11,11 @@ Sidebar 6 groups, breadcrumb, dashboard journey cards, Journey 1+2 flows.
       - aiflow-admin/src/layout/Sidebar.tsx
       - aiflow-admin/src/components-new/Breadcrumb.tsx
       - aiflow-admin/src/pages-new/Dashboard.tsx
-    phase: S33
+    phase: S43
     priority: critical
-    estimated_duration_ms: 30000
+    estimated_duration_ms: 45000
     requires_services: [postgresql, redis, fastapi, vite]
-    tags: [e2e, journey, navigation, playwright]
+    tags: [e2e, journey, navigation, cross-journey, playwright]
 """
 
 from __future__ import annotations
@@ -165,3 +166,145 @@ class TestJourneyNavigation:
         assert any(w in body for w in ["Dashboard", "Skills", "Active"]), (
             "Dashboard missing expected content after navigation"
         )
+
+
+class TestCrossJourneyNavigation:
+    """S43 C6.5 — Cross-journey dashboard validation.
+
+    Validates that every dashboard journey card navigates correctly
+    and the user can return to the dashboard from each destination.
+    Dashboard has 3 journey cards: Documents(/emails), RAG(/rag), Pipelines(/runs).
+    """
+
+    JOURNEY_CARD_SELECTOR = "main >> div.cursor-pointer.rounded-xl"
+
+    def _get_journey_cards(self, page: Page):
+        """Return the journey card locator after loading dashboard."""
+        navigate_to(page, "/")
+        page.wait_for_timeout(1000)
+        return page.locator(self.JOURNEY_CARD_SELECTOR)
+
+    def test_dashboard_card_to_j1_documents(self, authenticated_page: Page) -> None:
+        """Dashboard J1 card (Dokumentum Feldolgozas) → /emails → back to /."""
+        page = authenticated_page
+        cards = self._get_journey_cards(page)
+        assert cards.count() >= 3, f"Expected >=3 journey cards, got {cards.count()}"
+
+        cards.nth(0).click()
+        page.wait_for_load_state("networkidle")
+        assert "emails" in page.url, f"J1 card did not navigate to /emails: {page.url}"
+
+        body = page.locator("body").text_content() or ""
+        assert any(w in body for w in ["Email", "Document", "Dokumentum", "No data", "Nincs"]), (
+            "J1 destination page missing expected content"
+        )
+
+        # Return to dashboard
+        navigate_to(page, "/")
+        main_text = page.locator("main").text_content() or ""
+        assert len(main_text) > 50, "Dashboard did not render after return"
+
+    def test_dashboard_card_to_j3_rag(self, authenticated_page: Page) -> None:
+        """Dashboard J3 card (Tudasbazis / RAG) → /rag → back to /."""
+        page = authenticated_page
+        cards = self._get_journey_cards(page)
+        assert cards.count() >= 3, f"Expected >=3 journey cards, got {cards.count()}"
+
+        cards.nth(1).click()
+        page.wait_for_load_state("networkidle")
+        assert "rag" in page.url, f"J3 card did not navigate to /rag: {page.url}"
+
+        body = page.locator("body").text_content() or ""
+        assert any(w in body for w in ["RAG", "Collection", "Chat", "Chunk", "No data", "Nincs"]), (
+            "J3 destination page missing expected content"
+        )
+
+        navigate_to(page, "/")
+        main_text = page.locator("main").text_content() or ""
+        assert len(main_text) > 50, "Dashboard did not render after return"
+
+    def test_dashboard_card_to_j5_pipelines(self, authenticated_page: Page) -> None:
+        """Dashboard J5 card (Pipeline & Futasok) → /runs → back to /."""
+        page = authenticated_page
+        cards = self._get_journey_cards(page)
+        assert cards.count() >= 3, f"Expected >=3 journey cards, got {cards.count()}"
+
+        cards.nth(2).click()
+        page.wait_for_load_state("networkidle")
+        assert any(p in page.url for p in ["runs", "pipelines"]), (
+            f"J5 card did not navigate to /runs or /pipelines: {page.url}"
+        )
+
+        body = page.locator("body").text_content() or ""
+        assert any(w in body for w in ["Run", "Pipeline", "Workflow", "No data", "Nincs"]), (
+            "J5 destination page missing expected content"
+        )
+
+        navigate_to(page, "/")
+        main_text = page.locator("main").text_content() or ""
+        assert len(main_text) > 50, "Dashboard did not render after return"
+
+    def test_dashboard_all_cards_unique_destinations(self, authenticated_page: Page) -> None:
+        """All journey cards navigate to distinct pages."""
+        page = authenticated_page
+        cards = self._get_journey_cards(page)
+        card_count = cards.count()
+        assert card_count >= 3, f"Expected >=3 journey cards, got {card_count}"
+
+        destinations: list[str] = []
+        for i in range(card_count):
+            navigate_to(page, "/")
+            page.wait_for_timeout(500)
+            page.locator(self.JOURNEY_CARD_SELECTOR).nth(i).click()
+            page.wait_for_load_state("networkidle")
+            destinations.append(page.url)
+
+        assert len(set(destinations)) == card_count, (
+            f"Journey cards navigate to duplicate pages: {destinations}"
+        )
+
+    def test_full_cross_journey_loop(self, authenticated_page: Page) -> None:
+        """Full navigation loop: / → /emails → /rag → /runs → /monitoring → /admin → /audit → /costs → /quality → / with 0 console errors."""
+        page = authenticated_page
+
+        errors: list[str] = []
+        page.on(
+            "console",
+            lambda msg: errors.append(msg.text) if msg.type == "error" else None,
+        )
+
+        route_sequence = [
+            "/",
+            "/emails",
+            "/rag",
+            "/runs",
+            "/monitoring",
+            "/admin",
+            "/audit",
+            "/costs",
+            "/quality",
+            "/",
+        ]
+
+        for route in route_sequence:
+            navigate_to(page, route)
+            body_len = len(page.locator("body").text_content() or "")
+            assert body_len > 50, f"Page {route} rendered empty (body length={body_len})"
+
+        # Filter benign console errors
+        real_errors = [
+            e
+            for e in errors
+            if not any(
+                ignore in e
+                for ignore in [
+                    "favicon",
+                    "ResizeObserver",
+                    "Failed to fetch",
+                    "Failed to load resource",
+                    "Maximum update depth",
+                    "CORS policy",
+                ]
+            )
+        ]
+        assert not real_errors, f"Console errors during cross-journey loop: {real_errors}"

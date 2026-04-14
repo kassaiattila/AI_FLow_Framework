@@ -1,6 +1,7 @@
 /**
  * AIFlow Runs — F6.5 workflow run list with DataTable.
  */
+import { useNavigate } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
 import { fetchApi } from "../lib/api-client";
@@ -12,6 +13,7 @@ interface RunItem { run_id: string; workflow_name: string; skill_name: string | 
 interface RunsResponse { runs: RunItem[]; total: number; }
 
 export function Runs() {
+  const navigate = useNavigate();
   const translate = useTranslate();
   const { data, loading, error, refetch } = useApi<RunsResponse>("/api/v1/runs");
 
@@ -52,7 +54,7 @@ export function Runs() {
   return (
     <PageLayout titleKey="aiflow.runs.title">
       {error ? <ErrorState error={error} onRetry={refetch} /> :
-        <DataTable data={(data?.runs ?? []) as unknown as Record<string, unknown>[]} columns={columns} loading={loading} searchKeys={["skill_name", "workflow_name", "status"]} />
+        <DataTable data={(data?.runs ?? []) as unknown as Record<string, unknown>[]} columns={columns} loading={loading} searchKeys={["skill_name", "workflow_name", "status"]} onRowClick={(item) => navigate(`/runs/${item.run_id as string}`)} />
       }
     </PageLayout>
   );

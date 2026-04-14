@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
 import { fetchApi } from "../lib/api-client";
@@ -913,6 +914,7 @@ interface PipelineRunResponse {
 
 export function Emails() {
   const translate = useTranslate();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"inbox" | "upload" | "connectors">("inbox");
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
@@ -963,9 +965,11 @@ export function Emails() {
           {scanning ? translate("aiflow.emails.scanning") : translate("aiflow.emails.scanMailbox")}
         </button>
         {scanResult && (
-          <span className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
-            {translate("aiflow.emails.scanComplete")} — {scanResult.status}
-          </span>
+          <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+            Pipeline elindult — <button onClick={() => navigate("/documents")} className="font-semibold underline">
+              {translate("aiflow.emails.scanComplete")} →
+            </button>
+          </div>
         )}
         {scanError && (
           <span className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">

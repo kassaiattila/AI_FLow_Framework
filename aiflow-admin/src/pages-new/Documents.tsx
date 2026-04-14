@@ -399,13 +399,20 @@ function makeDocColumns(translate: (key: string) => string, onDelete?: (id: stri
   },
   {
     key: "extraction_confidence",
-    label: "%",
+    label: translate("aiflow.documents.confidence"),
     getValue: (item) => (item.extraction_confidence as number | null) ?? 0,
     render: (item) => {
-      const conf = item.extraction_confidence as number | null;
+      const conf = Number(item.extraction_confidence ?? 0);
+      if (!conf) return <span className="text-xs text-gray-400">—</span>;
+      const level = conf >= 0.9 ? "high" : conf >= 0.7 ? "medium" : "low";
+      const colors = {
+        high: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+        medium: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+        low: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+      };
       return (
-        <span className={`text-xs font-medium ${confidenceColor(conf)}`}>
-          {conf ? `${Math.round(conf * 100)}%` : "—"}
+        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${colors[level]}`}>
+          {Math.round(conf * 100)}%
         </span>
       );
     },
@@ -474,6 +481,9 @@ export function Documents() {
   const total = data?.total ?? 0;
   const processed = docs.filter(d => d.extraction_confidence && d.extraction_confidence > 0).length;
   const pending = docs.filter(d => !d.extraction_confidence || d.extraction_confidence === 0).length;
+  const approved = docs.filter(d => (d as unknown as Record<string, unknown>).status === "approved" || d.validation?.is_valid === true).length;
+  const rejected = docs.filter(d => (d as unknown as Record<string, unknown>).status === "rejected").length;
+  const pendingReview = total - approved - rejected;
 
   const handleDelete = async () => {
     if (!deleteId || deleting) return;
@@ -595,6 +605,21 @@ export function Documents() {
               <p className="mt-1 text-2xl font-bold text-amber-600">{pending}</p>
             </div>
           </div>
+
+          {/* Summary banner */}
+          {data && (
+            <div className="mb-3 flex gap-3 text-sm">
+              <span className="rounded-full bg-green-50 px-3 py-1 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                {approved} {translate("aiflow.documents.summaryApproved")}
+              </span>
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                {pendingReview} {translate("aiflow.documents.summaryPending")}
+              </span>
+              <span className="rounded-full bg-red-50 px-3 py-1 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                {rejected} {translate("aiflow.documents.summaryRejected")}
+              </span>
+            </div>
+          )}
 
           {/* Bulk action bar */}
           {selectedDocs.length > 0 && (

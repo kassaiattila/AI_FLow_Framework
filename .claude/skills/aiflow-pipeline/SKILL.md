@@ -77,8 +77,8 @@ allowed-tools: Read, Write, Grep, Glob, Bash
 | Komponens | Hol |
 |-----------|-----|
 | PipelineRunner + Compiler | pipeline/ |
-| 18 Adapter | pipeline/adapters/ |
-| 6 Pipeline Template | pipeline/builtin_templates/ |
+| 22 Adapter | pipeline/adapters/ |
+| 10 Pipeline Template | pipeline/builtin_templates/ |
 | PromptManager | prompts/manager.py |
 | DocumentRegistry | documents/ |
 | AzureDocIntelligence | tools/azure_doc_intelligence.py |
@@ -95,3 +95,11 @@ allowed-tools: Read, Write, Grep, Glob, Bash
 - Chat UI: react-markdown + Shiki
 - Kafka: HALASZTVA post-v1.3.0 (in-memory MessageBroker)
 - LlamaParse: KIHAGYVA (cloud-only, privacy)
+
+## v2 Pipeline Concepts (Phase 1a)
+
+- IntakePackage normalization: multi-source intake (email + file + folder + batch + API)
+- Cost-aware routing: provider selection with policy constraints + cost cap
+- Provider abstraction: parser/classifier/extractor/embedder as pluggable interfaces
+- Feature flags: `AIFLOW_FEATURE_*` env vars for Phase 2+ opt-in
+- Fallback chain: primary -> secondary -> tertiary provider with automatic retry

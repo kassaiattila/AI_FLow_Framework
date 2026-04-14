@@ -87,15 +87,7 @@ interface DocsCountResponse {
   total: number;
 }
 
-interface DiagramsCountResponse {
-  diagrams: { id: string }[];
-  total: number;
-}
-
-interface SpecsCountResponse {
-  specs: { id: string }[];
-  total: number;
-}
+// DiagramsCountResponse and SpecsCountResponse removed — J4 archived (Sprint C)
 
 interface JourneyCard {
   titleKey: string;
@@ -163,8 +155,6 @@ export function DashboardNew() {
   // Journey card data
   const { data: docsData } = useApi<DocsCountResponse>("/api/v1/documents?limit=1");
   const { data: collections } = useApi<CollectionsResponse>("/api/v1/rag/collections");
-  const { data: diagrams } = useApi<DiagramsCountResponse>("/api/v1/diagrams");
-  const { data: specs } = useApi<SpecsCountResponse>("/api/v1/specs");
   const { data: services } = useApi<ServicesResponse>("/api/v1/services");
 
   const serviceUp = services?.services?.filter(s => s.status === "healthy" || s.status === "production").length ?? 0;
@@ -178,7 +168,7 @@ export function DashboardNew() {
       icon: "file-text",
       color: "text-brand-600 dark:text-brand-400",
       borderColor: "border-brand-200 dark:border-brand-800 hover:border-brand-400 dark:hover:border-brand-600",
-      path: "/documents",
+      path: "/emails",
       stat1: { label: translate("aiflow.menu.documents"), value: String(docsData?.total ?? "—") },
       stat2: { label: translate("aiflow.menu.verification"), value: "—" },
     },
@@ -191,16 +181,6 @@ export function DashboardNew() {
       path: "/rag",
       stat1: { label: translate("aiflow.menu.collections"), value: String(collections?.total ?? "—") },
       stat2: { label: "Chunks", value: totalChunks > 0 ? totalChunks.toLocaleString() : "—" },
-    },
-    {
-      titleKey: "aiflow.menu.generation",
-      subtitleKey: "aiflow.dashboard.journeyGenSub",
-      icon: "git-branch",
-      color: "text-violet-600 dark:text-violet-400",
-      borderColor: "border-violet-200 dark:border-violet-800 hover:border-violet-400 dark:hover:border-violet-600",
-      path: "/process-docs",
-      stat1: { label: translate("aiflow.menu.diagrams"), value: String(diagrams?.total ?? "—") },
-      stat2: { label: "Specs", value: String(specs?.total ?? "—") },
     },
     {
       titleKey: "aiflow.menu.monitoring",
@@ -252,7 +232,7 @@ export function DashboardNew() {
       )}
 
       {/* Journey Cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {journeyCards.map((card) => (
           <div
             key={card.path}
