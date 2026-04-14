@@ -82,6 +82,9 @@ process-docs-*.png
 rag-chat.png
 f2-*.png
 
+# === Session prompts (NEXT.md is ephemeral, archives committed) ===
+session_prompts/NEXT.md
+
 # === Temp output directories ===
 output/
 tmp_*/

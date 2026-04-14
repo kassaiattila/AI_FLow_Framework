@@ -13,13 +13,14 @@ aiflow-admin/       — React 19 + Tailwind v4 + Vite (admin dashboard, 23 pages
 tests/              — unit/, integration/, e2e/
 .claude/skills/     — 6 skill: aiflow-ui-pipeline, aiflow-testing, aiflow-pipeline, aiflow-services, aiflow-database, aiflow-observability
 .claude/agents/     — 4 agent: architect, security-reviewer, qa-tester, plan-validator
-.claude/commands/   — 25 slash command (Sprint D workflow, DOHA-aligned)
+.claude/commands/   — 27 slash command (Sprint D workflow, DOHA-aligned)
+session_prompts/    — Session prompt archive + NEXT.md pointer (/next reads this)
 ```
 
 ## Key Numbers
 27 services | 175 API endpoints (27 routers) | 48 DB tables | 31 Alembic migrations
 22 pipeline adapters | 10 pipeline templates | 7 skills | 23 UI pages
-1443 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 169 E2E tests (58 journey)
+1518 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 169 E2E tests (58 journey)
 
 ## Build & Test
 ```bash
@@ -44,17 +45,25 @@ alembic upgrade head                      # DB migrations
 - **Services in Docker** (PostgreSQL 5433, Redis 6379, Kroki 8000), Python code locally from .venv
 
 ## Git Workflow
-- Branch: `feature/v1.4.0-ui-refinement` (v1.4.0 ready for merge) — NEVER commit to main directly
+- Branch: `feature/v2.0.0-phase-1a-foundation` (v2 Phase 1a) — NEVER commit to main directly
 - Commits: conventional (`feat`, `fix`, `docs`, `refactor`) + Co-Authored-By
 - NEVER commit: .env, credentials, API keys, failing tests
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
-`01_PLAN/65_SPRINT_C_UI_JOURNEY_FIRST_PLAN.md` — Sprint C (C0-C7) COMPLETE, v1.4.0 ready
+`01_PLAN/106_AIFLOW_v2_PHASE_1a_IMPLEMENTATION_GUIDE.md` — Phase 1a Week 1 (Contracts + State Machines)
+
+## Session Workflow (DOHA-aligned)
+```
+/clear → /next → [session munka] → /session-close → /clear → /next → ...
+```
+- `/next` beolvassa `session_prompts/NEXT.md`-t és elindítja a session-t
+- `/session-close` generálja `session_prompts/NEXT.md` + archív másolat
+- SessionStart hook kiírja ha van kész NEXT.md
 
 ## Slash Commands
 
-**Session lifecycle:** `/status` → `/implement` → `/dev-step` → `/review` → `/session-close`
+**Session lifecycle:** `/next` → `/status` → `/implement` → `/dev-step` → `/review` → `/session-close`
 **Quick checks:** `/smoke-test`, `/regression`, `/lint-check`
 **Prompts:** `/new-prompt`, `/prompt-tuning`, `/quality-check`
 **Services:** `/service-test`, `/service-hardening`, `/pipeline-test`, `/new-pipeline`

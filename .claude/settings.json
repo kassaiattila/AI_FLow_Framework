@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== AIFlow Session Start ===' && git branch --show-current && echo '---' && if [ -f session_prompts/NEXT.md ]; then echo ''; echo 'KOVETKEZO SESSION PROMPT ELERHETO!'; echo '  Ird: /next — es a session automatikusan indul'; echo '---'; head -5 session_prompts/NEXT.md; else echo 'Nincs session_prompts/NEXT.md — hasznald: /status'; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Write(.env*)",
