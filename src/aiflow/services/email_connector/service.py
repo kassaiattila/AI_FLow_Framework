@@ -1056,20 +1056,72 @@ def _parse_o365_message(msg: dict[str, Any]) -> FetchedEmail:
 # ---------------------------------------------------------------------------
 
 
-async def _test_outlook_com_connection_impl(cfg: dict[str, Any]) -> dict[str, Any]:
-    """Test Outlook COM connection (blocking, runs in thread)."""
-    import sys
+COM_TIMEOUT_SECONDS = 10
 
-    if sys.platform != "win32":
-        return {"success": False, "message": "Outlook COM only available on Windows"}
 
-    def _test() -> dict[str, Any]:
+async def _run_in_com_sta_thread(fn: Any, timeout: float = COM_TIMEOUT_SECONDS) -> Any:
+    """Run a callable in a dedicated STA-initialised thread with timeout.
+
+    Outlook COM (MAPI) calls can deadlock when:
+    - The thread is MTA-initialised (asyncio threadpool default)
+    - Outlook shows a security prompt or is unresponsive
+    - COM cross-apartment marshalling has no message pump
+
+    This helper runs *fn* on a fresh daemon thread with CoInitialize()
+    and enforces a hard timeout so the API never hangs indefinitely.
+    """
+    import threading
+    from concurrent.futures import Future
+
+    future: Future[Any] = Future()
+
+    def _worker() -> None:
         try:
             import pythoncom
 
             pythoncom.CoInitialize()
         except Exception:
             pass
+        try:
+            result = fn()
+            future.set_result(result)
+        except BaseException as exc:
+            future.set_exception(exc)
+        finally:
+            try:
+                import pythoncom
+
+                pythoncom.CoUninitialize()
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+    # Wait with timeout — don't block the event loop
+    loop = asyncio.get_running_loop()
+    try:
+        return await asyncio.wait_for(
+            asyncio.wrap_future(future, loop=loop),
+            timeout=timeout,
+        )
+    except TimeoutError:
+        raise TimeoutError(
+            f"Outlook COM call timed out after {timeout}s. "
+            "Check: (1) Outlook is running and responsive, "
+            "(2) no security dialog is pending, "
+            "(3) Outlook is not in offline mode."
+        ) from None
+
+
+async def _test_outlook_com_connection_impl(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Test Outlook COM connection with timeout protection."""
+    import sys
+
+    if sys.platform != "win32":
+        return {"success": False, "message": "Outlook COM only available on Windows"}
+
+    def _test() -> dict[str, Any]:
         try:
             import win32com.client
         except ImportError:
@@ -1104,7 +1156,17 @@ async def _test_outlook_com_connection_impl(cfg: dict[str, Any]) -> dict[str, An
         except Exception as e:
             return {"success": False, "message": f"Outlook COM error: {e}"}
 
-    return await asyncio.to_thread(_test)
+    try:
+        return await _run_in_com_sta_thread(_test)
+    except TimeoutError:
+        return {
+            "success": False,
+            "message": (
+                "Outlook COM connection timed out. "
+                "Please ensure Outlook is running, responsive, "
+                "and no security dialogs are pending."
+            ),
+        }
 
 
 async def _fetch_outlook_com_impl(
@@ -1120,12 +1182,6 @@ async def _fetch_outlook_com_impl(
         raise RuntimeError("Outlook COM only available on Windows")
 
     def _fetch() -> list[FetchedEmail]:
-        try:
-            import pythoncom
-
-            pythoncom.CoInitialize()
-        except Exception:
-            pass
         from email import encoders
         from email.mime.base import MIMEBase
         from email.mime.multipart import MIMEMultipart
@@ -1297,4 +1353,4 @@ async def _fetch_outlook_com_impl(
 
         return results
 
-    return await asyncio.to_thread(_fetch)
+    return await _run_in_com_sta_thread(_fetch, timeout=120)

@@ -214,8 +214,8 @@ export function Sidebar() {
             {/* Group header */}
             <button
               onClick={() => toggleGroup(group.labelKey)}
-              title={collapsed ? translate(group.labelKey) : undefined}
-              className={`flex w-full items-center justify-between px-3 py-1 text-xs font-semibold uppercase tracking-wider transition-colors ${
+              title={collapsed ? translate(group.labelKey) : translate(group.labelKey)}
+              className={`flex w-full min-w-0 items-center justify-between gap-1 px-3 py-1 text-xs font-semibold uppercase tracking-wider transition-colors ${
                 group.archive
                   ? "text-gray-300 hover:text-gray-400 dark:text-gray-600 dark:hover:text-gray-500"
                   : isGroupActive(group)
@@ -223,7 +223,7 @@ export function Sidebar() {
                     : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
               } ${collapsed ? "justify-center" : ""}`}
             >
-              {!collapsed && <span>{translate(group.labelKey)}</span>}
+              {!collapsed && <span className="truncate">{translate(group.labelKey)}</span>}
               {!collapsed && (
                 <MenuIcon name={openGroups[group.labelKey] ? "chevronDown" : "chevronRight"} />
               )}

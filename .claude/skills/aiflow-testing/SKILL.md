@@ -107,3 +107,12 @@ npx promptfoo eval -c skills/*/tests/promptfooconfig.yaml  # Prompt tests
 
 When a source file changes, `tests/regression_matrix.yaml` determines which suites run.
 Changes to core/, security/, or pyproject.toml trigger FULL regression.
+
+## v2 Testing Requirements
+
+- Backward compat regression: legacy pipeline YAML fixtures must still work
+- Tenant isolation tests: all subsystems tenant-scoped
+- Schema migration dry-run: alembic 029->036 chain forward + rollback
+- Routing decision reproducibility: golden dataset assertions
+- HITL SLA tests: escalation timing, assignment algorithm
+- CI orchestration: lint -> unit -> backward-compat -> tenant-isolation -> migration -> E2E

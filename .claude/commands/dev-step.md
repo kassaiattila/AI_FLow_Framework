@@ -11,7 +11,7 @@ Arguments: $ARGUMENTS
 
 ```bash
 # Branch (NEM main!)
-git branch --show-current  # → feature/v1.3.0-service-excellence
+git branch --show-current  # → feature/v1.4.0-ui-refinement
 ```
 
 Olvasd el a releváns tervet: `01_PLAN/58_POST_SPRINT_HARDENING_PLAN.md`
