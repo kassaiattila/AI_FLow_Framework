@@ -1,0 +1,25 @@
+# Profile B — Cloud-allowed (Azure-optimized)
+# Source: 100_b Section 6, 106_ Section 5.3
+# Only overrides from Profile A defaults are listed.
+
+policy:
+  # Cloud enabled
+  cloud_ai_allowed: true
+  cloud_storage_allowed: true
+  document_content_may_leave_tenant: true
+
+  # Azure services enabled
+  azure_di_enabled: true
+  azure_search_enabled: true
+  azure_embedding_enabled: true
+
+  # Azure embedding model
+  default_embedding_provider: azure_openai_embedding_3_small
+  azure_embedding_model: text-embedding-3-small
+
+  # Cloud object store
+  object_store_provider: azure_blob
+
+  # Safety unchanged
+  pii_embedding_allowed: false
+  redaction_before_embedding_required: true
