@@ -9,10 +9,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import asyncpg
 import structlog
 import yaml
 
 from aiflow.policy import PolicyConfig
+from aiflow.policy.repository import PolicyOverrideRepository
 
 __all__ = [
     "PolicyEngine",
@@ -46,6 +48,28 @@ class PolicyEngine:
         config = PolicyConfig(**policy_data)
         logger.info("policy_engine_loaded_from_yaml", path=str(profile_path))
         return cls(profile_config=config)
+
+    @classmethod
+    async def from_yaml_with_db(
+        cls,
+        profile_path: Path,
+        pool: asyncpg.Pool,
+    ) -> PolicyEngine:
+        """Load profile from YAML + all tenant overrides from DB."""
+        with open(profile_path) as f:
+            data = yaml.safe_load(f)
+        policy_data = data.get("policy", {})
+        config = PolicyConfig(**policy_data)
+
+        repo = PolicyOverrideRepository(pool)
+        overrides = await repo.get_all_tenant_overrides()
+
+        logger.info(
+            "policy_engine_loaded_from_yaml_with_db",
+            path=str(profile_path),
+            tenant_override_count=len(overrides),
+        )
+        return cls(profile_config=config, tenant_overrides=overrides)
 
     def get_for_tenant(self, tenant_id: str) -> PolicyConfig:
         """Return merged config: profile defaults + tenant-specific overrides."""
