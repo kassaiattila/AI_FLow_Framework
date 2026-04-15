@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.4.0** — Sprint C COMPLETE (2026-04-14) | API: 8102 | UI: 5174
+**v1.4.0** — Phase 1a Foundation COMPLETE (2026-04-17) | API: 8102 | UI: 5174
 
 ## Structure
 ```
@@ -18,9 +18,9 @@ session_prompts/    — Session prompt archive + NEXT.md pointer (/next reads th
 ```
 
 ## Key Numbers
-27 services | 175 API endpoints (27 routers) | 48 DB tables | 31 Alembic migrations
+27 services | 175 API endpoints (27 routers) | 49 DB tables | 33 Alembic migrations
 22 pipeline adapters | 10 pipeline templates | 7 skills | 23 UI pages
-1518 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 169 E2E tests (58 journey)
+1674 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 368 E2E tests (169 pre-existing + 199 Phase 1a)
 
 ## Build & Test
 ```bash
@@ -51,7 +51,7 @@ alembic upgrade head                      # DB migrations
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
-`01_PLAN/106_AIFLOW_v2_PHASE_1a_IMPLEMENTATION_GUIDE.md` — Phase 1a Week 1 (Contracts + State Machines)
+`01_PLAN/106_AIFLOW_v2_PHASE_1a_IMPLEMENTATION_GUIDE.md` — Phase 1a COMPLETE (2026-04-17). Next: Phase 1b (v1.4.1, source adapters).
 
 ## Session Workflow (DOHA-aligned)
 ```

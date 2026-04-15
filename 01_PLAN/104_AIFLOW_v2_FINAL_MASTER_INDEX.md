@@ -1,11 +1,16 @@
 # AIFlow v2 — Final Master Index (Egyseges Belepesi Pont)
 
-> **Verzio:** 1.0 (FINAL)
-> **Datum:** 2026-04-09
-> **Statusz:** ELFOGADVA (SIGNED OFF)
+> **Verzio:** 1.1 (FINAL + Phase 1a COMPLETE)
+> **Datum:** 2026-04-09 (initial) / 2026-04-17 (Phase 1a DONE)
+> **Statusz:** ELFOGADVA (SIGNED OFF) — **Phase 1a Foundation (v1.4.0) COMPLETE**
 > **Cel:** Az AIFlow v1.3.0 → v2.0.0 refinement-hez tartozo teljes dokumentum-set
 > **egyseges belepesi pontja**. A felulvizsgalatokat (102_* + 103_*) kovetoen letrejott
 > **vegleges egyseges terv**.
+>
+> **Phase 1a delivery (2026-04-17, Sprint D S44-S53):** 13 Pydantic contract, 7 state machine,
+> PolicyEngine + profile A/B override, ProviderRegistry + 4 ABC, SkillInstance.policy_override,
+> backward compat shim + pipeline auto-upgrade, Alembic 032 intake_tables + 033 policy_overrides,
+> 199 Phase 1a E2E PASS. Next: Phase 1b (v1.4.1) source adapters.
 
 ---
 
@@ -367,16 +372,18 @@ A jovobeni architektura dontesekhez `101_*` komponens szekcioiban vagy kulon ADR
 
 ## 8. Acceptance criteria matrix
 
-### 8.1 Phase 1a (v1.4.0) — Foundation
+### 8.1 Phase 1a (v1.4.0) — Foundation — **COMPLETE (2026-04-17)**
 
-| Kategoria | Kritetium | Hely |
-|-----------|-----------|------|
-| Contracts | 13 Pydantic modell Pydantic v2 syntax | `100_b` |
-| State | 7 entitas state machine + validator | `100_c` |
-| Policy | 30+ parameter PolicyEngine + profile override | `100_*` Section 6 |
-| Provider | 4 ABC + contract test framework | `103_*` Section 5 |
-| Migration | Alembic 030-031 + rollback tesztelve | `100_d` |
-| Backward compat | `extract(file)` meg mukodik | `100_d` Section 4 |
+| Kategoria | Kritetium | Hely | E2E lefedettseg | Statusz |
+|-----------|-----------|------|-----------------|---------|
+| Contracts | 13 Pydantic modell Pydantic v2 syntax | `100_b` | `test_intake_package_lifecycle.py` | DONE (S44) |
+| State | 7 entitas state machine + validator | `100_c` | `test_intake_package_lifecycle.py` | DONE (S44) |
+| Policy | 30+ parameter PolicyEngine + profile override | `100_*` Section 6 | `test_policy_engine_profile_switch.py`, `test_skill_instance_policy_override.py` | DONE (S46, S48, S49) |
+| Provider | 4 ABC + contract test framework | `103_*` Section 5 | `test_provider_registry_contract.py` | DONE (S47) |
+| Migration | Alembic 032-033 + rollback tesztelve | `100_d` | `test_intake_package_lifecycle.py` (end-to-end with 032+033 schema) | DONE (S45, S48) |
+| Backward compat | `extract(file)` meg mukodik + pipeline auto-upgrade | `100_d` Section 4 | `test_backward_compat_extract_file.py`, `test_pipeline_auto_upgrade.py`, `test_legacy_pipeline_regression.py`, `test_extract_shim_regression.py` | DONE (S50, S52) |
+
+**Teljes E2E suite:** `tests/e2e/v1_4_0_phase_1a/` — 199 test PASS (3.94s), `<10s SLA`. Lasd `106_*` Section 7 Day 19.
 
 ### 8.2 Phase 1b (v1.4.1) — Source adapters
 

@@ -1972,3 +1972,26 @@ Docker-ready deploy, UI pipeline trigger, 7 skill 95%+ promptfoo.
 | B9 | **Docker deploy** — docker compose prod stack (nginx + UI container + healthcheck) + UI pipeline trigger (scan mailbox + pipeline status). 4 compose services, deploy guide, 7 docker E2E tests. | S34 | DONE | 2026-04-09 | 9078fd0 |
 | B10 | **POST-AUDIT** — JWT auth lazy init fix (module-level → _get_auth()), env var prefix fix, dev rate limit 10→200, CORS E2E ignore, login timeout 30s, ruff format 6 files. Audit riport: ALL PASS (1443 unit, 86+ E2E, 7/7 skill, 4/4 guardrail, 23 UI pages). | S35 | DONE | 2026-04-09 | 9bcc09a |
 | B11 | **v1.3.0 Release** — version bump (6 files), regression PASS, v1.3.0 annotated tag, plan finalization, squash merge → main. | S36 | DONE | 2026-04-09 | daddcea |
+
+---
+
+## Sprint D — Phase 1a Foundation (v1.4.0) COMPLETE
+
+> **Statusz:** COMPLETE, 2026-04-17
+> **Branch:** `feature/v2.0.0-phase-1a-foundation`
+> **Teljes terv + napra lebontott guide:** [`106_AIFLOW_v2_PHASE_1a_IMPLEMENTATION_GUIDE.md`](106_AIFLOW_v2_PHASE_1a_IMPLEMENTATION_GUIDE.md)
+> **Master index:** [`104_AIFLOW_v2_FINAL_MASTER_INDEX.md`](104_AIFLOW_v2_FINAL_MASTER_INDEX.md)
+
+| Fazis | Tartalom | Session | Allapot | Datum |
+|-------|----------|---------|---------|-------|
+| D0.1-0.2 | IntakePackage contracts + state machines, Alembic 032 intake_tables + IntakeRepository | S44-S45 | DONE | 2026-04-11 |
+| D0.3 | PolicyEngine + profile A/B configs (30+ parameter) | S46 | DONE | 2026-04-12 |
+| D0.4 | ProviderRegistry + 4 ABC (Parser/Classifier/Extractor/Embedder) + contract test | S47 | DONE | 2026-04-13 |
+| D0.5 | Alembic 033 policy_overrides + PolicyEngine DB integration | S48 | DONE | 2026-04-14 |
+| D0.6 | SkillInstance.policy_override + PolicyEngine instance merge | S49 | DONE | 2026-04-15 |
+| D0.7 | Backward compat shim + pipeline auto-upgrade (v1.3 -> v1.4) | S50 | DONE | 2026-04-15 |
+| D0.8 | Phase 1a E2E acceptance test suite (85 tests) | S51 | DONE | 2026-04-16 |
+| D0.9 | Backward compat regression suite (+114 tests, 199 Phase 1a E2E total) | S52 | DONE | 2026-04-16 |
+| D0.10 | Phase 1a documentation refresh (CLAUDE.md + 58_ + 104_ + FEATURES + OpenAPI) | S53 | DONE | 2026-04-17 |
+
+**Phase 1a impact:** +2 migration (032, 033), +1 DB table (intake_packages + intake_files + intake_descriptions + package_associations + policy_overrides), +13 Pydantic contracts, +7 state machines, +199 E2E tests, +231 unit tests. Next: Phase 1b (v1.4.1) source adapters.

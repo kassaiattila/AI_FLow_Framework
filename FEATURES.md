@@ -1,6 +1,6 @@
 # AIFlow — Feature List
 
-> **Verzio:** v1.2.2 | **Datum:** 2026-04-05 | **Kovetkezo:** v1.3.0 (Sprint B)
+> **Verzio:** v1.4.0 (Phase 1a Foundation) | **Datum:** 2026-04-17 | **Kovetkezo:** v1.4.1 (Phase 1b — source adapters)
 
 ## Framework
 
@@ -100,18 +100,20 @@
 
 | Metrika | Ertek |
 |---------|-------|
-| API endpointok | 162 (25 router) |
-| DB tablak | 46 |
-| Pipeline adapterek | 18 |
-| Unit tesztek | 1164 PASS |
-| Guardrail tesztek | 76 PASS |
+| API endpointok | 175 (27 router) |
+| DB tablak | 49 |
+| Pipeline adapterek | 22 |
+| Unit tesztek | 1674 PASS |
+| Guardrail tesztek | 129 PASS |
 | Security tesztek | 97 PASS |
-| E2E tesztek | 102 PASS |
-| Promptfoo tesztek | 54 test case |
+| E2E tesztek | 368 PASS (169 pre-existing + 199 Phase 1a) |
+| Promptfoo tesztek | 96 test case |
 | Ruff lint | 0 hiba |
 | TypeScript | 0 hiba |
-| DB tablak | 46 |
-| Alembic migraciok | 29 |
+| Alembic migraciok | 33 |
+| Pydantic domain contracts | 13 (IntakePackage + 12 altal, Phase 1a) |
+| State machines | 7 (idempotent replay, Phase 1a) |
+| Provider ABC | 4 (parser/classifier/extractor/embedder, Phase 1a) |
 
 ## Verziok
 
@@ -122,4 +124,5 @@
 | v1.2.0 | 2026-04-03 | Pipeline as Code (C0-C20) |
 | v1.2.1 | 2026-04-04 | Production Ready Sprint (S1-S14) |
 | v1.2.2 | 2026-04-05 | Infrastructure + Security + Guardrails (Sprint A) |
-| v1.3.0 | TBD | E2E Service Excellence (Sprint B, B0-B11) |
+| v1.3.0 | 2026-04-09 | E2E Service Excellence (Sprint B, B0-B11) |
+| v1.4.0 | 2026-04-17 | Phase 1a Foundation — IntakePackage contracts (13 Pydantic) + 7 state machines, PolicyEngine + profile A/B overrides, ProviderRegistry + 4 ABC (parser/classifier/extractor/embedder), SkillInstance.policy_override, backward compat shim + pipeline auto-upgrade (v1.3 -> v1.4), 199 Phase 1a E2E, Alembic 032 intake_tables + 033 policy_overrides |
