@@ -18,6 +18,10 @@ from aiflow.sources.exceptions import (
     SourceAdapterError,
     UnknownSourceTypeError,
 )
+from aiflow.sources.outlook_com_backend import (
+    OutlookComBackend,
+    OutlookDispatchFactory,
+)
 from aiflow.sources.registry import SourceAdapterRegistry
 
 __all__ = [
@@ -31,4 +35,6 @@ __all__ = [
     "EmailSourceAdapter",
     "ImapBackend",
     "ImapBackendProtocol",
+    "OutlookComBackend",
+    "OutlookDispatchFactory",
 ]
