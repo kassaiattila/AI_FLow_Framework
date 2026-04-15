@@ -1,0 +1,54 @@
+# Phase 1a E2E fixture: Profile A (cloud-disallowed)
+# Mirrors config/profiles/profile_a.yaml with a tighter daily cap for tests.
+
+policy:
+  cloud_ai_allowed: false
+  cloud_storage_allowed: false
+  document_content_may_leave_tenant: false
+
+  embedding_enabled: true
+  pii_embedding_allowed: false
+  redaction_before_embedding_required: true
+  self_hosted_embedding_model: "BAAI/bge-m3"
+  azure_embedding_model: ""
+
+  self_hosted_parsing_enabled: true
+  docling_vlm_enabled: false
+  qwen_vllm_enabled: false
+
+  azure_di_enabled: false
+  azure_search_enabled: false
+  azure_embedding_enabled: false
+
+  archival_pdfa_required: true
+  pdfa_validation_required: true
+
+  manual_review_confidence_threshold: 0.70
+
+  default_parser_provider: docling_standard
+  default_classifier_provider: hybrid_ml_llm
+  default_extractor_provider: llm_field_extract
+  default_embedding_provider: bge_m3
+
+  vector_store_provider: pgvector
+  object_store_provider: local_fs
+
+  tenant_override_enabled: true
+
+  fallback_provider_order:
+    parser:
+      - pymupdf4llm
+      - docling_standard
+    embedder:
+      - bge_m3
+
+  source_adapter_type: unified
+
+  intake_package_enabled: true
+  source_text_ingestion_enabled: true
+  file_description_association_mode: rule_first_llm_fallback
+  package_level_context_enabled: true
+  cross_document_context_enabled: true
+
+  daily_document_cap: 100
+  daily_document_hard_cap: 200
