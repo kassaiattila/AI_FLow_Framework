@@ -244,3 +244,44 @@ def test_register_real_email_source_adapter() -> None:
     assert registry.has(IntakeSourceType.EMAIL)
     # EmailSourceAdapter requires ctor args → list_all skips it silently.
     assert registry.list_all() == []
+
+
+# --- real FileSourceAdapter registration (E1.3) ---------------------------
+
+
+def test_register_real_file_source_adapter() -> None:
+    """The production FileSourceAdapter must register under IntakeSourceType.FILE_UPLOAD."""
+    from aiflow.sources import FileSourceAdapter
+
+    registry = SourceAdapterRegistry()
+    registry.register(FileSourceAdapter)
+    assert registry.get(IntakeSourceType.FILE_UPLOAD) is FileSourceAdapter
+    assert registry.has(IntakeSourceType.FILE_UPLOAD)
+    # FileSourceAdapter requires ctor args → list_all skips it silently.
+    assert registry.list_all() == []
+
+
+def test_file_adapter_duplicate_registration_raises() -> None:
+    from aiflow.sources import FileSourceAdapter
+
+    registry = SourceAdapterRegistry()
+    registry.register(FileSourceAdapter)
+
+    other = _make_adapter("AlternativeFileAdapter", IntakeSourceType.FILE_UPLOAD)
+    with pytest.raises(DuplicateAdapterError):
+        registry.register(other)
+
+
+def test_email_and_file_adapters_coexist_in_registry() -> None:
+    """Both production adapters must co-exist under their respective source types."""
+    from aiflow.sources import EmailSourceAdapter, FileSourceAdapter
+
+    registry = SourceAdapterRegistry()
+    registry.register(EmailSourceAdapter)
+    registry.register(FileSourceAdapter)
+    assert registry.get(IntakeSourceType.EMAIL) is EmailSourceAdapter
+    assert registry.get(IntakeSourceType.FILE_UPLOAD) is FileSourceAdapter
+    assert set(registry.list_source_types()) == {
+        IntakeSourceType.EMAIL,
+        IntakeSourceType.FILE_UPLOAD,
+    }

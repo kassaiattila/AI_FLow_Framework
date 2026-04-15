@@ -21,7 +21,6 @@ import asyncio
 import email
 import hashlib
 import imaplib
-import re
 from email.message import Message
 from pathlib import Path
 from typing import ClassVar, Protocol
@@ -36,6 +35,7 @@ from aiflow.intake.package import (
     IntakePackage,
     IntakeSourceType,
 )
+from aiflow.sources._fs import sanitize_filename
 from aiflow.sources.base import SourceAdapter, SourceAdapterMetadata
 from aiflow.sources.exceptions import SourceAdapterError
 
@@ -46,8 +46,6 @@ __all__ = [
 ]
 
 logger = structlog.get_logger(__name__)
-
-_UNSAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9._-]+")
 
 
 class ImapBackendProtocol(Protocol):
@@ -162,12 +160,6 @@ class ImapBackend:
 
     async def ping(self) -> bool:
         return await asyncio.to_thread(self._ping_sync)
-
-
-def _sanitize_filename(name: str) -> str:
-    """Collapse unsafe characters to underscore; keep name non-empty and bounded."""
-    cleaned = _UNSAFE_FILENAME_CHARS.sub("_", name.strip()) or "attachment.bin"
-    return cleaned[:200]
 
 
 def _decode_body_bytes(payload: bytes, charset: str | None) -> str:
@@ -338,7 +330,7 @@ class EmailSourceAdapter(SourceAdapter):
         files: list[IntakeFile] = []
         pkg_dir = self._storage_root / self._tenant_id / str(package_id)
         for index, (filename, mime_type, payload) in enumerate(attachments):
-            safe = _sanitize_filename(filename)
+            safe = sanitize_filename(filename)
             pkg_dir.mkdir(parents=True, exist_ok=True)
             path = pkg_dir / safe
             path.write_bytes(payload)
