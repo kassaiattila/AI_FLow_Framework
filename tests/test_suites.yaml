@@ -214,3 +214,21 @@ suites:
     components:
       - cli.main
       - cli.commands
+
+  phase-1a-e2e:
+    description: "AIFlow v2 Phase 1a acceptance + backward compat regression E2E"
+    path: "tests/e2e/v1_4_0_phase_1a/"
+    suite_type: e2e
+    run_on: [pr, merge]
+    priority: critical
+    max_duration_seconds: 10
+    coverage_target: 0.0
+    requires_services: []
+    components:
+      - intake.package
+      - intake.repository
+      - policy.engine
+      - providers.registry
+      - skills.instance
+      - pipeline.compatibility
+      - services.document_extractor.shim
