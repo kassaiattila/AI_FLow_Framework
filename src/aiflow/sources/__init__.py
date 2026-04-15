@@ -7,8 +7,20 @@ Source: 101_AIFLOW_v2_COMPONENT_TRANSFORMATION_PLAN.md N2 (email) + R1 (file) + 
 from __future__ import annotations
 
 from aiflow.sources.base import SourceAdapter, SourceAdapterMetadata
+from aiflow.sources.exceptions import (
+    DuplicateAdapterError,
+    InvalidAdapterError,
+    SourceAdapterError,
+    UnknownSourceTypeError,
+)
+from aiflow.sources.registry import SourceAdapterRegistry
 
 __all__ = [
     "SourceAdapter",
     "SourceAdapterMetadata",
+    "SourceAdapterRegistry",
+    "SourceAdapterError",
+    "DuplicateAdapterError",
+    "InvalidAdapterError",
+    "UnknownSourceTypeError",
 ]
