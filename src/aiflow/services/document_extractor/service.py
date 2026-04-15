@@ -12,7 +12,7 @@ import hashlib
 import json
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from pydantic import BaseModel, Field
@@ -20,6 +20,9 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from aiflow.services.base import BaseService, ServiceConfig
+
+if TYPE_CHECKING:
+    from aiflow.intake.package import IntakePackage
 
 __all__ = [
     "DocumentTypeConfig",
@@ -194,8 +197,17 @@ class DocumentExtractorService(BaseService):
     ) -> ExtractionResult:
         """Extract fields from a document using the configured pipeline.
 
-        Steps: parse (Docling) → LLM extract → validate → store
+        .. deprecated:: 1.4.0
+            Use :meth:`extract_from_package` with an :class:`IntakePackage` instead.
         """
+        import warnings
+
+        warnings.warn(
+            "extract(file_path) is deprecated in v1.4.0. "
+            "Use extract_from_package(package) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         start = time.time()
 
         # Defensive: reject empty / missing paths before Path("") → "."
@@ -255,6 +267,52 @@ class DocumentExtractorService(BaseService):
             raw_markdown=parsed["markdown"][:500],
             extraction_time_ms=elapsed,
             db_id=db_id,
+        )
+
+    async def extract_from_package(
+        self,
+        package: IntakePackage,
+        config_name: str | None = None,
+    ) -> ExtractionResult:
+        """Extract fields from an IntakePackage (v2 primary API).
+
+        Full implementation in Phase 1c. Phase 1a raises NotImplementedError.
+        """
+
+        raise NotImplementedError(
+            "extract_from_package() is a Phase 1a skeleton. "
+            "Full implementation arrives in Phase 1c."
+        )
+
+    def _build_single_file_package(
+        self,
+        file_path: str | Path,
+        tenant_id: str = "default",
+    ) -> IntakePackage:
+        """Build an IntakePackage from a single file path (shim helper)."""
+        import hashlib as _hashlib
+        import mimetypes
+        from uuid import uuid4
+
+        from aiflow.intake.package import IntakeFile, IntakePackage, IntakeSourceType
+
+        fp = Path(file_path)
+        sha256 = _hashlib.sha256(fp.read_bytes()).hexdigest()
+        mime_type = mimetypes.guess_type(str(fp))[0] or "application/octet-stream"
+        return IntakePackage(
+            package_id=uuid4(),
+            source_type=IntakeSourceType.FILE_UPLOAD,
+            tenant_id=tenant_id,
+            files=[
+                IntakeFile(
+                    file_id=uuid4(),
+                    file_path=str(fp),
+                    file_name=fp.name,
+                    mime_type=mime_type,
+                    size_bytes=fp.stat().st_size,
+                    sha256=sha256,
+                )
+            ],
         )
 
     async def _parse_document(self, file_path: Path, parser: str) -> dict[str, Any]:
