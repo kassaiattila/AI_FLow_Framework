@@ -86,6 +86,25 @@ class PolicyEngine:
         )
         return result
 
+    def get_for_instance(
+        self,
+        tenant_id: str,
+        instance_override: dict[str, Any] | None = None,
+    ) -> PolicyConfig:
+        """Return merged config: profile defaults + tenant override + instance override."""
+        tenant_config = self.get_for_tenant(tenant_id)
+        if not instance_override:
+            return tenant_config
+        merged = tenant_config.model_dump()
+        merged.update(instance_override)
+        result = PolicyConfig(**merged)
+        logger.debug(
+            "policy_instance_merge",
+            tenant_id=tenant_id,
+            instance_override_keys=list(instance_override.keys()),
+        )
+        return result
+
     def is_allowed(self, capability: str, tenant_id: str | None = None) -> bool:
         """Check if a boolean capability is allowed under current policy."""
         cfg = self.get_for_tenant(tenant_id) if tenant_id else self.profile_config

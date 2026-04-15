@@ -121,3 +121,4 @@ class InstanceConfig(BaseModel):
     sla: SLAConfig = Field(default_factory=SLAConfig)
     intents: list[IntentConfig] = Field(default_factory=list)
     routing: RoutingConfig = Field(default_factory=RoutingConfig)
+    policy_override: dict[str, Any] | None = None
