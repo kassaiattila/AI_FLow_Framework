@@ -229,3 +229,18 @@ def test_fresh_registry_instances_are_independent() -> None:
     r1.register(_make_adapter("EmailAdapter", IntakeSourceType.EMAIL))
     assert r1.has(IntakeSourceType.EMAIL)
     assert not r2.has(IntakeSourceType.EMAIL)
+
+
+# --- real EmailSourceAdapter registration (E1.1-A) -------------------------
+
+
+def test_register_real_email_source_adapter() -> None:
+    """The production EmailSourceAdapter must register under IntakeSourceType.EMAIL."""
+    from aiflow.sources import EmailSourceAdapter
+
+    registry = SourceAdapterRegistry()
+    registry.register(EmailSourceAdapter)
+    assert registry.get(IntakeSourceType.EMAIL) is EmailSourceAdapter
+    assert registry.has(IntakeSourceType.EMAIL)
+    # EmailSourceAdapter requires ctor args → list_all skips it silently.
+    assert registry.list_all() == []
