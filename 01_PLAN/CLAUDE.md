@@ -30,7 +30,7 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - 5 skills: process_documentation, aszf_rag_chat, email_intent_processor, cubix_course_capture, invoice_processor (qbpp TOROLVE v1.3.0-ban)
 
 ## Key numbers to keep consistent
-- 46 DB tables, 6 views, 29 Alembic migracio (001-029, mind letezik), 60+ indexes
+- 49 DB tables, 6 views, 33 Alembic migracio (001-033, mind letezik), 60+ indexes
 - Framework: 22 weeks, 7 phases (Phase 1-7 KESZ)
 - Service Generalization: Fazis 0-5 KESZ (v1.0.0, 2026-04-02)
 - UI Modernization: F6 KESZ (v1.1.4, 2026-04-03)
@@ -38,9 +38,10 @@ You are working in the `01_PLAN/` directory which contains the complete AIFlow p
 - **v1.2.1 Production Ready Sprint: COMPLETE (S1-S14, 2026-04-04) — UI integracio, observability, quality, 102 E2E teszt, v1.2.1 tag**
 - **v1.2.2: Sprint A COMPLETE (A0-A8, 2026-04-05) — infra+security+guardrails+audit**
 - **v1.3.0: Sprint B COMPLETE (B0-B11, 2026-04-09) — E2E service excellence, 17 sessions, squash merged to main**
-- 27 service, 175 endpoint (27 router), 48 DB tabla, 31 Alembic migracio
+- **v1.4.0: Phase 1a Foundation COMPLETE (D0.1-D0.10, 2026-04-17) — IntakePackage contracts + state machines, PolicyEngine + profile overrides, ProviderRegistry (4 ABC), SkillInstance.policy_override, backward compat shim, 199 Phase 1a E2E**
+- 27 service, 175 endpoint (27 router), 49 DB tabla, 33 Alembic migracio (032 intake_tables + 033 policy_overrides)
 - 22 pipeline adapter, 10 pipeline template
-- 1443 unit test, 129 guardrail teszt, 97 security teszt, 161 skill test, 121 E2E, 96 promptfoo test case
+- 1674 unit test, 129 guardrail teszt, 97 security teszt, 161 skill test, 368 E2E (169 pre-existing + 199 Phase 1a), 96 promptfoo test case
 - v1.2.2 Sprint A COMPLETE (A0-A8, 2026-04-05)
 - 7 skill (qbpp TOROLVE v1.3.0 B0-ban, spec_writer UJ B5.2-ben S30 2026-04-09), 23 UI oldal
 - Python package manager: uv (NOT pip, NOT poetry), lockfile: uv.lock

@@ -92,6 +92,38 @@ rules:
     suites: [pipeline-unit, core-unit]
     reason: "Pipeline orchestrator changes affect adapters, compiler, runner, templates"
 
+  - pattern: "src/aiflow/pipeline/compatibility.py"
+    suites: [pipeline-unit, phase-1a-e2e, core-unit]
+    reason: "Pipeline v1.3 -> v1.4 upgrade logic affects all legacy YAMLs; re-run Phase 1a E2E"
+
+  - pattern: "src/aiflow/pipeline/builtin_templates/**"
+    suites: [pipeline-unit, phase-1a-e2e]
+    reason: "Built-in pipeline template change (v1.3/v1.4) must re-run legacy regression suite"
+
+  - pattern: "src/aiflow/intake/**"
+    suites: [phase-1a-e2e, core-unit]
+    reason: "IntakePackage / state machine change — v2 contract surface, re-run Phase 1a E2E"
+
+  - pattern: "src/aiflow/policy/**"
+    suites: [phase-1a-e2e, core-unit]
+    reason: "PolicyEngine change affects profile + instance override, re-run Phase 1a E2E"
+
+  - pattern: "src/aiflow/providers/**"
+    suites: [phase-1a-e2e, core-unit]
+    reason: "Provider ABC / registry change affects routing contract, re-run Phase 1a E2E"
+
+  - pattern: "src/aiflow/services/document_extractor/**"
+    suites: [phase-1a-e2e, core-unit]
+    reason: "document_extractor hosts the extract() shim; changes must re-run compat regression"
+
+  - pattern: "alembic/versions/032_*"
+    suites: [phase-1a-e2e]
+    reason: "IntakePackage schema migration — re-run Phase 1a E2E"
+
+  - pattern: "alembic/versions/033_*"
+    suites: [phase-1a-e2e]
+    reason: "policy_overrides migration — re-run Phase 1a E2E"
+
   - pattern: "aiflow-admin/**"
     suites: [e2e-ui]
     reason: "Admin dashboard changes require E2E Playwright re-test"

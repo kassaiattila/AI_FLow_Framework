@@ -1350,6 +1350,327 @@
         }
       }
     },
+    "/api/v1/documents/{document_id}/verifications": {
+      "post": {
+        "tags": [
+          "verifications"
+        ],
+        "summary": "Save Verification Edits",
+        "description": "Batch save verification edits — replaces existing pending edits.",
+        "operationId": "save_verification_edits_api_v1_documents__document_id__verifications_post",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveEditsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationEditResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "verifications"
+        ],
+        "summary": "Get Verification Edits",
+        "description": "Get all verification edits for a document, optionally filtered.",
+        "operationId": "get_verification_edits_api_v1_documents__document_id__verifications_get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "field_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Field Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationEditResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{document_id}/verifications/approve": {
+      "patch": {
+        "tags": [
+          "verifications"
+        ],
+        "summary": "Approve Verification Edits",
+        "description": "Approve all pending verification edits for a document.",
+        "operationId": "approve_verification_edits_api_v1_documents__document_id__verifications_approve_patch",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveRejectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApproveRejectResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{document_id}/verifications/reject": {
+      "patch": {
+        "tags": [
+          "verifications"
+        ],
+        "summary": "Reject Verification Edits",
+        "description": "Reject all pending verification edits — comment is required.",
+        "operationId": "reject_verification_edits_api_v1_documents__document_id__verifications_reject_patch",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveRejectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApproveRejectResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/verifications/history": {
+      "get": {
+        "tags": [
+          "verifications"
+        ],
+        "summary": "Verification History",
+        "description": "Global audit trail for verification edits.",
+        "operationId": "verification_history_api_v1_verifications_history_get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationEditResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/documents": {
       "get": {
         "tags": [
@@ -1587,7 +1908,7 @@
           "documents"
         ],
         "summary": "Verify Document",
-        "description": "Verify an extracted document ï¿½ confirm or correct extracted fields.",
+        "description": "Verify an extracted document — confirm or correct extracted fields.",
         "operationId": "verify_document_api_v1_documents__invoice_id__verify_post",
         "parameters": [
           {
@@ -3066,7 +3387,7 @@
           "rag"
         ],
         "summary": "List Chunks",
-        "description": "List chunks in a collection (paginated).",
+        "description": "List chunks in a collection (paginated, with optional search).",
         "operationId": "list_chunks_api_v1_rag_collections__collection_id__chunks_get",
         "parameters": [
           {
@@ -3100,6 +3421,30 @@
               "default": 0,
               "title": "Offset"
             }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Search chunks by content",
+              "default": "",
+              "title": "Q"
+            },
+            "description": "Search chunks by content"
+          },
+          {
+            "name": "document_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by document name",
+              "default": "",
+              "title": "Document Name"
+            },
+            "description": "Filter by document name"
           }
         ],
         "responses": {
@@ -3516,6 +3861,261 @@
             "required": true,
             "schema": {
               "type": "string",
+              "title": "Fmt"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/specs/write": {
+      "post": {
+        "tags": [
+          "specs"
+        ],
+        "summary": "Write Spec",
+        "description": "Run the Spec Writer workflow end-to-end and persist the result.",
+        "operationId": "write_spec_api_v1_specs_write_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteSpecRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/specs": {
+      "get": {
+        "tags": [
+          "specs"
+        ],
+        "summary": "List Specs",
+        "description": "List persisted specs with optional spec_type filter.",
+        "operationId": "list_specs_api_v1_specs_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "spec_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Spec Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/specs/{spec_id}": {
+      "get": {
+        "tags": [
+          "specs"
+        ],
+        "summary": "Get Spec",
+        "description": "Fetch a single spec by ID.",
+        "operationId": "get_spec_api_v1_specs__spec_id__get",
+        "parameters": [
+          {
+            "name": "spec_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spec Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "specs"
+        ],
+        "summary": "Delete Spec",
+        "description": "Delete a spec by ID.",
+        "operationId": "delete_spec_api_v1_specs__spec_id__delete",
+        "parameters": [
+          {
+            "name": "spec_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spec Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/specs/{spec_id}/export": {
+      "get": {
+        "tags": [
+          "specs"
+        ],
+        "summary": "Export Spec",
+        "description": "Export a spec in the requested format (markdown | html | json).",
+        "operationId": "export_spec_api_v1_specs__spec_id__export_get",
+        "parameters": [
+          {
+            "name": "spec_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spec Id"
+            }
+          },
+          {
+            "name": "fmt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "markdown",
+                "html",
+                "json"
+              ],
+              "type": "string",
+              "default": "markdown",
               "title": "Fmt"
             }
           }
@@ -4262,7 +4862,7 @@
           "reviews"
         ],
         "summary": "Escalate Review",
-        "description": "Manually escalate a pending review ï¿½ bumps priority.",
+        "description": "Manually escalate a pending review — bumps priority.",
         "operationId": "escalate_review_api_v1_reviews__review_id__escalate_post",
         "parameters": [
           {
@@ -7050,6 +7650,62 @@
           "total"
         ],
         "title": "AdaptersListResponse"
+      },
+      "ApproveRejectRequest": {
+        "properties": {
+          "reviewer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "title": "ApproveRejectRequest"
+      },
+      "ApproveRejectResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "document_id",
+          "status"
+        ],
+        "title": "ApproveRejectResponse"
       },
       "AuditEntryResponse": {
         "properties": {
@@ -13006,6 +13662,33 @@
         "title": "RunStatsResponse",
         "description": "7-day trend statistics for dashboard."
       },
+      "SaveEditsRequest": {
+        "properties": {
+          "edits": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationEditCreate"
+            },
+            "type": "array",
+            "title": "Edits"
+          },
+          "editor_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editor User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "edits"
+        ],
+        "title": "SaveEditsRequest"
+      },
       "SendRequest": {
         "properties": {
           "channel": {
@@ -13572,6 +14255,135 @@
           "escalated_count"
         ],
         "title": "SlaCheckResponse"
+      },
+      "SpecListResponse": {
+        "properties": {
+          "specs": {
+            "items": {
+              "$ref": "#/components/schemas/SpecResponse"
+            },
+            "type": "array",
+            "title": "Specs"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "specs",
+          "total"
+        ],
+        "title": "SpecListResponse"
+      },
+      "SpecResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "spec_type": {
+            "type": "string",
+            "title": "Spec Type"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "markdown_content": {
+            "type": "string",
+            "title": "Markdown Content"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "is_acceptable": {
+            "type": "boolean",
+            "title": "Is Acceptable"
+          },
+          "sections_count": {
+            "type": "integer",
+            "title": "Sections Count"
+          },
+          "word_count": {
+            "type": "integer",
+            "title": "Word Count"
+          },
+          "requirement": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement"
+          },
+          "review": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "default": ""
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At",
+            "default": ""
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "spec_type",
+          "language",
+          "markdown_content",
+          "score",
+          "is_acceptable",
+          "sections_count",
+          "word_count"
+        ],
+        "title": "SpecResponse"
       },
       "StatsResponse": {
         "properties": {
@@ -14181,6 +14993,223 @@
         "type": "object",
         "title": "VectorHealthResponse"
       },
+      "VerificationEdit": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "field_name": {
+            "type": "string",
+            "title": "Field Name"
+          },
+          "field_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Category"
+          },
+          "original_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Value"
+          },
+          "edited_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited Value"
+          },
+          "confidence_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Score"
+          },
+          "editor_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editor User Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "pending"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "document_id",
+          "field_name"
+        ],
+        "title": "VerificationEdit"
+      },
+      "VerificationEditCreate": {
+        "properties": {
+          "field_name": {
+            "type": "string",
+            "title": "Field Name"
+          },
+          "field_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Category"
+          },
+          "original_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Value"
+          },
+          "edited_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited Value"
+          },
+          "confidence_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Score"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field_name"
+        ],
+        "title": "VerificationEditCreate"
+      },
+      "VerificationEditResponse": {
+        "properties": {
+          "edits": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationEdit"
+            },
+            "type": "array",
+            "title": "Edits"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "edits",
+          "total",
+          "document_id"
+        ],
+        "title": "VerificationEditResponse"
+      },
       "VerifyRequest": {
         "properties": {
           "verified_fields": {
@@ -14222,6 +15251,62 @@
         ],
         "title": "VerifyResponse",
         "description": "Document verification response."
+      },
+      "WriteSpecRequest": {
+        "properties": {
+          "raw_text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Raw Text"
+          },
+          "spec_type": {
+            "type": "string",
+            "enum": [
+              "feature",
+              "api",
+              "db",
+              "user_story"
+            ],
+            "title": "Spec Type",
+            "default": "feature"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "hu",
+              "en"
+            ],
+            "title": "Language",
+            "default": "hu"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "raw_text"
+        ],
+        "title": "WriteSpecRequest"
       },
       "aiflow__api__v1__admin__ServiceHealthResponse": {
         "properties": {

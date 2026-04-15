@@ -1,0 +1,21 @@
+# Phase 1a E2E fixture: Profile B (cloud-allowed, Azure)
+
+policy:
+  cloud_ai_allowed: true
+  cloud_storage_allowed: true
+  document_content_may_leave_tenant: true
+
+  azure_di_enabled: true
+  azure_search_enabled: true
+  azure_embedding_enabled: true
+
+  default_embedding_provider: azure_openai_embedding_3_small
+  azure_embedding_model: text-embedding-3-small
+
+  object_store_provider: azure_blob
+
+  pii_embedding_allowed: false
+  redaction_before_embedding_required: true
+
+  daily_document_cap: 500
+  daily_document_hard_cap: 1000

@@ -119,6 +119,41 @@ components:
       - total
       title: AdaptersListResponse
       type: object
+    ApproveRejectRequest:
+      properties:
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        reviewer_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Id
+      title: ApproveRejectRequest
+      type: object
+    ApproveRejectResponse:
+      properties:
+        count:
+          title: Count
+          type: integer
+        document_id:
+          title: Document Id
+          type: string
+        source:
+          default: backend
+          title: Source
+          type: string
+        status:
+          title: Status
+          type: string
+      required:
+      - count
+      - document_id
+      - status
+      title: ApproveRejectResponse
+      type: object
     AuditEntryResponse:
       properties:
         action:
@@ -4124,6 +4159,22 @@ components:
       - success_rate
       title: RunStatsResponse
       type: object
+    SaveEditsRequest:
+      properties:
+        editor_user_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Editor User Id
+        edits:
+          items:
+            $ref: '#/components/schemas/VerificationEditCreate'
+          title: Edits
+          type: array
+      required:
+      - edits
+      title: SaveEditsRequest
+      type: object
     SendRequest:
       properties:
         channel:
@@ -4526,6 +4577,95 @@ components:
       - overdue_count
       - escalated_count
       title: SlaCheckResponse
+      type: object
+    SpecListResponse:
+      properties:
+        source:
+          default: backend
+          title: Source
+          type: string
+        specs:
+          items:
+            $ref: '#/components/schemas/SpecResponse'
+          title: Specs
+          type: array
+        total:
+          title: Total
+          type: integer
+      required:
+      - specs
+      - total
+      title: SpecListResponse
+      type: object
+    SpecResponse:
+      properties:
+        created_at:
+          default: ''
+          title: Created At
+          type: string
+        created_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created By
+        id:
+          title: Id
+          type: string
+        is_acceptable:
+          title: Is Acceptable
+          type: boolean
+        language:
+          title: Language
+          type: string
+        markdown_content:
+          title: Markdown Content
+          type: string
+        requirement:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Requirement
+        review:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Review
+        score:
+          title: Score
+          type: number
+        sections_count:
+          title: Sections Count
+          type: integer
+        source:
+          default: backend
+          title: Source
+          type: string
+        spec_type:
+          title: Spec Type
+          type: string
+        title:
+          title: Title
+          type: string
+        updated_at:
+          default: ''
+          title: Updated At
+          type: string
+        word_count:
+          title: Word Count
+          type: integer
+      required:
+      - id
+      - title
+      - spec_type
+      - language
+      - markdown_content
+      - score
+      - is_acceptable
+      - sections_count
+      - word_count
+      title: SpecResponse
       type: object
     StatsResponse:
       properties:
@@ -4939,6 +5079,126 @@ components:
           type: integer
       title: VectorHealthResponse
       type: object
+    VerificationEdit:
+      properties:
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        confidence_score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence Score
+        created_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Created At
+        document_id:
+          title: Document Id
+          type: string
+        edited_value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Edited Value
+        editor_user_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Editor User Id
+        field_category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Field Category
+        field_name:
+          title: Field Name
+          type: string
+        id:
+          title: Id
+          type: string
+        original_value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Value
+        status:
+          default: pending
+          title: Status
+          type: string
+        updated_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Updated At
+      required:
+      - id
+      - document_id
+      - field_name
+      title: VerificationEdit
+      type: object
+    VerificationEditCreate:
+      properties:
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        confidence_score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence Score
+        edited_value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Edited Value
+        field_category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Field Category
+        field_name:
+          title: Field Name
+          type: string
+        original_value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Original Value
+      required:
+      - field_name
+      title: VerificationEditCreate
+      type: object
+    VerificationEditResponse:
+      properties:
+        document_id:
+          title: Document Id
+          type: string
+        edits:
+          items:
+            $ref: '#/components/schemas/VerificationEdit'
+          title: Edits
+          type: array
+        source:
+          default: backend
+          title: Source
+          type: string
+        total:
+          title: Total
+          type: integer
+      required:
+      - edits
+      - total
+      - document_id
+      title: VerificationEditResponse
+      type: object
     VerifyRequest:
       description: Document verification request.
       properties:
@@ -4970,6 +5230,42 @@ components:
       - verified
       - invoice_id
       title: VerifyResponse
+      type: object
+    WriteSpecRequest:
+      properties:
+        context:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Context
+        created_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created By
+        language:
+          default: hu
+          enum:
+          - hu
+          - en
+          title: Language
+          type: string
+        raw_text:
+          minLength: 1
+          title: Raw Text
+          type: string
+        spec_type:
+          default: feature
+          enum:
+          - feature
+          - api
+          - db
+          - user_story
+          title: Spec Type
+          type: string
+      required:
+      - raw_text
+      title: WriteSpecRequest
       type: object
     aiflow__api__v1__admin__ServiceHealthResponse:
       properties:
@@ -6202,9 +6498,150 @@ paths:
       summary: Extract Free Text
       tags:
       - documents
+  /api/v1/documents/{document_id}/verifications:
+    get:
+      description: Get all verification edits for a document, optionally filtered.
+      operationId: get_verification_edits_api_v1_documents__document_id__verifications_get
+      parameters:
+      - in: path
+        name: document_id
+        required: true
+        schema:
+          title: Document Id
+          type: string
+      - in: query
+        name: status
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - in: query
+        name: field_name
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Field Name
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationEditResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Verification Edits
+      tags:
+      - verifications
+    post:
+      description: Batch save verification edits — replaces existing pending edits.
+      operationId: save_verification_edits_api_v1_documents__document_id__verifications_post
+      parameters:
+      - in: path
+        name: document_id
+        required: true
+        schema:
+          title: Document Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveEditsRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationEditResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Save Verification Edits
+      tags:
+      - verifications
+  /api/v1/documents/{document_id}/verifications/approve:
+    patch:
+      description: Approve all pending verification edits for a document.
+      operationId: approve_verification_edits_api_v1_documents__document_id__verifications_approve_patch
+      parameters:
+      - in: path
+        name: document_id
+        required: true
+        schema:
+          title: Document Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveRejectRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApproveRejectResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Approve Verification Edits
+      tags:
+      - verifications
+  /api/v1/documents/{document_id}/verifications/reject:
+    patch:
+      description: Reject all pending verification edits — comment is required.
+      operationId: reject_verification_edits_api_v1_documents__document_id__verifications_reject_patch
+      parameters:
+      - in: path
+        name: document_id
+        required: true
+        schema:
+          title: Document Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveRejectRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApproveRejectResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Reject Verification Edits
+      tags:
+      - verifications
   /api/v1/documents/{invoice_id}/verify:
     post:
-      description: Verify an extracted document ï¿½ confirm or correct extracted fields.
+      description: Verify an extracted document — confirm or correct extracted fields.
       operationId: verify_document_api_v1_documents__invoice_id__verify_post
       parameters:
       - in: path
@@ -8339,7 +8776,7 @@ paths:
       - rag
   /api/v1/rag/collections/{collection_id}/chunks:
     get:
-      description: List chunks in a collection (paginated).
+      description: List chunks in a collection (paginated, with optional search).
       operationId: list_chunks_api_v1_rag_collections__collection_id__chunks_get
       parameters:
       - in: path
@@ -8365,6 +8802,24 @@ paths:
           minimum: 0
           title: Offset
           type: integer
+      - description: Search chunks by content
+        in: query
+        name: q
+        required: false
+        schema:
+          default: ''
+          description: Search chunks by content
+          title: Q
+          type: string
+      - description: Filter by document name
+        in: query
+        name: document_name
+        required: false
+        schema:
+          default: ''
+          description: Filter by document name
+          title: Document Name
+          type: string
       responses:
         '200':
           content:
@@ -8899,7 +9354,7 @@ paths:
       - reviews
   /api/v1/reviews/{review_id}/escalate:
     post:
-      description: Manually escalate a pending review ï¿½ bumps priority.
+      description: Manually escalate a pending review — bumps priority.
       operationId: escalate_review_api_v1_reviews__review_id__escalate_post
       parameters:
       - in: path
@@ -9521,6 +9976,222 @@ paths:
       summary: Get Skills Summary
       tags:
       - skills
+  /api/v1/specs:
+    get:
+      description: List persisted specs with optional spec_type filter.
+      operationId: list_specs_api_v1_specs_get
+      parameters:
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 50
+          maximum: 500
+          minimum: 1
+          title: Limit
+          type: integer
+      - in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          minimum: 0
+          title: Offset
+          type: integer
+      - in: query
+        name: spec_type
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Spec Type
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecListResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Specs
+      tags:
+      - specs
+  /api/v1/specs/write:
+    post:
+      description: Run the Spec Writer workflow end-to-end and persist the result.
+      operationId: write_spec_api_v1_specs_write_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WriteSpecRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Write Spec
+      tags:
+      - specs
+  /api/v1/specs/{spec_id}:
+    delete:
+      description: Delete a spec by ID.
+      operationId: delete_spec_api_v1_specs__spec_id__delete
+      parameters:
+      - in: path
+        name: spec_id
+        required: true
+        schema:
+          title: Spec Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete Spec
+      tags:
+      - specs
+    get:
+      description: Fetch a single spec by ID.
+      operationId: get_spec_api_v1_specs__spec_id__get
+      parameters:
+      - in: path
+        name: spec_id
+        required: true
+        schema:
+          title: Spec Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Spec
+      tags:
+      - specs
+  /api/v1/specs/{spec_id}/export:
+    get:
+      description: Export a spec in the requested format (markdown | html | json).
+      operationId: export_spec_api_v1_specs__spec_id__export_get
+      parameters:
+      - in: path
+        name: spec_id
+        required: true
+        schema:
+          title: Spec Id
+          type: string
+      - in: query
+        name: fmt
+        required: false
+        schema:
+          default: markdown
+          enum:
+          - markdown
+          - html
+          - json
+          title: Fmt
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Export Spec
+      tags:
+      - specs
+  /api/v1/verifications/history:
+    get:
+      description: Global audit trail for verification edits.
+      operationId: verification_history_api_v1_verifications_history_get
+      parameters:
+      - in: query
+        name: document_id
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Document Id
+      - in: query
+        name: status
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 50
+          maximum: 500
+          minimum: 1
+          title: Limit
+          type: integer
+      - in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          minimum: 0
+          title: Offset
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationEditResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Verification History
+      tags:
+      - verifications
   /health:
     get:
       description: Combined health check with version and environment info.

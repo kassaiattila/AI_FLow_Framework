@@ -1,0 +1,24 @@
+# Phase 1a E2E fixture: legacy v1.3 pipeline definition.
+# Used to exercise detect_pipeline_version + upgrade_pipeline_v1_3_to_v1_4.
+
+name: sample_legacy_email_to_extract
+version: "1.3"
+
+steps:
+  - name: fetch_email
+    adapter: email_adapter
+    config:
+      mailbox: "ops@example.com"
+      folder: "INBOX"
+
+  - name: extract_invoice
+    adapter: document_adapter
+    method: extract
+    for_each: "{{ fetch_email.output.attachments }}"
+    config:
+      config_name: invoice-hu
+
+  - name: store_result
+    adapter: postgres_adapter
+    config:
+      table: extraction_results

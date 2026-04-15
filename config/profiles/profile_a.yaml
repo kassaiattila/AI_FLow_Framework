@@ -1,0 +1,69 @@
+# Profile A — Cloud-disallowed (on-prem air-gapped)
+# Source: 100_b Section 6, 106_ Section 5.2
+
+policy:
+  # Cloud & storage
+  cloud_ai_allowed: false
+  cloud_storage_allowed: false
+  document_content_may_leave_tenant: false
+
+  # Embedding & vectorization
+  embedding_enabled: true
+  pii_embedding_allowed: false
+  redaction_before_embedding_required: true
+  self_hosted_embedding_model: "BAAI/bge-m3"
+  azure_embedding_model: ""
+
+  # Self-hosted parsing
+  self_hosted_parsing_enabled: true
+  docling_vlm_enabled: false
+  qwen_vllm_enabled: false
+
+  # Azure services (all disabled)
+  azure_di_enabled: false
+  azure_search_enabled: false
+  azure_embedding_enabled: false
+
+  # Archival & validation
+  archival_pdfa_required: true
+  pdfa_validation_required: true
+
+  # Review threshold
+  manual_review_confidence_threshold: 0.70
+
+  # Default providers (self-hosted)
+  default_parser_provider: docling_standard
+  default_classifier_provider: hybrid_ml_llm
+  default_extractor_provider: llm_field_extract
+  default_embedding_provider: bge_m3
+
+  # Storage providers
+  vector_store_provider: pgvector
+  object_store_provider: local_fs
+
+  # Tenant override
+  tenant_override_enabled: true
+
+  # Fallback chain
+  fallback_provider_order:
+    parser:
+      - pymupdf4llm
+      - docling_standard
+      - docling_vlm
+    embedder:
+      - bge_m3
+      - e5_large
+
+  # Source adapter
+  source_adapter_type: unified
+
+  # Intake
+  intake_package_enabled: true
+  source_text_ingestion_enabled: true
+  file_description_association_mode: rule_first_llm_fallback
+  package_level_context_enabled: true
+  cross_document_context_enabled: true
+
+  # Daily caps
+  daily_document_cap: 500
+  daily_document_hard_cap: 1800
