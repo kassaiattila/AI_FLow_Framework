@@ -9,6 +9,12 @@ Exercises the real Docker Postgres (port 5433) — no mocks per CLAUDE.md.
 NOTE (feedback_asyncpg_pool_event_loop.md): asyncpg pools are event-loop-bound.
 All assertions are merged into one @pytest.mark.asyncio method to share a
 single pool across checks without pytest-asyncio recreating the loop.
+
+Resync note (S70 / E3.4, 2026-05-06): Alembic head advanced to 035 in S66
+(035_association_mode). 035 only ADDS ``intake_packages.association_mode``;
+it does not modify 034's source_type CHECK, NOT NULL, or whitelist, so every
+034-contract assertion remains valid at the current head. The head-revision
+assertion and the round-trip shape were updated to observe both revisions.
 """
 
 from __future__ import annotations
@@ -45,82 +51,88 @@ async def _current_revision(conn: asyncpg.Connection) -> str | None:
     return None if row is None else row["version_num"]
 
 
+async def _assert_034_invariants(conn: asyncpg.Connection) -> None:
+    """034's source_type hardening must hold at every revision from 034 onward."""
+    # CHECK constraint exists
+    row = await conn.fetchrow(
+        """
+        SELECT conname
+        FROM pg_constraint
+        WHERE conrelid = 'intake_packages'::regclass
+          AND conname = 'ck_intake_source_type'
+        """
+    )
+    assert row is not None, "ck_intake_source_type constraint missing"
+
+    # source_type is NOT NULL
+    row = await conn.fetchrow(
+        """
+        SELECT is_nullable
+        FROM information_schema.columns
+        WHERE table_name = 'intake_packages' AND column_name = 'source_type'
+        """
+    )
+    assert row is not None and row["is_nullable"] == "NO"
+
+    # CHECK rejects unknown source_type
+    with pytest.raises(asyncpg.exceptions.CheckViolationError):
+        async with conn.transaction():
+            await conn.execute(
+                """
+                INSERT INTO intake_packages (package_id, source_type, tenant_id)
+                VALUES ($1, 'NOT_A_REAL_TYPE', 'tenant-ck-violation')
+                """,
+                uuid4(),
+            )
+
+    # CHECK accepts every whitelisted value (including legacy)
+    for value in (
+        "email",
+        "file_upload",
+        "folder_import",
+        "batch_import",
+        "api_push",
+        "legacy",
+    ):
+        async with conn.transaction():
+            pkg_id = uuid4()
+            await conn.execute(
+                """
+                INSERT INTO intake_packages (package_id, source_type, tenant_id)
+                VALUES ($1, $2, $3)
+                """,
+                pkg_id,
+                value,
+                f"tenant-ck-accept-{value}",
+            )
+            await conn.execute("DELETE FROM intake_packages WHERE package_id = $1", pkg_id)
+
+
 @pytest.mark.asyncio
 async def test_migration_034_source_type_hardening() -> None:
-    """Full contract for Alembic 034: head revision, CHECK, NOT NULL, round-trip."""
+    """034 contract (CHECK, NOT NULL, whitelist) holds at head 035 and survives round-trip."""
     pool = await get_pool()
 
     async with pool.acquire() as conn:
-        # 1. Head revision is 034
-        assert await _current_revision(conn) == "034"
+        # 1. Head revision is 035 (035_association_mode stacks on top of 034)
+        assert await _current_revision(conn) == "035"
 
-        # 2. CHECK constraint exists
-        row = await conn.fetchrow(
-            """
-            SELECT conname
-            FROM pg_constraint
-            WHERE conrelid = 'intake_packages'::regclass
-              AND conname = 'ck_intake_source_type'
-            """
-        )
-        assert row is not None, "ck_intake_source_type constraint missing"
+        # 2-5. 034 invariants hold at current head
+        await _assert_034_invariants(conn)
 
-        # 3. source_type is NOT NULL
-        row = await conn.fetchrow(
-            """
-            SELECT is_nullable
-            FROM information_schema.columns
-            WHERE table_name = 'intake_packages' AND column_name = 'source_type'
-            """
-        )
-        assert row is not None and row["is_nullable"] == "NO"
-
-        # 4. CHECK rejects unknown source_type
-        with pytest.raises(asyncpg.exceptions.CheckViolationError):
-            async with conn.transaction():
-                await conn.execute(
-                    """
-                    INSERT INTO intake_packages (package_id, source_type, tenant_id)
-                    VALUES ($1, 'NOT_A_REAL_TYPE', 'tenant-ck-violation')
-                    """,
-                    uuid4(),
-                )
-
-        # 5. CHECK accepts every whitelisted value (including legacy)
-        for value in (
-            "email",
-            "file_upload",
-            "folder_import",
-            "batch_import",
-            "api_push",
-            "legacy",
-        ):
-            async with conn.transaction():
-                pkg_id = uuid4()
-                await conn.execute(
-                    """
-                    INSERT INTO intake_packages (package_id, source_type, tenant_id)
-                    VALUES ($1, $2, $3)
-                    """,
-                    pkg_id,
-                    value,
-                    f"tenant-ck-accept-{value}",
-                )
-                await conn.execute("DELETE FROM intake_packages WHERE package_id = $1", pkg_id)
-
-    # 6. Round-trip: downgrade -> upgrade leaves schema at 034 again
+    # 6. Round-trip: downgrade -1 drops 035 (association_mode) -> now at 034
     down = _alembic("downgrade", "-1")
     assert down.returncode == 0, f"downgrade failed: {down.stderr}"
+
+    async with pool.acquire() as conn:
+        assert await _current_revision(conn) == "034"
+        # 034 invariants still present with 035 rolled back
+        await _assert_034_invariants(conn)
+
+    # 7. Upgrade head -> back to 035
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, f"upgrade failed: {up.stderr}"
 
     async with pool.acquire() as conn:
-        assert await _current_revision(conn) == "034"
-        row = await conn.fetchrow(
-            """
-            SELECT conname FROM pg_constraint
-            WHERE conrelid = 'intake_packages'::regclass
-              AND conname = 'ck_intake_source_type'
-            """
-        )
-        assert row is not None, "CHECK constraint not restored after round-trip"
+        assert await _current_revision(conn) == "035"
+        await _assert_034_invariants(conn)
