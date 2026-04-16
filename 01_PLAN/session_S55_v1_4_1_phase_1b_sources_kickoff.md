@@ -1,8 +1,8 @@
 # AIFlow Phase 1b — Sprint Plan (v1.4.1: Source Adapters)
 
-> **Status:** FINALIZED in S55 / E0.1 (2026-04-15).
+> **Status:** **MERGED** 2026-05-08 in S72 / E3.6 (PR #4, squash commit `b4b1aae`, tag `v1.4.1-phase-1b`). Follow-ups tracked as issues #3 (OpenAPI regen) and #5 (CI hygiene).
 > **Datum (planned start):** 2026-04-21 (Monday after Phase 1a merge).
-> **Branch:** `feature/v1.4.1-phase-1b-sources` (created from `main`, tag `v1.4.0-phase-1a`).
+> **Branch:** `feature/v1.4.1-phase-1b-sources` (merged + deleted post S72). Created from `main`, tag `v1.4.0-phase-1a`.
 > **Phase 1a close:** commit `f48ee77` on `main` (merged PR #2).
 > **Plan sources:** `01_PLAN/101_AIFLOW_v2_COMPONENT_TRANSFORMATION_PLAN.md` (N2 email, R1 file-connector wrap, N4 association), `01_PLAN/104_AIFLOW_v2_FINAL_MASTER_INDEX.md` Section 4.
 > **Predecessor:** S54 / D0.11 — Phase 1a demo + PR + skeleton.

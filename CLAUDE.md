@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.4.1** — Phase 1b Source Adapters COMPLETE (2026-05-06) | API: 8102 | UI: 5174
+**v1.4.1** — Phase 1b Source Adapters MERGED (tag `v1.4.1-phase-1b`, 2026-05-08) | API: 8102 | UI: 5174
 
 ## Structure
 ```
@@ -45,13 +45,13 @@ alembic upgrade head                      # DB migrations
 - **Services in Docker** (PostgreSQL 5433, Redis 6379, Kroki 8000), Python code locally from .venv
 
 ## Git Workflow
-- Branch: `feature/v1.4.1-phase-1b-sources` (Phase 1b source adapters) — NEVER commit to main directly
+- Branch: `main` (Phase 1b merged 2026-05-08, tag `v1.4.1-phase-1b`). Next feature branch: Phase 1c association backfill. NEVER commit to main directly.
 - Commits: conventional (`feat`, `fix`, `docs`, `refactor`) + Co-Authored-By
 - NEVER commit: .env, credentials, API keys, failing tests
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
-`01_PLAN/session_S55_v1_4_1_phase_1b_sources_kickoff.md` — Phase 1b COMPLETE (2026-05-06). Next: Phase 1c (association backfill + G5/G8 follow-up tickets).
+`01_PLAN/session_S55_v1_4_1_phase_1b_sources_kickoff.md` — Phase 1b MERGED (2026-05-08, tag `v1.4.1-phase-1b`, PR #4). Next: Phase 1c (association backfill + G5/G8 follow-up tickets: issue #3 OpenAPI regen, issue #5 CI hygiene).
 
 ## Session Workflow (DOHA-aligned)
 ```
