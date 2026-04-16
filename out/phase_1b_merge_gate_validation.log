@@ -1,0 +1,42 @@
+# AIFlow Phase 1b — Merge Gate Validation (S72 / E3.6)
+
+> **Run date:** 2026-05-08
+> **Branch:** `feature/v1.4.1-phase-1b-sources`
+> **HEAD:** `31880a5`
+> **Postgres:** Docker `07_ai_flow_framwork-db-1` (pg:5433)
+> **Alembic head:** `035 (head)`
+> **Reviewer checklist source:** `docs/phase_1b_pr_description.md:140-149`
+> **Architect condition:** C2 (out/phase_1b_architect_review.md §Conditions)
+
+---
+
+## Gate results
+
+| Gate | Command | Expected | Actual | Status |
+|------|---------|----------|--------|--------|
+| G-lint | `ruff check src/ tests/` | All checks passed | All checks passed | PASS |
+| G-alembic | `alembic current` | `035 (head)` | `035 (head)` | PASS |
+| G-unit | `pytest tests/unit/ -q` | 1872 passed | **1872 passed** (91.76s) | PASS |
+| G-integration | `pytest tests/integration/ -q` | 38 passed | **38 passed** (27.20s) | PASS |
+| G-e2e-1b | `pytest tests/e2e/v1_4_1_phase_1b/ -v` | 35 passed | **35 passed** (32.70s) | PASS |
+| G-e2e-1a | `pytest tests/e2e/v1_4_0_phase_1a/ -q` | 199 passed | **199 passed** (6.26s) | PASS |
+
+**Total tests green:** 1872 + 38 + 35 + 199 = **2144 tests PASS**.
+
+---
+
+## Evidence logs
+
+- `out/phase_1b_merge_gate_unit.log` — unit tests (1872 PASS)
+- `out/phase_1b_merge_gate_integration.log` — integration tests (38 PASS)
+- `out/phase_1b_merge_gate_e2e_1b.log` — Phase 1b E2E (35 PASS)
+- `out/phase_1b_merge_gate_e2e_1a.log` — Phase 1a E2E regression (199 PASS)
+
+## Architect conditions — merge-blocking
+
+- **C1** — G5 OpenAPI regen GitHub issue filed: `https://github.com/kassaiattila/AI_FLow_Framework/issues/3` (labels: `phase-1c,observability,documentation`).
+- **C2** — Reviewer checklist executed against live Postgres at `035 (head)`; all 6 gates PASS above.
+
+## Verdict
+
+Phase 1b merge gate: **ALL GREEN**. Architect merge-blocking conditions C1 + C2 satisfied. Ready to open PR.
