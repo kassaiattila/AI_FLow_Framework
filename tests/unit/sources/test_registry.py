@@ -358,3 +358,47 @@ def test_all_four_production_adapters_coexist_in_registry() -> None:
         IntakeSourceType.FOLDER_IMPORT,
         IntakeSourceType.BATCH_IMPORT,
     }
+
+
+# --- real ApiSourceAdapter registration (E2.3-A) ---------------------------
+
+
+def test_register_real_api_source_adapter() -> None:
+    """The production ApiSourceAdapter must register under API_PUSH."""
+    from aiflow.sources import ApiSourceAdapter
+
+    registry = SourceAdapterRegistry()
+    registry.register(ApiSourceAdapter)
+    assert registry.get(IntakeSourceType.API_PUSH) is ApiSourceAdapter
+    assert registry.has(IntakeSourceType.API_PUSH)
+    assert registry.list_all() == []
+
+
+def test_all_five_production_adapters_coexist_in_registry() -> None:
+    """Email, File, Folder, Batch and Api adapters must co-exist."""
+    from aiflow.sources import (
+        ApiSourceAdapter,
+        BatchSourceAdapter,
+        EmailSourceAdapter,
+        FileSourceAdapter,
+        FolderSourceAdapter,
+    )
+
+    registry = SourceAdapterRegistry()
+    registry.register(EmailSourceAdapter)
+    registry.register(FileSourceAdapter)
+    registry.register(FolderSourceAdapter)
+    registry.register(BatchSourceAdapter)
+    registry.register(ApiSourceAdapter)
+    assert registry.get(IntakeSourceType.EMAIL) is EmailSourceAdapter
+    assert registry.get(IntakeSourceType.FILE_UPLOAD) is FileSourceAdapter
+    assert registry.get(IntakeSourceType.FOLDER_IMPORT) is FolderSourceAdapter
+    assert registry.get(IntakeSourceType.BATCH_IMPORT) is BatchSourceAdapter
+    assert registry.get(IntakeSourceType.API_PUSH) is ApiSourceAdapter
+    assert set(registry.list_source_types()) == {
+        IntakeSourceType.EMAIL,
+        IntakeSourceType.FILE_UPLOAD,
+        IntakeSourceType.FOLDER_IMPORT,
+        IntakeSourceType.BATCH_IMPORT,
+        IntakeSourceType.API_PUSH,
+    }

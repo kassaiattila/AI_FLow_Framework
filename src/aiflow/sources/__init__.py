@@ -6,6 +6,7 @@ Source: 101_AIFLOW_v2_COMPONENT_TRANSFORMATION_PLAN.md N2 (email) + R1 (file) + 
 
 from __future__ import annotations
 
+from aiflow.sources.api_adapter import ApiSourceAdapter
 from aiflow.sources.base import SourceAdapter, SourceAdapterMetadata
 from aiflow.sources.batch_adapter import BatchSourceAdapter
 from aiflow.sources.email_adapter import (
@@ -35,6 +36,7 @@ __all__ = [
     "DuplicateAdapterError",
     "InvalidAdapterError",
     "UnknownSourceTypeError",
+    "ApiSourceAdapter",
     "BatchSourceAdapter",
     "EmailSourceAdapter",
     "FileSourceAdapter",
