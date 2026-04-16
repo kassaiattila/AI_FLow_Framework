@@ -55,6 +55,9 @@ dependencies = [
 
     # Notifications
     "aiosmtplib>=5.0",
+
+    # Filesystem watch (FolderSourceAdapter, Phase 1b E2.1)
+    "watchdog>=4.0",
 ]
 
 [project.optional-dependencies]

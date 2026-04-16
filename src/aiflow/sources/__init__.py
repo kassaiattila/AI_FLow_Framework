@@ -19,6 +19,7 @@ from aiflow.sources.exceptions import (
     UnknownSourceTypeError,
 )
 from aiflow.sources.file_adapter import FileSourceAdapter
+from aiflow.sources.folder_adapter import FolderSourceAdapter
 from aiflow.sources.outlook_com_backend import (
     OutlookComBackend,
     OutlookDispatchFactory,
@@ -35,6 +36,7 @@ __all__ = [
     "UnknownSourceTypeError",
     "EmailSourceAdapter",
     "FileSourceAdapter",
+    "FolderSourceAdapter",
     "ImapBackend",
     "ImapBackendProtocol",
     "OutlookComBackend",

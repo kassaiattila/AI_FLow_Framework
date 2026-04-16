@@ -285,3 +285,36 @@ def test_email_and_file_adapters_coexist_in_registry() -> None:
         IntakeSourceType.EMAIL,
         IntakeSourceType.FILE_UPLOAD,
     }
+
+
+# --- real FolderSourceAdapter registration (E2.1) --------------------------
+
+
+def test_register_real_folder_source_adapter() -> None:
+    """The production FolderSourceAdapter must register under FOLDER_IMPORT."""
+    from aiflow.sources import FolderSourceAdapter
+
+    registry = SourceAdapterRegistry()
+    registry.register(FolderSourceAdapter)
+    assert registry.get(IntakeSourceType.FOLDER_IMPORT) is FolderSourceAdapter
+    assert registry.has(IntakeSourceType.FOLDER_IMPORT)
+    # FolderSourceAdapter requires ctor args → list_all skips it silently.
+    assert registry.list_all() == []
+
+
+def test_all_three_production_adapters_coexist_in_registry() -> None:
+    """Email, File and Folder adapters must co-exist under their source types."""
+    from aiflow.sources import EmailSourceAdapter, FileSourceAdapter, FolderSourceAdapter
+
+    registry = SourceAdapterRegistry()
+    registry.register(EmailSourceAdapter)
+    registry.register(FileSourceAdapter)
+    registry.register(FolderSourceAdapter)
+    assert registry.get(IntakeSourceType.EMAIL) is EmailSourceAdapter
+    assert registry.get(IntakeSourceType.FILE_UPLOAD) is FileSourceAdapter
+    assert registry.get(IntakeSourceType.FOLDER_IMPORT) is FolderSourceAdapter
+    assert set(registry.list_source_types()) == {
+        IntakeSourceType.EMAIL,
+        IntakeSourceType.FILE_UPLOAD,
+        IntakeSourceType.FOLDER_IMPORT,
+    }
