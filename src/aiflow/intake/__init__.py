@@ -4,6 +4,11 @@ Phase 1a foundation (v2.0.0).
 Source: 100_b_AIFLOW_v2_DOMAIN_CONTRACTS.md, 100_c_AIFLOW_v2_STATE_LIFECYCLE_MODEL.md
 """
 
+from aiflow.intake.associator import (
+    AssociationError,
+    AssociationMode,
+    associate,
+)
 from aiflow.intake.exceptions import (
     FileAssociationError,
     InvalidIntakePackageError,
@@ -29,6 +34,8 @@ from aiflow.intake.state_machine import (
 )
 
 __all__ = [
+    "AssociationError",
+    "AssociationMode",
     "DescriptionRole",
     "FILE_SM",
     "FileAssociationError",
@@ -43,6 +50,7 @@ __all__ = [
     "InvalidStateTransitionError",
     "PACKAGE_SM",
     "TransitionRecord",
+    "associate",
     "is_terminal_status",
     "validate_file_transition",
     "validate_package_transition",
