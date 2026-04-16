@@ -6,7 +6,7 @@ Tenant-level and instance-level policy override CRUD.
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import asyncpg
@@ -85,7 +85,7 @@ class PolicyOverrideRepository:
             instance_id=instance_id,
             override_id=str(override_id),
         )
-        return override_id
+        return cast("UUID", override_id)
 
     async def delete_override(
         self,
@@ -111,7 +111,7 @@ class PolicyOverrideRepository:
                     tenant_id,
                     instance_id,
                 )
-        deleted = result.split()[-1] != "0"
+        deleted: bool = result.split()[-1] != "0"
         logger.info(
             "policy_override_deleted",
             tenant_id=tenant_id,
@@ -132,10 +132,10 @@ class PolicyOverrideRepository:
         return {row["tenant_id"]: _parse_jsonb(row["policy_json"]) for row in rows}
 
 
-def _parse_jsonb(value: str | dict | None) -> dict[str, Any]:
+def _parse_jsonb(value: str | dict[str, Any] | None) -> dict[str, Any]:
     """Parse a JSONB value that may come back as str or dict depending on codec."""
     if value is None:
         return {}
     if isinstance(value, dict):
         return value
-    return json.loads(value)
+    return cast("dict[str, Any]", json.loads(value))

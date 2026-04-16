@@ -42,6 +42,7 @@ from aiflow.intake.package import (
 from aiflow.sources._fs import sanitize_filename
 from aiflow.sources.base import SourceAdapter, SourceAdapterMetadata
 from aiflow.sources.exceptions import SourceAdapterError
+from aiflow.sources.observability import emit_package_event
 
 __all__ = [
     "ApiSourceAdapter",
@@ -270,16 +271,18 @@ class ApiSourceAdapter(SourceAdapter):
             raise SourceAdapterError(
                 f"Unknown package_id {package_id}; cannot acknowledge (not in-flight)"
             )
-        self._in_flight.pop(package_id, None)
+        pkg = self._in_flight.pop(package_id)
         logger.info("api_adapter_acknowledged", package_id=str(package_id))
+        emit_package_event("source.package_received", pkg, source_type="api")
 
     async def reject(self, package_id: UUID, reason: str) -> None:
         if package_id not in self._in_flight:
             raise SourceAdapterError(
                 f"Unknown package_id {package_id}; cannot reject (not in-flight)"
             )
-        self._in_flight.pop(package_id, None)
+        pkg = self._in_flight.pop(package_id)
         logger.info("api_adapter_rejected", package_id=str(package_id), reason=reason)
+        emit_package_event("source.package_rejected", pkg, source_type="api", reason=reason)
 
     async def health_check(self) -> bool:
         try:

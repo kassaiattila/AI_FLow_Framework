@@ -29,9 +29,9 @@ def main() -> None:
     output_dir = project_root / "docs" / "api"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # JSON export
+    # JSON export — force UTF-8 so Windows cp1252 locale cannot mojibake em-dashes
     json_path = output_dir / "openapi.json"
-    json_path.write_text(json.dumps(schema, indent=2, ensure_ascii=False))
+    json_path.write_text(json.dumps(schema, indent=2, ensure_ascii=False), encoding="utf-8")
     endpoint_count = sum(
         len(methods) for path_item in schema.get("paths", {}).values() for methods in [path_item]
     )
@@ -42,7 +42,10 @@ def main() -> None:
         import yaml
 
         yaml_path = output_dir / "openapi.yaml"
-        yaml_path.write_text(yaml.dump(schema, allow_unicode=True, default_flow_style=False))
+        yaml_path.write_text(
+            yaml.dump(schema, allow_unicode=True, default_flow_style=False),
+            encoding="utf-8",
+        )
         print(f"OpenAPI YAML exported: {yaml_path}")
     except ImportError:
         print("pyyaml not installed — YAML export skipped")

@@ -6,7 +6,7 @@ DEPRECATED: Skills use SkillRunner.from_env() instead. Planned for Phase B revie
 """
 
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import structlog
 
@@ -48,7 +48,7 @@ class Container:
         """Resolve a service by type. Creates from factory on first access if needed."""
         # Direct instance?
         if service_type in self._instances:
-            return self._instances[service_type]
+            return cast("T", self._instances[service_type])
 
         # Factory?
         if service_type in self._factories:
@@ -56,7 +56,7 @@ class Container:
             self._instances[service_type] = instance
             del self._factories[service_type]
             logger.debug("di_service_created_from_factory", service=service_type.__name__)
-            return instance
+            return cast("T", instance)
 
         raise KeyError(
             f"Service {service_type.__name__} not registered. "

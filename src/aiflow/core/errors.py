@@ -4,7 +4,7 @@ All errors inherit from AIFlowError with is_transient flag for retry decisions.
 Transient errors can be retried; permanent errors require human intervention.
 """
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
 __all__ = [
     "AIFlowError",
@@ -31,7 +31,7 @@ class AIFlowError(Exception):
     is_transient: ClassVar[bool] = False
     http_status: ClassVar[int] = 500
 
-    def __init__(self, message: str, details: dict | None = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         super().__init__(message)
         self.message = message
         self.details = details or {}
@@ -100,7 +100,7 @@ class HumanReviewRequiredError(PermanentError):
         self,
         message: str,
         question: str = "",
-        context: dict | None = None,
+        context: dict[str, Any] | None = None,
         options: list[str] | None = None,
         priority: str = "medium",
         deadline_minutes: int | None = None,

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import enum
 from abc import ABC, abstractmethod
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -52,7 +53,7 @@ class GuardrailViolation(BaseModel):
     rule: str
     message: str
     severity: Severity = Severity.WARNING
-    details: dict = Field(default_factory=dict)
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class GuardrailResult(BaseModel):
@@ -64,7 +65,7 @@ class GuardrailResult(BaseModel):
     pii_matches: list[PIIMatch] = Field(default_factory=list)
     scope_verdict: ScopeVerdict | None = None
     hallucination_score: float | None = None
-    metadata: dict = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     @property
     def has_critical(self) -> bool:

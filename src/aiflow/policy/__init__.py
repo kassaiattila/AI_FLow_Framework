@@ -94,7 +94,7 @@ class PolicyConfig(BaseModel):
     @field_validator("daily_document_hard_cap")
     @classmethod
     def hard_cap_gte_soft_cap(cls, v: int | None, info: object) -> int | None:
-        soft = info.data.get("daily_document_cap") if hasattr(info, "data") else None  # type: ignore[union-attr]
+        soft = info.data.get("daily_document_cap") if hasattr(info, "data") else None
         if v is not None and soft is not None and v < soft:
             raise ValueError("daily_document_hard_cap must be >= daily_document_cap")
         return v
