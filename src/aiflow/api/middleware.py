@@ -129,6 +129,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return JSONResponse(status_code=401, content={"detail": "Authentication required"})
 
         # Try API key first (starts with aiflow_sk_)
+        team_id: str | None = None
         if token.startswith(_API_KEY_PREFIX):
             is_valid, user_id, role = await self._verify_api_key(token)
             if not is_valid:
@@ -145,6 +146,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 )
             user_id = result.user_id
             role = result.role
+            team_id = result.team_id
 
         # RBAC: admin endpoints require admin role
         if self._requires_admin(path) and role != "admin":
@@ -154,6 +156,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Inject auth info into request state
         request.state.user_id = user_id
         request.state.role = role
+        request.state.team_id = team_id
 
         return await call_next(request)
 
