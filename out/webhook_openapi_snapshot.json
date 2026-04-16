@@ -1,0 +1,158 @@
+{
+  "post": {
+    "tags": [
+      "sources"
+    ],
+    "summary": "Accept an HMAC-signed webhook upload",
+    "description": "Raw bytes body is signed as ``<timestamp>.<base64(body)>`` with HMAC-SHA256. Caller must send ``X-Webhook-Signature`` (hex), ``X-Webhook-Timestamp`` (unix seconds), and ``X-Filename``. Optional ``Idempotency-Key`` guards against duplicate delivery. The body MUST NOT be parsed as JSON by intermediaries \u2014 the signature covers the exact bytes submitted.",
+    "operationId": "accept_webhook_api_v1_sources_webhook_post",
+    "parameters": [
+      {
+        "name": "X-Filename",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Upload filename (required).",
+          "title": "X-Filename"
+        },
+        "description": "Upload filename (required)."
+      },
+      {
+        "name": "X-Webhook-Signature",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Hex-encoded HMAC-SHA256 over ``<timestamp>.<base64(body)>``.",
+          "title": "X-Webhook-Signature"
+        },
+        "description": "Hex-encoded HMAC-SHA256 over ``<timestamp>.<base64(body)>``."
+      },
+      {
+        "name": "X-Webhook-Timestamp",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Unix epoch seconds when the signature was computed.",
+          "title": "X-Webhook-Timestamp"
+        },
+        "description": "Unix epoch seconds when the signature was computed."
+      },
+      {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional caller-chosen de-duplication token.",
+          "title": "Idempotency-Key"
+        },
+        "description": "Optional caller-chosen de-duplication token."
+      },
+      {
+        "name": "Content-Type",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "MIME type of the body.",
+          "title": "Content-Type"
+        },
+        "description": "MIME type of the body."
+      }
+    ],
+    "responses": {
+      "202": {
+        "description": "Webhook accepted and enqueued as IntakePackage.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WebhookAcceptedResponse"
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Malformed request (missing filename, bad timestamp).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WebhookErrorResponse"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "HMAC signature missing, invalid, or outside replay window.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WebhookErrorResponse"
+            }
+          }
+        }
+      },
+      "409": {
+        "description": "Idempotency-Key already seen \u2014 request is a duplicate.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WebhookErrorResponse"
+            }
+          }
+        }
+      },
+      "413": {
+        "description": "Payload exceeds the adapter's max_package_bytes cap.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WebhookErrorResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    }
+  }
+}
