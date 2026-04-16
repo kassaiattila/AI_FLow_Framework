@@ -318,3 +318,43 @@ def test_all_three_production_adapters_coexist_in_registry() -> None:
         IntakeSourceType.FILE_UPLOAD,
         IntakeSourceType.FOLDER_IMPORT,
     }
+
+
+# --- real BatchSourceAdapter registration (E2.2) ---------------------------
+
+
+def test_register_real_batch_source_adapter() -> None:
+    """The production BatchSourceAdapter must register under BATCH_IMPORT."""
+    from aiflow.sources import BatchSourceAdapter
+
+    registry = SourceAdapterRegistry()
+    registry.register(BatchSourceAdapter)
+    assert registry.get(IntakeSourceType.BATCH_IMPORT) is BatchSourceAdapter
+    assert registry.has(IntakeSourceType.BATCH_IMPORT)
+    assert registry.list_all() == []
+
+
+def test_all_four_production_adapters_coexist_in_registry() -> None:
+    """Email, File, Folder and Batch adapters must co-exist."""
+    from aiflow.sources import (
+        BatchSourceAdapter,
+        EmailSourceAdapter,
+        FileSourceAdapter,
+        FolderSourceAdapter,
+    )
+
+    registry = SourceAdapterRegistry()
+    registry.register(EmailSourceAdapter)
+    registry.register(FileSourceAdapter)
+    registry.register(FolderSourceAdapter)
+    registry.register(BatchSourceAdapter)
+    assert registry.get(IntakeSourceType.EMAIL) is EmailSourceAdapter
+    assert registry.get(IntakeSourceType.FILE_UPLOAD) is FileSourceAdapter
+    assert registry.get(IntakeSourceType.FOLDER_IMPORT) is FolderSourceAdapter
+    assert registry.get(IntakeSourceType.BATCH_IMPORT) is BatchSourceAdapter
+    assert set(registry.list_source_types()) == {
+        IntakeSourceType.EMAIL,
+        IntakeSourceType.FILE_UPLOAD,
+        IntakeSourceType.FOLDER_IMPORT,
+        IntakeSourceType.BATCH_IMPORT,
+    }
