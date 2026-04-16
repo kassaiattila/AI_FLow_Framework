@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.4.2** — Phase 1c Association Backfill KICKOFF (branch `feature/v1.4.2-phase-1c-association-backfill`, 2026-05-11) | API: 8102 | UI: 5174
+**v1.4.2** — Phase 1c Association Backfill COMPLETE (F0.2-F0.6 wrapped 2026-05-16, branch `feature/v1.4.2-phase-1c-association-backfill`, awaiting PR merge) | API: 8102 | UI: 5174
 
 ## Structure
 ```
@@ -18,9 +18,9 @@ session_prompts/    — Session prompt archive + NEXT.md pointer (/next reads th
 ```
 
 ## Key Numbers
-27 services | 176 API endpoints (27 routers) | 49 DB tables | 35 Alembic migrations
+27 services | 177 API endpoints (27 routers) | 49 DB tables | 37 Alembic migrations
 22 pipeline adapters | 10 pipeline templates | 7 skills | 23 UI pages | 5 source adapters (Email, File, Folder, Batch, API)
-1872 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 403 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b) | 38 integration tests
+1886 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 403 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b) | 42 integration tests (incl. 4 alembic association_mode)
 
 ## Build & Test
 ```bash
@@ -51,7 +51,7 @@ alembic upgrade head                      # DB migrations
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
-`01_PLAN/session_S73_v1_4_2_phase_1c_kickoff.md` — Phase 1c AKTIV (v1.4.2 kickoff 2026-05-11). Scope: CI hygiene (issue #5), OpenAPI regen + drift gate (issue #3, architect C3), observability canonical events (C4), association-mode backfill + CHECK (C5, Alembic 036+037). Predecessor: Phase 1b MERGED (2026-05-08, tag `v1.4.1-phase-1b`, PR #4) per `01_PLAN/session_S55_v1_4_1_phase_1b_sources_kickoff.md`.
+`01_PLAN/session_S73_v1_4_2_phase_1c_kickoff.md` — Phase 1c CODE COMPLETE 2026-05-16, awaiting PR merge. Scope delivered: F0.2 CI hygiene (issue #5, PR merged), F0.3 OpenAPI regen + drift gate (issue #3, architect C3, PR merged), F0.4 canonical observability events across 5 adapters (C4), F0.5 Alembic 036 backfill (C5a), F0.6 Alembic 037 CHECK trigger on `intake_descriptions` (C5b). Acceptance report: `docs/phase_1c_acceptance_report.md`. PR body: `docs/phase_1c_pr_description.md`. Predecessor: Phase 1b MERGED (2026-05-08, tag `v1.4.1-phase-1b`, PR #4).
 
 ## Session Workflow (DOHA-aligned)
 ```
