@@ -154,6 +154,15 @@ components:
       - status
       title: ApproveRejectResponse
       type: object
+    AssociationMode:
+      description: File<->description association strategy (see N4 associator).
+      enum:
+      - explicit
+      - filename_match
+      - order
+      - single_description
+      title: AssociationMode
+      type: string
     AuditEntryResponse:
       properties:
         action:
@@ -288,6 +297,46 @@ components:
       required:
       - files
       title: Body_upload_emails_api_v1_emails_upload_post
+      type: object
+    Body_upload_package_api_v1_intake_upload_package_post:
+      properties:
+        association_mode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Force a specific association mode (explicit | filename_match
+            | order | single_description). Omit for auto-detect.
+          title: Association Mode
+        descriptions:
+          default: '[]'
+          description: JSON-encoded list of description objects (text, role, language,
+            ...). Defaults to ``[]``.
+          title: Descriptions
+          type: string
+        explicit_map:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: JSON object mapping ``file_id -> description_id``. Only used
+            when association_mode=explicit (rare from browsers).
+          title: Explicit Map
+        filename_rules:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: 'JSON array of filename rules: ``[{"pattern": <regex>, "description_id":
+            <uuid>}, ...]``.'
+          title: Filename Rules
+        files:
+          description: One or more files to ingest.
+          items:
+            contentMediaType: application/octet-stream
+            type: string
+          title: Files
+          type: array
+      required:
+      - files
+      title: Body_upload_package_api_v1_intake_upload_package_post
       type: object
     BudgetStatus:
       description: Team budget status from v_monthly_budget view.
@@ -1572,6 +1621,17 @@ components:
       - version
       title: DeployTemplateResponse
       type: object
+    DescriptionRole:
+      description: Role of a free-text description in the package.
+      enum:
+      - case_note
+      - user_note
+      - form_input
+      - package_context
+      - email_body
+      - free_text
+      title: DescriptionRole
+      type: string
     DiagramListResponse:
       properties:
         diagrams:
@@ -2653,6 +2713,16 @@ components:
       - chunk_count
       title: IngestStatusResponse
       type: object
+    IntakeSourceType:
+      description: Source type from which a package was received.
+      enum:
+      - email
+      - file_upload
+      - folder_import
+      - batch_import
+      - api_push
+      title: IntakeSourceType
+      type: string
     IntentDefinition:
       properties:
         auto_action:
@@ -4916,6 +4986,121 @@ components:
           title: Yaml Source
       title: UpdatePipelineRequest
       type: object
+    UploadPackageDescription:
+      description: Description entry in the response.
+      properties:
+        associated_file_ids:
+          items:
+            format: uuid
+            type: string
+          title: Associated File Ids
+          type: array
+        description_id:
+          format: uuid
+          title: Description Id
+          type: string
+        language:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Language
+        role:
+          $ref: '#/components/schemas/DescriptionRole'
+        text:
+          title: Text
+          type: string
+      required:
+      - description_id
+      - text
+      - role
+      title: UploadPackageDescription
+      type: object
+    UploadPackageErrorResponse:
+      description: Error envelope for 4xx responses.
+      properties:
+        detail:
+          title: Detail
+          type: string
+      required:
+      - detail
+      title: UploadPackageErrorResponse
+      type: object
+    UploadPackageFile:
+      description: File entry in the response — sanitized view of IntakeFile.
+      properties:
+        file_id:
+          format: uuid
+          title: File Id
+          type: string
+        file_name:
+          title: File Name
+          type: string
+        mime_type:
+          title: Mime Type
+          type: string
+        sequence_index:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Sequence Index
+        sha256:
+          title: Sha256
+          type: string
+        size_bytes:
+          title: Size Bytes
+          type: integer
+      required:
+      - file_id
+      - file_name
+      - mime_type
+      - size_bytes
+      - sha256
+      title: UploadPackageFile
+      type: object
+    UploadPackageResponse:
+      description: Success envelope for a created intake package.
+      properties:
+        association_mode:
+          anyOf:
+          - $ref: '#/components/schemas/AssociationMode'
+          - type: 'null'
+        description_count:
+          title: Description Count
+          type: integer
+        descriptions:
+          items:
+            $ref: '#/components/schemas/UploadPackageDescription'
+          title: Descriptions
+          type: array
+        file_count:
+          title: File Count
+          type: integer
+        files:
+          items:
+            $ref: '#/components/schemas/UploadPackageFile'
+          title: Files
+          type: array
+        package_id:
+          format: uuid
+          title: Package Id
+          type: string
+        source_type:
+          $ref: '#/components/schemas/IntakeSourceType'
+        status:
+          title: Status
+          type: string
+        tenant_id:
+          title: Tenant Id
+          type: string
+      required:
+      - package_id
+      - tenant_id
+      - source_type
+      - status
+      - file_count
+      - description_count
+      title: UploadPackageResponse
+      type: object
     UploadResponse:
       description: Response after uploading files.
       properties:
@@ -5230,6 +5415,33 @@ components:
       - verified
       - invoice_id
       title: VerifyResponse
+      type: object
+    WebhookAcceptedResponse:
+      description: Returned on successful enqueue.
+      properties:
+        package_id:
+          description: UUID of the accepted IntakePackage
+          title: Package Id
+          type: string
+        status:
+          default: accepted
+          description: Always ``accepted`` on 202
+          title: Status
+          type: string
+      required:
+      - package_id
+      title: WebhookAcceptedResponse
+      type: object
+    WebhookErrorResponse:
+      description: Error envelope for 4xx responses.
+      properties:
+        detail:
+          description: Human-readable error reason (no secrets)
+          title: Detail
+          type: string
+      required:
+      - detail
+      title: WebhookErrorResponse
       type: object
     WriteSpecRequest:
       properties:
@@ -7170,6 +7382,55 @@ paths:
       summary: Get Email
       tags:
       - emails
+  /api/v1/intake/upload-package:
+    post:
+      description: 'Multipart/form-data endpoint for push-mode ingestion. The caller
+        sends one or more ``files`` parts plus an optional JSON-encoded ``descriptions``
+        list and association controls. The N4 associator computes ``{file_id: description_id}``
+        mappings; the chosen ``AssociationMode`` is persisted. tenant_id is resolved
+        from the JWT ``team_id`` claim (or ``sub`` as fallback) — never from form
+        fields.'
+      operationId: upload_package_api_v1_intake_upload_package_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_package_api_v1_intake_upload_package_post'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadPackageResponse'
+          description: Upload accepted and persisted as IntakePackage.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadPackageErrorResponse'
+          description: Malformed request (bad JSON, no files, missing fields).
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadPackageErrorResponse'
+          description: Missing or invalid authentication.
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadPackageErrorResponse'
+          description: Aggregate upload size exceeds max_total_bytes.
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadPackageErrorResponse'
+          description: Association layer rejected the package (mode/rules mismatch).
+      summary: Upload N files + M descriptions as a single IntakePackage
+      tags:
+      - intake
   /api/v1/intent-schemas:
     get:
       description: List all intent schemas, optionally filtered by customer.
@@ -9976,6 +10237,104 @@ paths:
       summary: Get Skills Summary
       tags:
       - skills
+  /api/v1/sources/webhook:
+    post:
+      description: Raw bytes body is signed as ``<timestamp>.<base64(body)>`` with
+        HMAC-SHA256. Caller must send ``X-Webhook-Signature`` (hex), ``X-Webhook-Timestamp``
+        (unix seconds), and ``X-Filename``. Optional ``Idempotency-Key`` guards against
+        duplicate delivery. The body MUST NOT be parsed as JSON by intermediaries
+        — the signature covers the exact bytes submitted.
+      operationId: accept_webhook_api_v1_sources_webhook_post
+      parameters:
+      - description: Upload filename (required).
+        in: header
+        name: X-Filename
+        required: true
+        schema:
+          description: Upload filename (required).
+          minLength: 1
+          title: X-Filename
+          type: string
+      - description: Hex-encoded HMAC-SHA256 over ``<timestamp>.<base64(body)>``.
+        in: header
+        name: X-Webhook-Signature
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Hex-encoded HMAC-SHA256 over ``<timestamp>.<base64(body)>``.
+          title: X-Webhook-Signature
+      - description: Unix epoch seconds when the signature was computed.
+        in: header
+        name: X-Webhook-Timestamp
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Unix epoch seconds when the signature was computed.
+          title: X-Webhook-Timestamp
+      - description: Optional caller-chosen de-duplication token.
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Optional caller-chosen de-duplication token.
+          title: Idempotency-Key
+      - description: MIME type of the body.
+        in: header
+        name: Content-Type
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: MIME type of the body.
+          title: Content-Type
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookAcceptedResponse'
+          description: Webhook accepted and enqueued as IntakePackage.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookErrorResponse'
+          description: Malformed request (missing filename, bad timestamp).
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookErrorResponse'
+          description: HMAC signature missing, invalid, or outside replay window.
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookErrorResponse'
+          description: Idempotency-Key already seen — request is a duplicate.
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookErrorResponse'
+          description: Payload exceeds the adapter's max_package_bytes cap.
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Accept an HMAC-signed webhook upload
+      tags:
+      - sources
   /api/v1/specs:
     get:
       description: List persisted specs with optional spec_type filter.

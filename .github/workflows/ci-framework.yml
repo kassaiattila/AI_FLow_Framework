@@ -2,10 +2,10 @@ name: Framework CI
 
 on:
   pull_request:
-    paths: ['src/aiflow/**', 'tests/**', 'pyproject.toml']
+    paths: ['src/aiflow/**', 'tests/**', 'pyproject.toml', 'docs/api/**', 'scripts/export_openapi.py']
   push:
     branches: [main]
-    paths: ['src/aiflow/**', 'tests/**', 'pyproject.toml']
+    paths: ['src/aiflow/**', 'tests/**', 'pyproject.toml', 'docs/api/**', 'scripts/export_openapi.py']
 
 jobs:
   lint:
@@ -37,6 +37,26 @@ jobs:
         if: always()
         with:
           file: coverage.xml
+
+  openapi-drift:
+    # Remediates Phase 1b G5 waiver (architect condition C3, issue #3):
+    # regenerates docs/api/openapi.{yaml,json} from the live app and fails
+    # if the checked-in files drift from the code.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv venv && uv pip install -e ".[dev]"
+      - run: .venv/bin/python scripts/export_openapi.py
+      - name: Fail on OpenAPI drift
+        run: |
+          if ! git diff --exit-code -- docs/api/openapi.json docs/api/openapi.yaml; then
+            echo "::error::OpenAPI spec is out of date. Run 'python scripts/export_openapi.py' and commit docs/api/openapi.{yaml,json}."
+            exit 1
+          fi
 
   integration-tests:
     runs-on: ubuntu-latest
