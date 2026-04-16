@@ -53,6 +53,7 @@ from aiflow.intake.package import (
 from aiflow.sources._fs import sanitize_filename
 from aiflow.sources.base import SourceAdapter, SourceAdapterMetadata
 from aiflow.sources.exceptions import SourceAdapterError
+from aiflow.sources.observability import emit_package_event
 
 if TYPE_CHECKING:
     from watchdog.observers.api import BaseObserver
@@ -251,16 +252,18 @@ class FolderSourceAdapter(SourceAdapter):
             raise SourceAdapterError(
                 f"Unknown package_id {package_id}; cannot acknowledge (not in-flight)"
             )
-        self._in_flight.pop(package_id, None)
+        pkg = self._in_flight.pop(package_id)
         logger.info("folder_adapter_acknowledged", package_id=str(package_id))
+        emit_package_event("source.package_received", pkg, source_type="folder")
 
     async def reject(self, package_id: UUID, reason: str) -> None:
         if package_id not in self._in_flight:
             raise SourceAdapterError(
                 f"Unknown package_id {package_id}; cannot reject (not in-flight)"
             )
-        self._in_flight.pop(package_id, None)
+        pkg = self._in_flight.pop(package_id)
         logger.info("folder_adapter_rejected", package_id=str(package_id), reason=reason)
+        emit_package_event("source.package_rejected", pkg, source_type="folder", reason=reason)
 
     async def health_check(self) -> bool:
         if not self._watch_root.is_dir():

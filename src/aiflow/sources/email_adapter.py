@@ -38,6 +38,7 @@ from aiflow.intake.package import (
 from aiflow.sources._fs import sanitize_filename
 from aiflow.sources.base import SourceAdapter, SourceAdapterMetadata
 from aiflow.sources.exceptions import SourceAdapterError
+from aiflow.sources.observability import emit_package_event
 
 __all__ = [
     "EmailSourceAdapter",
@@ -234,6 +235,7 @@ class EmailSourceAdapter(SourceAdapter):
         # UID do not create duplicate IntakePackages before acknowledge().
         self._pending_uids: dict[int, UUID] = {}
         self._package_to_uid: dict[UUID, int] = {}
+        self._in_flight: dict[UUID, IntakePackage] = {}
 
     @property
     def metadata(self) -> SourceAdapterMetadata:
@@ -289,6 +291,7 @@ class EmailSourceAdapter(SourceAdapter):
 
             self._pending_uids[uid] = pkg.package_id
             self._package_to_uid[pkg.package_id] = uid
+            self._in_flight[pkg.package_id] = pkg
             logger.info(
                 "email_adapter_fetched",
                 uid=uid,
@@ -374,7 +377,10 @@ class EmailSourceAdapter(SourceAdapter):
             raise SourceAdapterError(f"IMAP mark_seen failed for uid={uid}: {exc}") from exc
         self._pending_uids.pop(uid, None)
         self._package_to_uid.pop(package_id, None)
+        pkg = self._in_flight.pop(package_id, None)
         logger.info("email_adapter_acknowledged", uid=uid, package_id=str(package_id))
+        if pkg is not None:
+            emit_package_event("source.package_received", pkg, source_type="email")
 
     async def reject(self, package_id: UUID, reason: str) -> None:
         uid = self._package_to_uid.get(package_id)
@@ -388,12 +394,15 @@ class EmailSourceAdapter(SourceAdapter):
             raise SourceAdapterError(f"IMAP mark_flagged failed for uid={uid}: {exc}") from exc
         self._pending_uids.pop(uid, None)
         self._package_to_uid.pop(package_id, None)
+        pkg = self._in_flight.pop(package_id, None)
         logger.info(
             "email_adapter_rejected",
             uid=uid,
             package_id=str(package_id),
             reason=reason,
         )
+        if pkg is not None:
+            emit_package_event("source.package_rejected", pkg, source_type="email", reason=reason)
 
     async def health_check(self) -> bool:
         try:
