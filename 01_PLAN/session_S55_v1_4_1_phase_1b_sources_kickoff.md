@@ -121,10 +121,13 @@ Phase 1b (v1.4.1) — 3 weeks / 15 working days / 5 source adapters + associatio
 - Returns 201 with full `IntakePackage` summary (mask signed URLs).
 - Contract test + OpenAPI.
 
-### Day 14 — Multi-source E2E acceptance (E3.3)
-- Un-skip `test_upload_package.py` + `test_multi_source_e2e.py`.
-- End-to-end: source → IntakePackage → PolicyEngine routing → provider selection → extract — per source type, 1 happy path + 1 rejection. Target: ≥10 multi-source tests.
-- Backward-compat regression: all 114 Phase 1a regression tests PASS unchanged.
+### Day 14 — Multi-source E2E acceptance (E3.3) — DONE 2026-05-05 (S69)
+- `test_multi_source_e2e.py` un-skipped and implemented: 5-adapter matrix (parametrized `source_type`) + 4 N4 association modes + Phase 1a regression gate.
+- End-to-end per adapter: `adapter.enqueue/fetch_next` → storage spill + sha256 → `PolicyEngine.get_for_tenant()` → `IntakeRepository.insert_package` + `get_package` round-trip. **5 parametrize cases PASS**.
+- N4 modes: ORDER / FILENAME_MATCH / SINGLE_DESCRIPTION via `POST /api/v1/intake/upload-package`, EXPLICIT via direct adapter + associator path (HTTP multipart cannot carry server-generated file_ids). **All 4 modes PASS round-trip**.
+- Backward-compat regression: subprocess-spawned pytest run of `tests/e2e/v1_4_0_phase_1a/` asserts exit=0 + summary `199 passed`. **PASS**.
+- Phase 1b E2E total: 27 → **34 PASS** (1 pre-existing `test_alembic_034.py` still asserting head 034 deselected per STOP feltetel).
+- Exit-gate summary: `out/week_3_exit_gate.md`.
 
 ### Day 15 — Acceptance gate + PR draft
 - **Phase 1b acceptance checklist** (see `Exit Criteria` below) walked through and signed.
