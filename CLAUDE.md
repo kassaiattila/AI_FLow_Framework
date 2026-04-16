@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.4.2** — Phase 1c Association Backfill COMPLETE (F0.2-F0.6 wrapped 2026-05-16, branch `feature/v1.4.2-phase-1c-association-backfill`, awaiting PR merge) | API: 8102 | UI: 5174
+**v1.4.2** — Phase 1c Association Backfill MERGED 2026-04-16 (PR #6, tag `v1.4.2-phase-1c`, F0.2-F0.7) | API: 8102 | UI: 5174
 
 ## Structure
 ```
@@ -45,13 +45,13 @@ alembic upgrade head                      # DB migrations
 - **Services in Docker** (PostgreSQL 5433, Redis 6379, Kroki 8000), Python code locally from .venv
 
 ## Git Workflow
-- Branch: `feature/v1.4.2-phase-1c-association-backfill` (active, created 2026-05-11 from `main` @ tag `v1.4.1-phase-1b`). Phase 1b merged 2026-05-08. NEVER commit to main directly.
+- Base: `main` @ tag `v1.4.2-phase-1c` (Phase 1c merged 2026-04-16, PR #6). Phase 1b merged 2026-04-16, tag `v1.4.1-phase-1b`. Future work cuts a fresh feature branch from `main`. NEVER commit to main directly.
 - Commits: conventional (`feat`, `fix`, `docs`, `refactor`) + Co-Authored-By
 - NEVER commit: .env, credentials, API keys, failing tests
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
-`01_PLAN/session_S73_v1_4_2_phase_1c_kickoff.md` — Phase 1c CODE COMPLETE 2026-05-16, awaiting PR merge. Scope delivered: F0.2 CI hygiene (issue #5, PR merged), F0.3 OpenAPI regen + drift gate (issue #3, architect C3, PR merged), F0.4 canonical observability events across 5 adapters (C4), F0.5 Alembic 036 backfill (C5a), F0.6 Alembic 037 CHECK trigger on `intake_descriptions` (C5b). Acceptance report: `docs/phase_1c_acceptance_report.md`. PR body: `docs/phase_1c_pr_description.md`. Predecessor: Phase 1b MERGED (2026-05-08, tag `v1.4.1-phase-1b`, PR #4).
+`01_PLAN/session_S73_v1_4_2_phase_1c_kickoff.md` — **Phase 1c MERGED 2026-04-16**, tag `v1.4.2-phase-1c`, PR #6 merge commit `bd14519`. Scope delivered: F0.2 CI hygiene (issue #5 closed), F0.3 OpenAPI regen + drift gate (issue #3 closed, architect C3), F0.4 canonical observability events across 5 adapters (C4), F0.5 Alembic 036 backfill (C5a), F0.6 Alembic 037 CHECK trigger on `intake_descriptions` (C5b), F0.7 drift-gate encoding fix + merge + tag. Artifacts: `docs/phase_1c_acceptance_report.md`, `docs/phase_1c_pr_description.md`, `docs/phase_1c_retro.md`. Open follow-up: issue #7 (coverage gate 80% floor vs actual 65.67%). Predecessor: Phase 1b MERGED, tag `v1.4.1-phase-1b`, PR #4.
 
 ## Session Workflow (DOHA-aligned)
 ```
