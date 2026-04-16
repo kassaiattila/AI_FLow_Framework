@@ -40,6 +40,7 @@ _PUBLIC_PATHS: set[str] = {
 _PUBLIC_PREFIXES: tuple[str, ...] = (
     "/health",
     "/api/v1/health",
+    "/api/v1/sources/webhook",
 )
 
 # Path prefixes that require admin role
