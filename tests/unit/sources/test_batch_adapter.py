@@ -1,11 +1,13 @@
-"""Unit tests for BatchSourceAdapter (Phase 1b — Week 2 Day 7 — E2.2).
+"""Unit tests for BatchSourceAdapter (Phase 1b — Week 2 Day 7 — E2.2,
+Week 3 Day 12 — E3.1-B associator wiring).
 
 @test_registry: phase_1b.sources.batch_adapter
 
 Covers metadata shape, ZIP/tar extraction, sha256/size, filename sanitization,
 glob + excluded filters, zip-bomb guard, max-archive-bytes, max-file-count,
 symlink/path-traversal skip, corrupt archive, empty archive, ack/reject,
-fetch_next FIFO, and directory entries skipped.
+fetch_next FIFO, directory entries skipped, and E3.1-B N4 associator wiring
+(ORDER / FILENAME_MATCH / SINGLE_DESCRIPTION / failure propagation).
 """
 
 from __future__ import annotations
@@ -19,7 +21,13 @@ from uuid import uuid4
 
 import pytest
 
-from aiflow.intake.package import IntakePackage, IntakeSourceType
+from aiflow.intake.associator import AssociationError
+from aiflow.intake.package import (
+    AssociationMode,
+    IntakeDescription,
+    IntakePackage,
+    IntakeSourceType,
+)
 from aiflow.sources._fs import sanitize_filename
 from aiflow.sources.batch_adapter import BatchSourceAdapter
 from aiflow.sources.exceptions import SourceAdapterError
@@ -424,3 +432,201 @@ def test_nested_path_in_zip_uses_basename(storage_root: Path) -> None:
     pkgs = adapter.enqueue(raw_bytes=data, filename="nested.zip")
     assert len(pkgs) == 1
     assert pkgs[0].files[0].file_name == "deep.txt"
+
+
+# ---------------------------------------------------------------------------
+# 24. E3.1-B: no descriptions → association_mode stays None (backwards compat)
+# ---------------------------------------------------------------------------
+
+
+def test_no_descriptions_leaves_association_mode_none(storage_root: Path) -> None:
+    adapter = _make_adapter(storage_root=storage_root)
+    data = _make_zip({"a.pdf": b"pdf-a", "b.pdf": b"pdf-b"})
+    pkgs = adapter.enqueue(raw_bytes=data, filename="no_desc.zip")
+    assert len(pkgs) == 2
+    assert all(p.association_mode is None for p in pkgs)
+    assert all(len(p.descriptions) == 0 for p in pkgs)
+
+
+# ---------------------------------------------------------------------------
+# 25. E3.1-B: ORDER mode — per-description associated_file_ids filled
+# ---------------------------------------------------------------------------
+
+
+def test_order_mode_fills_associated_file_ids(storage_root: Path) -> None:
+    adapter = _make_adapter(storage_root=storage_root)
+    data = _make_zip({"first.pdf": b"1", "second.pdf": b"2"})
+    d1 = IntakeDescription(text="first doc")
+    d2 = IntakeDescription(text="second doc")
+
+    pkgs = adapter.enqueue(
+        raw_bytes=data,
+        filename="ordered.zip",
+        descriptions=[d1, d2],
+        association_mode=AssociationMode.ORDER,
+    )
+
+    assert len(pkgs) == 1
+    pkg = pkgs[0]
+    assert pkg.association_mode == AssociationMode.ORDER
+    assert len(pkg.files) == 2
+    assert len(pkg.descriptions) == 2
+
+    by_name = {f.file_name: f.file_id for f in pkg.files}
+    # First file pairs with first description (ORDER = zip)
+    first_file_id = pkg.files[0].file_id
+    second_file_id = pkg.files[1].file_id
+    assert pkg.descriptions[0].associated_file_ids == [first_file_id]
+    assert pkg.descriptions[1].associated_file_ids == [second_file_id]
+    assert set(by_name) == {"first.pdf", "second.pdf"}
+
+
+# ---------------------------------------------------------------------------
+# 26. E3.1-B: FILENAME_MATCH mode — regex rules attach descriptions
+# ---------------------------------------------------------------------------
+
+
+def test_filename_match_mode_attaches_by_regex(storage_root: Path) -> None:
+    adapter = _make_adapter(storage_root=storage_root)
+    data = _make_zip(
+        {
+            "invoice-001.pdf": b"inv-1",
+            "invoice-002.pdf": b"inv-2",
+            "receipt-001.pdf": b"rec-1",
+        }
+    )
+    invoices = IntakeDescription(text="invoice batch")
+    receipts = IntakeDescription(text="receipt batch")
+
+    pkgs = adapter.enqueue(
+        raw_bytes=data,
+        filename="mixed.zip",
+        descriptions=[invoices, receipts],
+        association_mode=AssociationMode.FILENAME_MATCH,
+        filename_rules=[
+            (r"^invoice-", invoices.description_id),
+            (r"^receipt-", receipts.description_id),
+        ],
+    )
+
+    pkg = pkgs[0]
+    assert pkg.association_mode == AssociationMode.FILENAME_MATCH
+    inv_files = {f.file_id for f in pkg.files if f.file_name.startswith("invoice-")}
+    rec_files = {f.file_id for f in pkg.files if f.file_name.startswith("receipt-")}
+    desc_by_id = {d.description_id: d for d in pkg.descriptions}
+    assert set(desc_by_id[invoices.description_id].associated_file_ids) == inv_files
+    assert set(desc_by_id[receipts.description_id].associated_file_ids) == rec_files
+
+
+# ---------------------------------------------------------------------------
+# 27. E3.1-B: mode=None + 1 description auto-detects SINGLE_DESCRIPTION
+# ---------------------------------------------------------------------------
+
+
+def test_auto_mode_single_description_fans_out(storage_root: Path) -> None:
+    adapter = _make_adapter(storage_root=storage_root)
+    data = _make_zip({"a.pdf": b"a", "b.pdf": b"b", "c.pdf": b"c"})
+    d = IntakeDescription(text="global context")
+
+    pkgs = adapter.enqueue(
+        raw_bytes=data,
+        filename="fan_out.zip",
+        descriptions=[d],
+        association_mode=None,
+    )
+
+    pkg = pkgs[0]
+    # Adapter stores the caller-provided mode verbatim (None when auto-detected).
+    # associator's chosen mode lives in associated_file_ids semantics.
+    assert pkg.association_mode is None
+    all_file_ids = {f.file_id for f in pkg.files}
+    assert set(pkg.descriptions[0].associated_file_ids) == all_file_ids
+
+
+# ---------------------------------------------------------------------------
+# 28. E3.1-B: mode=ORDER but N files != M descriptions → AssociationError
+# ---------------------------------------------------------------------------
+
+
+def test_order_mode_size_mismatch_raises(storage_root: Path) -> None:
+    adapter = _make_adapter(storage_root=storage_root)
+    data = _make_zip({"x.pdf": b"x", "y.pdf": b"y"})
+    d = IntakeDescription(text="only one description")
+
+    with pytest.raises(AssociationError):
+        adapter.enqueue(
+            raw_bytes=data,
+            filename="mismatch.zip",
+            descriptions=[d],
+            association_mode=AssociationMode.ORDER,
+        )
+
+
+# ---------------------------------------------------------------------------
+# 29. E3.1-B: mode=None with no matching strategy → AssociationError
+# ---------------------------------------------------------------------------
+
+
+def test_auto_mode_no_match_propagates_error(storage_root: Path) -> None:
+    adapter = _make_adapter(storage_root=storage_root)
+    data = _make_zip({"a.pdf": b"a", "b.pdf": b"b"})
+    d1 = IntakeDescription(text="d1")
+    d2 = IntakeDescription(text="d2")
+    d3 = IntakeDescription(text="d3")
+
+    with pytest.raises(AssociationError):
+        adapter.enqueue(
+            raw_bytes=data,
+            filename="no_strategy.zip",
+            descriptions=[d1, d2, d3],
+            association_mode=None,
+        )
+
+
+# ---------------------------------------------------------------------------
+# 30. E3.1-B: merged package stores all files under one storage dir
+# ---------------------------------------------------------------------------
+
+
+def test_merged_package_stores_files_together(storage_root: Path) -> None:
+    adapter = _make_adapter(storage_root=storage_root)
+    payloads = {"alpha.txt": b"A", "beta.txt": b"B"}
+    data = _make_zip(payloads)
+    d = IntakeDescription(text="shared context")
+
+    pkgs = adapter.enqueue(
+        raw_bytes=data,
+        filename="shared.zip",
+        descriptions=[d],
+        association_mode=AssociationMode.SINGLE_DESCRIPTION,
+    )
+
+    assert len(pkgs) == 1
+    pkg = pkgs[0]
+    expected_dir = storage_root / "tenant_a" / str(pkg.package_id)
+    for f in pkg.files:
+        on_disk = Path(f.file_path)
+        assert on_disk.parent == expected_dir
+        assert on_disk.read_bytes() == payloads[f.file_name]
+
+
+# ---------------------------------------------------------------------------
+# 31. E3.1-B: merged package adds all files in one IntakePackage (sequence_index)
+# ---------------------------------------------------------------------------
+
+
+def test_merged_package_has_ordered_sequence_index(storage_root: Path) -> None:
+    adapter = _make_adapter(storage_root=storage_root)
+    data = _make_zip({"one.txt": b"1", "two.txt": b"2", "three.txt": b"3"})
+    descs = [IntakeDescription(text=t) for t in ("d1", "d2", "d3")]
+
+    pkgs = adapter.enqueue(
+        raw_bytes=data,
+        filename="seq.zip",
+        descriptions=descs,
+        association_mode=AssociationMode.ORDER,
+    )
+
+    pkg = pkgs[0]
+    indices = [f.sequence_index for f in pkg.files]
+    assert indices == list(range(len(pkg.files)))

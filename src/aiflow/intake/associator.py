@@ -19,11 +19,10 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
-from enum import Enum
 from uuid import UUID
 
 from aiflow.intake.exceptions import FileAssociationError
-from aiflow.intake.package import IntakePackage
+from aiflow.intake.package import AssociationMode, IntakePackage
 
 __all__ = [
     "AssociationError",
@@ -33,15 +32,6 @@ __all__ = [
 
 
 AssociationError = FileAssociationError
-
-
-class AssociationMode(str, Enum):
-    """Association strategy (precedence order: explicit > filename > order > single)."""
-
-    EXPLICIT = "explicit"
-    FILENAME_MATCH = "filename_match"
-    ORDER = "order"
-    SINGLE_DESCRIPTION = "single_description"
 
 
 _PRECEDENCE: tuple[AssociationMode, ...] = (

@@ -5,6 +5,11 @@ Source: 101_AIFLOW_v2_COMPONENT_TRANSFORMATION_PLAN.md R1,
 
 Accepts ZIP or tar(.gz/.bz2/.xz) archives via ``enqueue()``, unpacks them
 into per-tenant storage, and emits one IntakePackage per extracted file.
+When ``descriptions`` is supplied, all extracted files are bundled into a
+single multi-file IntakePackage and the N4 associator computes
+``{file_id: description_id}`` mappings; the resulting
+:class:`AssociationMode` is persisted on the package so downstream
+consumers can see how associations were derived.
 
 Security guards:
 * **Zip-bomb**: ``uncompressed_total / archive_size > max_compression_ratio`` → reject.
@@ -33,7 +38,10 @@ from uuid import UUID, uuid4
 
 import structlog
 
+from aiflow.intake.associator import associate
 from aiflow.intake.package import (
+    AssociationMode,
+    IntakeDescription,
     IntakeFile,
     IntakePackage,
     IntakeSourceType,
@@ -44,7 +52,10 @@ from aiflow.sources.exceptions import SourceAdapterError
 
 __all__ = [
     "BatchSourceAdapter",
+    "FilenameRule",
 ]
+
+FilenameRule = tuple[str, UUID]
 
 logger = structlog.get_logger(__name__)
 
@@ -69,13 +80,14 @@ def _is_path_traversal(member_name: str) -> bool:
 
 
 class BatchSourceAdapter(SourceAdapter):
-    """Push-mode adapter: unpack a ZIP/tar archive into per-file IntakePackages.
+    """Push-mode adapter: unpack a ZIP/tar archive into IntakePackages.
 
-    Each call to ``enqueue()`` accepts a single archive (via ``archive_path``
-    or ``raw_bytes``), validates it against the configured guards, unpacks it
-    to per-package storage dirs, and returns the list of produced packages.
-    Packages are also buffered in an internal queue for ``fetch_next()``
-    consumption.
+    Default behavior emits one IntakePackage per extracted file. When
+    ``descriptions`` is supplied to :meth:`enqueue`, all extracted files are
+    bundled into a single multi-file IntakePackage and the N4 associator is
+    invoked to produce ``{file_id: description_id}`` mappings; the resulting
+    :class:`AssociationMode` is persisted on the package so downstream
+    consumers can see how associations were derived.
     """
 
     source_type: ClassVar[IntakeSourceType] = IntakeSourceType.BATCH_IMPORT
@@ -132,7 +144,20 @@ class BatchSourceAdapter(SourceAdapter):
         archive_path: Path | str | None = None,
         raw_bytes: bytes | None = None,
         filename: str,
+        descriptions: list[IntakeDescription] | None = None,
+        association_mode: AssociationMode | None = None,
+        filename_rules: list[FilenameRule] | None = None,
+        explicit_map: dict[UUID, UUID] | None = None,
     ) -> list[IntakePackage]:
+        """Unpack ``archive_path``/``raw_bytes`` and enqueue one or more packages.
+
+        Default: one IntakePackage per extracted archive member (backwards
+        compatible). When ``descriptions`` is non-empty, the adapter produces
+        a single multi-file IntakePackage with all extracted files and the
+        descriptions attached, then runs the N4 associator to fill
+        ``IntakeDescription.associated_file_ids`` and persists the chosen
+        :class:`AssociationMode` on the package.
+        """
         if not filename:
             raise ValueError("filename must be non-empty")
         if (archive_path is None) == (raw_bytes is None):
@@ -172,6 +197,27 @@ class BatchSourceAdapter(SourceAdapter):
             raise SourceAdapterError(
                 f"archive {filename!r} contains no extractable files after filtering"
             )
+
+        if descriptions:
+            merged = self._build_merged_package(
+                entries,
+                archive_name=filename,
+                descriptions=descriptions,
+                association_mode=association_mode,
+                filename_rules=filename_rules,
+                explicit_map=explicit_map,
+            )
+            logger.info(
+                "batch_adapter_enqueued",
+                archive=filename,
+                file_count=len(merged.files),
+                archive_bytes=archive_size,
+                descriptions=len(merged.descriptions),
+                association_mode=(
+                    merged.association_mode.value if merged.association_mode else None
+                ),
+            )
+            return [merged]
 
         packages: list[IntakePackage] = []
         for member_name, payload in entries:
@@ -374,6 +420,75 @@ class BatchSourceAdapter(SourceAdapter):
             },
             files=[intake_file],
         )
+
+        self._queue.append(pkg)
+        self._in_flight[package_id] = pkg
+        return pkg
+
+    def _build_merged_package(
+        self,
+        entries: list[tuple[str, bytes]],
+        *,
+        archive_name: str,
+        descriptions: list[IntakeDescription],
+        association_mode: AssociationMode | None,
+        filename_rules: list[FilenameRule] | None,
+        explicit_map: dict[UUID, UUID] | None,
+    ) -> IntakePackage:
+        package_id = uuid4()
+        pkg_dir = self._storage_root / self._tenant_id / str(package_id)
+        pkg_dir.mkdir(parents=True, exist_ok=True)
+
+        files: list[IntakeFile] = []
+        for index, (member_name, payload) in enumerate(entries):
+            size = len(payload)
+            resolved_mime = self._mime_detect(payload, member_name)
+            safe = sanitize_filename(member_name)
+            dest = pkg_dir / safe
+            if dest.exists():
+                dest = pkg_dir / f"{uuid4().hex}_{safe}"
+            dest.write_bytes(payload)
+            files.append(
+                IntakeFile(
+                    file_path=str(dest),
+                    file_name=member_name,
+                    mime_type=resolved_mime,
+                    size_bytes=size,
+                    sha256=hashlib.sha256(payload).hexdigest(),
+                    sequence_index=index,
+                    source_metadata={
+                        "archive_name": archive_name,
+                        "original_member_path": member_name,
+                        "sanitized_filename": safe,
+                    },
+                )
+            )
+
+        pkg = IntakePackage(
+            package_id=package_id,
+            source_type=IntakeSourceType.BATCH_IMPORT,
+            tenant_id=self._tenant_id,
+            source_metadata={
+                "archive_name": archive_name,
+                "file_count": len(files),
+            },
+            files=files,
+            descriptions=list(descriptions),
+        )
+
+        mapping = associate(
+            pkg,
+            mode=association_mode,
+            explicit_map=explicit_map,
+            filename_rules=filename_rules,
+        )
+        desc_to_files: dict[UUID, list[UUID]] = {d.description_id: [] for d in pkg.descriptions}
+        for file_id, desc_id in mapping.items():
+            desc_to_files.setdefault(desc_id, []).append(file_id)
+        for desc in pkg.descriptions:
+            desc.associated_file_ids = desc_to_files.get(desc.description_id, [])
+
+        pkg.association_mode = association_mode
 
         self._queue.append(pkg)
         self._in_flight[package_id] = pkg

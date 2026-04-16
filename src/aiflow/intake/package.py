@@ -13,6 +13,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 __all__ = [
+    "AssociationMode",
     "IntakeSourceType",
     "IntakePackageStatus",
     "DescriptionRole",
@@ -20,6 +21,15 @@ __all__ = [
     "IntakeDescription",
     "IntakePackage",
 ]
+
+
+class AssociationMode(str, Enum):
+    """File<->description association strategy (see N4 associator)."""
+
+    EXPLICIT = "explicit"
+    FILENAME_MATCH = "filename_match"
+    ORDER = "order"
+    SINGLE_DESCRIPTION = "single_description"
 
 
 class IntakeSourceType(str, Enum):
@@ -180,6 +190,15 @@ class IntakePackage(BaseModel):
     review_task_id: UUID | None = Field(
         None,
         description="Reference to ReviewTask if package entered HITL.",
+    )
+
+    association_mode: AssociationMode | None = Field(
+        None,
+        description=(
+            "How files were associated to descriptions by the N4 associator. "
+            "NULL when associations have not been computed (e.g., single-file "
+            "packages or descriptions absent). See aiflow.intake.associator."
+        ),
     )
 
     @model_validator(mode="after")
