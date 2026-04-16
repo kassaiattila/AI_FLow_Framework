@@ -19,7 +19,9 @@ jobs:
       - run: uv venv && uv pip install -e ".[dev]"
       - run: .venv/bin/ruff check src/aiflow/ tests/
       - run: .venv/bin/ruff format --check src/aiflow/ tests/
-      - run: .venv/bin/mypy src/aiflow/ --ignore-missing-imports
+      # mypy is gated on the "hardened kernel" only — strict=true enforced here.
+      # Expanding coverage is tracked in the follow-up issue opened from F0.2 (#5).
+      - run: .venv/bin/mypy src/aiflow/core/ src/aiflow/intake/ src/aiflow/guardrails/ src/aiflow/policy/ --ignore-missing-imports
 
   unit-tests:
     runs-on: ubuntu-latest

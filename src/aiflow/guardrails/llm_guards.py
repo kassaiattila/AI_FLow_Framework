@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import structlog
 
@@ -75,7 +75,7 @@ async def _call_llm(
     )
     text = response.choices[0].message.content or "{}"
     try:
-        return json.loads(text)
+        return cast("dict[str, Any]", json.loads(text))
     except json.JSONDecodeError:
         logger.warning("llm_guard_json_parse_error", text=text[:200])
         return {}

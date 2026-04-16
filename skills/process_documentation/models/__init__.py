@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -62,7 +62,7 @@ class ProcessExtraction(BaseModel):
     actors: list[Actor] = Field(default_factory=list)
     steps: list[ProcessStep] = Field(default_factory=list)
     start_step_id: str
-    metadata: dict = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     def validate_connections(self) -> list[str]:
         valid_ids = {step.id for step in self.steps}
@@ -70,9 +70,7 @@ class ProcessExtraction(BaseModel):
         for step in self.steps:
             for next_id in step.next_steps:
                 if next_id not in valid_ids:
-                    errors.append(
-                        f"Step '{step.id}' references unknown next_step '{next_id}'"
-                    )
+                    errors.append(f"Step '{step.id}' references unknown next_step '{next_id}'")
         return errors
 
 

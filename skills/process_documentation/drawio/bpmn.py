@@ -3,6 +3,7 @@
 Ported from the Lesotho DHA project. Generates professional BPMN diagrams
 with swimlanes, typed tasks, events, gateways, and flows.
 """
+
 from __future__ import annotations
 
 from skills.process_documentation.drawio.builder import DrawioBuilder
@@ -52,8 +53,7 @@ _TASK_STYLE = (
 
 # Event: shape=mxgraph.bpmn.event;outline={standard|catching|throwing|end};symbol={...}
 _EVENT_STYLE = (
-    _PTS_EV
-    + "shape=mxgraph.bpmn.event;html=1;fontSize=9;fontFamily=Helvetica;"
+    _PTS_EV + "shape=mxgraph.bpmn.event;html=1;fontSize=9;fontFamily=Helvetica;"
     "verticalLabelPosition=bottom;verticalAlign=top;align=center;"
     "perimeter=ellipsePerimeter;outlineConnect=0;aspect=fixed;"
     "outline={outline};symbol={symbol};"
@@ -62,8 +62,7 @@ _EVENT_STYLE = (
 
 # Gateway: shape=mxgraph.bpmn.gateway2;gwType={exclusive|inclusive|parallel|...}
 _GW_STYLE = (
-    _PTS_GW
-    + "shape=mxgraph.bpmn.gateway2;html=1;fontSize=9;fontFamily=Helvetica;"
+    _PTS_GW + "shape=mxgraph.bpmn.gateway2;html=1;fontSize=9;fontFamily=Helvetica;"
     "verticalLabelPosition=bottom;verticalAlign=top;align=center;"
     "perimeter=rhombusPerimeter;outlineConnect=0;"
     "outline=none;symbol=none;gwType={gwType};"
@@ -136,7 +135,7 @@ class BPMNDiagram:
         if isinstance(lane, int):
             if lane < len(self.lane_defs):
                 return self.lane_defs[lane][0]
-            raise IndexError(f"Lane index {lane} out of range (0-{len(self.lane_defs)-1})")
+            raise IndexError(f"Lane index {lane} out of range (0-{len(self.lane_defs) - 1})")
         return lane
 
     def _lane_cy(self, lane: int | str) -> int:
@@ -199,39 +198,27 @@ class BPMNDiagram:
         )
         return self._cell(label, x, ty, tw, TASK_H, style)
 
-    def user_task(
-        self, lane: str, x_off: int, label: str, w: int | None = None
-    ) -> str:
+    def user_task(self, lane: str, x_off: int, label: str, w: int | None = None) -> str:
         """User task (person icon)."""
         return self._task(lane, x_off, label, "user", C_USR, w)
 
-    def service_task(
-        self, lane: str, x_off: int, label: str, w: int | None = None
-    ) -> str:
+    def service_task(self, lane: str, x_off: int, label: str, w: int | None = None) -> str:
         """Service / automated task (gear icon)."""
         return self._task(lane, x_off, label, "service", C_SVC, w)
 
-    def manual_task(
-        self, lane: str, x_off: int, label: str, w: int | None = None
-    ) -> str:
+    def manual_task(self, lane: str, x_off: int, label: str, w: int | None = None) -> str:
         """Manual task (hand icon)."""
         return self._task(lane, x_off, label, "manual", C_MAN, w)
 
-    def send_task(
-        self, lane: str, x_off: int, label: str, w: int | None = None
-    ) -> str:
+    def send_task(self, lane: str, x_off: int, label: str, w: int | None = None) -> str:
         """Send task (envelope icon)."""
         return self._task(lane, x_off, label, "send", C_SND, w)
 
-    def script_task(
-        self, lane: str, x_off: int, label: str, w: int | None = None
-    ) -> str:
+    def script_task(self, lane: str, x_off: int, label: str, w: int | None = None) -> str:
         """Script task (script icon)."""
         return self._task(lane, x_off, label, "script", C_SVC, w)
 
-    def rule_task(
-        self, lane: str, x_off: int, label: str, w: int | None = None
-    ) -> str:
+    def rule_task(self, lane: str, x_off: int, label: str, w: int | None = None) -> str:
         """Business rule task (table icon)."""
         return self._task(lane, x_off, label, "businessRule", C_SVC, w)
 
@@ -287,9 +274,7 @@ class BPMNDiagram:
 
     # ── Gateways (native mxgraph.bpmn.gateway2) ──
 
-    def _gateway(
-        self, lane: str, x_off: int, gwType: str, label: str = ""
-    ) -> str:
+    def _gateway(self, lane: str, x_off: int, gwType: str, label: str = "") -> str:
         """Create a BPMN gateway shape and return its cell ID."""
         x, cy = self._pos(lane, x_off)
         style = _GW_STYLE.format(
@@ -314,9 +299,7 @@ class BPMNDiagram:
 
     # ── Annotations ──
 
-    def label_at(
-        self, x: int, y: int, text: str, color: str = "#666666"
-    ) -> str:
+    def label_at(self, x: int, y: int, text: str, color: str = "#666666") -> str:
         """Place a small text label at absolute (x, y) coordinates."""
         return self._cell(
             f"<span style='font-size:8px;color:{color}'>{text}</span>",
@@ -329,9 +312,7 @@ class BPMNDiagram:
             "fontFamily=Helvetica;fontSize=8;",
         )
 
-    def annotation(
-        self, x: int, y: int, label: str, w: int = 180, h: int = 55
-    ) -> str:
+    def annotation(self, x: int, y: int, label: str, w: int = 180, h: int = 55) -> str:
         """Place a dashed annotation box at absolute (x, y) coordinates."""
         return self.d.box(
             label,
@@ -367,16 +348,10 @@ class BPMNDiagram:
         cid = self.d._next_id()
         extra = ""
         if exit_xy:
-            extra += (
-                f"exitX={exit_xy[0]};exitY={exit_xy[1]};"
-                f"exitDx=0;exitDy=0;"
-            )
+            extra += f"exitX={exit_xy[0]};exitY={exit_xy[1]};exitDx=0;exitDy=0;"
         if entry_xy:
-            extra += (
-                f"entryX={entry_xy[0]};entryY={entry_xy[1]};"
-                f"entryDx=0;entryDy=0;"
-            )
-        cell: dict = {
+            extra += f"entryX={entry_xy[0]};entryY={entry_xy[1]};entryDx=0;entryDy=0;"
+        cell: dict[str, Any] = {
             "type": "edge",
             "id": cid,
             "parent": "1",
@@ -412,16 +387,10 @@ class BPMNDiagram:
         cid = self.d._next_id()
         extra = ""
         if exit_xy:
-            extra += (
-                f"exitX={exit_xy[0]};exitY={exit_xy[1]};"
-                f"exitDx=0;exitDy=0;"
-            )
+            extra += f"exitX={exit_xy[0]};exitY={exit_xy[1]};exitDx=0;exitDy=0;"
         if entry_xy:
-            extra += (
-                f"entryX={entry_xy[0]};entryY={entry_xy[1]};"
-                f"entryDx=0;entryDy=0;"
-            )
-        cell: dict = {
+            extra += f"entryX={entry_xy[0]};entryY={entry_xy[1]};entryDx=0;entryDy=0;"
+        cell: dict[str, Any] = {
             "type": "edge",
             "id": cid,
             "parent": "1",

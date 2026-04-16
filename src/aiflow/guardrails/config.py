@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import enum
 from pathlib import Path
+from typing import Any
 
 import structlog
 import yaml
@@ -123,7 +124,7 @@ class GuardrailConfig(BaseModel):
         )
 
 
-def _normalize_pii_masking(data: dict) -> None:
+def _normalize_pii_masking(data: dict[str, Any]) -> None:
     """Convert YAML pii_masking string/bool to PIIMaskingMode + legacy bool.
 
     Handles both new format (``pii_masking: "on"/"partial"/"off"``)

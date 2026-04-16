@@ -54,7 +54,7 @@ class TransitionRecord(BaseModel):
 
 # --- Transition maps (source: 100_c Section 1.3 + 2.2) ---
 
-_PACKAGE_TRANSITIONS: dict[IntakePackageStatus, set[IntakePackageStatus]] = {
+_PACKAGE_TRANSITIONS: dict[Enum, set[Enum]] = {
     IntakePackageStatus.RECEIVED: {IntakePackageStatus.NORMALIZED, IntakePackageStatus.FAILED},
     IntakePackageStatus.NORMALIZED: {IntakePackageStatus.ROUTED, IntakePackageStatus.FAILED},
     IntakePackageStatus.ROUTED: {IntakePackageStatus.PARSED, IntakePackageStatus.FAILED},
@@ -80,12 +80,12 @@ _PACKAGE_TRANSITIONS: dict[IntakePackageStatus, set[IntakePackageStatus]] = {
     IntakePackageStatus.QUARANTINED: set(),
 }
 
-_PACKAGE_TERMINAL: set[IntakePackageStatus] = {
+_PACKAGE_TERMINAL: set[Enum] = {
     IntakePackageStatus.ARCHIVED,
     IntakePackageStatus.QUARANTINED,
 }
 
-_FILE_TRANSITIONS: dict[IntakeFileStatus, set[IntakeFileStatus]] = {
+_FILE_TRANSITIONS: dict[Enum, set[Enum]] = {
     IntakeFileStatus.PENDING: {IntakeFileStatus.ROUTED, IntakeFileStatus.FAILED},
     IntakeFileStatus.ROUTED: {IntakeFileStatus.PARSED, IntakeFileStatus.FAILED},
     IntakeFileStatus.PARSED: {IntakeFileStatus.CLASSIFIED, IntakeFileStatus.FAILED},
@@ -95,7 +95,7 @@ _FILE_TRANSITIONS: dict[IntakeFileStatus, set[IntakeFileStatus]] = {
     IntakeFileStatus.FAILED: {IntakeFileStatus.PENDING},
 }
 
-_FILE_TERMINAL: set[IntakeFileStatus] = {
+_FILE_TERMINAL: set[Enum] = {
     IntakeFileStatus.ARCHIVED,
 }
 
