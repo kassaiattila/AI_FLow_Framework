@@ -5026,7 +5026,7 @@ components:
       title: UploadPackageErrorResponse
       type: object
     UploadPackageFile:
-      description: File entry in the response — sanitized view of IntakeFile.
+      description: File entry in the response â€” sanitized view of IntakeFile.
       properties:
         file_id:
           format: uuid
@@ -6754,7 +6754,7 @@ paths:
       tags:
       - verifications
     post:
-      description: Batch save verification edits — replaces existing pending edits.
+      description: Batch save verification edits â€” replaces existing pending edits.
       operationId: save_verification_edits_api_v1_documents__document_id__verifications_post
       parameters:
       - in: path
@@ -6820,7 +6820,7 @@ paths:
       - verifications
   /api/v1/documents/{document_id}/verifications/reject:
     patch:
-      description: Reject all pending verification edits — comment is required.
+      description: Reject all pending verification edits â€” comment is required.
       operationId: reject_verification_edits_api_v1_documents__document_id__verifications_reject_patch
       parameters:
       - in: path
@@ -6853,7 +6853,7 @@ paths:
       - verifications
   /api/v1/documents/{invoice_id}/verify:
     post:
-      description: Verify an extracted document — confirm or correct extracted fields.
+      description: Verify an extracted document â€” confirm or correct extracted fields.
       operationId: verify_document_api_v1_documents__invoice_id__verify_post
       parameters:
       - in: path
@@ -7388,7 +7388,7 @@ paths:
         sends one or more ``files`` parts plus an optional JSON-encoded ``descriptions``
         list and association controls. The N4 associator computes ``{file_id: description_id}``
         mappings; the chosen ``AssociationMode`` is persisted. tenant_id is resolved
-        from the JWT ``team_id`` claim (or ``sub`` as fallback) — never from form
+        from the JWT ``team_id`` claim (or ``sub`` as fallback) â€” never from form
         fields.'
       operationId: upload_package_api_v1_intake_upload_package_post
       requestBody:
@@ -9615,7 +9615,7 @@ paths:
       - reviews
   /api/v1/reviews/{review_id}/escalate:
     post:
-      description: Manually escalate a pending review — bumps priority.
+      description: Manually escalate a pending review â€” bumps priority.
       operationId: escalate_review_api_v1_reviews__review_id__escalate_post
       parameters:
       - in: path
@@ -10243,7 +10243,7 @@ paths:
         HMAC-SHA256. Caller must send ``X-Webhook-Signature`` (hex), ``X-Webhook-Timestamp``
         (unix seconds), and ``X-Filename``. Optional ``Idempotency-Key`` guards against
         duplicate delivery. The body MUST NOT be parsed as JSON by intermediaries
-        — the signature covers the exact bytes submitted.
+        â€” the signature covers the exact bytes submitted.
       operationId: accept_webhook_api_v1_sources_webhook_post
       parameters:
       - description: Upload filename (required).
@@ -10319,7 +10319,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WebhookErrorResponse'
-          description: Idempotency-Key already seen — request is a duplicate.
+          description: Idempotency-Key already seen â€” request is a duplicate.
         '413':
           content:
             application/json:

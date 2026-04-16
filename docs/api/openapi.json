@@ -78,7 +78,7 @@
           "sources"
         ],
         "summary": "Accept an HMAC-signed webhook upload",
-        "description": "Raw bytes body is signed as ``<timestamp>.<base64(body)>`` with HMAC-SHA256. Caller must send ``X-Webhook-Signature`` (hex), ``X-Webhook-Timestamp`` (unix seconds), and ``X-Filename``. Optional ``Idempotency-Key`` guards against duplicate delivery. The body MUST NOT be parsed as JSON by intermediaries — the signature covers the exact bytes submitted.",
+        "description": "Raw bytes body is signed as ``<timestamp>.<base64(body)>`` with HMAC-SHA256. Caller must send ``X-Webhook-Signature`` (hex), ``X-Webhook-Timestamp`` (unix seconds), and ``X-Filename``. Optional ``Idempotency-Key`` guards against duplicate delivery. The body MUST NOT be parsed as JSON by intermediaries â€” the signature covers the exact bytes submitted.",
         "operationId": "accept_webhook_api_v1_sources_webhook_post",
         "parameters": [
           {
@@ -198,7 +198,7 @@
             }
           },
           "409": {
-            "description": "Idempotency-Key already seen — request is a duplicate.",
+            "description": "Idempotency-Key already seen â€” request is a duplicate.",
             "content": {
               "application/json": {
                 "schema": {
@@ -236,7 +236,7 @@
           "intake"
         ],
         "summary": "Upload N files + M descriptions as a single IntakePackage",
-        "description": "Multipart/form-data endpoint for push-mode ingestion. The caller sends one or more ``files`` parts plus an optional JSON-encoded ``descriptions`` list and association controls. The N4 associator computes ``{file_id: description_id}`` mappings; the chosen ``AssociationMode`` is persisted. tenant_id is resolved from the JWT ``team_id`` claim (or ``sub`` as fallback) — never from form fields.",
+        "description": "Multipart/form-data endpoint for push-mode ingestion. The caller sends one or more ``files`` parts plus an optional JSON-encoded ``descriptions`` list and association controls. The N4 associator computes ``{file_id: description_id}`` mappings; the chosen ``AssociationMode`` is persisted. tenant_id is resolved from the JWT ``team_id`` claim (or ``sub`` as fallback) â€” never from form fields.",
         "operationId": "upload_package_api_v1_intake_upload_package_post",
         "requestBody": {
           "content": {
@@ -1586,7 +1586,7 @@
           "verifications"
         ],
         "summary": "Save Verification Edits",
-        "description": "Batch save verification edits — replaces existing pending edits.",
+        "description": "Batch save verification edits â€” replaces existing pending edits.",
         "operationId": "save_verification_edits_api_v1_documents__document_id__verifications_post",
         "parameters": [
           {
@@ -1765,7 +1765,7 @@
           "verifications"
         ],
         "summary": "Reject Verification Edits",
-        "description": "Reject all pending verification edits — comment is required.",
+        "description": "Reject all pending verification edits â€” comment is required.",
         "operationId": "reject_verification_edits_api_v1_documents__document_id__verifications_reject_patch",
         "parameters": [
           {
@@ -2138,7 +2138,7 @@
           "documents"
         ],
         "summary": "Verify Document",
-        "description": "Verify an extracted document — confirm or correct extracted fields.",
+        "description": "Verify an extracted document â€” confirm or correct extracted fields.",
         "operationId": "verify_document_api_v1_documents__invoice_id__verify_post",
         "parameters": [
           {
@@ -5092,7 +5092,7 @@
           "reviews"
         ],
         "summary": "Escalate Review",
-        "description": "Manually escalate a pending review — bumps priority.",
+        "description": "Manually escalate a pending review â€” bumps priority.",
         "operationId": "escalate_review_api_v1_reviews__review_id__escalate_post",
         "parameters": [
           {
@@ -15188,7 +15188,7 @@
           "sha256"
         ],
         "title": "UploadPackageFile",
-        "description": "File entry in the response — sanitized view of IntakeFile."
+        "description": "File entry in the response â€” sanitized view of IntakeFile."
       },
       "UploadPackageResponse": {
         "properties": {
