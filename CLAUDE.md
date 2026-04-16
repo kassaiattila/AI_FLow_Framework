@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.4.0** — Phase 1a Foundation COMPLETE (2026-04-17) | API: 8102 | UI: 5174
+**v1.4.1** — Phase 1b Source Adapters COMPLETE (2026-05-06) | API: 8102 | UI: 5174
 
 ## Structure
 ```
@@ -18,9 +18,9 @@ session_prompts/    — Session prompt archive + NEXT.md pointer (/next reads th
 ```
 
 ## Key Numbers
-27 services | 175 API endpoints (27 routers) | 49 DB tables | 33 Alembic migrations
-22 pipeline adapters | 10 pipeline templates | 7 skills | 23 UI pages
-1674 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 368 E2E tests (169 pre-existing + 199 Phase 1a)
+27 services | 176 API endpoints (27 routers) | 49 DB tables | 35 Alembic migrations
+22 pipeline adapters | 10 pipeline templates | 7 skills | 23 UI pages | 5 source adapters (Email, File, Folder, Batch, API)
+1872 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 403 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b) | 38 integration tests
 
 ## Build & Test
 ```bash
@@ -45,13 +45,13 @@ alembic upgrade head                      # DB migrations
 - **Services in Docker** (PostgreSQL 5433, Redis 6379, Kroki 8000), Python code locally from .venv
 
 ## Git Workflow
-- Branch: `feature/v2.0.0-phase-1a-foundation` (v2 Phase 1a) — NEVER commit to main directly
+- Branch: `feature/v1.4.1-phase-1b-sources` (Phase 1b source adapters) — NEVER commit to main directly
 - Commits: conventional (`feat`, `fix`, `docs`, `refactor`) + Co-Authored-By
 - NEVER commit: .env, credentials, API keys, failing tests
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
-`01_PLAN/106_AIFLOW_v2_PHASE_1a_IMPLEMENTATION_GUIDE.md` — Phase 1a COMPLETE (2026-04-17). Next: Phase 1b (v1.4.1, source adapters).
+`01_PLAN/session_S55_v1_4_1_phase_1b_sources_kickoff.md` — Phase 1b COMPLETE (2026-05-06). Next: Phase 1c (association backfill + G5/G8 follow-up tickets).
 
 ## Session Workflow (DOHA-aligned)
 ```

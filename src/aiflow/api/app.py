@@ -137,6 +137,7 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.feedback import router as feedback_router
     from aiflow.api.v1.health import router as health_router
     from aiflow.api.v1.human_review import router as review_router
+    from aiflow.api.v1.intake import router as intake_router
     from aiflow.api.v1.intent_schemas import router as intent_schemas_router
     from aiflow.api.v1.media_processor import router as media_router
     from aiflow.api.v1.notifications import router as notifications_router
@@ -150,10 +151,13 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.runs import router as runs_router
     from aiflow.api.v1.services import router as services_router
     from aiflow.api.v1.skills_api import router as skills_router
+    from aiflow.api.v1.sources_webhook import router as sources_webhook_router
     from aiflow.api.v1.spec_writer import router as spec_writer_router
     from aiflow.api.v1.verifications import router as verifications_router
 
     app.include_router(health_router)
+    app.include_router(sources_webhook_router)
+    app.include_router(intake_router)
     app.include_router(chat_router)
     app.include_router(feedback_router)
     app.include_router(runs_router)

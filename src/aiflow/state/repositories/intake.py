@@ -14,6 +14,7 @@ import asyncpg
 import structlog
 
 from aiflow.intake.package import (
+    AssociationMode,
     DescriptionRole,
     IntakeDescription,
     IntakeFile,
@@ -43,9 +44,10 @@ class IntakeRepository:
                         package_id, source_type, tenant_id, status,
                         source_metadata, package_context, cross_document_signals,
                         created_at, updated_at, received_by,
-                        provenance_chain, routing_decision_id, review_task_id
+                        provenance_chain, routing_decision_id, review_task_id,
+                        association_mode
                     ) VALUES (
-                        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+                        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
                     )
                     """,
                 package.package_id,
@@ -61,6 +63,7 @@ class IntakeRepository:
                 package.provenance_chain,
                 package.routing_decision_id,
                 package.review_task_id,
+                package.association_mode.value if package.association_mode else None,
             )
 
             for f in package.files:
@@ -179,6 +182,9 @@ class IntakeRepository:
                 for dr in desc_rows
             ]
 
+            mode_value = _row_get(row, "association_mode")
+            association_mode = AssociationMode(mode_value) if mode_value else None
+
             return IntakePackage(
                 package_id=row["package_id"],
                 source_type=IntakeSourceType(row["source_type"]),
@@ -193,6 +199,7 @@ class IntakeRepository:
                 provenance_chain=row["provenance_chain"] or [],
                 routing_decision_id=row["routing_decision_id"],
                 review_task_id=row["review_task_id"],
+                association_mode=association_mode,
                 files=files,
                 descriptions=descriptions,
             )
@@ -297,6 +304,8 @@ def _parse_jsonb(value: str | dict | None) -> dict:
 
 def _row_to_package(row: asyncpg.Record) -> IntakePackage:
     """Convert a DB row to IntakePackage (without files/descriptions)."""
+    mode_value = _row_get(row, "association_mode")
+    association_mode = AssociationMode(mode_value) if mode_value else None
     return IntakePackage.model_construct(
         package_id=row["package_id"],
         source_type=IntakeSourceType(row["source_type"]),
@@ -311,6 +320,17 @@ def _row_to_package(row: asyncpg.Record) -> IntakePackage:
         provenance_chain=row["provenance_chain"] or [],
         routing_decision_id=row["routing_decision_id"],
         review_task_id=row["review_task_id"],
+        association_mode=association_mode,
         files=[],
         descriptions=[],
     )
+
+
+def _row_get(row: asyncpg.Record | dict, key: str) -> object | None:
+    """Safely read an optional column from either a Record or a plain dict."""
+    if isinstance(row, dict):
+        return row.get(key)
+    try:
+        return row[key]
+    except (KeyError, IndexError):
+        return None
