@@ -27,6 +27,7 @@ from aiflow.sources.outlook_com_backend import (
     OutlookDispatchFactory,
 )
 from aiflow.sources.registry import SourceAdapterRegistry
+from aiflow.sources.sink import IntakePackageSink, process_next
 
 __all__ = [
     "SourceAdapter",
@@ -43,6 +44,8 @@ __all__ = [
     "FolderSourceAdapter",
     "ImapBackend",
     "ImapBackendProtocol",
+    "IntakePackageSink",
     "OutlookComBackend",
     "OutlookDispatchFactory",
+    "process_next",
 ]

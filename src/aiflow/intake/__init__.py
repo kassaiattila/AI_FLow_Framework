@@ -4,6 +4,7 @@ Phase 1a foundation (v2.0.0).
 Source: 100_b_AIFLOW_v2_DOMAIN_CONTRACTS.md, 100_c_AIFLOW_v2_STATE_LIFECYCLE_MODEL.md
 """
 
+from aiflow.intake.association import resolve_mode_and_associations
 from aiflow.intake.associator import (
     AssociationError,
     AssociationMode,
@@ -52,6 +53,7 @@ __all__ = [
     "TransitionRecord",
     "associate",
     "is_terminal_status",
+    "resolve_mode_and_associations",
     "validate_file_transition",
     "validate_package_transition",
 ]

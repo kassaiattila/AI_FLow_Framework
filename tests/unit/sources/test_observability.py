@@ -123,6 +123,27 @@ def test_helper_received_has_canonical_shape() -> None:
     )
 
 
+def test_helper_persisted_has_canonical_shape() -> None:
+    pkg = _fake_package()
+    with capture_logs() as events:
+        emit_package_event(
+            "source.package_persisted",
+            pkg,
+            source_type="email",
+            file_count=1,
+            description_count=0,
+        )
+    canonical = _only_canonical(events, "source.package_persisted")
+    assert len(canonical) == 1
+    assert canonical[0]["file_count"] == 1
+    assert canonical[0]["description_count"] == 0
+    _assert_canonical_shape(
+        canonical[0],
+        expected_event="source.package_persisted",
+        expected_source_type="email",
+    )
+
+
 def test_helper_rejected_carries_reason() -> None:
     pkg = _fake_package()
     with capture_logs() as events:
