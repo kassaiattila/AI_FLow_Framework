@@ -85,6 +85,11 @@ f2-*.png
 # === Session prompts (NEXT.md is ephemeral, archives committed) ===
 session_prompts/NEXT.md
 
+# === Auto-sprint runtime state (durable iteration state + notification log) ===
+session_prompts/.auto_sprint_state.json
+session_prompts/.notifications.log
+session_prompts/.notifications_body.md
+
 # === Temp output directories ===
 output/
 tmp_*/
