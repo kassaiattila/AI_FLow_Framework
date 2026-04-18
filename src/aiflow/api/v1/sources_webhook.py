@@ -23,14 +23,34 @@ import os
 from pathlib import Path
 from typing import Annotated
 
+import asyncpg
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from aiflow.api.deps import get_pool
 from aiflow.sources.api_adapter import ApiSourceAdapter
 from aiflow.sources.exceptions import SourceAdapterError
+from aiflow.sources.sink import IntakePackageSink
+from aiflow.state.repositories.intake import IntakeRepository
 
-__all__ = ["router", "get_api_source_adapter", "reset_api_source_adapter"]
+__all__ = [
+    "router",
+    "get_api_source_adapter",
+    "get_intake_package_sink",
+    "reset_api_source_adapter",
+]
+
+
+async def get_intake_package_sink() -> IntakePackageSink:
+    """FastAPI dependency returning a sink bound to the shared asyncpg pool.
+
+    Override via ``app.dependency_overrides[get_intake_package_sink]`` in tests
+    so each test can supply its own pool / repo (or a fake sink).
+    """
+    pool: asyncpg.Pool = await get_pool()
+    return IntakePackageSink(repo=IntakeRepository(pool))
+
 
 logger = structlog.get_logger(__name__)
 
@@ -121,8 +141,8 @@ def _status_for(message: str) -> int:
 
 
 _RESPONSES: dict[int | str, dict[str, object]] = {
-    202: {
-        "description": "Webhook accepted and enqueued as IntakePackage.",
+    201: {
+        "description": "Webhook accepted and persisted as IntakePackage.",
         "model": WebhookAcceptedResponse,
     },
     400: {
@@ -146,7 +166,7 @@ _RESPONSES: dict[int | str, dict[str, object]] = {
 
 @router.post(
     "/webhook",
-    status_code=202,
+    status_code=201,
     response_model=WebhookAcceptedResponse,
     responses=_RESPONSES,
     summary="Accept an HMAC-signed webhook upload",
@@ -170,6 +190,7 @@ async def accept_webhook(
         ),
     ],
     adapter: Annotated[ApiSourceAdapter, Depends(get_api_source_adapter)],
+    sink: Annotated[IntakePackageSink, Depends(get_intake_package_sink)],
     x_webhook_signature: Annotated[
         str | None,
         Header(
@@ -220,5 +241,16 @@ async def accept_webhook(
     except ValueError as exc:
         logger.info("webhook_bad_request", reason=str(exc), size_bytes=len(payload))
         raise HTTPException(status_code=400, detail=str(exc)) from None
+
+    # Phase 1d: persist via the canonical sink so the webhook is durable
+    # (not just queued in the adapter's in-memory deque). Sink emits the
+    # `source.package_persisted` event for free.
+    await sink.handle(pkg)
+    logger.info(
+        "webhook_persisted",
+        package_id=str(pkg.package_id),
+        size_bytes=len(payload),
+        has_idempotency_key=idempotency_key is not None,
+    )
 
     return WebhookAcceptedResponse(package_id=str(pkg.package_id), status="accepted")
