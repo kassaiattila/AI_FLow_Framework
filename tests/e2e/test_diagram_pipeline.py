@@ -43,6 +43,8 @@ from aiflow.pipeline.adapter_base import adapter_registry
 from aiflow.pipeline.adapters import discover_adapters
 from aiflow.pipeline.runner import PipelineRunner
 
+pytestmark = pytest.mark.asyncio
+
 TEST_USER_ID = "a377062a-ec7f-4244-9a1e-17d7c5865b3c"  # admin@bestix.hu
 
 PIPELINE_YAML = Path("src/aiflow/pipeline/builtin_templates/diagram_generator_v1.yaml").read_text(
