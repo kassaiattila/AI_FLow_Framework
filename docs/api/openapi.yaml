@@ -10296,12 +10296,12 @@ paths:
           description: MIME type of the body.
           title: Content-Type
       responses:
-        '202':
+        '201':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/WebhookAcceptedResponse'
-          description: Webhook accepted and enqueued as IntakePackage.
+          description: Webhook accepted and persisted as IntakePackage.
         '400':
           content:
             application/json:

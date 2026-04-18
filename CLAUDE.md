@@ -54,6 +54,8 @@ alembic upgrade head                      # DB migrations
 `01_PLAN/session_S73_v1_4_2_phase_1c_kickoff.md` — **Phase 1c MERGED 2026-04-16**, tag `v1.4.2-phase-1c`, PR #6 merge commit `bd14519`. Scope delivered: F0.2 CI hygiene (issue #5 closed), F0.3 OpenAPI regen + drift gate (issue #3 closed, architect C3), F0.4 canonical observability events across 5 adapters (C4), F0.5 Alembic 036 backfill (C5a), F0.6 Alembic 037 CHECK trigger on `intake_descriptions` (C5b), F0.7 drift-gate encoding fix + merge + tag. Artifacts: `docs/phase_1c_acceptance_report.md`, `docs/phase_1c_pr_description.md`, `docs/phase_1c_retro.md`. Open follow-up: issue #7 (coverage gate 80% floor vs actual 65.67%). Predecessor: Phase 1b MERGED, tag `v1.4.1-phase-1b`, PR #4.
 
 ## Session Workflow (DOHA-aligned)
+
+**Manuális:**
 ```
 /clear → /next → [session munka] → /session-close → /clear → /next → ...
 ```
@@ -61,9 +63,22 @@ alembic upgrade head                      # DB migrations
 - `/session-close` generálja `session_prompts/NEXT.md` + archív másolat
 - SessionStart hook kiírja ha van kész NEXT.md
 
+**Auto-sprint (autonóm lánc, DOHA mintára):**
+```
+/auto-sprint max_sessions=16 notify=stop_only
+```
+- Egy indítás után végigfut a queue-olt session-eken `ScheduleWakeup ~90s` loop-pal
+- STOP feltételen vagy `max_sessions` cap-en megáll, log entry-vel
+- State: `session_prompts/.auto_sprint_state.json` (gitignored, durable)
+- Log: `session_prompts/.notifications.log` (gitignored, append-only — `tail -f`-elheted)
+- Default file-log mode (`AIFLOW_AUTOSPRINT_NO_EMAIL=1` a `.claude/settings.json`-ban)
+- Helper: `scripts/send_notification.py --kind {info|done|stop|cap} --subject ... --body ...`
+- Reference (Gmail variant, Phase 2): `DOHA/01_PLAN/19_DOHA_AUTO_SPRINT_GUIDE.md`
+
 ## Slash Commands
 
 **Session lifecycle:** `/next` → `/status` → `/implement` → `/dev-step` → `/review` → `/session-close`
+**Auto session:** `/auto-sprint max_sessions=N notify=stop_only|all` (autonóm lánc, lásd Session Workflow)
 **Quick checks:** `/smoke-test`, `/regression`, `/lint-check`
 **Prompts:** `/new-prompt`, `/prompt-tuning`, `/quality-check`
 **Services:** `/service-test`, `/service-hardening`, `/pipeline-test`, `/new-pipeline`

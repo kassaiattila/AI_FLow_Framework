@@ -6,16 +6,26 @@ and alerts therefore cannot pivot by source uniformly. This module defines
 a single canonical emitter that every adapter now additionally calls at
 the enqueue / acknowledge / reject transitions.
 
-Canonical event names:
-    source.package_received  — adapter has taken ownership of a package
-                               (enqueue for push adapters, acknowledge for
-                               pull adapters).
-    source.package_rejected  — adapter has terminated a package with a
-                               reason (size guard, parse failure,
-                               signature mismatch, explicit reject call).
+Canonical event names (the Phase 1d triad — received → persisted → rejected):
+    source.package_received   — adapter has taken ownership of a package
+                                (enqueue for push adapters, acknowledge for
+                                pull adapters).
+    source.package_persisted  — the package is durably written to Postgres
+                                via :meth:`IntakeRepository.insert_package`.
+                                Fired once, from :class:`IntakePackageSink`
+                                (Phase 1d G0.2) after
+                                `repo.insert_package(package)` returns.
+    source.package_rejected   — adapter has terminated a package with a
+                                reason (size guard, parse failure,
+                                signature mismatch, explicit reject call).
+
+`received` and `persisted` are both success-side; `rejected` is terminal on
+failure. Consumers treat the three as mutually exclusive per package.
 
 Stable log-record shape (consumer contract):
-    event:        "source.package_received" | "source.package_rejected"
+    event:        "source.package_received"
+                    | "source.package_persisted"
+                    | "source.package_rejected"
     package_id:   str (UUID)
     tenant_id:    str
     source_type:  "file" | "folder" | "batch" | "api" | "email"
@@ -52,7 +62,11 @@ __all__ = [
 logger = structlog.get_logger(__name__)
 
 
-CanonicalSourceEvent = Literal["source.package_received", "source.package_rejected"]
+CanonicalSourceEvent = Literal[
+    "source.package_received",
+    "source.package_persisted",
+    "source.package_rejected",
+]
 
 
 def emit_package_event(
@@ -65,7 +79,8 @@ def emit_package_event(
 
     Args:
         event: One of the canonical event names
-            (`source.package_received`, `source.package_rejected`).
+            (`source.package_received`, `source.package_persisted`,
+            `source.package_rejected`).
         package: The IntakePackage that just transitioned.
         source_type: Short source identifier
             (`file`, `folder`, `batch`, `api`, `email`).

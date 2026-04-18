@@ -73,6 +73,7 @@ from aiflow.sources import (
     EmailSourceAdapter,
     FileSourceAdapter,
     FolderSourceAdapter,
+    IntakePackageSink,
 )
 from aiflow.state.repositories.intake import IntakeRepository
 from tests.unit.sources.test_email_adapter import (
@@ -236,7 +237,12 @@ async def _matrix_case(
     pool = await asyncpg.create_pool(_db_url(), min_size=1, max_size=2)
     try:
         repo = IntakeRepository(pool)
-        await repo.insert_package(pkg)
+        # Phase 1d: persist via the canonical sink so the 037 CHECK trigger
+        # sees `association_mode` populated for description-bearing packages
+        # (email + file_upload). Folder/Batch/Api have no descriptions, so
+        # the sink's resolver short-circuits and mode stays NULL — fine.
+        sink = IntakePackageSink(repo=repo)
+        await sink.handle(pkg)
         hydrated = await repo.get_package(pkg.package_id)
         assert hydrated is not None
         assert hydrated.package_id == pkg.package_id

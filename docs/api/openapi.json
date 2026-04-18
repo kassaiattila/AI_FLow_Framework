@@ -167,8 +167,8 @@
           }
         ],
         "responses": {
-          "202": {
-            "description": "Webhook accepted and enqueued as IntakePackage.",
+          "201": {
+            "description": "Webhook accepted and persisted as IntakePackage.",
             "content": {
               "application/json": {
                 "schema": {

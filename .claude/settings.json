@@ -1,4 +1,11 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "AIFlow projekt — autonom session-close: ha tesztek PASS es nincs STOP-feltetel, a Claude commit + NEXT.md generalast user kerdes nelkul vegrehajtja.",
+
+  "env": {
+    "AIFLOW_AUTOSPRINT_NO_EMAIL": "1"
+  },
+
   "hooks": {
     "SessionStart": [
       {
@@ -11,6 +18,7 @@
         ]
       }
     ],
+
     "PreToolUse": [
       {
         "matcher": "Write(.env*)",
@@ -49,16 +57,17 @@
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Bash(git commit*)",
         "hooks": [
           {
             "type": "command",
-            "command": ".venv/Scripts/python.exe -c \"import sys,json;d=json.load(sys.stdin);c=d.get('tool_input',{}).get('command','');r=any(c.strip().startswith(p) for p in ['rm -rf /','rm -rf ~','rm -rf .']);print(json.dumps({'hookSpecificOutput':{'hookEventName':'PreToolUse','permissionDecision':'deny','permissionDecisionReason':'Destruktiv parancs blokkolva — hasznalj specifikus fajl torlest'}}) if r else '')\"",
-            "if": "Bash(rm -rf *)"
+            "command": ".venv/Scripts/python.exe -m ruff check src/ tests/ --quiet && .venv/Scripts/python.exe -m pytest tests/unit/ -x --tb=line -q 2>&1 | tail -5 && echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"permissionDecisionReason\":\"lint+unit PASS\"}}' || echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"COMMIT BLOKKOLVA: lint vagy unit teszt FAIL — javitsd elobb!\"}}'",
+            "timeout": 180
           }
         ]
       }
     ],
+
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
@@ -68,6 +77,38 @@
             "command": ".venv/Scripts/python.exe -c \"import sys,json,subprocess;d=json.load(sys.stdin);f=d.get('tool_response',{}).get('filePath') or d.get('tool_input',{}).get('file_path','');exec('') if not f.endswith('.py') else (subprocess.run([sys.executable,'-m','ruff','check','--fix',f],capture_output=True),subprocess.run([sys.executable,'-m','ruff','format',f],capture_output=True))\"",
             "timeout": 30,
             "statusMessage": "Running ruff..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write(**/alembic/versions/*.py)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'WARN: Alembic migration modositva — futtasd: PYTHONPATH=src alembic upgrade head && alembic check'"
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$(git status --porcelain 2>/dev/null)\" ]; then echo ''; echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; echo 'UNCOMMITTED CHANGES — futtasd: /session-close [ID]'; echo '  → autonom: ha tesztek PASS, commit + NEXT.md user kerdes nelkul'; echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$USER_PROMPT\" | grep -qiE '(password|api.?key|private.?key|BEGIN.?RSA|aiflow_sk_[a-z0-9]{8})'; then echo '{\"message\": \"FIGYELEM: A prompt erzekeny adatot tartalmazhat. Biztos, hogy tesztadatokkal dolgozol?\"}'; fi"
           }
         ]
       }

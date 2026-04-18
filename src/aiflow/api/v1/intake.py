@@ -37,7 +37,7 @@ from fastapi import (
 from pydantic import BaseModel, Field, ValidationError
 
 from aiflow.api.deps import get_pool
-from aiflow.intake.associator import associate
+from aiflow.intake.association import resolve_mode_and_associations
 from aiflow.intake.exceptions import FileAssociationError
 from aiflow.intake.package import (
     AssociationMode,
@@ -48,6 +48,7 @@ from aiflow.intake.package import (
     IntakeSourceType,
 )
 from aiflow.sources._fs import sanitize_filename
+from aiflow.sources.sink import IntakePackageSink
 from aiflow.state.repositories.intake import IntakeRepository
 
 __all__ = [
@@ -435,34 +436,23 @@ async def upload_package(
             detail=f"IntakePackage validation failed: {exc.errors()[0]['msg']}",
         ) from None
 
-    if description_models:
-        try:
-            mapping = associate(
-                package,
-                mode=mode,
-                explicit_map=explicit,
-                filename_rules=rules,
-            )
-        except FileAssociationError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from None
-
-        desc_to_files: dict[UUID, list[UUID]] = {d.description_id: [] for d in package.descriptions}
-        for file_id, desc_id in mapping.items():
-            desc_to_files.setdefault(desc_id, []).append(file_id)
-        for desc in package.descriptions:
-            desc.associated_file_ids = desc_to_files.get(desc.description_id, [])
-
-        package.association_mode = (
-            mode
-            if mode is not None
-            else _infer_mode(
-                package=package,
-                filename_rules=rules,
-                explicit_map=explicit,
-            )
+    try:
+        resolve_mode_and_associations(
+            package,
+            forced_mode=mode,
+            filename_rules=rules,
+            explicit_map=explicit,
         )
+    except FileAssociationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
 
-    await repo.insert_package(package)
+    # Single FILE_UPLOAD persistence path: the sink performs the insert and
+    # emits the canonical ``source.package_persisted`` event. The associator
+    # ran above with the HTTP-only forced_mode/filename_rules/explicit_map
+    # kwargs, so ``package.association_mode`` is already populated and the
+    # sink's auto-resolve no-ops.
+    sink = IntakePackageSink(repo=repo)
+    await sink.handle(package)
     logger.info(
         "intake_upload_package_created",
         package_id=str(package.package_id),
@@ -472,24 +462,6 @@ async def upload_package(
         association_mode=(package.association_mode.value if package.association_mode else None),
     )
     return _build_response(package)
-
-
-def _infer_mode(
-    *,
-    package: IntakePackage,
-    filename_rules: list[tuple[str, UUID]] | None,
-    explicit_map: dict[UUID, UUID] | None,
-) -> AssociationMode | None:
-    """Mirror the associator precedence to persist which mode was actually picked."""
-    if explicit_map:
-        return AssociationMode.EXPLICIT
-    if filename_rules:
-        return AssociationMode.FILENAME_MATCH
-    if len(package.files) == len(package.descriptions) and len(package.files) > 0:
-        return AssociationMode.ORDER
-    if len(package.descriptions) == 1 and package.files:
-        return AssociationMode.SINGLE_DESCRIPTION
-    return None
 
 
 def _build_response(package: IntakePackage) -> UploadPackageResponse:
