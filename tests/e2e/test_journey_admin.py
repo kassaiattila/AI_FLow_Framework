@@ -233,16 +233,18 @@ class TestAdminDeepJourney:
         navigate_to(page, "/admin")
         page.wait_for_timeout(1000)
 
-        # Ensure Users tab is active
-        users_tab = page.locator("button").filter(has_text="Users")
+        # Ensure Users tab is active (use stable testid; fall back to text)
+        users_tab = page.locator('[data-testid="admin-tab-users"]')
         if users_tab.count() == 0:
-            users_tab = page.locator("button").filter(has_text="Felhasznalo")
+            users_tab = page.locator("button").filter(has_text="Users")
         if users_tab.count() > 0:
             users_tab.first.click()
             page.wait_for_timeout(300)
 
-        # Click Create User (the brand action button)
-        action_btn = page.locator("button.bg-brand-500")
+        # Click Create User (stable testid; fall back to brand-colored button)
+        action_btn = page.locator('[data-testid="admin-create-user"]')
+        if action_btn.count() == 0:
+            action_btn = page.locator("button.bg-brand-500").filter(has_text="Felhasznalo")
         if action_btn.count() == 0:
             return
         action_btn.first.click()

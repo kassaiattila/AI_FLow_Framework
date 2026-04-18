@@ -236,6 +236,7 @@ export function DashboardNew() {
         {journeyCards.map((card) => (
           <div
             key={card.path}
+            data-testid="journey-card"
             onClick={() => navigate(card.path)}
             className={`cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-gray-900 ${card.borderColor}`}
           >

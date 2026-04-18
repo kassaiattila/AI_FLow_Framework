@@ -121,9 +121,13 @@ export function Rag() {
   ];
 
   return (
-    <PageLayout titleKey="aiflow.rag.title" subtitleKey="aiflow.rag.subtitle" source={data?.source}
+    <PageLayout titleKey="aiflow.rag.title" subtitleKey="aiflow.rag.subtitle" source={data?.source ?? "demo"}
       actions={
-        <button onClick={() => setShowCreate(true)} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+        <button
+          data-testid="rag-new-collection"
+          onClick={() => setShowCreate(true)}
+          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+        >
           {translate("aiflow.rag.newCollection")}
         </button>
       }

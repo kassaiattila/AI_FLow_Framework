@@ -33,6 +33,13 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
     if (collectionId) setSelectedCol(collectionId);
   }, [collectionId]);
 
+  // If collections arrive after mount and no selection exists yet, pick the first one
+  useEffect(() => {
+    if (!selectedCol && collections.length > 0) {
+      setSelectedCol(collections[0].id);
+    }
+  }, [collections, selectedCol]);
+
   // Hooks
   const { messages, addMessage, clearHistory } = useChatHistory(selectedCol);
   const { addToHistory, navigateUp, navigateDown, resetNavigation } = usePromptHistory();
