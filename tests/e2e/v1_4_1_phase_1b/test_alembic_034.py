@@ -10,11 +10,16 @@ NOTE (feedback_asyncpg_pool_event_loop.md): asyncpg pools are event-loop-bound.
 All assertions are merged into one @pytest.mark.asyncio method to share a
 single pool across checks without pytest-asyncio recreating the loop.
 
-Resync note (S70 / E3.4, 2026-05-06): Alembic head advanced to 035 in S66
-(035_association_mode). 035 only ADDS ``intake_packages.association_mode``;
-it does not modify 034's source_type CHECK, NOT NULL, or whitelist, so every
-034-contract assertion remains valid at the current head. The head-revision
-assertion and the round-trip shape were updated to observe both revisions.
+Resync note (S88 / v1.4.4.1, 2026-04-25): Alembic head advanced past 035 in
+Phase 1c (036 association_backfill, 037 check_constraints). The test was
+previously pinned to ``head == "035"`` with a ``downgrade -1`` round-trip,
+which broke once head moved to 037 (downgrade -1 now lands on 036, not 034).
+
+Rewritten to be **head-relative**: the test no longer hard-codes any migration
+identifier. It records the current head, downgrades directly to 034, verifies
+034's CHECK/NOT NULL/whitelist contract holds in isolation, then upgrades
+back to the recorded head and re-verifies. The actual test subject is the
+034 contract, not the specific head revision.
 """
 
 from __future__ import annotations
@@ -110,29 +115,29 @@ async def _assert_034_invariants(conn: asyncpg.Connection) -> None:
 
 @pytest.mark.asyncio
 async def test_migration_034_source_type_hardening() -> None:
-    """034 contract (CHECK, NOT NULL, whitelist) holds at head 035 and survives round-trip."""
+    """034 contract (CHECK, NOT NULL, whitelist) holds at head and survives a round-trip to 034 and back."""
     pool = await get_pool()
 
+    # 1. Record current head (whatever it is — must be >= 034 for this test to be meaningful).
     async with pool.acquire() as conn:
-        # 1. Head revision is 035 (035_association_mode stacks on top of 034)
-        assert await _current_revision(conn) == "035"
+        head_before = await _current_revision(conn)
+        assert head_before is not None, "alembic_version empty — run `alembic upgrade head` first"
 
         # 2-5. 034 invariants hold at current head
         await _assert_034_invariants(conn)
 
-    # 6. Round-trip: downgrade -1 drops 035 (association_mode) -> now at 034
-    down = _alembic("downgrade", "-1")
-    assert down.returncode == 0, f"downgrade failed: {down.stderr}"
+    # 6. Downgrade directly to 034 and verify invariants still hold in isolation.
+    down = _alembic("downgrade", "034")
+    assert down.returncode == 0, f"downgrade to 034 failed: {down.stderr}"
 
     async with pool.acquire() as conn:
         assert await _current_revision(conn) == "034"
-        # 034 invariants still present with 035 rolled back
         await _assert_034_invariants(conn)
 
-    # 7. Upgrade head -> back to 035
+    # 7. Upgrade back to the original head and re-verify.
     up = _alembic("upgrade", "head")
-    assert up.returncode == 0, f"upgrade failed: {up.stderr}"
+    assert up.returncode == 0, f"upgrade head failed: {up.stderr}"
 
     async with pool.acquire() as conn:
-        assert await _current_revision(conn) == "035"
+        assert await _current_revision(conn) == head_before
         await _assert_034_invariants(conn)

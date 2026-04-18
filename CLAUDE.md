@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.4.3** — Phase 1d Adapter Orchestration MERGED 2026-04-24 (PR #9, tag `v1.4.3-phase-1d`, G0.1-G0.8) | API: 8102 | UI: 5174
+**v1.4.3** — Phase 1d Adapter Orchestration MERGED 2026-04-24 (PR #9, tag `v1.4.3-phase-1d`, G0.1-G0.8) | API: 8102 | UI: 5173
 
 ## Structure
 ```
