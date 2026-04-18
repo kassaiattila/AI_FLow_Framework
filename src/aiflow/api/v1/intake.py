@@ -48,6 +48,7 @@ from aiflow.intake.package import (
     IntakeSourceType,
 )
 from aiflow.sources._fs import sanitize_filename
+from aiflow.sources.sink import IntakePackageSink
 from aiflow.state.repositories.intake import IntakeRepository
 
 __all__ = [
@@ -445,7 +446,13 @@ async def upload_package(
     except FileAssociationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
 
-    await repo.insert_package(package)
+    # Single FILE_UPLOAD persistence path: the sink performs the insert and
+    # emits the canonical ``source.package_persisted`` event. The associator
+    # ran above with the HTTP-only forced_mode/filename_rules/explicit_map
+    # kwargs, so ``package.association_mode`` is already populated and the
+    # sink's auto-resolve no-ops.
+    sink = IntakePackageSink(repo=repo)
+    await sink.handle(package)
     logger.info(
         "intake_upload_package_created",
         package_id=str(package.package_id),

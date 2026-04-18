@@ -44,13 +44,14 @@ logger = structlog.get_logger(__name__)
 # Map IntakeSourceType enum values to the short canonical source-type label
 # used by the observability event payload (`file`, `folder`, `batch`, `api`,
 # `email`). Mirrors the labels hardcoded by each adapter in their own legacy
-# event emit sites.
+# event emit sites. Keyed by ``IntakeSourceType.value`` (lowercase string),
+# not ``.name`` — the lookup below uses ``package.source_type.value``.
 _SOURCE_TYPE_LABELS: dict[str, str] = {
-    "FILE_UPLOAD": "file",
-    "FOLDER_IMPORT": "folder",
-    "BATCH_IMPORT": "batch",
-    "API_PUSH": "api",
-    "EMAIL": "email",
+    "file_upload": "file",
+    "folder_import": "folder",
+    "batch_import": "batch",
+    "api_push": "api",
+    "email": "email",
 }
 
 
