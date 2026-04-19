@@ -5757,7 +5757,7 @@ components:
 info:
   description: Enterprise AI Automation Framework
   title: AIFlow API
-  version: 1.3.0
+  version: 1.4.3
 openapi: 3.1.0
 paths:
   /api/v1/admin/api-keys:
