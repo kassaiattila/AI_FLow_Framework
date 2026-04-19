@@ -200,9 +200,9 @@ class TestLoadManifest:
 
 class TestFrameworkCompatibility:
     def test_gte_compatible(self):
-        # Current version is 1.4.3 (v1.4.3-phase-1d tag)
+        # Current version is 1.4.4 (v1.4.4 consolidation tag)
         assert check_framework_compatibility(">=0.1.0") is True
-        assert check_framework_compatibility(">=1.4.3") is True
+        assert check_framework_compatibility(">=1.4.4") is True
 
     def test_gte_incompatible(self):
         assert check_framework_compatibility(">=99.0.0") is False
@@ -211,7 +211,7 @@ class TestFrameworkCompatibility:
         assert check_framework_compatibility("<=2.0.0") is True
 
     def test_exact_match(self):
-        assert check_framework_compatibility("==1.4.3") is True
+        assert check_framework_compatibility("==1.4.4") is True
         assert check_framework_compatibility("==9.9.9") is False
 
     def test_range_constraint(self):
