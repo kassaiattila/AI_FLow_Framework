@@ -1,105 +1,146 @@
 # AIFlow Forward Roadmap
 
 > **Status:** ACTIVE — single-source forward queue for `/auto-sprint` and `/next`.
-> **Last refreshed:** 2026-04-28 (S93, v1.4.4.6)
-> **Owner:** Sprint H consolidation. Subsequent maintainers: update after every session-close.
-> **Scope:** This document is a **forward pointer**, not a recipe. Each session prompt
-> still lives under `session_prompts/`; this file declares the *order* and *intent*.
+> **Last refreshed:** 2026-04-28 (S93 close + use-case-first replan).
+> **Owner:** Sprint I (v1.4.5) and onward. Maintainers: update after every session-close.
+> **Scope:** Forward pointer, not a recipe. Each session prompt lives under
+> `session_prompts/`; this file declares the *order* and *intent*.
+>
+> **Policy (new, from `110_USE_CASE_FIRST_REPLAN.md`):** every sprint from v1.4.5
+> must close with exactly one end-user use-case going end-to-end green. Architecture
+> work rides the use-case it enables; it does not get its own sprint.
 
 ---
 
 ## How to read this
 
-- Sessions are listed in execution order within each track.
-- A session line carries: id, scope summary, primary deliverable, link/anchor.
-- "DONE" lines stay in place as anchor (history lives in git + `session_prompts/archive/`).
-- When a track finishes, fold it into the relevant tag/PR row at the top of the file.
+- Sessions listed in execution order within each sprint.
+- A session line carries: id, scope summary, status.
+- "DONE" lines stay as anchors (history in git + `session_prompts/archive/`).
 - `/auto-sprint` consumes the next **non-DONE** session prompt referenced by `NEXT.md`.
-  This file does **not** replace `NEXT.md`; it explains what `NEXT.md` will point to next.
+- This file does **not** replace `NEXT.md`; it explains what `NEXT.md` points to next.
 
 ---
 
-## Active sprint — v1.4.4 Consolidation (Sprint H)
+## Closed sprint — v1.4.4 Consolidation (Sprint H)
 
 Branch: `feature/v1.4.4-consolidation` | Base: `v1.4.3-phase-1d` (`0d669aa`).
+Status: **SCOPE DONE (S88–S93). PR cut + tag `v1.4.4` pending user approval.**
 
 | Session | Scope | Status |
 |---|---|---|
 | S88 / v1.4.4.1 | Version reconcile, port doc fix, stale prompt archive, NEXT.md cleanup | DONE |
 | S89 / v1.4.4.2 | Frontend dev-env live, journey E2E triage, Untitled UI ADR | DONE |
 | S90 / v1.4.4.3 | Journey E2E rerun + contract regressions | DONE |
-| S91 / v1.4.4.4 | `test_auth` leak fix, e2e asyncio markers, **coverage roadmap** (HARD STOP) | DONE |
+| S91 / v1.4.4.4 | `test_auth` leak fix, e2e asyncio markers, coverage roadmap (HARD STOP) | DONE |
 | S92 / v1.4.4.5 | ROADMAP.md + 104_* drift fix + v1.4.4 PR draft | DONE |
-| **S93 / v1.4.4.6** | **`test_alembic_034` head-relative (ScriptDirectory), `out/` cleanup + .gitignore, `CLAUDE.md` counts sync** | **IN-PROGRESS** |
+| S93 / v1.4.4.6 | `test_alembic_034` head-relative (ScriptDirectory) + `out/` cleanup + CLAUDE.md sync + **use-case-first replan authored** (`110_*`) | DONE |
 
-**Sprint exit gate:** S93 close → cut `v1.4.4` PR + tag (uses `docs/v1.4.4_pr_description.md`).
-After S93, the coverage uplift mini-sprint (S91.A-D) and Phase 1.5 are unblocked in parallel.
+**Sprint exit gate:** v1.4.4 PR open + merge + tag. After tag, `feature/v1.4.5-doc-processing`
+is cut from `main` and Sprint I begins with S94.
 
 ---
 
-## Coverage uplift mini-sprint (parallel to v1.4.5)
+## Active sprint — v1.4.5 "Document processing usable" (Sprint I)
 
-Source: `out/s91_coverage_plan.md`. Goal: 67.0% → ≥80%, close issue #7, flip gate to `fail_under=80`.
+Branch: `feature/v1.4.5-doc-processing` (cut from `main` after `v1.4.4` tag).
+Plan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` §4 Sprint I.
 
-| Session | Target modules | Expected gain |
+| Session | Scope | Status |
 |---|---|---|
-| S91.A | `api/v1/emails.py`, `api/v1/documents.py` (router HTTP tests) | +2.7 p.p. |
-| S91.B | `api/v1/rag_engine.py`, `api/v1/pipelines.py`, `api/v1/process_docs.py`, `api/v1/intent_schemas.py` | +2.4 p.p. |
-| S91.C | `services/email_connector/service.py`, `services/rag_engine/service.py`, `services/notification/service.py`, `pipeline/runner.py` | +2.8 p.p. |
-| S91.D | `vectorstore/pgvector_store.py`, `aiflow.tools/*` decision, auth hardening, gate flip | +2.9..4.6 p.p. |
+| **S94 / v1.4.5.1** | `DocumentExtractorService.extract_from_package()` impl (replaces `NotImplementedError`) + Docling standard pipeline wired as default extractor + PolicyEngine gate | **QUEUED** |
+| S95 / v1.4.5.2 | `RoutingDecision` Pydantic stub + `MultiSignalRouter` + Alembic 038 + Unstructured + Docling std registered as `ParserProvider` impls | QUEUED |
+| S96 / v1.4.5.3 | Azure DI parser (Profile B gated) + PII redaction gate v0 | QUEUED |
+| S97 / v1.4.5.4 | UI: `DocumentDetail` parser badge + extraction JSON + Langfuse trace link. `Prompts.tsx` v1 read-only | QUEUED |
+| S98 / v1.4.5.5 | Golden-path E2E (3 test docs, 1 per parser path) + `/regression` + `/lint-check` + PR + tag `v1.4.5` | QUEUED |
 
-**Cumulative projection:** 67% → ~76–79% after S91.A-C; S91.D crosses ≥80% and flips gate.
+**Sprint exit gate:** upload real PDF in admin UI → see parser badge + extraction JSON + clickable Langfuse trace.
 
 ---
 
-## v1.4.5 — Phase 1.5 (Profile A air-gapped ready, Phase 1 closer)
+## Queued sprint — v1.4.6 "RAG chat usable" (Sprint J)
 
-Reference: `01_PLAN/104_AIFLOW_v2_FINAL_MASTER_INDEX.md` §6.4 + §8.4.
+Branch: `feature/v1.4.6-rag-chat` (cut from `main` after `v1.4.5` tag).
+Plan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` §4 Sprint J.
+
+| Session | Scope |
+|---|---|
+| S99 / v1.4.6.1 | `EmbedderProvider` abstraction: BGE-M3 (Profile A) + Azure OpenAI text-embedding-3-small (Profile B) + `EmbeddingDecision` contract + Alembic 039 |
+| S100 / v1.4.6.2 | `UnstructuredChunker` as RAG ingest step, replaces hardcoded path |
+| S101 / v1.4.6.3 | UI: `Rag` chunk viewer + embedding-model badge + retrieval metrics panel |
+| S102 / v1.4.6.4 | PII redaction gate between Chunker and Embedder + `PIIRedactionReport` stub |
+| S103 / v1.4.6.5 | Golden-path E2E (collection-ingest → chat → citations) + PR + tag `v1.4.6` |
+
+---
+
+## Queued sprint — v1.4.7 "Email intent usable" (Sprint K)
+
+Branch: `feature/v1.4.7-email-intent` (cut from `main` after `v1.4.6` tag).
+Plan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` §4 Sprint K.
+
+| Session | Scope |
+|---|---|
+| S104 / v1.4.7.1 | `EmailSource` → `IntakePackageSink` → `IntentClassifier` glue (adapter exists from Phase 1d) |
+| S105 / v1.4.7.2 | `IntentRoutingPolicy` per tenant (notify / extract / archive / manual review) via PolicyEngine |
+| S106 / v1.4.7.3 | UI: `Emails` scan button + intent badge + routing chip + trace link |
+| S107 / v1.4.7.4 | `Prompts.tsx` v2: edit Langfuse-synced prompts from UI (round-trip PUT + read-back) |
+| S108 / v1.4.7.5 | Golden-path E2E (mailbox scan → 3 emails → intents + routing) + PR + tag `v1.4.7` |
+
+---
+
+## Queued sprint — v1.4.8 "Cross-cutting monitoring + cost" (Sprint L, 1 week)
+
+Branch: `feature/v1.4.8-monitoring-cost` (cut from `main` after `v1.4.7` tag).
+Plan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` §4 Sprint L.
+
+| Session | Scope |
+|---|---|
+| S109 / v1.4.8.1 | `Runs.tsx` + `Monitoring.tsx`: Langfuse drill-down (trace tree, step timings, token counts) |
+| S110 / v1.4.8.2 | `Costs.tsx` + `CostAttribution` stub + PolicyEngine cost-cap enforced at Extractor + Embedder (429 on breach) |
+| S111 / v1.4.8.3 | Playwright regression pack (UC1 + UC2 + UC3 together) + PR + tag `v1.4.8` |
+
+**Sprint exit gate:** v1.4.8 ship-ready — 3 use-cases production-usable, monitored, cost-capped, prompts admin-editable.
+
+---
+
+## v1.4.9 — Vault prod + self-hosted Langfuse
+
+Deferred from old v1.4.5 (0.5-sprint estimate was wrong — full standalone sprint needed).
+Branch: `feature/v1.4.9-vault-langfuse-selfhost`.
 
 | Session | Scope | Acceptance |
 |---|---|---|
-| S94 | Vault `hvac` prod implementation + token rotation tests | `test_vault_token_rotation.py` PASS |
-| S95 | Self-hosted Langfuse Docker + Profile A air-gapped E2E | Full pipeline runs with `cloud_disallowed=true` |
-
-Exit: tag `v1.4.5-phase-1-5`. After S95, **Phase 1 is officially complete** end-to-end.
-
----
-
-## Phase 2 prep (mandatory before v1.5.0 kickoff)
-
-Pre-work that must close before Phase 2 starts. Each is its own session-pack.
-
-- **PP1** — `100_e_AIFLOW_v2_CAPACITY_PLANNING.md` real GPU bench (replace paper-numbers with measured Qwen25-VL VRAM, BGE-M3 throughput, Docling parse latency on the chosen GPU profile).
-- **PP2** — Sign-off the **10 deferred v2 contracts** (see `104_*` §10.3): RoutingDecision v2, ExtractionResult v2, ArchivalArtifact, ReviewTask, ProvenanceRecord, ValidationResult, EmbeddingDecision, PIIRedactionReport, QuarantineItem, CostAttribution. Each contract gets a one-page ADR + Pydantic stub + state-machine sketch before its owning Phase 2 sub-phase starts.
-- **PP3** — `100_f_AIFLOW_v2_HITL_WORKLOAD_MODEL.md` review-queue SLA validation against actual review volume from Phase 1 production data.
-
-These three are sequencing constraints, not date constraints. Do not date-stamp.
+| S112 | Vault `hvac` prod client + token rotation + `test_vault_token_rotation.py` | Vault dev + prod profile tested with real Vault container |
+| S113 | Self-hosted Langfuse Docker + Profile A air-gapped E2E | Full UC1 pipeline runs with `cloud_disallowed=true` and zero outbound cloud calls |
+| S114 | PR + tag `v1.4.9-phase-1-5`. **Phase 1 officially complete end-to-end.** | — |
 
 ---
 
 ## v1.5.x — Phase 2 (architectural refinement)
 
-Reference: `104_*` §4 phase ordering. Each version = one Phase 2 sub-phase = ~1 sprint.
+Reference: `104_*` §4 phase ordering. Each version = one Phase 2 sub-phase ≈ 1 sprint.
+Sequencing policy: Phase 2 sub-phase kicks off **only after** its enabling pre-work spike (PP0) is green.
 
 | Version | Sub-phase | Scope |
 |---|---|---|
-| v1.5.0 | 2a — Multi-signal routing | PyMuPDF4LLM + Docling provider + RoutingDecision v2 contract activation |
-| v1.5.1 | 2b — VLM stack | Docling VLM + Qwen25-VL + vLLM; activates ExtractionResult v2 |
-| v1.5.2 | 2c — Embedding providers | BGE-M3 + e5-large + Azure OpenAI + PIIRedactionReport contract |
-| v1.5.3 | 2d — Archival | Gotenberg + veraPDF + ArchivalArtifact + QuarantineItem + CostAttribution contracts |
-| v1.5.4 | 2e — Acceptance | 10 processing-flow E2E + Profile A/B parity + Phase 2 acceptance matrix |
+| v1.5.0 | 2a — VLM hard-case fallback | Docling VLM + Qwen25-VL + vLLM registered as `ParserProvider`; router picks VLM when OCR-conf below threshold |
+| v1.5.1 | 2b — Embedding provider variety | e5-large registered alongside BGE-M3 + Azure OpenAI; EmbeddingDecision v2 upgrade |
+| v1.5.2 | 2c — Archival | Gotenberg + veraPDF + `ArchivalArtifact` + `QuarantineItem` + `CostAttribution` upgrade |
+| v1.5.3 | 2d — Acceptance | 10 processing-flow E2E + Profile A/B parity + Phase 2 acceptance matrix |
 
-Exit: tag `v1.5.4-phase-2`. After v1.5.4, **Phase 2 is complete** and the system is feature-complete for the document_pipeline target architecture.
+Exit: tag `v1.5.3-phase-2`. After v1.5.3, **Phase 2 is complete** and the system is feature-complete for the target processing architecture.
+
+**PP0 (pre-work spike, blocks each Phase 2 sprint):** for each new provider (Qwen25-VL, e5-large, Gotenberg, veraPDF), 1-day sandbox + contract ADR + capacity bench **before** the Phase 2 sub-sprint plans that provider.
 
 ---
 
 ## v1.6.x — Phase 3 (governance & ops)
 
-Reference: `104_*` §4. Three sprints. Sequenced after Phase 2 acceptance.
+Reference: `104_*` §4. Sequenced after Phase 2 acceptance.
 
-- **v1.6.0** — Audit lineage (N17) + provenance map (N18) + ProvenanceRecord contract activation.
-- **v1.6.1** — OTel tracer (N19) + Prometheus metrics (N20) + ValidationResult contract.
-- **v1.6.2** — CrewAI bounded sidecar (N22 + N22b experiment) + ReviewTask + EmbeddingDecision contract activation + N23 typer CLI extensions.
+- **v1.6.0** — Audit lineage (N17) + provenance map (N18) + `ProvenanceRecord` contract activation.
+- **v1.6.1** — OTel tracer (N19) + Prometheus metrics (N20) + `ValidationResult` contract.
+- **v1.6.2** — CrewAI bounded sidecar (N22 + N22b experiment) + `ReviewTask` + `EmbeddingDecision` v2 + N23 typer CLI extensions.
 
 Exit: tag `v1.6.2-phase-3`. After v1.6.2, **Phase 3 closes** and the platform is ops-ready.
 
@@ -118,19 +159,25 @@ Not committed; activated only if business case lands.
 
 ## Cross-cutting backlogs
 
-These do not block any phase but should ride along with the nearest relevant session:
+Reassessed S93-close (many prior items were stale or already solved):
 
-- `tests/e2e/v1_4_1_phase_1b/test_alembic_034.py` head assertion drift (035→037). Owner: S93.
-- `out/` log accumulation cleanup (~25 untracked log/json files). Owner: S93.
-- `CLAUDE.md` "Key Numbers" sync (test counts, services, endpoints). Owner: S93 + every sprint close.
-- Frontend `pages-new/` vs `src/components/` Untitled UI fragmentation — ADR exists (`01_PLAN/ADR-UI-Library.md`); enforcement is per-UI-session.
+- **`aiflow-admin` Untitled UI fragmentation** — ADR `01_PLAN/ADR-UI-Library.md` binding; per-UI-session enforcement.
+- **LangChain opt-in scope** — max 3 importers (classifier, extractor, prompt-template helper). Re-audit at v1.4.8 tag cut.
+- **§10.3 deferred contracts** — 7 remain after v1.4.8 (see `110_*` §5). Each lands in its owning Phase 2/3 sub-sprint.
+- **Coverage gate flip** — from `fail_under=67` to `fail_under=80`. Target: v1.4.8 tag. Drivers: new tests per sprint already push coverage up; S91.A–D coverage mini-sprint no longer standalone, absorbed into the sprint-by-sprint new-test target.
+
+**Retired (done or obsolete):**
+- ~~`test_alembic_034` head assertion drift~~ — DONE S93.
+- ~~`out/` log accumulation cleanup~~ — DONE S93.
+- ~~`CLAUDE.md` key-numbers sync~~ — DONE S93, enforced every sprint close going forward.
+- ~~S91.A–D coverage mini-sprint~~ — absorbed into sprint-by-sprint new-test targets.
 
 ---
 
 ## Pointers
 
+- Use-case-first replan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md`
 - Master architecture index: `01_PLAN/104_AIFLOW_v2_FINAL_MASTER_INDEX.md`
-- Phase 1a guide: `01_PLAN/106_AIFLOW_v2_PHASE_1a_IMPLEMENTATION_GUIDE.md`
-- Sprint H kickoff: `01_PLAN/session_S88_v1_4_4_consolidation_kickoff.md`
-- Coverage plan: `out/s91_coverage_plan.md`
+- Phase 1a implementation guide (done): `01_PLAN/106_AIFLOW_v2_PHASE_1a_IMPLEMENTATION_GUIDE.md`
+- Sprint H kickoff (done): `01_PLAN/session_S88_v1_4_4_consolidation_kickoff.md`
 - DOHA auto-sprint reference: `DOHA/01_PLAN/19_DOHA_AUTO_SPRINT_GUIDE.md`
