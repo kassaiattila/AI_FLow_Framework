@@ -32,7 +32,7 @@
       "stub": "Stub",
       "demo": "Demo",
       "live": "Live",
-      "backend": "Backend",
+      "backend": "Live",
       "subprocess": "Lokalis feldolgozas"
     },
     "skillDesc": {
@@ -401,7 +401,7 @@
       "createTitle": "Uj kollekcio letrehozasa",
       "editTitle": "Kollekcio szerkesztese",
       "deleteTitle": "Kollekcio torlese?",
-      "deleteConfirm": "Ez veglgesen torli a kollekciot es minden dokumentumat, chunk-jat es lekerdezesi elozmenyeit.",
+      "deleteConfirm": "Biztosan torli? Ez veglgesen torli a kollekciot es minden dokumentumat, chunk-jat es lekerdezesi elozmenyeit.",
       "createSuccess": "Kollekcio letrehozva",
       "editSuccess": "Kollekcio frissitve",
       "deleteSuccess": "Kollekcio torolve",

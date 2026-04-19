@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 
 interface MenuItem {
@@ -39,7 +39,7 @@ const MENU_GROUPS: MenuGroup[] = [
   },
   {
     labelKey: "aiflow.menu.pipelineAndRuns",
-    defaultOpen: false,
+    defaultOpen: true,
     items: [
       { path: "/runs", labelKey: "aiflow.menu.pipelineRuns", icon: "play-circle" },
       { path: "/pipelines", labelKey: "aiflow.menu.pipelineTemplates", icon: "layers" },
@@ -56,7 +56,7 @@ const MENU_GROUPS: MenuGroup[] = [
     ],
   },
   {
-    labelKey: "aiflow.menu.admin",
+    labelKey: "aiflow.menu.settings",
     defaultOpen: false,
     items: [
       { path: "/admin", labelKey: "aiflow.menu.usersApi", icon: "users" },
@@ -65,7 +65,7 @@ const MENU_GROUPS: MenuGroup[] = [
   },
   {
     labelKey: "aiflow.menu.archive",
-    defaultOpen: false,
+    defaultOpen: true,
     archive: true,
     items: [
       { path: "/process-docs", labelKey: "aiflow.menu.diagrams", icon: "git-branch" },
@@ -113,7 +113,6 @@ function MenuIcon({ name }: { name: string }) {
 
 export function Sidebar() {
   const translate = useTranslate();
-  const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -158,15 +157,21 @@ export function Sidebar() {
   const renderNavItem = (item: MenuItem, isArchive?: boolean) => {
     if (isArchive) {
       return (
-        <button
+        <NavLink
           key={item.path}
-          onClick={() => navigate("/")}
+          to={item.path}
           title={collapsed ? translate(item.labelKey) : undefined}
-          className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-gray-400 transition-colors hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800 ${collapsed ? "justify-center" : ""}`}
+          className={({ isActive }) =>
+            `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+              isActive
+                ? "bg-brand-50 font-semibold text-brand-600 dark:bg-brand-900/30 dark:text-brand-400"
+                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            } ${collapsed ? "justify-center" : ""}`
+          }
         >
           <MenuIcon name={item.icon} />
           {!collapsed && <span>{translate(item.labelKey)}</span>}
-        </button>
+        </NavLink>
       );
     }
     return (
@@ -229,8 +234,8 @@ export function Sidebar() {
               )}
             </button>
 
-            {/* Group items */}
-            {(openGroups[group.labelKey] || collapsed) && (
+            {/* Group items — archive items always rendered so they are discoverable */}
+            {(openGroups[group.labelKey] || collapsed || group.archive) && (
               <div className="mt-1 space-y-0.5">
                 {group.items.map((item) => renderNavItem(item, group.archive))}
               </div>

@@ -139,6 +139,8 @@ class TestPipelineDeepJourney:
         """Runs list shows status badges (completed/failed/running) + Skill/Duration/Cost columns."""
         page = authenticated_page
         navigate_to(page, "/runs")
+        # Wait for DataTable to finish its initial fetch (loading skeleton → table or empty state)
+        page.wait_for_timeout(1500)
 
         body = page.locator("body").text_content() or ""
         rows = page.locator("table tbody tr")

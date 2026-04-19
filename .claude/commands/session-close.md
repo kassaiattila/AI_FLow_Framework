@@ -1,67 +1,98 @@
 ---
 name: session-close
-description: KOTELEZO session lezaras — validacio, commit, kovetkezo session prompt generalas
+description: KOTELEZO session lezaras — autonom validacio, commit, NEXT.md generalas (user kerdes nelkul ha minden PASS)
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Session Close — KÖTELEZŐ minden session végén
 
 ## Argumentum
-$ARGUMENTS — Session azonosító (pl. "S44", "D0.1")
+$ARGUMENTS — Session azonosító (pl. "S44", "D0.1", "auto" ha az aktuális)
+
+---
+
+## AUTONOM DÖNTÉSI FOLYAMAT (ALAPÉRTELMEZETT)
+
+> **A FOLYAMAT VÉGIGFUT USER KÉRDÉS NÉLKÜL, ha minden gate PASS és nincs STOP feltétel.**
+> User csak akkor avatkozik közbe, ha:
+>   - bármelyik validációs gate FAIL (és 2 próba után sem javítható), VAGY
+>   - explicit STOP feltétel áll elő (lásd `STOP FELTÉTELEK` szekció)
+>
+> **NE kérdezz** "folytassam?", "commitoljam?", "generáljam a NEXT.md-t?" — egyszerűen csináld.
 
 ---
 
 ## FÁZIS 1: VALIDÁCIÓ (5 gate — BLOKKOLÓ)
 
-Futtasd sorban. **Ha BÁRMELY gate FAIL → NE zárd le a session-t! Javítsd először.**
+Futtasd párhuzamosan ahol lehet. **Bármely FAIL → automatikus javítási kísérlet (max 2x), utána STOP.**
 
 ```bash
-# Gate 1: Ruff lint
-python -m ruff check src/ tests/
+# Gate 1: Ruff lint (auto-fix elérhető)
+.venv/Scripts/python.exe -m ruff check src/ tests/ --quiet && echo "PASS: lint" || { .venv/Scripts/python.exe -m ruff check src/ tests/ --fix --quiet; .venv/Scripts/python.exe -m ruff check src/ tests/ --quiet; }
 
-# Gate 2: TypeScript (ha UI változás volt)
-cd aiflow-admin && npx tsc --noEmit
+# Gate 2: TypeScript (csak ha aiflow-admin/ érintett)
+if git diff --cached --name-only HEAD 2>/dev/null | grep -q '^aiflow-admin/'; then
+  cd aiflow-admin && npx tsc --noEmit && cd ..
+fi
 
-# Gate 3: Unit tesztek
-python -m pytest tests/unit/ -x -q
+# Gate 3: Unit tesztek (BLOKKOLO)
+.venv/Scripts/python.exe -m pytest tests/unit/ -x -q 2>&1 | tail -5
 
-# Gate 4: E2E collect-only (szintaktikai ellenőrzés)
-python -m pytest tests/e2e/ --collect-only -q
+# Gate 4: E2E collect-only (szintaktikai)
+.venv/Scripts/python.exe -m pytest tests/e2e/ --collect-only -q 2>&1 | tail -3
 
-# Gate 5: Git status — nincs staged credentials
-git status
+# Gate 5: Git status snapshot
+git status --short
 ```
+
+**Gate értékelés:**
+- MIND PASS → ugorj a FÁZIS 1b-re (commit), USER KÉRDÉS NÉLKÜL
+- BÁRMELYIK FAIL → próbáld javítani (max 2 iteráció), ha még mindig FAIL → STOP, jelezz a usernek
 
 ---
 
-## FÁZIS 1b: GIT COMMIT (kötelező)
+## FÁZIS 1b: GIT COMMIT (autonom)
+
+> **A `git commit` PreToolUse hook ujra futtatja a lint+unit teszteket — ha FAIL, blokkol.**
+> Tehát biztonságos automatikusan futtatni.
 
 ```bash
-# Stage CSAK a módosított fájlokat (SOHA NEM git add -A!)
-git add src/<affected> tests/<affected> [egyéb érintett fájlok]
+# 1. Stage CSAK a session-ben módosított fájlok (SOHA git add -A!)
+#    Olvasd ki a `git status --short`-ból a modositott / uj fajlokat es add hozzá:
+git add <konkret_fajl_1> <konkret_fajl_2> ...
 
-# Conventional commit + session ID
-git commit -m "feat/fix/refactor(<scope>): $ARGUMENTS — [rövid leírás]
+# TILOS: .env, credentials, *.key, *.pem, node_modules/, .venv/, __pycache__/
 
-- [részlet 1]
-- [részlet 2]
-- [részlet 3]
+# 2. Conventional commit (HEREDOC formatban!)
+git commit -m "$(cat <<'EOF'
+<type>(<scope>): $ARGUMENTS — <rovid leiras>
 
-Session: $ARGUMENTS | Sprint: [X] | Phase: [N]
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
+- <reszlet 1>
+- <reszlet 2>
+- <reszlet 3>
+
+Session: $ARGUMENTS | Sprint: <X> | Phase: <N>
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+EOF
+)"
+
+# 3. Push (best-effort, offline OK)
+git push 2>&1 | tail -3 || echo "WARN: push sikertelen (offline?) — manualis push kesobb"
 ```
+
+**Commit típusok:** `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`
 
 ---
 
 ## FÁZIS 2: SESSION SUMMARY
 
-Írj egy tömör összefoglalót a usernek:
+Egy tömör blokk a usernek (NE kérdezz, csak írd ki):
 
 ```
 === SESSION SUMMARY ===
 Session ID:    $ARGUMENTS
-Sprint:        [sprint azonosító]
-Branch:        [git branch]
+Sprint:        <azonosito>
+Branch:        <git branch>
 Duration:      ~N perc
 
 Elvégezve:
@@ -73,186 +104,171 @@ Módosított fájlok:
 - tests/... (N fájl)
 
 Teszt státusz:
-- Unit: N PASS / M FAIL
-- Lint: PASS/FAIL
-- tsc: PASS/FAIL
+- Unit: N PASS / 0 FAIL
+- Lint: PASS
+- tsc: PASS / N/A
 
-Git: N commit (HEAD: [hash])
-Alembic: migration NNN (ha új)
+Git: <N> commit (HEAD: <hash>)
+Alembic: migration <NNN> (ha új)
 ```
 
 ---
 
-## FÁZIS 3: NEXT SESSION PROMPT GENERÁLÁS (KRITIKUS!)
+## FÁZIS 3: NEXT SESSION PROMPT GENERÁLÁS (autonom)
 
-### 3.1 Kontextus gyűjtés
-
-Olvasd be a következő információkat:
+### 3.1 Kontextus gyűjtés (párhuzamosan)
 
 ```bash
-# Git állapot
 git branch --show-current
 git log --oneline -5
 git diff --stat HEAD~1
-
-# Teszt számok
-python -m pytest tests/unit/ --collect-only -q 2>&1 | tail -1
-python -m pytest tests/e2e/ --collect-only -q 2>&1 | tail -1
-
-# Alembic
-PYTHONPATH=src alembic current 2>&1 | tail -1
-
-# Aktuális terv — a következő feladat meghatározásához
-# Olvasd el az aktuális sprint plan-t a CLAUDE.md-ből
+.venv/Scripts/python.exe -m pytest tests/unit/ --collect-only -q 2>&1 | tail -1
+.venv/Scripts/python.exe -m pytest tests/e2e/ --collect-only -q 2>&1 | tail -1
+PYTHONPATH=src .venv/Scripts/python.exe -m alembic current 2>&1 | tail -1
 ```
 
-### 3.2 Következő feladat meghatározás
+### 3.2 Következő feladat meghatározás (autonom)
 
-Olvasd el az aktuális sprint/phase terv dokumentumot (CLAUDE.md-ben hivatkozott), és határozd meg:
-- Mi a KÖVETKEZŐ logikai lépés a tervben?
-- Milyen fájlokat kell majd érinteni?
+Olvasd el az aktuális sprint tervet (CLAUDE.md → `01_PLAN/106_*` vagy aktuális). Határozd meg:
+- Mi a következő logikai session a tervben?
+- Milyen fájlokat érint?
 - Milyen előfeltételek vannak?
 
-### 3.3 Session prompt generálás — KÉT MÁSOLAT
+**Ne kérdezz a usertől** ha a terv egyértelmű. Ha a terv elágazik vagy döntés kell → **csak akkor** kérdezz.
 
-**SABLON:**
+### 3.3 Két fájl mentése (KÖTELEZŐ!)
+
+```
+session_prompts/S{N+1}_{next_task_id}_prompt.md   ← archív (sosem írod felül)
+session_prompts/NEXT.md                            ← pointer (mindig felülíródik)
+```
+
+**Mindkét fájl AZONOS tartalommal.** A `/next` parancs a `NEXT.md`-t olvassa.
+
+### 3.4 SABLON
 
 ```markdown
 # AIFlow [Sprint X] — Session [N+1] Prompt ([next task ID])
 
 > **Datum:** [YYYY-MM-DD]
-> **Branch:** `[jelenlegi branch]`
-> **HEAD:** `[commit hash]`
-> **Port:** API 8102 (dev), Frontend 5174 (dev)
-> **Elozo session:** [jelen session] — [mi készült el, 1-2 mondat]
-> **Terv:** `01_PLAN/[aktualis terv].md` (Section [X])
+> **Branch:** `[branch]`
+> **HEAD:** `[hash]` ([rovid leiras])
+> **Port:** API 8102 | Frontend 5174
+> **Elozo session:** [jelen ID] — [mi készült el, 1-2 mondat]
+> **Terv:** `01_PLAN/[terv].md` (Section [X])
 > **Session tipus:** [IMPLEMENTATION / TESTING / HARDENING / KICKOFF]
-> **Workflow:** [fő lépések felsorolása]
 
 ---
 
 ## KONTEXTUS
 
 ### Honnan jöttünk
-[Sprint és session összefoglaló — mi készült el eddig]
+[2-3 sor — előző session eredménye]
 
 ### Hova tartunk
-[Mi a következő milestone, terv referencia]
+[Következő milestone, terv referencia]
 
 ### Jelenlegi állapot
 ```
-[szolgáltatás számok] service | [endpoint számok] endpoint | [tábla számok] DB tábla | [migration számok] Alembic migration
-[unit teszt] unit test | [e2e teszt] E2E | [skill számok] skill | [ui oldal] UI oldal
+[N] service | [M] endpoint | [K] DB tábla | [L] Alembic migration
+[X] unit | [Y] E2E | [Z] skill | [W] UI oldal
 ```
 
 ---
 
-## ELŐFELTÉTELEK (ELLENŐRIZNI ELŐSZÖR!)
+## ELŐFELTÉTELEK
 
 ```bash
-# Branch ellenőrzés
-git branch --show-current  # Expected: [branch]
-git log --oneline -3       # Expected: HEAD = [hash]
-
-# Baseline smoke
-python -m pytest tests/unit/ -x -q          # [N]+ PASS
-python -m ruff check src/ tests/             # 0 error
-cd aiflow-admin && npx tsc --noEmit          # 0 error
+git branch --show-current        # Expected: [branch]
+git log --oneline -3             # HEAD: [hash]
+.venv/Scripts/python.exe -m pytest tests/unit/ -x -q       # [N]+ PASS
+.venv/Scripts/python.exe -m ruff check src/ tests/         # 0 error
 ```
 
 ---
 
 ## FELADATOK
 
-### LÉPÉS 1: [Első feladat neve]
+### LÉPÉS 1: [név]
 ```
-Cél: [mit kell elérni]
-Fájlok: [érintett fájlok listája]
-Forrás: [terv dokumentum referencia]
+Cél:    [mit elérni]
+Fájlok: [érintett fájlok]
+Forrás: [terv referencia]
 ```
 
-### LÉPÉS 2: [Második feladat neve]
+### LÉPÉS 2: [név]
 [...]
 
-### LÉPÉS N: Lint + Regresszió + Commit
+### LÉPÉS N: Validáció + commit
 ```bash
-python -m ruff check src/[érintett]/ tests/[érintett]/
-python -m pytest tests/unit/ -x -q
-```
-
----
-
-## KÓD REFERENCIÁK
-
-```
-# OLVASD! — Ezeket a dokumentumokat KELL elolvasni:
-01_PLAN/[terv dokumentum]    — Section [X]
-src/aiflow/[modul]/          — [leírás]
+.venv/Scripts/python.exe -m ruff check src/[mod]/ tests/[mod]/
+.venv/Scripts/python.exe -m pytest tests/unit/ -x -q
+/session-close [next ID]
 ```
 
 ---
 
 ## STOP FELTÉTELEK
 
-Ha BÁRMELYIK bekövetkezik → ÁLLJ meg és kérj iránymutatást:
-- Architektúra döntés szükséges (→ `/review` előbb)
-- Külső függőség hiányzik vagy nem elérhető
+ÁLLJ MEG és kérj iránymutatást, ha:
+- Architektúra döntés szükséges
+- Külső függőség nem elérhető (LLM, DB, Redis nem indítható)
 - Teszt FAIL amit 2 próba után sem sikerül javítani
-- Scope jelentősen nőtt a tervhez képest
+- Scope >2x az eredeti becslés
 - Security concern (PII, auth, injection)
+- Schema breaking change (nem additive Alembic)
 
 ---
 
 ## SESSION VÉGÉN
 
 ```
-1. /session-close [session ID]    — validáció + commit + NEXT.md generálás
+/session-close [session ID]    ← autonom validacio + commit + NEXT.md
+```
 ```
 
 ---
 
-*[Sprint azonosító] session: S[N+1] = [task ID]*
-```
+## FÁZIS 4: USER UTASÍTÁSOK (záró blokk)
 
-### 3.4 Fájl mentés (KÉT MÁSOLAT!)
-
-```bash
-# 1. Archív másolat (session ID-vel a fájlnévben, SOHA nem íródik felül)
-write "session_prompts/S{next_session_num}_{next_id}_prompt.md"
-
-# 2. Aktív pointer (MINDIG felülíródik — /next ezt olvassa!)
-write "session_prompts/NEXT.md"
-```
-
-**KRITIKUS:** A `session_prompts/NEXT.md` a session pointer. A `/next` parancs EZT olvassa be.
-Mindkét fájl AZONOS tartalommal.
-
----
-
-## FÁZIS 4: USER UTASÍTÁSOK
+Kiírod a usernek (ne kérdezz, csak közöld):
 
 ```
 === SESSION LEZÁRVA ===
 
-Következő session prompt generálva:
+Validáció:    PASS (lint, unit, tsc, e2e collect)
+Commit:       <hash> "<rövid msg>"
+Push:         <PASS / WARN: offline>
+
+Következő session prompt:
   session_prompts/NEXT.md
   session_prompts/S{N+1}_{id}_prompt.md
 
-Következő lépések:
-  1. /clear                    ← kontextus törlés
-  2. /next                     ← új session AUTOMATIKUSAN indul!
-
-Vagy ha döntés/hiba miatt meg kell állni:
-  → Olvasd el: session_prompts/NEXT.md
-  → Adj iránymutatást mielőtt /next-et futtatod!
+Folytatás:
+  /clear → /next
 ```
 
 ---
 
-## STOP FELTÉTELEK (NE zárd le a session-t!)
+## STOP FELTÉTELEK (ekkor NE zárd le autonóman, kérdezz!)
 
-- Architektúra döntés szükséges (→ `/review` előbb)
-- Lint FAIL (2 próba után sem javítható)
-- Security concern (PII, auth, injection)
-- Scope jelentősen nőtt (→ tervezés kell)
-- Külső függőség hiányzik
+User közbeavatkozás KELL, ha bármelyik:
+
+1. **Lint FAIL** auto-fix után is (2 próba)
+2. **Unit teszt FAIL** és nem triviális javítás
+3. **TypeScript hiba** aiflow-admin/ módosításnál
+4. **Alembic migration** új és nem futott `upgrade head` ellen
+5. **Architektúra döntés** szükséges (új abstraction, contract change)
+6. **Security concern** (új auth flow, PII handling, secret management)
+7. **Scope drift** — a session jelentősen túlnőtt az eredeti tervezetten
+8. **Külső dependency** hiányzik (LLM API down, Vault unreachable)
+9. **Branch protection** — main/master érintett (sose commitolj rá direktben)
+10. **Sprint-vége regresszió** szükséges és nem futott le sikeresen
+
+Ezekben az esetekben:
+```
+=== SESSION NEM ZÁRHATÓ AUTONÓMAN ===
+Ok: <konkrét leírás>
+Szükséges user akció: <mit kérünk a usertől>
+TILOS: automatikusan tovább lépni!
+```

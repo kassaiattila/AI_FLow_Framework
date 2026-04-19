@@ -77,6 +77,9 @@ def pdf_paths() -> list[str]:
     return paths
 
 
+pytestmark = pytest.mark.asyncio
+
+
 class TestPipelineRunnerDBPersistence:
     """Phase 2 gate: PipelineRunner persists run + steps + cost to real DB.
 

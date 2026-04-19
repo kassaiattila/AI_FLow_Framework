@@ -100,6 +100,9 @@ def _ensure_outlook_running() -> None:
         pytest.skip(f"Outlook COM not accessible: {exc}")
 
 
+pytestmark = pytest.mark.asyncio
+
+
 class TestInvoiceFinderPhase3:
     """Full 8-step pipeline on real Outlook COM — 3 accounts, 1 comprehensive test.
 

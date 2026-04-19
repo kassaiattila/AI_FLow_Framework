@@ -343,17 +343,27 @@ A jovobeni architektura dontesekhez `101_*` komponens szekcioiban vagy kulon ADR
 
 ### 7.2 v1.4.5 Phase 1 complete (cel)
 
+> **Scope correction (2026-04-27, S92):** a Phase 1a (v1.4.0) szallitmany
+> **3 intake Pydantic contract** (IntakePackage / IntakeFile / IntakeDescription +
+> 4 enum + 3 exception) es **1 IntakeStateMachine** (IntakeFile lifecycle) lett —
+> nem a korabban jelzett 13 + 7. A hianyzo 10 v2 contract es a 6 tovabbi state machine
+> a Phase 2 pre-work-ben lesz leszallitva az erintett domen aktivalasa elott
+> (lasd Section 10.3 "Deferred v2 contracts"). A Phase 1a foundation DONE status
+> valtozatlan — a scope pontositas a transparencia erdekeben tortent.
+
 | Metrika | Ertek | Valtozas |
 |---------|-------|----------|
 | Services | 27 (+ policy_engine service layer) | +1 |
 | API endpoints | ~175 (+ intake/upload, policy, provider, routing) | +10 |
 | DB tablak | ~52 (+ intake_packages, intake_files, intake_descriptions, package_associations, policy_overrides, routing_decisions) | +6 |
-| Alembic migraciok | 33 (030-033) | +4 |
+| Alembic migraciok | 37 (032 intake_tables + 033 policy_overrides + 034-037 Phase 1b-1d) | +8 vs v1.3.0 |
 | Pipeline adapterek | 22 (+ intake_normalize) | +1 |
-| New Pydantic contracts | +13 (100_b) | +13 |
-| State machines | +7 (100_c) | +7 |
+| New Pydantic contracts (Phase 1a actual) | +3 intake (IntakePackage/File/Description) + 4 enum + 3 exception | +3 intake |
+| State machines (Phase 1a actual) | +1 (IntakeStateMachine — IntakeFile lifecycle) | +1 |
+| Deferred v2 contracts (Phase 2+) | 10 (lasd §10.3) | — |
+| Deferred state machines (Phase 2+) | 6 (lasd §10.3) | — |
 | Unit tests | ~1550 (+ 130 intake + policy + provider) | +~126 |
-| Domain contracts | 13 formal ABC + test framework | NEW |
+| Domain contracts | 3 intake formal Pydantic v2 + 4 provider ABC + test framework | NEW |
 | Profile deployments | 2 (A + B, single codebase) | NEW |
 
 ### 7.3 v1.5.4 Phase 2 complete (cel)
@@ -376,8 +386,8 @@ A jovobeni architektura dontesekhez `101_*` komponens szekcioiban vagy kulon ADR
 
 | Kategoria | Kritetium | Hely | E2E lefedettseg | Statusz |
 |-----------|-----------|------|-----------------|---------|
-| Contracts | 13 Pydantic modell Pydantic v2 syntax | `100_b` | `test_intake_package_lifecycle.py` | DONE (S44) |
-| State | 7 entitas state machine + validator | `100_c` | `test_intake_package_lifecycle.py` | DONE (S44) |
+| Contracts | 3 intake Pydantic modell (IntakePackage / IntakeFile / IntakeDescription) + 4 enum + 3 exception, Pydantic v2 syntax. A 10 tovabbi v2 contract Phase 2+ (lasd §10.3). | `100_b` | `test_intake_package_lifecycle.py` | DONE (S44) — scope pontositva 2026-04-27 |
+| State | 1 IntakeStateMachine (IntakeFile lifecycle) + validator. A 6 tovabbi state machine Phase 2+ (lasd §10.3). | `100_c` | `test_intake_package_lifecycle.py` | DONE (S44) — scope pontositva 2026-04-27 |
 | Policy | 30+ parameter PolicyEngine + profile override | `100_*` Section 6 | `test_policy_engine_profile_switch.py`, `test_skill_instance_policy_override.py` | DONE (S46, S48, S49) |
 | Provider | 4 ABC + contract test framework | `103_*` Section 5 | `test_provider_registry_contract.py` | DONE (S47) |
 | Migration | Alembic 032-033 + rollback tesztelve | `100_d` | `test_intake_package_lifecycle.py` (end-to-end with 032+033 schema) | DONE (S45, S48) |
@@ -456,6 +466,45 @@ SF4 (Vault Phase 1.5) + SF5 (self-hosted Langfuse) MAR megoldva a MF4 keretein b
 
 Lasd `103_*` Section 10 (tovabbi vizsgalando szempontok).
 
+### 10.3 Deferred v2 contracts (Phase 2+ scope)
+
+> **Kontextus (2026-04-27, S92):** A Phase 1a szallitmanya 3 intake contract + 1 state
+> machine volt — a teljes 13 + 7 scope-bol a kovetkezo 10 contract es 6 state machine
+> az erintett Phase 2/3 sub-phase pre-work-jeben keszul el. Minden tetel egy egyoldalas
+> ADR + Pydantic stub + state-machine sketch formaban zar le, mielott az owning Phase
+> sub-sprint elindul. A `106_*` Phase 1a guide ezt az intake magot irta le teljesen —
+> a tovabbi contractok a `101_*` komponens-leirasokban es a `103_*` validation
+> dokumentumokban mar hivatkozva vannak, csak a formalis Pydantic definiciok keszulnek el
+> later.
+
+| # | Contract / State | Owning Phase | Pre-work session | Forras spec |
+|---|------------------|--------------|------------------|-------------|
+| 1 | **RoutingDecision v2** (multi-signal + cost-aware) | Phase 2a (v1.5.0) | Pre-2a PP2 | `103_*` Section 4, `101_*` N7 |
+| 2 | **ExtractionResult v2** (structured + confidence + provenance) | Phase 2b (v1.5.1) | Pre-2b PP2 | `101_*` R4 + N9/N10 |
+| 3 | **ArchivalArtifact** (PDF/A + retention) | Phase 2d (v1.5.3) | Pre-2d PP2 | `100_c` Section 5, `101_*` N11/N11b/N11c |
+| 4 | **ReviewTask** (HITL workflow) | Phase 3 (v1.6.2) | Pre-3 PP2 | `100_f_*`, `101_*` N22b |
+| 5 | **ProvenanceRecord** (audit lineage) | Phase 3 (v1.6.0) | Pre-3 PP2 | `101_*` N17/N18 |
+| 6 | **ValidationResult** (compliance + policy verdict) | Phase 3 (v1.6.1) | Pre-3 PP2 | `103_*` Section 9.5, `101_*` N11c |
+| 7 | **EmbeddingDecision** (provider + model + dim) | Phase 2c (v1.5.2) | Pre-2c PP2 | `101_*` R5 + N13/N14 |
+| 8 | **PIIRedactionReport** (classifier verdict + redaction map) | Phase 2c (v1.5.2) | Pre-2c PP2 | `101_*` N15/N16 |
+| 9 | **QuarantineItem** (reject + manual review queue) | Phase 2d (v1.5.3) | Pre-2d PP2 | `101_*` N11b |
+| 10 | **CostAttribution** (per-tenant + per-provider cost) | Phase 2d (v1.5.3) | Pre-2d PP2 | Section 10.1 SF6 |
+
+**Deferred state machines** (6 additional, paired with the contracts above):
+
+| # | State machine | Owning Phase | Paired contract |
+|---|---------------|--------------|-----------------|
+| 1 | RoutingDecisionStateMachine | Phase 2a | #1 |
+| 2 | ExtractionResultStateMachine | Phase 2b | #2 |
+| 3 | ArchivalArtifactStateMachine | Phase 2d | #3 |
+| 4 | ReviewTaskStateMachine | Phase 3 | #4 |
+| 5 | EmbeddingDecisionStateMachine | Phase 2c | #7 |
+| 6 | QuarantineItemStateMachine | Phase 2d | #9 |
+
+**Governance:** Minden contract + state machine sign-off kotelezo mielott az owning
+sub-sprint Day 1 kezdodik. A Phase 2 pre-work PP2 osszefoglalja ezt a lookup-ot a
+`ROADMAP.md` "Phase 2 prep" szekciojaban.
+
 ---
 
 ## 11. Sign-off status
@@ -475,6 +524,23 @@ Lasd `103_*` Section 10 (tovabbi vizsgalando szempontok).
 ---
 
 ## 12. Dokumentum valtozas naplo
+
+### 2026-04-27 — S92 scope-korrekcio (Phase 1a actually-delivered)
+
+**Rogzitve**: Section 7.2 + Section 8.1 + uj Section 10.3
+
+- Felismeres: Phase 1a (v1.4.0) S44 szallitott 3 intake Pydantic contract + 1 state
+  machine-t — nem 13 + 7, ahogy a `104_*` §7.2 és §8.1 eredetileg tervezett. A 10
+  tovabbi v2 contract es 6 state machine a Phase 2/3 sub-phase pre-work-ben keszul el,
+  az erintett domen aktivalasa elott.
+- Frissites: `§7.2 v1.4.5 Phase 1 complete (cel)` — scope correction callout + metrika sorok
+  (Phase 1a actual = 3 intake contract + 1 state machine).
+- Frissites: `§8.1 Phase 1a acceptance matrix` — Contracts + State sorok pontositasa,
+  DONE statusz marad.
+- Uj: `§10.3 Deferred v2 contracts (Phase 2+ scope)` — 10 contract + 6 state machine
+  lookup-ja owning Phase + pre-work session + forras spec hivatkozassal.
+- Ok: forward roadmap (uj `01_PLAN/ROADMAP.md`) a Phase 2 pre-work PP2 scope-jat erre
+  a §10.3 lookup-ra hivatkozza.
 
 ### 2026-04-09 — Phase 1a Implementation Guide (onalló vegrehajtasi csomag)
 

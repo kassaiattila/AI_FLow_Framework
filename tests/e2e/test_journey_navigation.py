@@ -98,13 +98,14 @@ class TestJourneyNavigation:
             or body_text.count("Open viewer") >= 4
         ), "Expected 4 journey cards with navigation arrows"
 
-        # Click first journey card (Document Processing) → should navigate to /documents
-        journey_cards = page.locator("main >> div.cursor-pointer.rounded-xl")
+        # Click first journey card (Document Processing) → should navigate to /emails
+        # (J1 journey card routes to /emails per cross-journey contract below)
+        journey_cards = page.locator('[data-testid="journey-card"]')
         if journey_cards.count() >= 1:
             journey_cards.first.click()
             page.wait_for_load_state("networkidle")
-            assert "documents" in page.url, (
-                f"Journey card click didn't navigate to documents: {page.url}"
+            assert "emails" in page.url, (
+                f"Journey card click didn't navigate to /emails: {page.url}"
             )
 
     def test_journey1_invoice_flow(self, authenticated_page: Page) -> None:
@@ -176,7 +177,7 @@ class TestCrossJourneyNavigation:
     Dashboard has 3 journey cards: Documents(/emails), RAG(/rag), Pipelines(/runs).
     """
 
-    JOURNEY_CARD_SELECTOR = "main >> div.cursor-pointer.rounded-xl"
+    JOURNEY_CARD_SELECTOR = '[data-testid="journey-card"]'
 
     def _get_journey_cards(self, page: Page):
         """Return the journey card locator after loading dashboard."""

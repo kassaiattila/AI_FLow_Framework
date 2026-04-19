@@ -151,7 +151,11 @@ export function Admin() {
   return (
     <PageLayout titleKey="aiflow.admin.title" subtitleKey="aiflow.admin.subtitle"
       actions={
-        <button onClick={handleActionClick} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+        <button
+          data-testid={tab === "users" ? "admin-create-user" : "admin-generate-key"}
+          onClick={handleActionClick}
+          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+        >
           {tab === "users" ? translate("aiflow.admin.addUser") : translate("aiflow.admin.generateKey")}
         </button>
       }
@@ -159,7 +163,10 @@ export function Admin() {
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex gap-6">
           {(["users", "keys"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
+            <button
+              key={t}
+              data-testid={`admin-tab-${t}`}
+              onClick={() => setTab(t)}
               className={`border-b-2 pb-2 text-sm font-medium ${tab === t ? "border-brand-500 text-brand-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
             >{t === "users" ? translate("aiflow.admin.users") : translate("aiflow.admin.apiKeys")}</button>
           ))}

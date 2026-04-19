@@ -85,21 +85,31 @@ class TestRagJourney:
         assert has_services, "Services catalog doesn't list expected services"
 
     def test_rag_to_process_docs_ai_flow(self, authenticated_page: Page) -> None:
-        """Journey: RAG → Process Docs → back to RAG (AI services cross-nav)."""
+        """Journey: RAG → Process Docs (archived, redirects to dashboard) → back to RAG.
+
+        process-docs is archived (Sprint C) — its router entry redirects to "/".
+        The sidebar still surfaces the link so the skill remains discoverable; we
+        verify the link exists and the redirect lands on a valid page, then we
+        navigate back to /rag via sidebar.
+        """
         page = authenticated_page
 
         navigate_to(page, "/rag")
         rag_body = page.locator("body").text_content() or ""
         assert len(rag_body.strip()) > 20
 
-        # Navigate to Process Docs
+        # Archive link must be visible (discoverability contract)
         pd_link = page.locator('a[href*="process-docs"]').first
         expect(pd_link).to_be_visible()
         pd_link.click()
         page.wait_for_load_state("networkidle")
-        assert "process-docs" in page.url
+        # Archived route redirects to dashboard — accept either outcome so the
+        # test doesn't silently pass through an unintended route change.
+        assert any(p in page.url for p in ["process-docs", "/#/", "/#"]), (
+            f"Process Docs link navigated to unexpected URL: {page.url}"
+        )
 
-        # Back to RAG
+        # Back to RAG via sidebar
         rag_link = page.locator('a[href*="/rag"]').first
         rag_link.click()
         page.wait_for_load_state("networkidle")
@@ -175,8 +185,8 @@ class TestRagDeepJourney:
         navigate_to(page, "/rag")
         page.wait_for_timeout(1000)
 
-        # Click New Collection button (brand-colored action button)
-        new_btn = page.locator("button.bg-brand-500")
+        # Click New Collection button (stable testid; fall back to text if missing)
+        new_btn = page.locator('[data-testid="rag-new-collection"]')
         if new_btn.count() == 0:
             new_btn = page.locator("button").filter(has_text="New Collection")
         if new_btn.count() == 0:

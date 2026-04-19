@@ -96,6 +96,21 @@ tmp_*/
 fastapi_log.txt
 test_audio.wav
 
+# === Session-run debug output (out/ scratch pad) ===
+# Committed artifacts live alongside — gitignore the transient noise only.
+out/api_log*.txt
+out/cli_test.*
+out/*.log
+out/token.*
+out/spec_eval.json
+out/diagram_eval.json
+out/hardening_*.md
+out/phase_1b_merge_gate_*.log
+out/s89_journey_raw.log
+out/s89_vite_dev.log
+out/s90_journey_rerun.log
+out/mypy_*.log
+
 # === MCP / Figma tool configs (local) ===
 .playwright-mcp/
 claude-talk-to-figma-mcp/
@@ -106,7 +121,11 @@ deprecated/
 rxconfig.py
 
 # === Claude Code — 5 retegu architektura ===
-# COMMITTED (csapat szintu): settings.json, commands/, skills/, agents/
-# NOT COMMITTED (szemelyes): CLAUDE.local.md, settings.local.json
+# COMMITTED (csapat szintu): settings.json, settings.local.json (team permissions),
+#                            commands/, skills/, agents/
+# NOT COMMITTED (szemelyes): CLAUDE.local.md, runtime locks
 CLAUDE.local.md
-.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# === Reference projects (separate repos, kept alongside) ===
+DOHA/

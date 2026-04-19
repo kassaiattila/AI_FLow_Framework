@@ -44,16 +44,22 @@ def _db_url() -> str:
     return url.replace("postgresql+asyncpg://", "postgresql://")
 
 
-# Install a shared AuthProvider BEFORE importing create_app so that the
-# middleware's lazy AuthProvider.from_env() resolves to the same instance the
-# tests use to mint tokens.
+# Module-level shared auth — same instance used to mint tokens AND returned by
+# the patched AuthProvider.from_env so the app middleware verifies with matching
+# keys. The patch is applied inside an autouse fixture (NOT at module scope) to
+# avoid leaking into other test modules during pytest collection.
 _shared_auth = AuthProvider.from_env()
-_from_env_patcher = patch.object(AuthProvider, "from_env", return_value=_shared_auth)
-_from_env_patcher.start()
 
 from aiflow.api.app import create_app  # noqa: E402
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _patch_auth_from_env():
+    """Scope the AuthProvider.from_env patch to this module only."""
+    with patch.object(AuthProvider, "from_env", return_value=_shared_auth):
+        yield
 
 
 # ---------------------------------------------------------------------------
