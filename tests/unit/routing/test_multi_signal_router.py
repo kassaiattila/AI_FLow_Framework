@@ -17,6 +17,7 @@ from aiflow.contracts.routing_decision import RoutingDecision
 from aiflow.intake.package import IntakeFile, IntakePackage, IntakeSourceType
 from aiflow.providers.registry import ProviderRegistry
 from aiflow.routing.router import (
+    AZURE_DOCUMENT_INTELLIGENCE_PARSER,
     DOCLING_STANDARD_PARSER,
     SKIPPED_POLICY,
     UNSTRUCTURED_FAST_PARSER,
@@ -41,7 +42,11 @@ def _make_file(
     mime: str = "application/pdf",
     size: int = 1024,
     name: str = "doc.pdf",
+    page_count: int | None = None,
 ) -> IntakeFile:
+    source_metadata: dict[str, Any] = {}
+    if page_count is not None:
+        source_metadata["page_count"] = page_count
     return IntakeFile(
         file_id=uuid4(),
         file_path=f"/virtual/{name}",
@@ -49,6 +54,7 @@ def _make_file(
         mime_type=mime,
         size_bytes=size,
         sha256=hashlib.sha256(name.encode()).hexdigest(),
+        source_metadata=source_metadata,
     )
 
 
@@ -159,3 +165,68 @@ async def test_fallback_chain_content_check() -> None:
 
     assert d.fallback_chain == [DOCLING_STANDARD_PARSER]
     assert d.chosen_parser == UNSTRUCTURED_FAST_PARSER
+
+
+# --- S96: Rule 2.5 (Azure DI scan-aware routing) --------------------------
+
+
+@pytest.mark.asyncio
+async def test_scan_pdf_cloud_allowed_with_env_routes_to_azure_di(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Scanned PDF hint + cloud allowed + endpoint present → Azure DI."""
+    monkeypatch.setenv("AZURE_DOC_INTEL_ENDPOINT", "https://fake.cognitiveservices.azure.com/")
+    f = _make_file(
+        mime="application/pdf",
+        size=20_000_000,
+        name="scan.pdf",
+        page_count=10,
+    )
+    pkg = _make_package(f)
+    d = await _router(cloud_ai_allowed=True).decide(pkg, f)
+
+    assert d.chosen_parser == AZURE_DOCUMENT_INTELLIGENCE_PARSER
+    assert d.fallback_chain == [DOCLING_STANDARD_PARSER]
+    assert d.reason == "scan_pdf_cloud_allowed_azure_di"
+    assert d.signals["needs_ocr"] is True
+    assert d.signals["azure_endpoint_present"] is True
+
+
+@pytest.mark.asyncio
+async def test_scan_pdf_cloud_disallowed_falls_back_to_docling(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cloud disallowed keeps scans on local Docling — no policy skip."""
+    monkeypatch.setenv("AZURE_DOC_INTEL_ENDPOINT", "https://fake.cognitiveservices.azure.com/")
+    f = _make_file(
+        mime="application/pdf",
+        size=20_000_000,
+        name="scan.pdf",
+        page_count=10,
+    )
+    pkg = _make_package(f)
+    d = await _router(cloud_ai_allowed=False).decide(pkg, f)
+
+    assert d.chosen_parser == DOCLING_STANDARD_PARSER
+    assert d.reason != "scan_pdf_cloud_allowed_azure_di"
+    assert d.signals["needs_ocr"] is True
+
+
+@pytest.mark.asyncio
+async def test_scan_pdf_cloud_allowed_without_env_falls_back_to_docling(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing AZURE_DOC_INTEL_ENDPOINT must NOT trip Rule 2.5."""
+    monkeypatch.delenv("AZURE_DOC_INTEL_ENDPOINT", raising=False)
+    f = _make_file(
+        mime="application/pdf",
+        size=20_000_000,
+        name="scan.pdf",
+        page_count=10,
+    )
+    pkg = _make_package(f)
+    d = await _router(cloud_ai_allowed=True).decide(pkg, f)
+
+    assert d.chosen_parser == DOCLING_STANDARD_PARSER
+    assert d.signals["azure_endpoint_present"] is False
+    assert d.signals["needs_ocr"] is True
