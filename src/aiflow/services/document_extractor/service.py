@@ -19,14 +19,18 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from aiflow.contracts.extraction_result import ExtractionResult as PackageExtractionResult
 from aiflow.services.base import BaseService, ServiceConfig
 
 if TYPE_CHECKING:
-    from aiflow.intake.package import IntakePackage
+    from aiflow.intake.package import IntakeFile, IntakePackage
+    from aiflow.policy.engine import PolicyEngine
+    from aiflow.providers.interfaces import ParserProvider
 
 __all__ = [
     "DocumentTypeConfig",
     "ExtractionResult",
+    "PackageExtractionResult",
     "DocumentExtractorConfig",
     "DocumentExtractorService",
 ]
@@ -272,17 +276,98 @@ class DocumentExtractorService(BaseService):
     async def extract_from_package(
         self,
         package: IntakePackage,
-        config_name: str | None = None,
-    ) -> ExtractionResult:
-        """Extract fields from an IntakePackage (v2 primary API).
+        policy_engine: PolicyEngine | None = None,
+        parser: ParserProvider | None = None,
+    ) -> list[PackageExtractionResult]:
+        """Extract parser output for every file in an IntakePackage (v2 primary API).
 
-        Full implementation in Phase 1c. Phase 1a raises NotImplementedError.
+        For S94 (v1.4.5.1 / Sprint I) the body is intentionally narrow:
+        Docling-standard parsing + PolicyEngine gate. Routing, Azure DI, and
+        LLM field extraction arrive in S95/S96 and do not belong here.
         """
+        if not package.files:
+            raise ValueError("extract_from_package requires at least one file in the package")
 
-        raise NotImplementedError(
-            "extract_from_package() is a Phase 1a skeleton. "
-            "Full implementation arrives in Phase 1c."
+        active_policy = policy_engine.get_for_tenant(package.tenant_id) if policy_engine else None
+        active_parser = parser or self._default_parser()
+
+        results: list[PackageExtractionResult] = []
+        for file in package.files:
+            result = await self._extract_single_file(
+                file=file,
+                package=package,
+                parser=active_parser,
+                policy=active_policy,
+            )
+            results.append(result)
+
+        self._logger.info(
+            "extract_from_package_done",
+            package_id=str(package.package_id),
+            tenant_id=package.tenant_id,
+            file_count=len(package.files),
+            skipped=sum(1 for r in results if r.parser_used == "skipped_policy"),
         )
+        return results
+
+    async def _extract_single_file(
+        self,
+        file: IntakeFile,
+        package: IntakePackage,
+        parser: ParserProvider,
+        policy: Any,
+    ) -> PackageExtractionResult:
+        """Parse one file respecting the policy gate."""
+        from aiflow.providers.parsers.docling_standard import DoclingStandardParser
+
+        needs_cloud = not DoclingStandardParser.supports_mime(file.mime_type)
+        if needs_cloud and policy is not None and not policy.cloud_ai_allowed:
+            self._logger.warning(
+                "extract_skipped_policy",
+                package_id=str(package.package_id),
+                file_id=str(file.file_id),
+                mime_type=file.mime_type,
+                reason="cloud_ai_disallowed_for_mime",
+            )
+            return PackageExtractionResult(
+                package_id=package.package_id,
+                file_id=file.file_id,
+                tenant_id=package.tenant_id,
+                parser_used="skipped_policy",
+                extracted_text="",
+                structured_fields={"skip_reason": "cloud_ai_disallowed_for_mime"},
+                confidence=0.0,
+            )
+
+        parser_result = await parser.parse(file, package)
+        structured: dict[str, Any] = {}
+        if parser_result.tables:
+            structured["tables"] = parser_result.tables
+        if parser_result.page_count:
+            structured["page_count"] = parser_result.page_count
+        confidence = 1.0 if parser_result.text.strip() else 0.0
+
+        return PackageExtractionResult(
+            package_id=package.package_id,
+            file_id=file.file_id,
+            tenant_id=package.tenant_id,
+            parser_used=parser_result.parser_name,
+            extracted_text=parser_result.text,
+            structured_fields=structured,
+            confidence=confidence,
+        )
+
+    def _default_parser(self) -> ParserProvider:
+        """Lazy-built default ParserProvider (Docling standard).
+
+        Uses attribute lookup on the ``docling_standard`` module so unit tests
+        can ``monkeypatch.setattr(docling_standard, "DoclingStandardParser", ...)``.
+        """
+        from aiflow.providers.parsers import docling_standard
+
+        if not hasattr(self, "_cached_default_parser"):
+            self._cached_default_parser = docling_standard.DoclingStandardParser()
+        return self._cached_default_parser
 
     def _build_single_file_package(
         self,

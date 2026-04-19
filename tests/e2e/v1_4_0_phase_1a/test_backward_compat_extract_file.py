@@ -7,7 +7,7 @@ tags: [e2e, phase_1a, compat, document_extractor]
 Validates the v1.3 → v1.4 shim in DocumentExtractorService:
 - extract(file_path) emits DeprecationWarning
 - _build_single_file_package() produces a valid IntakePackage from a real file
-- extract_from_package() raises NotImplementedError in Phase 1a
+- extract_from_package() returns a list of ExtractionResult (Sprint I S94 onwards)
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from aiflow.contracts.extraction_result import ExtractionResult as PackageExtractionResult
 from aiflow.intake.package import IntakePackage, IntakeSourceType
 from aiflow.services.document_extractor.service import (
     DocumentExtractorConfig,
@@ -77,23 +78,63 @@ class TestBuildSingleFilePackage:
         assert pkg.status == IntakePackageStatus.RECEIVED
 
 
-class TestExtractFromPackageNotImplemented:
-    @pytest.mark.asyncio
-    async def test_raises_not_implemented(
-        self, extractor_service: DocumentExtractorService, sample_pdf: Path
-    ) -> None:
-        pkg = extractor_service._build_single_file_package(sample_pdf)
-        with pytest.raises(NotImplementedError, match="Phase 1a"):
-            await extractor_service.extract_from_package(pkg)
+class TestExtractFromPackageReturnsResults:
+    """Sprint I S94 (v1.4.5.1): extract_from_package() is no longer a stub.
+
+    The body lives in DocumentExtractorService.extract_from_package() and
+    delegates per-file parsing to a ParserProvider. These tests exercise the
+    DB-less path with an injected in-memory ParserProvider so the assertion
+    is on the contract shape, not on Docling output.
+    """
 
     @pytest.mark.asyncio
-    async def test_not_implemented_message_mentions_phase_1c(
+    async def test_returns_list_of_extraction_results(
         self, extractor_service: DocumentExtractorService, sample_pdf: Path
     ) -> None:
+        from uuid import uuid4
+
+        from aiflow.contracts.parser_result import ParserResult
+        from aiflow.intake.package import IntakeFile
+        from aiflow.providers.interfaces import ParserProvider
+        from aiflow.providers.metadata import ProviderMetadata
+
+        class _StubParser(ParserProvider):
+            @property
+            def metadata(self) -> ProviderMetadata:
+                return ProviderMetadata(
+                    name="docling_standard",
+                    version="test",
+                    supported_types=["pdf"],
+                    speed_class="fast",
+                    cost_class="free",
+                    license="MIT",
+                )
+
+            async def parse(self, file: IntakeFile, package_context: IntakePackage) -> ParserResult:
+                return ParserResult(
+                    file_id=file.file_id,
+                    parser_name="docling_standard",
+                    text="stub parsed text",
+                    markdown="stub parsed text",
+                    page_count=1,
+                )
+
+            async def health_check(self) -> bool:
+                return True
+
+            async def estimate_cost(self, file: IntakeFile) -> float:
+                return 0.0
+
+        _ = uuid4  # silence lint for unused import
         pkg = extractor_service._build_single_file_package(sample_pdf)
-        with pytest.raises(NotImplementedError) as excinfo:
-            await extractor_service.extract_from_package(pkg)
-        assert "Phase 1c" in str(excinfo.value) or "skeleton" in str(excinfo.value)
+        results = await extractor_service.extract_from_package(pkg, parser=_StubParser())
+
+        assert isinstance(results, list)
+        assert len(results) == 1
+        assert isinstance(results[0], PackageExtractionResult)
+        assert results[0].parser_used == "docling_standard"
+        assert results[0].extracted_text == "stub parsed text"
+        assert results[0].file_id == pkg.files[0].file_id
 
 
 class TestDeprecationShim:

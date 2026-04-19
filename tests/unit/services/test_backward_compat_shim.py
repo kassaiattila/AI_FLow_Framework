@@ -115,26 +115,66 @@ class TestExtractDeprecationWarning:
 
 
 class TestExtractFromPackage:
-    """extract_from_package() must raise NotImplementedError in Phase 1a."""
+    """extract_from_package() — v1.4.5 S94 real implementation contract.
+
+    Sprint I replaced the Phase 1a NotImplementedError with a real body that
+    parses every file in the package via a ParserProvider. Signature shifted
+    from (package, config_name) to (package, policy_engine, parser).
+    """
 
     @pytest.mark.asyncio
-    async def test_extract_from_package_raises_not_implemented(
+    async def test_extract_from_package_returns_list(
         self, service: DocumentExtractorService, tmp_file: Path
     ) -> None:
+        from aiflow.contracts.extraction_result import ExtractionResult as PackageExtractionResult
+        from aiflow.contracts.parser_result import ParserResult
+        from aiflow.intake.package import IntakeFile, IntakePackage
+        from aiflow.providers.interfaces import ParserProvider
+        from aiflow.providers.metadata import ProviderMetadata
+
+        class _StubParser(ParserProvider):
+            @property
+            def metadata(self) -> ProviderMetadata:
+                return ProviderMetadata(
+                    name="docling_standard",
+                    version="test",
+                    supported_types=["pdf"],
+                    speed_class="fast",
+                    cost_class="free",
+                    license="MIT",
+                )
+
+            async def parse(self, file: IntakeFile, package_context: IntakePackage) -> ParserResult:
+                return ParserResult(
+                    file_id=file.file_id,
+                    parser_name="docling_standard",
+                    text="shim stub text",
+                    markdown="shim stub text",
+                    page_count=1,
+                )
+
+            async def health_check(self) -> bool:
+                return True
+
+            async def estimate_cost(self, file: IntakeFile) -> float:
+                return 0.0
+
         package = service._build_single_file_package(tmp_file, tenant_id="test-tenant")
-        with pytest.raises(NotImplementedError, match="Phase 1a skeleton"):
-            await service.extract_from_package(package, config_name="invoice-hu")
+        results = await service.extract_from_package(package, parser=_StubParser())
+        assert isinstance(results, list)
+        assert len(results) == 1
+        assert isinstance(results[0], PackageExtractionResult)
+        assert results[0].tenant_id == "test-tenant"
 
     @pytest.mark.asyncio
-    async def test_extract_from_package_accepts_package_and_config_name(
-        self, service: DocumentExtractorService
-    ) -> None:
+    async def test_extract_from_package_signature(self, service: DocumentExtractorService) -> None:
         import inspect
 
         sig = inspect.signature(service.extract_from_package)
         params = list(sig.parameters.keys())
-        assert "package" in params
-        assert "config_name" in params
+        assert params[0] == "package"
+        assert "policy_engine" in params
+        assert "parser" in params
 
 
 class TestBuildSingleFilePackage:
