@@ -26,6 +26,8 @@ if TYPE_CHECKING:
     from aiflow.intake.package import IntakeFile, IntakePackage
     from aiflow.policy.engine import PolicyEngine
     from aiflow.providers.interfaces import ParserProvider
+    from aiflow.providers.registry import ProviderRegistry
+    from aiflow.routing.router import MultiSignalRouter
 
 __all__ = [
     "DocumentTypeConfig",
@@ -278,27 +280,41 @@ class DocumentExtractorService(BaseService):
         package: IntakePackage,
         policy_engine: PolicyEngine | None = None,
         parser: ParserProvider | None = None,
+        router: MultiSignalRouter | None = None,
+        registry: ProviderRegistry | None = None,
     ) -> list[PackageExtractionResult]:
         """Extract parser output for every file in an IntakePackage (v2 primary API).
 
-        For S94 (v1.4.5.1 / Sprint I) the body is intentionally narrow:
-        Docling-standard parsing + PolicyEngine gate. Routing, Azure DI, and
-        LLM field extraction arrive in S95/S96 and do not belong here.
+        S95 wiring: when ``router`` is provided each file is routed via
+        :meth:`MultiSignalRouter.decide`; the ``chosen_parser`` name is
+        resolved through ``registry`` (or the injected ``parser`` when the
+        router happens to pick its name). Without a router the call falls
+        back to the S94 default-parser behavior (Docling standard).
         """
         if not package.files:
             raise ValueError("extract_from_package requires at least one file in the package")
 
         active_policy = policy_engine.get_for_tenant(package.tenant_id) if policy_engine else None
-        active_parser = parser or self._default_parser()
+        fallback_parser = parser or self._default_parser()
 
         results: list[PackageExtractionResult] = []
         for file in package.files:
-            result = await self._extract_single_file(
-                file=file,
-                package=package,
-                parser=active_parser,
-                policy=active_policy,
-            )
+            if router is not None:
+                result = await self._extract_routed_file(
+                    file=file,
+                    package=package,
+                    router=router,
+                    registry=registry,
+                    injected_parser=parser,
+                    fallback_parser=fallback_parser,
+                )
+            else:
+                result = await self._extract_single_file(
+                    file=file,
+                    package=package,
+                    parser=fallback_parser,
+                    policy=active_policy,
+                )
             results.append(result)
 
         self._logger.info(
@@ -307,8 +323,89 @@ class DocumentExtractorService(BaseService):
             tenant_id=package.tenant_id,
             file_count=len(package.files),
             skipped=sum(1 for r in results if r.parser_used == "skipped_policy"),
+            routed=router is not None,
         )
         return results
+
+    async def _extract_routed_file(
+        self,
+        file: IntakeFile,
+        package: IntakePackage,
+        router: MultiSignalRouter,
+        registry: ProviderRegistry | None,
+        injected_parser: ParserProvider | None,
+        fallback_parser: ParserProvider,
+    ) -> PackageExtractionResult:
+        """Route one file and parse it with the chosen provider."""
+        decision = await router.decide(package, file)
+
+        if decision.chosen_parser == "skipped_policy":
+            self._logger.warning(
+                "extract_skipped_policy",
+                package_id=str(package.package_id),
+                file_id=str(file.file_id),
+                mime_type=file.mime_type,
+                reason=decision.reason,
+            )
+            return PackageExtractionResult(
+                package_id=package.package_id,
+                file_id=file.file_id,
+                tenant_id=package.tenant_id,
+                parser_used="skipped_policy",
+                extracted_text="",
+                structured_fields={
+                    "skip_reason": decision.reason,
+                    "routing_reason": decision.reason,
+                },
+                confidence=0.0,
+            )
+
+        parser = self._resolve_parser(
+            name=decision.chosen_parser,
+            registry=registry,
+            injected_parser=injected_parser,
+            fallback_parser=fallback_parser,
+        )
+        parser_result = await parser.parse(file, package)
+
+        structured: dict[str, Any] = {"routing_reason": decision.reason}
+        if parser_result.tables:
+            structured["tables"] = parser_result.tables
+        if parser_result.page_count:
+            structured["page_count"] = parser_result.page_count
+        confidence = 1.0 if parser_result.text.strip() else 0.0
+
+        return PackageExtractionResult(
+            package_id=package.package_id,
+            file_id=file.file_id,
+            tenant_id=package.tenant_id,
+            parser_used=parser_result.parser_name,
+            extracted_text=parser_result.text,
+            structured_fields=structured,
+            confidence=confidence,
+        )
+
+    @staticmethod
+    def _resolve_parser(
+        name: str,
+        registry: ProviderRegistry | None,
+        injected_parser: ParserProvider | None,
+        fallback_parser: ParserProvider,
+    ) -> ParserProvider:
+        """Pick a ParserProvider instance for ``name``.
+
+        Resolution order: injected parser whose ``PROVIDER_NAME`` matches →
+        registry lookup (instantiated fresh) → fallback parser.
+        """
+        if injected_parser is not None and getattr(injected_parser, "PROVIDER_NAME", None) == name:
+            return injected_parser
+        if registry is not None:
+            try:
+                parser_cls = registry.get_parser(name)
+                return parser_cls()
+            except KeyError:
+                pass
+        return fallback_parser
 
     async def _extract_single_file(
         self,

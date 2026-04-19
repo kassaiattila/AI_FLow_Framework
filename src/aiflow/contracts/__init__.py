@@ -12,8 +12,10 @@ from __future__ import annotations
 
 from aiflow.contracts.extraction_result import ExtractionResult
 from aiflow.contracts.parser_result import ParserResult
+from aiflow.contracts.routing_decision import RoutingDecision
 
 __all__ = [
     "ExtractionResult",
     "ParserResult",
+    "RoutingDecision",
 ]

@@ -213,6 +213,118 @@ async def test_empty_package_raises_value_error(service: DocumentExtractorServic
 # --- Parser injection default ---------------------------------------------
 
 
+# --- Router wiring (S95) ---------------------------------------------------
+
+
+class _FakeRouter:
+    """In-memory MultiSignalRouter stub driving a predetermined plan."""
+
+    def __init__(self, plan: list[dict[str, Any]]) -> None:
+        self._plan = list(plan)
+        self.calls: list[tuple[UUID, UUID]] = []
+
+    async def decide(self, package: IntakePackage, file: IntakeFile) -> Any:
+        from aiflow.contracts.routing_decision import RoutingDecision
+
+        self.calls.append((package.package_id, file.file_id))
+        entry = self._plan.pop(0)
+        return RoutingDecision(
+            package_id=package.package_id,
+            file_id=file.file_id,
+            tenant_id=package.tenant_id,
+            chosen_parser=entry["chosen_parser"],
+            reason=entry.get("reason", "test"),
+            signals=entry.get("signals", {}),
+            fallback_chain=entry.get("fallback_chain", []),
+        )
+
+
+class _FakeUnstructuredParser(FakeParser):
+    PROVIDER_NAME = "unstructured_fast"
+
+    async def parse(self, file: IntakeFile, package_context: IntakePackage) -> ParserResult:
+        self.calls.append((package_context.package_id, file.file_id))
+        return ParserResult(
+            file_id=file.file_id,
+            parser_name="unstructured_fast",
+            text="fast path parsed",
+            markdown="fast path parsed",
+            page_count=1,
+        )
+
+
+@pytest.mark.asyncio
+async def test_extract_from_package_with_router_picks_unstructured(
+    service: DocumentExtractorService,
+) -> None:
+    from aiflow.providers.registry import ProviderRegistry
+
+    file = _make_file()
+    pkg = _make_package([file])
+
+    router = _FakeRouter([{"chosen_parser": "unstructured_fast", "reason": "fast_path"}])
+    registry = ProviderRegistry()
+    registry.register_parser("unstructured_fast", _FakeUnstructuredParser)
+
+    docling_parser = FakeParser(text="docling output")
+    results = await service.extract_from_package(
+        pkg,
+        parser=docling_parser,
+        router=router,
+        registry=registry,
+    )
+
+    assert len(results) == 1
+    r = results[0]
+    assert r.parser_used == "unstructured_fast"
+    assert r.extracted_text == "fast path parsed"
+    assert r.structured_fields["routing_reason"] == "fast_path"
+    # Routed path must NOT have invoked the injected Docling parser.
+    assert docling_parser.calls == []
+
+
+@pytest.mark.asyncio
+async def test_extract_from_package_with_router_policy_skip(
+    service: DocumentExtractorService,
+) -> None:
+    file = _make_file(mime="video/mp4", name="clip.mp4")
+    pkg = _make_package([file])
+
+    router = _FakeRouter(
+        [{"chosen_parser": "skipped_policy", "reason": "cloud_ai_disallowed_for_mime"}]
+    )
+
+    results = await service.extract_from_package(
+        pkg,
+        parser=FakeParser(),
+        router=router,
+    )
+
+    assert results[0].parser_used == "skipped_policy"
+    assert results[0].structured_fields["skip_reason"] == "cloud_ai_disallowed_for_mime"
+
+
+@pytest.mark.asyncio
+async def test_extract_from_package_with_router_uses_injected_parser_by_name(
+    service: DocumentExtractorService,
+) -> None:
+    """Injected parser whose PROVIDER_NAME matches the decision is preferred."""
+    file = _make_file()
+    pkg = _make_package([file])
+
+    router = _FakeRouter([{"chosen_parser": "docling_standard", "reason": "default"}])
+    parser = FakeParser(text="injected output")  # PROVIDER_NAME="docling_standard"
+
+    results = await service.extract_from_package(pkg, parser=parser, router=router)
+
+    assert results[0].parser_used == "docling_standard"
+    assert results[0].extracted_text == "injected output"
+    assert parser.calls == [(pkg.package_id, file.file_id)]
+
+
+# --- Default parser --------------------------------------------------------
+
+
 @pytest.mark.asyncio
 async def test_default_parser_is_docling_standard(
     service: DocumentExtractorService, monkeypatch: pytest.MonkeyPatch

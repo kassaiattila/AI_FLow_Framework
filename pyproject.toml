@@ -19,46 +19,41 @@ dependencies = [
     "pydantic>=2.5",
     "pydantic-settings>=2.1",
     "httpx>=0.27",
-
     # LLM
     "litellm>=1.60",
     "instructor>=1.4",
     "openai>=1.10",
-
     # Observability
     "langfuse>=2.40",
     "structlog>=24.1",
     "opentelemetry-api>=1.22",
     "opentelemetry-sdk>=1.22",
     "prometheus-client>=0.20",
-
     # Database & Queue
     "asyncpg>=0.29",
     "sqlalchemy[asyncio]>=2.0",
     "alembic>=1.13",
     "arq>=0.26",
     "redis[hiredis]>=5.0",
-
     # Security
     "PyJWT[crypto]>=2.8",
     "bcrypt>=4.1",
-
     # CLI
     "typer>=0.12",
     "rich>=13.7",
-
     # Prompts
     "pyyaml>=6.0",
     "jinja2>=3.1",
-
     # Scheduling
     "apscheduler>=4.0.0a5",
-
     # Notifications
     "aiosmtplib>=5.0",
-
     # Filesystem watch (FolderSourceAdapter, Phase 1b E2.1)
     "watchdog>=4.0",
+    "unstructured>=0.21.5",
+    # Windows requires a bundled libmagic; python-magic otherwise hard-crashes
+    # (S95 venv triage).
+    "python-magic-bin>=0.4.14; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
