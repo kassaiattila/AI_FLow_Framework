@@ -16,10 +16,12 @@ previously pinned to ``head == "035"`` with a ``downgrade -1`` round-trip,
 which broke once head moved to 037 (downgrade -1 now lands on 036, not 034).
 
 Rewritten to be **head-relative**: the test no longer hard-codes any migration
-identifier. It records the current head, downgrades directly to 034, verifies
-034's CHECK/NOT NULL/whitelist contract holds in isolation, then upgrades
-back to the recorded head and re-verifies. The actual test subject is the
-034 contract, not the specific head revision.
+identifier. It resolves the current head from ``alembic.script.ScriptDirectory``
+(so the migration folder is the single source of truth), asserts the DB is at
+that head, downgrades directly to 034, verifies 034's CHECK/NOT NULL/whitelist
+contract holds in isolation, then upgrades back to the resolved head and
+re-verifies. The actual test subject is the 034 contract, not the specific
+head revision.
 """
 
 from __future__ import annotations
@@ -32,10 +34,22 @@ from uuid import uuid4
 
 import asyncpg
 import pytest
+from alembic.config import Config as AlembicConfig
+from alembic.script import ScriptDirectory
 
 from aiflow.api.deps import get_pool
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+ALEMBIC_INI = REPO_ROOT / "alembic.ini"
+
+
+def _script_head() -> str:
+    """Resolve the current migration head from the alembic script folder."""
+    cfg = AlembicConfig(str(ALEMBIC_INI))
+    script = ScriptDirectory.from_config(cfg)
+    head = script.get_current_head()
+    assert head is not None, "alembic ScriptDirectory reports no head"
+    return head
 
 
 def _alembic(*args: str) -> subprocess.CompletedProcess[str]:
@@ -118,10 +132,15 @@ async def test_migration_034_source_type_hardening() -> None:
     """034 contract (CHECK, NOT NULL, whitelist) holds at head and survives a round-trip to 034 and back."""
     pool = await get_pool()
 
-    # 1. Record current head (whatever it is — must be >= 034 for this test to be meaningful).
+    # 1. Resolve head from the migration folder (single source of truth),
+    #    then assert the DB is currently at that head.
+    script_head = _script_head()
     async with pool.acquire() as conn:
-        head_before = await _current_revision(conn)
-        assert head_before is not None, "alembic_version empty — run `alembic upgrade head` first"
+        db_head = await _current_revision(conn)
+        assert db_head == script_head, (
+            f"DB alembic_version={db_head!r} does not match script head={script_head!r} — "
+            "run `alembic upgrade head` before this test"
+        )
 
         # 2-5. 034 invariants hold at current head
         await _assert_034_invariants(conn)
@@ -134,10 +153,10 @@ async def test_migration_034_source_type_hardening() -> None:
         assert await _current_revision(conn) == "034"
         await _assert_034_invariants(conn)
 
-    # 7. Upgrade back to the original head and re-verify.
+    # 7. Upgrade back to the script head and re-verify.
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, f"upgrade head failed: {up.stderr}"
 
     async with pool.acquire() as conn:
-        assert await _current_revision(conn) == head_before
+        assert await _current_revision(conn) == script_head
         await _assert_034_invariants(conn)

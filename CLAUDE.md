@@ -18,9 +18,9 @@ session_prompts/    — Session prompt archive + NEXT.md pointer (/next reads th
 ```
 
 ## Key Numbers
-27 services | 177 API endpoints (27 routers) | 49 DB tables | 37 Alembic migrations
+27 services | 177 API endpoints (27 routers) | 49 DB tables | 37 Alembic migrations (head: 037)
 22 pipeline adapters | 10 pipeline templates | 7 skills | 23 UI pages | 5 source adapters (Email, File, Folder, Batch, API)
-1886 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 403 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b) | 42 integration tests (incl. 4 alembic association_mode)
+1898 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 410 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b + 7 Phase 1d) | 42 integration tests (incl. 4 alembic association_mode)
 
 ## Build & Test
 ```bash
@@ -51,6 +51,8 @@ alembic upgrade head                      # DB migrations
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
+`01_PLAN/ROADMAP.md` — single forward entry point (Sprint H consolidation S88-S93, Phase 1.5 Vault queue, coverage follow-ups). v1.4.4 consolidation sprint closing with S93 (test_alembic_034 head-relative, out/ cleanup, this CLAUDE.md sync); PR cut + tag `v1.4.4` pending user approval.
+
 `01_PLAN/session_S80_v1_4_3_phase_1d_kickoff.md` — **Phase 1d MERGED 2026-04-24**, tag `v1.4.3-phase-1d`, PR #9 merge commit `0d669aa`. Scope delivered: G0.1 writer audit + kickoff, G0.2 Email adapter + `IntakePackageSink` + associator helper extraction, G0.3 File + Folder adapters + `upload_package` HTTP collapse + sink label fix + autouse pool reset conftest, G0.4 Batch + Api adapters, G0.5 multi_source_e2e triage (sink-routed), G0.6 webhook router sink wiring (Path A) + status 202→201, G0.7 G-matrix evidence + PR draft + issue #7 decision, G0.8 OpenAPI drift regen + PR cut + tag + retro. Artifacts: `docs/phase_1d_pr_description.md`, `docs/phase_1d_retro.md`. Open follow-ups: issue #7 (coverage 65.67%→80%) DEFERRED to v1.4.4; stale `test_alembic_034` assertion queued for v1.4.4. Predecessor: Phase 1c MERGED, tag `v1.4.2-phase-1c`, PR #6.
 
 ## Session Workflow (DOHA-aligned)

@@ -1,7 +1,7 @@
 # AIFlow Forward Roadmap
 
 > **Status:** ACTIVE — single-source forward queue for `/auto-sprint` and `/next`.
-> **Last refreshed:** 2026-04-27 (S92, v1.4.4.5)
+> **Last refreshed:** 2026-04-28 (S93, v1.4.4.6)
 > **Owner:** Sprint H consolidation. Subsequent maintainers: update after every session-close.
 > **Scope:** This document is a **forward pointer**, not a recipe. Each session prompt
 > still lives under `session_prompts/`; this file declares the *order* and *intent*.
@@ -29,8 +29,8 @@ Branch: `feature/v1.4.4-consolidation` | Base: `v1.4.3-phase-1d` (`0d669aa`).
 | S89 / v1.4.4.2 | Frontend dev-env live, journey E2E triage, Untitled UI ADR | DONE |
 | S90 / v1.4.4.3 | Journey E2E rerun + contract regressions | DONE |
 | S91 / v1.4.4.4 | `test_auth` leak fix, e2e asyncio markers, **coverage roadmap** (HARD STOP) | DONE |
-| **S92 / v1.4.4.5** | **ROADMAP.md + 104_* drift fix + v1.4.4 PR draft** | **IN-PROGRESS** |
-| S93 / v1.4.4.6 | `test_alembic_034` fix, `out/` cleanup, `CLAUDE.md` counts sync | QUEUED |
+| S92 / v1.4.4.5 | ROADMAP.md + 104_* drift fix + v1.4.4 PR draft | DONE |
+| **S93 / v1.4.4.6** | **`test_alembic_034` head-relative (ScriptDirectory), `out/` cleanup + .gitignore, `CLAUDE.md` counts sync** | **IN-PROGRESS** |
 
 **Sprint exit gate:** S93 close → cut `v1.4.4` PR + tag (uses `docs/v1.4.4_pr_description.md`).
 After S93, the coverage uplift mini-sprint (S91.A-D) and Phase 1.5 are unblocked in parallel.
