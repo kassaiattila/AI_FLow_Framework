@@ -121,7 +121,11 @@ deprecated/
 rxconfig.py
 
 # === Claude Code — 5 retegu architektura ===
-# COMMITTED (csapat szintu): settings.json, commands/, skills/, agents/
-# NOT COMMITTED (szemelyes): CLAUDE.local.md, settings.local.json
+# COMMITTED (csapat szintu): settings.json, settings.local.json (team permissions),
+#                            commands/, skills/, agents/
+# NOT COMMITTED (szemelyes): CLAUDE.local.md, runtime locks
 CLAUDE.local.md
-.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# === Reference projects (separate repos, kept alongside) ===
+DOHA/
