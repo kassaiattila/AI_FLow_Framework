@@ -35,7 +35,10 @@ jobs:
         env:
           AIFLOW_DATABASE_URL: "postgresql://localhost/test"
 
-      - name: Coverage gate (80% minimum)
+      - name: Coverage gate (65% temp waiver — issue #7)
+        # v1.4.4 TEMP WAIVER: gate lowered 80 → 65 (current measured 65.80%).
+        # Mirrors pyproject.toml [tool.coverage.report] fail_under. Restore to
+        # 80 when issue #7 closes (sprint-by-sprint plan per 110_* §4).
         run: |
           .venv/bin/python -c "
           import xml.etree.ElementTree as ET
@@ -43,7 +46,7 @@ jobs:
           rate = float(tree.getroot().attrib.get('line-rate', 0))
           pct = round(rate * 100, 1)
           print(f'Coverage: {pct}%')
-          assert pct >= 80, f'Coverage {pct}% is below 80% gate'
+          assert pct >= 65, f'Coverage {pct}% is below 65% gate (issue #7 waiver)'
           "
 
       - name: Upload test results

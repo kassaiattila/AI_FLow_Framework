@@ -53,6 +53,7 @@ Plan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` §4 Sprint I.
 | S96 / v1.4.5.3 | Azure DI parser (Profile B gated) + PII redaction gate v0 | QUEUED |
 | S97 / v1.4.5.4 | UI: `DocumentDetail` parser badge + extraction JSON + Langfuse trace link. `Prompts.tsx` v1 read-only | QUEUED |
 | S98 / v1.4.5.5 | Golden-path E2E (3 test docs, 1 per parser path) + `/regression` + `/lint-check` + PR + tag `v1.4.5` | QUEUED |
+| SI.H1 (issue [#12](https://github.com/kassaiattila/AI_FLow_Framework/issues/12)) | **CI infra housekeeping** — `alembic/env.py` reads `AIFLOW_DATABASE__URL` env var first, falls back to INI. Unmasked by v1.4.4 coverage waiver; `integration-tests` job red on PR CI until fixed. Single-session; schedule as prerequisite for S94 if Docling integration tests need it, otherwise between S94 and S95. | QUEUED |
 
 **Sprint exit gate:** upload real PDF in admin UI → see parser badge + extraction JSON + clickable Langfuse trace.
 
