@@ -29,6 +29,7 @@ pool reuse, no cross-loop state.
 from __future__ import annotations
 
 import asyncio
+import os
 import uuid
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -43,12 +44,26 @@ pytestmark = pytest.mark.integration
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _ALEMBIC_INI = _PROJECT_ROOT / "alembic.ini"
 
-_DB_URL_ASYNCPG = "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev"
+
+def _resolve_db_url() -> str:
+    """Honor AIFLOW_DATABASE__URL (CI) and fall back to the Docker dev default."""
+    raw = os.getenv(
+        "AIFLOW_DATABASE__URL",
+        "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
+    )
+    return raw.replace("postgresql+asyncpg://", "postgresql://")
+
+
+_DB_URL_ASYNCPG = _resolve_db_url()
 
 
 def _alembic_cfg() -> Config:
     cfg = Config(str(_ALEMBIC_INI))
     cfg.set_main_option("script_location", str(_PROJECT_ROOT / "alembic"))
+    cfg.set_main_option(
+        "sqlalchemy.url",
+        _DB_URL_ASYNCPG.replace("postgresql://", "postgresql+asyncpg://"),
+    )
     return cfg
 
 
