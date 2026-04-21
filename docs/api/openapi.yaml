@@ -3297,6 +3297,130 @@ components:
       - success
       title: MoveResponse
       type: object
+    PackageDetailResponse:
+      description: Aggregate read model for a single IntakePackage.
+      properties:
+        created_at:
+          title: Created At
+          type: string
+        extractions:
+          description: Persisted extraction results for this package. Always empty
+            in S97 — extraction persistence lands in S97.5.
+          items:
+            additionalProperties: true
+            type: object
+          title: Extractions
+          type: array
+        files:
+          items:
+            $ref: '#/components/schemas/PackageFile'
+          title: Files
+          type: array
+        package_id:
+          format: uuid
+          title: Package Id
+          type: string
+        routing_decisions:
+          items:
+            $ref: '#/components/schemas/PackageRoutingDecision'
+          title: Routing Decisions
+          type: array
+        source:
+          default: backend
+          title: Source
+          type: string
+        source_type:
+          title: Source Type
+          type: string
+        status:
+          title: Status
+          type: string
+        tenant_id:
+          title: Tenant Id
+          type: string
+      required:
+      - package_id
+      - tenant_id
+      - source_type
+      - status
+      - created_at
+      - files
+      - routing_decisions
+      title: PackageDetailResponse
+      type: object
+    PackageFile:
+      description: Sanitized view of ``intake_files`` row.
+      properties:
+        file_id:
+          format: uuid
+          title: File Id
+          type: string
+        file_name:
+          title: File Name
+          type: string
+        mime_type:
+          title: Mime Type
+          type: string
+        sequence_index:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Sequence Index
+        sha256:
+          title: Sha256
+          type: string
+        size_bytes:
+          title: Size Bytes
+          type: integer
+      required:
+      - file_id
+      - file_name
+      - mime_type
+      - size_bytes
+      - sha256
+      title: PackageFile
+      type: object
+    PackageRoutingDecision:
+      description: Sanitized view of ``routing_decisions`` row.
+      properties:
+        chosen_parser:
+          title: Chosen Parser
+          type: string
+        cost_estimate:
+          default: 0.0
+          title: Cost Estimate
+          type: number
+        decided_at:
+          title: Decided At
+          type: string
+        fallback_chain:
+          items:
+            type: string
+          title: Fallback Chain
+          type: array
+        file_id:
+          format: uuid
+          title: File Id
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        reason:
+          title: Reason
+          type: string
+        signals:
+          additionalProperties: true
+          title: Signals
+          type: object
+      required:
+      - id
+      - file_id
+      - chosen_parser
+      - reason
+      - decided_at
+      title: PackageRoutingDecision
+      type: object
     ParseRequest:
       properties:
         file_path:
@@ -3586,6 +3710,55 @@ components:
       - processed
       - results
       title: ProcessResponse
+      type: object
+    PromptListItem:
+      description: Read-only metadata for one prompt YAML file.
+      properties:
+        name:
+          title: Name
+          type: string
+        path:
+          title: Path
+          type: string
+        tags:
+          default: []
+          items:
+            type: string
+          title: Tags
+          type: array
+        updated_at:
+          title: Updated At
+          type: string
+        version:
+          anyOf:
+          - type: string
+          - type: integer
+          - type: 'null'
+          title: Version
+      required:
+      - name
+      - path
+      - updated_at
+      title: PromptListItem
+      type: object
+    PromptListResponse:
+      properties:
+        prompts:
+          items:
+            $ref: '#/components/schemas/PromptListItem'
+          title: Prompts
+          type: array
+        source:
+          default: backend
+          title: Source
+          type: string
+        total:
+          title: Total
+          type: integer
+      required:
+      - prompts
+      - total
+      title: PromptListResponse
       type: object
     QualityOverviewResponse:
       properties:
@@ -6379,6 +6552,39 @@ paths:
       summary: Export Diagram
       tags:
       - diagrams
+  /api/v1/document-extractor/packages/{package_id}:
+    get:
+      description: 'Return a read-only aggregate for one IntakePackage.
+
+
+        Tenant boundary: rows that do not belong to the caller''s tenant surface as
+
+        404 (never 403) to avoid leaking existence of cross-tenant ids.'
+      operationId: get_package_detail_api_v1_document_extractor_packages__package_id__get
+      parameters:
+      - in: path
+        name: package_id
+        required: true
+        schema:
+          format: uuid
+          title: Package Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PackageDetailResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Package Detail
+      tags:
+      - document-extractor
   /api/v1/documents:
     get:
       description: List all invoice documents from PostgreSQL.
@@ -8573,6 +8779,31 @@ paths:
                 type: object
           description: Successful Response
       summary: Cache Status
+      tags:
+      - prompts
+  /api/v1/prompts/list:
+    get:
+      description: 'List prompt YAML files found on disk.
+
+
+        Read-only v1 surface: walks the configured prompt roots, parses each
+
+        YAML''s top-level ``name``/``version``/``tags`` for display, and falls
+
+        back to the file stem when ``name`` is absent. Langfuse is intentionally
+
+        not consulted here — this is the local SSOT view the admin UI renders
+
+        before richer Langfuse-aware tooling lands (S98+).'
+      operationId: list_prompts_api_v1_prompts_list_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptListResponse'
+          description: Successful Response
+      summary: List Prompts
       tags:
       - prompts
   /api/v1/prompts/reload-all:

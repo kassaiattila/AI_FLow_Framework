@@ -27,6 +27,7 @@ blocks each open a short-lived asyncpg.connect().
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -41,12 +42,26 @@ pytestmark = pytest.mark.integration
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _ALEMBIC_INI = _PROJECT_ROOT / "alembic.ini"
 
-_DB_URL_ASYNCPG = "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev"
+
+def _resolve_db_url() -> str:
+    """Honor AIFLOW_DATABASE__URL (CI) and fall back to the Docker dev default."""
+    raw = os.getenv(
+        "AIFLOW_DATABASE__URL",
+        "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
+    )
+    return raw.replace("postgresql+asyncpg://", "postgresql://")
+
+
+_DB_URL_ASYNCPG = _resolve_db_url()
 
 
 def _alembic_cfg() -> Config:
     cfg = Config(str(_ALEMBIC_INI))
     cfg.set_main_option("script_location", str(_PROJECT_ROOT / "alembic"))
+    cfg.set_main_option(
+        "sqlalchemy.url",
+        _DB_URL_ASYNCPG.replace("postgresql://", "postgresql+asyncpg://"),
+    )
     return cfg
 
 
@@ -188,7 +203,12 @@ def test_037_check_trigger_rejects_null_mode_with_descriptions() -> None:
 
     try:
         # --- stage at 037 and exercise the trigger ---------------------------
-        command.upgrade(cfg, "037")
+        # The DB may already be ahead of 037 (e.g. head=039 in post-S97 work),
+        # so downgrade first; `alembic upgrade` is forward-only.
+        if starting_revision and starting_revision != "037":
+            command.downgrade(cfg, "037")
+        else:
+            command.upgrade(cfg, "037")
         assert asyncio.run(_current_revision()) == "037"
         asyncio.run(_run_trigger_cases(tenant_id))
 

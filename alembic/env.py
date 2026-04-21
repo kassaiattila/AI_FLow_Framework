@@ -1,5 +1,7 @@
 """Alembic environment configuration for async SQLAlchemy."""
+
 import asyncio
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -10,6 +12,15 @@ from aiflow.state.models import Base
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Let CI / .env override alembic.ini's dev-default URL so the same migration
+# command works in Docker-less CI (port 5432, user=aiflow, pwd=test) without
+# patching the file.
+_env_url = os.getenv("AIFLOW_DATABASE__URL")
+if _env_url:
+    if not _env_url.startswith("postgresql+asyncpg://"):
+        _env_url = _env_url.replace("postgresql://", "postgresql+asyncpg://")
+    config.set_main_option("sqlalchemy.url", _env_url)
 
 target_metadata = Base.metadata
 
