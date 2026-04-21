@@ -2504,6 +2504,50 @@
         }
       }
     },
+    "/api/v1/document-extractor/packages/{package_id}": {
+      "get": {
+        "tags": [
+          "document-extractor"
+        ],
+        "summary": "Get Package Detail",
+        "description": "Return a read-only aggregate for one IntakePackage.\n\nTenant boundary: rows that do not belong to the caller's tenant surface as\n404 (never 403) to avoid leaking existence of cross-tenant ids.",
+        "operationId": "get_package_detail_api_v1_document_extractor_packages__package_id__get",
+        "parameters": [
+          {
+            "name": "package_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Package Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/process-docs/generate": {
       "post": {
         "tags": [
@@ -7621,6 +7665,28 @@
         }
       }
     },
+    "/api/v1/prompts/list": {
+      "get": {
+        "tags": [
+          "prompts"
+        ],
+        "summary": "List Prompts",
+        "description": "List prompt YAML files found on disk.\n\nRead-only v1 surface: walks the configured prompt roots, parses each\nYAML's top-level ``name``/``version``/``tags`` for display, and falls\nback to the file stem when ``name`` is absent. Langfuse is intentionally\nnot consulted here — this is the local SSOT view the admin UI renders\nbefore richer Langfuse-aware tooling lands (S98+).",
+        "operationId": "list_prompts_api_v1_prompts_list_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/prompts/{prompt_name}/invalidate": {
       "post": {
         "tags": [
@@ -12626,6 +12692,170 @@
         ],
         "title": "MoveResponse"
       },
+      "PackageDetailResponse": {
+        "properties": {
+          "package_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Package Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/PackageFile"
+            },
+            "type": "array",
+            "title": "Files"
+          },
+          "routing_decisions": {
+            "items": {
+              "$ref": "#/components/schemas/PackageRoutingDecision"
+            },
+            "type": "array",
+            "title": "Routing Decisions"
+          },
+          "extractions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Extractions",
+            "description": "Persisted extraction results for this package. Always empty in S97 — extraction persistence lands in S97.5."
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "package_id",
+          "tenant_id",
+          "source_type",
+          "status",
+          "created_at",
+          "files",
+          "routing_decisions"
+        ],
+        "title": "PackageDetailResponse",
+        "description": "Aggregate read model for a single IntakePackage."
+      },
+      "PackageFile": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "sequence_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id",
+          "file_name",
+          "mime_type",
+          "size_bytes",
+          "sha256"
+        ],
+        "title": "PackageFile",
+        "description": "Sanitized view of ``intake_files`` row."
+      },
+      "PackageRoutingDecision": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id"
+          },
+          "chosen_parser": {
+            "type": "string",
+            "title": "Chosen Parser"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "signals": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Signals"
+          },
+          "fallback_chain": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Fallback Chain"
+          },
+          "cost_estimate": {
+            "type": "number",
+            "title": "Cost Estimate",
+            "default": 0.0
+          },
+          "decided_at": {
+            "type": "string",
+            "title": "Decided At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "file_id",
+          "chosen_parser",
+          "reason",
+          "decided_at"
+        ],
+        "title": "PackageRoutingDecision",
+        "description": "Sanitized view of ``routing_decisions`` row."
+      },
       "ParseRequest": {
         "properties": {
           "file_path": {
@@ -13039,6 +13269,78 @@
         ],
         "title": "ProcessResponse",
         "description": "Response after processing documents."
+      },
+      "PromptListItem": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "path",
+          "updated_at"
+        ],
+        "title": "PromptListItem",
+        "description": "Read-only metadata for one prompt YAML file."
+      },
+      "PromptListResponse": {
+        "properties": {
+          "prompts": {
+            "items": {
+              "$ref": "#/components/schemas/PromptListItem"
+            },
+            "type": "array",
+            "title": "Prompts"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompts",
+          "total"
+        ],
+        "title": "PromptListResponse"
       },
       "QualityOverviewResponse": {
         "properties": {

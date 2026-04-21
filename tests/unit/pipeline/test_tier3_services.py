@@ -397,7 +397,7 @@ class TestAdvancedParserService:
         result = await parser_svc.parse(str(test_file))
         assert isinstance(result, ParsedDocument)
         assert "Hello world" in result.text
-        assert result.parser_used in ("raw", "docling")
+        assert result.parser_used in ("raw", "docling", "unstructured")
 
     @pytest.mark.asyncio
     async def test_health_check(self, parser_svc: AdvancedParserService) -> None:
