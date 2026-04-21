@@ -119,9 +119,20 @@ class TestPackageDetailJourney:
         )
 
         # Guard against regressions — tab interaction must not spew console errors.
+        # Vite dev-proxy cross-origin redirects surface under several chromium
+        # phrasings; mirror the allow-list used by ``assert_no_console_errors``.
         real = [
             e
             for e in console_errors
-            if not any(noise in e for noise in ("favicon", "ResizeObserver", "CORS policy"))
+            if not any(
+                noise in e
+                for noise in (
+                    "favicon",
+                    "ResizeObserver",
+                    "CORS policy",
+                    "Failed to fetch",
+                    "net::ERR_FAILED",
+                )
+            )
         ]
         assert not real, f"Console errors during UC1 journey: {real}"
