@@ -83,7 +83,7 @@ rabbitmq = ["aio-pika>=9.3"]
 azure = ["azure-servicebus>=7.11"]
 aws = ["aiobotocore>=2.9"]
 ui = ["reflex>=0.6"]
-rpa = ["playwright>=1.40"]
+rpa = ["playwright>=1.40", "pyee>=11,<13"]
 local-models = ["sentence-transformers>=3.0"]
 azure-di = ["azure-ai-documentintelligence>=1.0"]
 

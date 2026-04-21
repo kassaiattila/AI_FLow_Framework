@@ -188,7 +188,12 @@ def test_037_check_trigger_rejects_null_mode_with_descriptions() -> None:
 
     try:
         # --- stage at 037 and exercise the trigger ---------------------------
-        command.upgrade(cfg, "037")
+        # The DB may already be ahead of 037 (e.g. head=039 in post-S97 work),
+        # so downgrade first; `alembic upgrade` is forward-only.
+        if starting_revision and starting_revision != "037":
+            command.downgrade(cfg, "037")
+        else:
+            command.upgrade(cfg, "037")
         assert asyncio.run(_current_revision()) == "037"
         asyncio.run(_run_trigger_cases(tenant_id))
 
