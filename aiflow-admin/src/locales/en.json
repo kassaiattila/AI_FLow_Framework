@@ -435,7 +435,11 @@
       "ingestFormats": "PDF, DOCX, TXT, MD (max 50MB)",
       "ingestButton": "Upload & Ingest",
       "chunksCreated": "chunks created",
-      "chunkIndex": "Index"
+      "chunkIndex": "Index",
+      "chunkTokens": "Tokens",
+      "chunkEmbeddingDim": "Dim",
+      "chunkDetailTitle": "Chunk detail",
+      "chunkMetadata": "Metadata"
     },
     "rpa": {
       "title": "RPA Browser",

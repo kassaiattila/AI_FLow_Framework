@@ -678,6 +678,10 @@ components:
         chunk_id:
           title: Chunk Id
           type: string
+        chunk_index:
+          default: 0
+          title: Chunk Index
+          type: integer
         content:
           title: Content
           type: string
@@ -691,6 +695,20 @@ components:
           - type: string
           - type: 'null'
           title: Document Name
+        embedding_dim:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Embedding Dim
+        metadata:
+          additionalProperties: true
+          title: Metadata
+          type: object
+        token_count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Token Count
       required:
       - chunk_id
       - content

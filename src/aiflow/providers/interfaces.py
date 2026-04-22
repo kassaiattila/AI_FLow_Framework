@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 from aiflow.providers.metadata import ProviderMetadata
 
 if TYPE_CHECKING:
+    from typing import ClassVar
+
     from aiflow.intake.package import IntakeFile, IntakePackage
 
 __all__ = [
@@ -19,6 +21,7 @@ __all__ = [
     "ClassifierProvider",
     "ExtractorProvider",
     "EmbedderProvider",
+    "ChunkerProvider",
 ]
 
 # Result types are forward-referenced as strings — they will be defined
@@ -28,6 +31,7 @@ __all__ = [
 ParserResult = Any
 ClassificationResult = Any
 ExtractionResult = Any
+ChunkResult = Any
 
 
 class ParserProvider(abc.ABC):
@@ -102,6 +106,9 @@ class ExtractorProvider(abc.ABC):
 class EmbedderProvider(abc.ABC):
     """Abstract interface for text embedding providers."""
 
+    PROVIDER_NAME: ClassVar[str]
+    """Short stable identifier (e.g. 'bge_m3', 'openai'). Concrete subclasses must set this."""
+
     @property
     @abc.abstractmethod
     def metadata(self) -> ProviderMetadata:
@@ -109,12 +116,43 @@ class EmbedderProvider(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def dimensions(self) -> int:
+    def embedding_dim(self) -> int:
         """Embedding vector dimensionality."""
+
+    @property
+    @abc.abstractmethod
+    def model_name(self) -> str:
+        """Concrete model identifier (e.g. 'BAAI/bge-m3', 'text-embedding-3-small')."""
 
     @abc.abstractmethod
     async def embed(self, texts: list[str]) -> list[list[float]]:
         """Embed a batch of texts into vectors."""
+
+    @abc.abstractmethod
+    async def health_check(self) -> bool:
+        """Return True if the provider is operational."""
+
+
+class ChunkerProvider(abc.ABC):
+    """Abstract interface for text chunking providers.
+
+    Sits between ParserProvider and EmbedderProvider in the UC2 RAG
+    pipeline. Splits a ParserResult into ChunkResult batches that the
+    embedder then converts to vectors.
+    """
+
+    @property
+    @abc.abstractmethod
+    def metadata(self) -> ProviderMetadata:
+        """Provider capability descriptor."""
+
+    @abc.abstractmethod
+    async def chunk(
+        self,
+        parser_result: ParserResult,
+        package_context: IntakePackage,
+    ) -> list[ChunkResult]:
+        """Split a parser result into chunks within its package context."""
 
     @abc.abstractmethod
     async def health_check(self) -> bool:

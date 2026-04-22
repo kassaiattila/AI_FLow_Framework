@@ -9,6 +9,7 @@ from __future__ import annotations
 import structlog
 
 from aiflow.providers.interfaces import (
+    ChunkerProvider,
     ClassifierProvider,
     EmbedderProvider,
     ExtractorProvider,
@@ -34,6 +35,7 @@ class ProviderRegistry:
         self._classifiers: dict[str, type[ClassifierProvider]] = {}
         self._extractors: dict[str, type[ExtractorProvider]] = {}
         self._embedders: dict[str, type[EmbedderProvider]] = {}
+        self._chunkers: dict[str, type[ChunkerProvider]] = {}
         logger.info("provider_registry_initialized")
 
     # -- Parser ---------------------------------------------------------------
@@ -122,3 +124,25 @@ class ProviderRegistry:
 
     def list_embedders(self) -> list[str]:
         return sorted(self._embedders.keys())
+
+    # -- Chunker --------------------------------------------------------------
+
+    def register_chunker(self, name: str, provider_cls: type[ChunkerProvider]) -> None:
+        if not issubclass(provider_cls, ChunkerProvider):
+            raise TypeError(
+                f"provider_cls must be a subclass of ChunkerProvider, got {provider_cls.__name__}"
+            )
+        self._chunkers[name] = provider_cls
+        logger.info("provider_registered", kind="chunker", name=name)
+
+    def get_chunker(self, name: str) -> type[ChunkerProvider]:
+        try:
+            return self._chunkers[name]
+        except KeyError:
+            raise KeyError(
+                f"Chunker provider '{name}' not registered. "
+                f"Available: {list(self._chunkers.keys())}"
+            ) from None
+
+    def list_chunkers(self) -> list[str]:
+        return sorted(self._chunkers.keys())

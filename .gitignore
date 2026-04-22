@@ -63,6 +63,8 @@ Desktop.ini
 *.joblib
 skills/*/training_data/collected/
 skills/*/models/*.csv
+.cache/
+var/
 
 # === Test data (generated, not source) ===
 test_output/

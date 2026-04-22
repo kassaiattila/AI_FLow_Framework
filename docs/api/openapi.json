@@ -8781,6 +8781,38 @@
               }
             ],
             "title": "Created At"
+          },
+          "chunk_index": {
+            "type": "integer",
+            "title": "Chunk Index",
+            "default": 0
+          },
+          "token_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Count"
+          },
+          "embedding_dim": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Embedding Dim"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
           }
         },
         "type": "object",

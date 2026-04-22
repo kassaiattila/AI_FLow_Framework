@@ -7,7 +7,7 @@ Source: 101_AIFLOW_v2_COMPONENT_SPEC.md N5,
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import asyncpg
 import structlog
@@ -15,10 +15,30 @@ import yaml
 
 from aiflow.policy import PolicyConfig
 from aiflow.policy.repository import PolicyOverrideRepository
+from aiflow.providers.embedder import (
+    AzureOpenAIEmbedder,
+    BGEM3Embedder,
+    EmbedderProvider,
+    OpenAIEmbedder,
+)
 
 __all__ = [
+    "EmbeddingProfile",
     "PolicyEngine",
 ]
+
+EmbeddingProfile = Literal["A", "B"]
+
+_PROFILE_DEFAULTS: dict[str, type[EmbedderProvider]] = {
+    "A": BGEM3Embedder,
+    "B": AzureOpenAIEmbedder,
+}
+
+_PROVIDER_ALIASES: dict[str, type[EmbedderProvider]] = {
+    BGEM3Embedder.PROVIDER_NAME: BGEM3Embedder,
+    AzureOpenAIEmbedder.PROVIDER_NAME: AzureOpenAIEmbedder,
+    OpenAIEmbedder.PROVIDER_NAME: OpenAIEmbedder,
+}
 
 logger = structlog.get_logger(__name__)
 
@@ -123,3 +143,41 @@ class PolicyEngine:
         """Get any parameter value with override chain applied."""
         cfg = self.get_for_tenant(tenant_id) if tenant_id else self.profile_config
         return getattr(cfg, parameter, None)
+
+    def pick_embedder(
+        self,
+        tenant_id: str,
+        profile: EmbeddingProfile,
+    ) -> type[EmbedderProvider]:
+        """Select the embedder class for a tenant under a given profile.
+
+        Rule:
+        * Profile A → BGEM3Embedder (local, free)
+        * Profile B → AzureOpenAIEmbedder (cloud, moderate)
+        * Tenant override: if ``tenant_overrides[tenant_id]['embedder_provider']``
+          is set to a known provider name (``bge_m3`` / ``azure_openai``) that
+          class is returned instead.
+        """
+        if profile not in _PROFILE_DEFAULTS:
+            raise ValueError(f"Unknown embedding profile {profile!r}; expected 'A' or 'B'.")
+        default_cls = _PROFILE_DEFAULTS[profile]
+
+        override_cls: type[EmbedderProvider] | None = None
+        override_name = self.tenant_overrides.get(tenant_id, {}).get("embedder_provider")
+        if isinstance(override_name, str):
+            if override_name not in _PROVIDER_ALIASES:
+                raise ValueError(
+                    f"Tenant {tenant_id!r} override embedder_provider={override_name!r} "
+                    f"is not a registered embedder. Known: {list(_PROVIDER_ALIASES)}."
+                )
+            override_cls = _PROVIDER_ALIASES[override_name]
+
+        selected = override_cls or default_cls
+        logger.info(
+            "policy_engine.embedder_selected",
+            tenant_id=tenant_id,
+            profile=profile,
+            provider=selected.PROVIDER_NAME,
+            tenant_override=override_cls is not None,
+        )
+        return selected

@@ -27,6 +27,7 @@ def _make_collection_row(
     emb="openai/text-embedding-3-small",
     doc_count=5,
     chunk_count=100,
+    embedding_dim=1536,
 ):
     """Mock SQLAlchemy result row for rag_collections."""
     return (
@@ -40,6 +41,7 @@ def _make_collection_row(
         {},  # config
         None,  # created_at
         None,  # updated_at
+        embedding_dim,
     )
 
 

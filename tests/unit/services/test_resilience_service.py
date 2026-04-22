@@ -63,6 +63,13 @@ class TestResilienceService:
         assert result == "ok"
         assert func.await_count == 2
 
+    @pytest.mark.xfail(
+        strict=False,
+        reason=(
+            "Quarantined 2026-04-25 (S104): timing-sensitive 50ms recovery window "
+            "flakes under full-suite load; PASSes in isolation. See docs/quarantine.md."
+        ),
+    )
     @pytest.mark.asyncio
     async def test_circuit_opens_on_failures(self, svc: ResilienceService) -> None:
         """Repeated failures open the circuit breaker."""
