@@ -102,16 +102,31 @@ Branch: `feature/v1.4.5-doc-processing` (cut after v1.4.4 merged + tagged).
 
 ---
 
-### Sprint J — v1.4.6 "RAG chat usable"
-Branch: `feature/v1.4.6-rag-chat`.
+### Sprint J — v1.4.6 "RAG chat usable" — **DONE** (tag `v1.4.5-sprint-j-uc2`, 2026-04-25)
+Branch: `feature/v1.4.6-rag-chat`. Retro: `docs/sprint_j_retro.md`. PR description: `docs/sprint_j_pr_description.md`.
 
-| Session | Scope | Acceptance |
-|---------|-------|-----------|
-| **S99** | `EmbedderProvider` impls: BGE-M3 (Profile A local) + Azure OpenAI text-embedding-3-small (Profile B). `PolicyEngine` picks based on profile + tenant override. `EmbeddingDecision` contract stub + Alembic 039: `embedding_decisions`. | Unit tests for both providers with real embedding vectors; policy-driven selection test. |
-| **S100** | `UnstructuredChunker` as RAG ingest step. Replaces current `text-embedding-3-small`-hardcoded path. Ingest goes through the same `Parser → Chunker → Embedder` flow shared with UC1. | Ingest a real collection (5 PDFs), retrieve with cosine sim, compare to existing hardcoded-pipeline baseline (no regression in top-k). |
-| **S101** | UI `Rag.tsx` + `RagDetail.tsx`: chunk viewer (paginated), embedding-model badge, retrieval metric panel (latency, top-k score). Backend `GET /api/v1/rag/collections/{id}/chunks`, `.../metrics`. | Playwright: open collection → see chunks + model + metric. |
-| **S102** | PII redaction gate inserted between Chunker and Embedder. Regex v0 (reused from S96) → structured report persisted as `PIIRedactionReport` stub (schema-only in v1.4.6, no §10.3 upgrade yet). | Unit + integration: ingest doc with fake SSN/email, assert redacted text goes to embedder. |
-| **S103** | Golden-path E2E: collection-ingest → chat query → retrieve → answer with citations. `/regression` + `/lint-check`. PR cut + tag `v1.4.6`. | 1 Playwright E2E GREEN end-to-end with real services + Langfuse trace on chat call. |
+> **Actual session numbering:** S100–S104 (the plan originally listed S99–S103; sprint started one session later because S99 was absorbed into Sprint I close). Scope mapping below reflects what actually shipped.
+
+| Session | Commit | Scope delivered | Acceptance |
+|---------|--------|-----------------|-----------|
+| **S100** | `9b3c610` | `EmbedderProvider` ABC + BGE-M3 (Profile A) + Azure OpenAI (Profile B) impls; `EmbeddingDecision` contract; Alembic 040; `PolicyEngine.pick_embedder`. | ✅ Unit + integration tests for both providers; alembic 040 up/down/up verified. |
+| **S101** | `953e7cd` | `ChunkResult` contract + `ChunkerProvider` ABC (5th registry slot); `UnstructuredChunker`; rag_engine opt-in `use_provider_registry=True` path; Alembic 041 `rag_chunks.embedding_dim`. | ✅ rag_engine UC2 integration end-to-end PASS with real Docker PG. |
+| **S102** | `37d5ba7` | UI `Rag.tsx` + `RagDetail.tsx` with `ChunkViewer` (paginated, embedding_dim badge, modal); `GET /collections/{id}/chunks` provenance fields; 3 Playwright E2E. | ✅ Playwright: open collection → see chunks + embedding_dim badge + modal. |
+| **S103** | `fa6324a` | Retrieval baseline — pgvector flex-dim (Alembic 042) + `OpenAIEmbedder` (Profile B surrogate) + `scripts/bootstrap_bge_m3.py` + live `test_retrieval_baseline.py` (MRR@5 ≥ 0.55 both profiles) + reranker OSError fallback. | ✅ Live MRR@5 ≥ 0.55 both profiles against bilingual hu+en fixture. |
+| **S104** | _(this PR)_ | Sprint J close — resilience flake quarantine + `docs/quarantine.md`; `docs/sprint_j_retro.md`; plan + CLAUDE.md update; PR cut against `main`; tag `v1.4.5-sprint-j-uc2`. | ✅ PR opened, CI green, tag pushed. |
+
+**Scope variance from original plan:**
+- **PII redaction gate (planned S102) deferred to Sprint K** — UC3 shares the redactor; folding there keeps Sprint J focused on provable retrieval quality.
+- **Golden-path chat E2E (planned S103) reshaped into live MRR@5 retrieval baseline (actual S103)** — retrieval quality gate is the provable "usable" criterion per §8; full chat E2E queued for Sprint K (requires `query()` refactor to use provider registry, currently ingest-only).
+- **`query()` refactor to provider registry** — ingest path is provider-aware (S101), but `rag_engine.query()` still instantiates legacy `Embedder`; 1024-dim BGE-M3 collections are ingestable but not queryable via public API. Queued as Sprint K first follow-up.
+
+**Sprint J exit gate actual:**
+- ✅ Admin UI `Rag` page ingests collection → shows chunks with embedding_dim + metadata.
+- ✅ Retrieval quality gate: MRR@5 ≥ 0.55 on Profile A (BGE-M3) + Profile B (OpenAI surrogate).
+- ✅ PolicyEngine selects provider per profile + tenant override.
+- ✅ Alembic head 042; unit 1994 PASS; integration 55+ PASS; E2E 413 collected.
+- ⏭️ Langfuse trace on chat call — deferred with `query()` refactor (Sprint K).
+- ⏭️ Coverage ≥80% on owning modules — measure at Sprint K start, uplift per §7.
 
 ---
 

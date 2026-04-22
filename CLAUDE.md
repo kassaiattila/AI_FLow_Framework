@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.4.3** — Phase 1d Adapter Orchestration MERGED 2026-04-24 (PR #9, tag `v1.4.3-phase-1d`, G0.1-G0.8) | API: 8102 | UI: 5173
+**v1.4.5 Sprint J** — UC2 RAG chat usable, PR opened 2026-04-25 against `main`, tag `v1.4.5-sprint-j-uc2` queued (S100-S104 on `feature/v1.4.6-rag-chat`). Predecessor: **v1.4.3** Phase 1d Adapter Orchestration MERGED 2026-04-24 (PR #9, tag `v1.4.3-phase-1d`). | API: 8102 | UI: 5173 (Sprint J Vite dev: 5174)
 
 ## Structure
 ```
@@ -18,9 +18,10 @@ session_prompts/    — Session prompt archive + NEXT.md pointer (/next reads th
 ```
 
 ## Key Numbers
-27 services | 177 API endpoints (27 routers) | 49 DB tables | 37 Alembic migrations (head: 037)
+27 services | 181 API endpoints (27 routers) | 50 DB tables | 42 Alembic migrations (head: 042 — Sprint J 040 embedding_decisions + 041 rag_chunks.embedding_dim + 042 pgvector flex-dim)
 22 pipeline adapters | 10 pipeline templates | 7 skills | 23 UI pages | 5 source adapters (Email, File, Folder, Batch, API)
-1898 unit tests | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 410 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b + 7 Phase 1d) | 42 integration tests (incl. 4 alembic association_mode)
+3 embedder providers (BGE-M3 Profile A, Azure OpenAI Profile B, OpenAI surrogate) | 1 chunker provider (UnstructuredChunker) | 5 provider-registry ABC slots (parser, classifier, extractor, embedder, chunker)
+1994 unit tests (1 xfail-quarantined: resilience 50ms timing flake) | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 413 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b + 7 Phase 1d + 3 UC2 S102) | 55+ integration tests (incl. 4 alembic association_mode + 3 alembic 040/041/042 + 5 rag_engine UC2)
 
 ## Build & Test
 ```bash
@@ -45,15 +46,15 @@ alembic upgrade head                      # DB migrations
 - **Services in Docker** (PostgreSQL 5433, Redis 6379, Kroki 8000), Python code locally from .venv
 
 ## Git Workflow
-- Base: `main` @ tag `v1.4.3-phase-1d` (Phase 1d merged 2026-04-24, PR #9). Phase 1c merged 2026-04-16, tag `v1.4.2-phase-1c`. Future work cuts a fresh feature branch from `main`. NEVER commit to main directly.
+- Base: `main` @ tag `v1.4.3-phase-1d` (Phase 1d merged 2026-04-24, PR #9). Sprint J PR queued for tag `v1.4.5-sprint-j-uc2`. Phase 1c merged 2026-04-16, tag `v1.4.2-phase-1c`. Future work cuts a fresh feature branch from `main` after Sprint J merge. NEVER commit to main directly.
 - Commits: conventional (`feat`, `fix`, `docs`, `refactor`) + Co-Authored-By
 - NEVER commit: .env, credentials, API keys, failing tests
 - Before commit: `/regression` + `/lint-check`
 
 ## Current Plan
-`01_PLAN/ROADMAP.md` — single forward entry point (Sprint H consolidation S88-S93, Phase 1.5 Vault queue, coverage follow-ups). v1.4.4 consolidation sprint closing with S93 (test_alembic_034 head-relative, out/ cleanup, this CLAUDE.md sync); PR cut + tag `v1.4.4` pending user approval.
+`01_PLAN/110_USE_CASE_FIRST_REPLAN.md` — ACTIVE use-case-first replan (UC1 Sprint I v1.4.5, UC2 Sprint J v1.4.6 DONE, UC3 Sprint K v1.4.7 next, Sprint L v1.4.8 cross-cutting). Policy: every sprint closes with exactly one use-case end-to-end green.
 
-`01_PLAN/session_S80_v1_4_3_phase_1d_kickoff.md` — **Phase 1d MERGED 2026-04-24**, tag `v1.4.3-phase-1d`, PR #9 merge commit `0d669aa`. Scope delivered: G0.1 writer audit + kickoff, G0.2 Email adapter + `IntakePackageSink` + associator helper extraction, G0.3 File + Folder adapters + `upload_package` HTTP collapse + sink label fix + autouse pool reset conftest, G0.4 Batch + Api adapters, G0.5 multi_source_e2e triage (sink-routed), G0.6 webhook router sink wiring (Path A) + status 202→201, G0.7 G-matrix evidence + PR draft + issue #7 decision, G0.8 OpenAPI drift regen + PR cut + tag + retro. Artifacts: `docs/phase_1d_pr_description.md`, `docs/phase_1d_retro.md`. Open follow-ups: issue #7 (coverage 65.67%→80%) DEFERRED to v1.4.4; stale `test_alembic_034` assertion queued for v1.4.4. Predecessor: Phase 1c MERGED, tag `v1.4.2-phase-1c`, PR #6.
+`01_PLAN/110_USE_CASE_FIRST_REPLAN.md` §4 Sprint J — **DONE 2026-04-25**, tag `v1.4.5-sprint-j-uc2` (queued), PR opened against `main`. Scope delivered across S100-S104: S100 `EmbedderProvider` ABC + BGE-M3 (Profile A) + Azure OpenAI (Profile B) + `EmbeddingDecision` + Alembic 040 + `PolicyEngine.pick_embedder`; S101 `ChunkerProvider` ABC (5th registry slot) + `UnstructuredChunker` + rag_engine opt-in provider-registry ingest path + Alembic 041 `rag_chunks.embedding_dim`; S102 UC2 RAG UI (`ChunkViewer` + chunks API provenance fields + 3 Playwright E2E); S103 retrieval baseline (pgvector flex-dim Alembic 042 + `OpenAIEmbedder` Profile B surrogate + live MRR@5 ≥ 0.55 both profiles + `scripts/bootstrap_bge_m3.py` + reranker OSError fallback); S104 resilience flake quarantine + retro + PR cut + tag. Artifacts: `docs/sprint_j_retro.md`, `docs/sprint_j_pr_description.md`, `docs/quarantine.md`. Open follow-ups: `query()` refactor to provider registry (1024-dim collections not queryable yet — Sprint K S105); reranker model preload script; Azure OpenAI Profile B live (credits pending); resilience `Clock` seam (quarantine fix deadline 2026-04-30); BGE-M3 weight cache as CI artifact; PII redaction gate (deferred to Sprint K UC3); coverage uplift (issue #7, 65.67%→80% trajectory per replan §7). Predecessor: **v1.4.3 Phase 1d** MERGED 2026-04-24, tag `v1.4.3-phase-1d`, PR #9 / `0d669aa` (adapter orchestration + IntakePackageSink).
 
 ## Session Workflow (DOHA-aligned)
 
