@@ -40,6 +40,14 @@ class RAGEngineConfig(ServiceConfig):
     default_chunk_overlap: int = 200
     default_top_k: int = 5
     upload_dir: str = "./data/rag"
+    # Sprint J S101 — UC2 RAG. When True, ingest_documents switches to the
+    # Parser→Chunker→Embedder provider-registry flow (PolicyEngine.pick_embedder
+    # + EmbeddingDecision persistence + rag_chunks.embedding_dim population).
+    # Default False preserves the legacy Docling + RecursiveChunker + Embedder
+    # path so no existing tenant is disrupted mid-sprint.
+    use_provider_registry: bool = False
+    provider_registry_profile: str = "B"  # A = BGE-M3 local, B = Azure OpenAI cloud
+    provider_registry_tenant: str = "default"
 
 
 class CollectionInfo(BaseModel):
@@ -120,7 +128,18 @@ class RAGEngineService(BaseService):
         self._embedder = None
         self._search_engine = None
         self._model_client = None
+        self._embedder_provider_override: Any = None
         super().__init__(self._ext_config)
+
+    def set_embedder_provider_override(self, provider: Any) -> None:
+        """Inject a test/alternate EmbedderProvider instance, bypassing PolicyEngine.
+
+        Used by the Sprint J integration test to exercise the provider-registry
+        ingest flow with a deterministic fake (dim=1536 matching the current
+        rag_chunks.embedding column) when neither Profile A nor Profile B
+        credentials are available locally.
+        """
+        self._embedder_provider_override = provider
 
     @property
     def service_name(self) -> str:
@@ -355,7 +374,25 @@ class RAGEngineService(BaseService):
         file_paths: list[str | Path],
         language: str | None = None,
     ) -> IngestionResult:
-        """Ingest documents into a collection: parse → chunk → embed → store."""
+        """Ingest documents into a collection: parse → chunk → embed → store.
+
+        Two paths:
+
+        * Legacy (``use_provider_registry=False``, default): Docling parser +
+          recursive chunker + ModelClient embedder — preserves behaviour for
+          existing tenants.
+        * Provider-registry (``use_provider_registry=True``, Sprint J S101):
+          UnstructuredParser + UnstructuredChunker + PolicyEngine-selected
+          EmbedderProvider. Persists an EmbeddingDecision per ingest call
+          (alembic 040) and populates ``rag_chunks.embedding_dim`` (alembic 041).
+        """
+        if self._ext_config.use_provider_registry:
+            return await self._ingest_via_provider_registry(
+                collection_id=collection_id,
+                file_paths=file_paths,
+                language=language,
+            )
+
         import time
 
         start = time.time()
@@ -468,6 +505,210 @@ class RAGEngineService(BaseService):
             duration_ms=elapsed,
             errors=errors,
         )
+
+    async def _ingest_via_provider_registry(
+        self,
+        collection_id: str,
+        file_paths: list[str | Path],
+        language: str | None = None,
+    ) -> IngestionResult:
+        """Sprint J S101 — Parser→Chunker→Embedder ingest using provider registry."""
+        import hashlib
+        import time
+
+        from aiflow.contracts.embedding_decision import EmbeddingDecision
+        from aiflow.intake.package import IntakeFile, IntakePackage, IntakeSourceType
+        from aiflow.policy.engine import PolicyEngine
+        from aiflow.providers.chunker.unstructured import UnstructuredChunker
+        from aiflow.providers.parsers.unstructured_fast import UnstructuredParser
+
+        start = time.time()
+        coll = await self.get_collection(collection_id)
+        if not coll:
+            return IngestionResult(
+                collection_id=collection_id,
+                errors=["Collection not found"],
+            )
+
+        tenant_id = self._ext_config.provider_registry_tenant
+        profile = self._ext_config.provider_registry_profile
+
+        embedder_provider = self._embedder_provider_override
+        tenant_override_applied = False
+        if embedder_provider is None:
+            policy = PolicyEngine()
+            embedder_cls = policy.pick_embedder(tenant_id=tenant_id, profile=profile)
+            tenant_override_applied = bool(
+                policy.tenant_overrides.get(tenant_id, {}).get("embedder_provider")
+            )
+            try:
+                embedder_provider = embedder_cls()
+            except Exception as exc:
+                return IngestionResult(
+                    collection_id=collection_id,
+                    errors=[f"Embedder init failed ({embedder_cls.__name__}): {exc}"],
+                )
+
+        parser = UnstructuredParser()
+        chunker = UnstructuredChunker()
+
+        errors: list[str] = []
+        total_chunks = 0
+        decision_recorded = False
+
+        for fp in file_paths:
+            file_path = Path(fp)
+            try:
+                raw = file_path.read_bytes()
+                intake_file = IntakeFile(
+                    file_path=str(file_path),
+                    file_name=file_path.name,
+                    mime_type=_mime_for(file_path),
+                    size_bytes=len(raw),
+                    sha256=hashlib.sha256(raw).hexdigest(),
+                )
+                package = IntakePackage(
+                    source_type=IntakeSourceType.FILE_UPLOAD,
+                    tenant_id=tenant_id,
+                    files=[intake_file],
+                )
+
+                parser_result = await parser.parse(intake_file, package)
+                chunks = await chunker.chunk(parser_result, package)
+                if not chunks:
+                    errors.append(f"{file_path.name}: no chunks generated")
+                    continue
+
+                chunk_texts = [c.text for c in chunks]
+                vectors = await embedder_provider.embed(chunk_texts)
+                if len(vectors) != len(chunks):
+                    errors.append(
+                        f"{file_path.name}: embedder returned {len(vectors)} vectors "
+                        f"for {len(chunks)} chunks"
+                    )
+                    continue
+
+                if not decision_recorded:
+                    await self._persist_embedding_decision(
+                        EmbeddingDecision(
+                            tenant_id=tenant_id,
+                            provider_name=embedder_provider.metadata.name,
+                            model_name=embedder_provider.model_name,
+                            embedding_dim=embedder_provider.embedding_dim,
+                            profile=profile,  # type: ignore[arg-type]
+                            tenant_override_applied=tenant_override_applied,
+                        )
+                    )
+                    decision_recorded = True
+
+                chunk_dicts = [
+                    {
+                        "id": str(c.chunk_id),
+                        "content": c.text,
+                        "metadata": {
+                            **c.metadata,
+                            "chunk_index": c.chunk_index,
+                            "tenant_id": c.tenant_id,
+                            "package_id": str(c.package_id),
+                            "source_file_id": str(c.source_file_id),
+                            "document_name": file_path.name,
+                            "language": language or coll.language,
+                        },
+                        "document_name": file_path.name,
+                    }
+                    for c in chunks
+                ]
+                stored = await self._vector_store.upsert_chunks(
+                    collection=coll.name,
+                    skill_name="rag_engine",
+                    chunks=chunk_dicts,
+                    embeddings=vectors,
+                )
+                await self._backfill_embedding_dim(
+                    collection_name=coll.name,
+                    embedding_dim=embedder_provider.embedding_dim,
+                )
+                total_chunks += stored
+                self._logger.info(
+                    "file_ingested_provider_registry",
+                    file=file_path.name,
+                    chunks=stored,
+                    collection=coll.name,
+                    embedder=embedder_provider.metadata.name,
+                    embedding_dim=embedder_provider.embedding_dim,
+                )
+            except Exception as e:
+                errors.append(f"{file_path.name}: {e}")
+                self._logger.error(
+                    "ingest_file_error_provider_registry",
+                    file=str(file_path),
+                    error=str(e),
+                )
+
+        async with self._session_factory() as session:
+            await session.execute(
+                text("""
+                    UPDATE rag_collections
+                    SET document_count = document_count + :docs,
+                        chunk_count = chunk_count + :chunks,
+                        last_ingest_at = NOW(),
+                        updated_at = NOW()
+                    WHERE id = :id
+                """),
+                {
+                    "docs": len(file_paths) - len(errors),
+                    "chunks": total_chunks,
+                    "id": collection_id,
+                },
+            )
+            await session.commit()
+
+        elapsed = (time.time() - start) * 1000
+        return IngestionResult(
+            collection_id=collection_id,
+            files_processed=len(file_paths) - len(errors),
+            chunks_created=total_chunks,
+            duration_ms=elapsed,
+            errors=errors,
+        )
+
+    async def _persist_embedding_decision(self, decision: EmbeddingDecision) -> None:  # noqa: F821
+        async with self._session_factory() as session:
+            await session.execute(
+                text("""
+                    INSERT INTO embedding_decisions (
+                        decision_id, tenant_id, provider_name, model_name,
+                        embedding_dim, profile, tenant_override_applied, decision_at
+                    ) VALUES (
+                        :decision_id, :tenant_id, :provider_name, :model_name,
+                        :embedding_dim, :profile, :tenant_override_applied, :decision_at
+                    )
+                """),
+                {
+                    "decision_id": str(decision.decision_id),
+                    "tenant_id": decision.tenant_id,
+                    "provider_name": decision.provider_name,
+                    "model_name": decision.model_name,
+                    "embedding_dim": decision.embedding_dim,
+                    "profile": decision.profile,
+                    "tenant_override_applied": decision.tenant_override_applied,
+                    "decision_at": decision.decision_at,
+                },
+            )
+            await session.commit()
+
+    async def _backfill_embedding_dim(self, collection_name: str, embedding_dim: int) -> None:
+        """Populate rag_chunks.embedding_dim for any row in ``collection_name``
+        that was just written by pgvector and has no dim recorded yet."""
+        async with self._session_factory() as session:
+            await session.execute(
+                text(
+                    "UPDATE rag_chunks SET embedding_dim = :dim "
+                    "WHERE collection = :coll AND embedding_dim IS NULL"
+                ),
+                {"dim": embedding_dim, "coll": collection_name},
+            )
+            await session.commit()
 
     # -----------------------------------------------------------------------
     # Query
@@ -679,3 +920,18 @@ class RAGEngineService(BaseService):
             feedback_positive=frow[0] if frow else 0,
             feedback_negative=frow[1] if frow else 0,
         )
+
+
+_MIME_BY_SUFFIX: dict[str, str] = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".doc": "application/msword",
+    ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".html": "text/html",
+    ".htm": "text/html",
+}
+
+
+def _mime_for(file_path: Path) -> str:
+    return _MIME_BY_SUFFIX.get(file_path.suffix.lower(), "application/octet-stream")

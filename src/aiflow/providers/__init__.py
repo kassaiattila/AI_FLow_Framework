@@ -5,6 +5,7 @@ Source: 103_AIFLOW_v2_FINAL_VALIDATION.md Section 5 (MF6),
 """
 
 from aiflow.providers.interfaces import (
+    ChunkerProvider,
     ClassifierProvider,
     EmbedderProvider,
     ExtractorProvider,
@@ -14,6 +15,7 @@ from aiflow.providers.metadata import ProviderMetadata
 from aiflow.providers.registry import ProviderRegistry
 
 __all__ = [
+    "ChunkerProvider",
     "ClassifierProvider",
     "EmbedderProvider",
     "ExtractorProvider",

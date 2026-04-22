@@ -114,6 +114,9 @@ def test_040_upgrade_creates_table_index_and_constraint() -> None:
     cfg = _alembic_cfg()
     starting = asyncio.run(_current_revision())
     try:
+        # Head may be past 040 (e.g. after S101's 041) — step back to 039 so
+        # the upgrade target we assert against is actually the one applied.
+        command.downgrade(cfg, "039")
         command.upgrade(cfg, "040")
         assert asyncio.run(_current_revision()) == "040"
         assert asyncio.run(_table_exists("embedding_decisions"))

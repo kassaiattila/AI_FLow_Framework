@@ -19,6 +19,7 @@ __all__ = [
     "ClassifierProvider",
     "ExtractorProvider",
     "EmbedderProvider",
+    "ChunkerProvider",
 ]
 
 # Result types are forward-referenced as strings — they will be defined
@@ -28,6 +29,7 @@ __all__ = [
 ParserResult = Any
 ClassificationResult = Any
 ExtractionResult = Any
+ChunkResult = Any
 
 
 class ParserProvider(abc.ABC):
@@ -120,6 +122,32 @@ class EmbedderProvider(abc.ABC):
     @abc.abstractmethod
     async def embed(self, texts: list[str]) -> list[list[float]]:
         """Embed a batch of texts into vectors."""
+
+    @abc.abstractmethod
+    async def health_check(self) -> bool:
+        """Return True if the provider is operational."""
+
+
+class ChunkerProvider(abc.ABC):
+    """Abstract interface for text chunking providers.
+
+    Sits between ParserProvider and EmbedderProvider in the UC2 RAG
+    pipeline. Splits a ParserResult into ChunkResult batches that the
+    embedder then converts to vectors.
+    """
+
+    @property
+    @abc.abstractmethod
+    def metadata(self) -> ProviderMetadata:
+        """Provider capability descriptor."""
+
+    @abc.abstractmethod
+    async def chunk(
+        self,
+        parser_result: ParserResult,
+        package_context: IntakePackage,
+    ) -> list[ChunkResult]:
+        """Split a parser result into chunks within its package context."""
 
     @abc.abstractmethod
     async def health_check(self) -> bool:
