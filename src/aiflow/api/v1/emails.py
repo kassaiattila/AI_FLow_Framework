@@ -217,6 +217,15 @@ class ScanRequest(BaseModel):
     max_items: int = Field(10, ge=1, le=100)
     tenant_id: str = "default"
     schema_labels: list[dict[str, Any]] | None = None
+    routing_policy_id: str | None = Field(
+        default=None,
+        description=(
+            "Optional IntentRoutingPolicy YAML id to load from "
+            "``$AIFLOW_POLICY_DIR/intent_routing/{id}.yaml``. When set, the "
+            "orchestrator maps each classification to a routing action and "
+            "persists it under ``output_data.routing_action``."
+        ),
+    )
 
 
 class ScanItem(BaseModel):
@@ -1016,6 +1025,7 @@ async def scan_and_classify_endpoint(config_id: str, req: ScanRequest) -> ScanRe
     """
     from sqlalchemy.ext.asyncio import async_sessionmaker as asm
 
+    from aiflow.policy.intent_routing import IntentRoutingPolicy
     from aiflow.services.classifier.service import ClassifierService
     from aiflow.services.email_connector.orchestrator import scan_and_classify
     from aiflow.sources.email_adapter import EmailSourceAdapter, ImapBackend
@@ -1078,6 +1088,22 @@ async def scan_and_classify_endpoint(config_id: str, req: ScanRequest) -> ScanRe
     session_factory = asm(engine, expire_on_commit=False)
     state_repo = StateRepository(session_factory)
 
+    routing_policy = None
+    if req.routing_policy_id:
+        policy_dir = Path(os.getenv("AIFLOW_POLICY_DIR", "config/policies"))
+        policy_path = policy_dir / "intent_routing" / f"{req.routing_policy_id}.yaml"
+        if not policy_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Routing policy not found: {req.routing_policy_id}",
+            )
+        try:
+            routing_policy = IntentRoutingPolicy.from_yaml(policy_path)
+        except (ValueError, OSError) as exc:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid routing policy YAML: {exc}"
+            ) from exc
+
     classifier = ClassifierService()
     await classifier.start()
     try:
@@ -1089,6 +1115,7 @@ async def scan_and_classify_endpoint(config_id: str, req: ScanRequest) -> ScanRe
             tenant_id=req.tenant_id,
             max_items=req.max_items,
             schema_labels=req.schema_labels,
+            routing_policy=routing_policy,
         )
     except Exception as e:
         logger.exception("scan_and_classify_failed", config_id=config_id, error=str(e))

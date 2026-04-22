@@ -4471,6 +4471,14 @@ components:
           minimum: 1.0
           title: Max Items
           type: integer
+        routing_policy_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Optional IntentRoutingPolicy YAML id to load from ``$AIFLOW_POLICY_DIR/intent_routing/{id}.yaml``.
+            When set, the orchestrator maps each classification to a routing action
+            and persists it under ``output_data.routing_action``.
+          title: Routing Policy Id
         schema_labels:
           anyOf:
           - items:

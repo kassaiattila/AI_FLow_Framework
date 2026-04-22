@@ -1,12 +1,19 @@
 """Scan-classify orchestrator — EmailSource → IntakePackageSink → ClassifierService.
 
-Thin composition layer for UC3 Sprint K (S106 — ClassificationResult unify +
-scan-classify glue). Fetches one package at a time from the source adapter,
-persists it through the sink, classifies the package's EMAIL_BODY description,
-and records the outcome in ``workflow_runs`` via :class:`StateRepository`.
+Thin composition layer for UC3 Sprint K. Fetches one package at a time from the
+source adapter, persists it through the sink, classifies the package's
+EMAIL_BODY description, optionally applies an :class:`IntentRoutingPolicy` to
+pick a downstream action, and records the outcome in ``workflow_runs`` via
+:class:`StateRepository`.
 
 No new table, no new migration, no new pipeline step — reuses existing
-``workflow_runs.output_data`` JSONB column for classification persistence.
+``workflow_runs.output_data`` JSONB column for classification persistence and
+adds the routing decision as extra keys in that JSON (``routing_action``,
+``routing_target``).
+
+S106 added scan-classify. S107 adds per-tenant intent routing + optional
+Langfuse prompt fetch (fetch-only breadcrumb; prompt → schema_labels parsing
+is deferred to S108).
 """
 
 from __future__ import annotations
@@ -19,6 +26,8 @@ from aiflow.intake.package import DescriptionRole
 
 if TYPE_CHECKING:
     from aiflow.intake.package import IntakePackage
+    from aiflow.policy.intent_routing import IntentRoutingPolicy
+    from aiflow.prompts.manager import PromptManager
     from aiflow.services.classifier.service import (
         ClassificationResult,
         ClassifierService,
@@ -45,21 +54,60 @@ async def scan_and_classify(
     tenant_id: str,
     max_items: int = 10,
     schema_labels: list[dict[str, Any]] | None = None,
+    routing_policy: IntentRoutingPolicy | None = None,
+    prompt_manager: PromptManager | None = None,
+    prompt_name: str = "",
+    prompt_label: str = "prod",
 ) -> list[tuple[str, ClassificationResult]]:
-    """Drain up to ``max_items`` packages: fetch → sink → classify → persist.
+    """Drain up to ``max_items`` packages: fetch → sink → classify → (route) → persist.
 
     Per package:
         1. ``adapter.fetch_next()``  (idle → break)
         2. ``sink.handle(pkg)``       (associate + persist IntakePackage)
         3. ``classifier.classify(text, schema_labels=...)``
-        4. ``repo.create_workflow_run`` + ``repo.update_workflow_run_status``
-        5. ``adapter.acknowledge(pkg.package_id)``
+        4. If ``routing_policy`` is provided:
+           ``routing_policy.decide(result.label, result.confidence)`` →
+           ``(action, target)``, persisted as ``output_data.routing_action`` /
+           ``output_data.routing_target`` and emitted as a
+           ``email_connector.scan_and_classify.routed`` structlog event.
+        5. ``repo.create_workflow_run`` + ``repo.update_workflow_run_status``
+        6. ``adapter.acknowledge(pkg.package_id)``
+
+    Langfuse prompt fetch: when both ``prompt_manager`` and ``prompt_name`` are
+    provided, the orchestrator tries to resolve the prompt once (before the
+    drain loop) via :meth:`PromptManager.get` with ``prompt_label``. Successful
+    resolution is recorded as ``prompt_version`` in each ``output_data`` (and
+    emitted as a ``email_connector.scan_and_classify.prompt_fetched`` event).
+    Failures fall through silently; the explicit ``schema_labels`` parameter
+    remains authoritative. Extracting ``schema_labels`` from the fetched
+    prompt is deferred to S108 (PromptConfig has no native labels field).
 
     Returns a list of ``(package_id, ClassificationResult)`` for processed
     packages. Packages with no classifiable text are sink-persisted and acked
     but do not produce a ClassificationResult.
     """
     results: list[tuple[str, ClassificationResult]] = []
+
+    prompt_version: str = ""
+    if prompt_manager is not None and prompt_name:
+        try:
+            fetched = prompt_manager.get(prompt_name, label=prompt_label)
+            prompt_version = fetched.version or ""
+            logger.info(
+                "email_connector.scan_and_classify.prompt_fetched",
+                tenant_id=tenant_id,
+                prompt_name=prompt_name,
+                prompt_label=prompt_label,
+                prompt_version=prompt_version,
+            )
+        except Exception as exc:
+            logger.info(
+                "email_connector.scan_and_classify.prompt_fetch_skipped",
+                tenant_id=tenant_id,
+                prompt_name=prompt_name,
+                prompt_label=prompt_label,
+                reason=str(exc),
+            )
 
     for _ in range(max_items):
         package = await adapter.fetch_next()
@@ -92,19 +140,39 @@ async def scan_and_classify(
 
         result = await classifier.classify(text=text, schema_labels=schema_labels)
 
+        output_data: dict[str, Any] = {
+            "package_id": str(package.package_id),
+            "tenant_id": tenant_id,
+            "label": result.label,
+            "display_name": result.display_name,
+            "confidence": result.confidence,
+            "method": result.method,
+            "sub_label": result.sub_label,
+            "reasoning": result.reasoning,
+        }
+        if prompt_version:
+            output_data["prompt_name"] = prompt_name
+            output_data["prompt_version"] = prompt_version
+
+        if routing_policy is not None:
+            action, target = routing_policy.decide(result.label, result.confidence)
+            output_data["routing_action"] = action.value
+            output_data["routing_target"] = target
+            logger.info(
+                "email_connector.scan_and_classify.routed",
+                tenant_id=tenant_id,
+                package_id=str(package.package_id),
+                workflow_run_id=str(run.id),
+                label=result.label,
+                confidence=result.confidence,
+                action=action.value,
+                target=target,
+            )
+
         await repo.update_workflow_run_status(
             run.id,
             "completed",
-            output_data={
-                "package_id": str(package.package_id),
-                "tenant_id": tenant_id,
-                "label": result.label,
-                "display_name": result.display_name,
-                "confidence": result.confidence,
-                "method": result.method,
-                "sub_label": result.sub_label,
-                "reasoning": result.reasoning,
-            },
+            output_data=output_data,
         )
 
         await adapter.acknowledge(package.package_id)

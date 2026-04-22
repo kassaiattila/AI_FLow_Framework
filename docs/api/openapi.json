@@ -14464,6 +14464,18 @@
               }
             ],
             "title": "Schema Labels"
+          },
+          "routing_policy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routing Policy Id",
+            "description": "Optional IntentRoutingPolicy YAML id to load from ``$AIFLOW_POLICY_DIR/intent_routing/{id}.yaml``. When set, the orchestrator maps each classification to a routing action and persists it under ``output_data.routing_action``."
           }
         },
         "type": "object",
