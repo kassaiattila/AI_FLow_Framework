@@ -91,11 +91,15 @@ class StubEmbedder(EmbedderProvider):
         return _meta("stub_embedder", cost="free")
 
     @property
-    def dimensions(self) -> int:
+    def embedding_dim(self) -> int:
         return 1024
 
+    @property
+    def model_name(self) -> str:
+        return "stub-embedder-model"
+
     async def embed(self, texts: list[str]) -> list[list[float]]:
-        return [[0.0] * self.dimensions for _ in texts]
+        return [[0.0] * self.embedding_dim for _ in texts]
 
     async def health_check(self) -> bool:
         return True
@@ -246,7 +250,8 @@ class TestContractInvocation:
     @pytest.mark.asyncio
     async def test_embedder_contract(self) -> None:
         embedder = StubEmbedder()
-        assert embedder.dimensions == 1024
+        assert embedder.embedding_dim == 1024
+        assert embedder.model_name == "stub-embedder-model"
         vectors = await embedder.embed(["hello", "world"])
         assert len(vectors) == 2
         assert len(vectors[0]) == 1024

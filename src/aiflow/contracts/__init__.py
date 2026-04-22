@@ -10,11 +10,14 @@ Source: 100_b_AIFLOW_v2_DOMAIN_CONTRACTS.md
 
 from __future__ import annotations
 
+from aiflow.contracts.embedding_decision import EmbeddingDecision, EmbeddingProfile
 from aiflow.contracts.extraction_result import ExtractionResult
 from aiflow.contracts.parser_result import ParserResult
 from aiflow.contracts.routing_decision import RoutingDecision
 
 __all__ = [
+    "EmbeddingDecision",
+    "EmbeddingProfile",
     "ExtractionResult",
     "ParserResult",
     "RoutingDecision",

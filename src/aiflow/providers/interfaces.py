@@ -109,8 +109,13 @@ class EmbedderProvider(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def dimensions(self) -> int:
+    def embedding_dim(self) -> int:
         """Embedding vector dimensionality."""
+
+    @property
+    @abc.abstractmethod
+    def model_name(self) -> str:
+        """Concrete model identifier (e.g. 'BAAI/bge-m3', 'text-embedding-3-small')."""
 
     @abc.abstractmethod
     async def embed(self, texts: list[str]) -> list[list[float]]:

@@ -88,8 +88,12 @@ class _DummyEmbedderProvider(EmbedderProvider):
         return _DUMMY_META
 
     @property
-    def dimensions(self) -> int:
+    def embedding_dim(self) -> int:
         return 768
+
+    @property
+    def model_name(self) -> str:
+        return "dummy-embedder-v1"
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         return [[0.0] * 768 for _ in texts]
@@ -259,9 +263,13 @@ class TestEmbedderContract:
         provider = _DummyEmbedderProvider()
         assert await provider.health_check() is True
 
-    def test_dimensions(self) -> None:
+    def test_embedding_dim(self) -> None:
         provider = _DummyEmbedderProvider()
-        assert provider.dimensions == 768
+        assert provider.embedding_dim == 768
+
+    def test_model_name(self) -> None:
+        provider = _DummyEmbedderProvider()
+        assert provider.model_name == "dummy-embedder-v1"
 
     def test_metadata(self) -> None:
         provider = _DummyEmbedderProvider()
