@@ -1,0 +1,118 @@
+{
+  "version": "2026-04-25",
+  "description": "UC2 retrieval baseline: small bilingual (hu/en) corpus with gold chunk ids per question. IDs are deterministic UUIDv5 from the slug (namespace 00000000-0000-0000-0000-000000000001) so SearchResult.chunk_id validates. Topic: AIFlow project primer + pgvector operations — chosen because the text is self-contained, domain-neutral, and lets us evaluate retrieval without a parser dependency.",
+  "chunks": [
+    {
+      "id": "1ffc5dfa-5c0b-56c4-b1df-16629041c7aa",
+      "slug": "hu_pgvector_install",
+      "lang": "hu",
+      "text": "A pgvector bovitmeny telepiteset a PostgreSQL CREATE EXTENSION vector paranccsal lehet elvegezni. A 0.8-as verzio mar tamogatja a dinamikus dimenziokat, ami azt jelenti, hogy a vector oszlop tipusa megadhato rogzitett meret nelkul is. Ezt a funkciot hasznaljuk a rag_chunks tabla embedding oszlopaban."
+    },
+    {
+      "id": "c3cd257d-d563-50d1-a80e-d67908f0d1f6",
+      "slug": "hu_pgvector_index",
+      "lang": "hu",
+      "text": "A pgvector teljesitmenyere jelentos hatassal van a HNSW index. A HNSW index parameterei a kovetkezok: m (csomopontonkenti kapcsolatok szama, alapertelmezetten 16), ef_construction (epites soran figyelembe vett szomszedok szama, alapertelmezetten 64). A keresesi idoben az ef_search parameter hangolhato."
+    },
+    {
+      "id": "813893b4-b0e1-5bef-a18e-f30941aab97d",
+      "slug": "hu_aiflow_overview",
+      "lang": "hu",
+      "text": "Az AIFlow egy vallalati AI automatizacios keretrendszer Python 3.12 alapokon. A fobb komponensek a core kernel, engine motor, state manager, api reteg, valamint 27 kulonbozo service es 7 skill. A framework asyncio-alapu, Pydantic adatszerzodesekkel dolgozik, es structlog-gal nevez minden eventet."
+    },
+    {
+      "id": "e91dc755-4168-5965-a741-bd154bacb147",
+      "slug": "hu_aiflow_skills",
+      "lang": "hu",
+      "text": "Az AIFlow hivatkozasi skill-jei: process_docs (dokumentumfeldolgozas), aszf_rag (ASZF kereses), email_intent (email osztalyozas), invoice_processor (szamla feldolgozas), invoice_finder (szamla keresese), cubix (pipeline orchestration), spec_writer (specifikacio generalas). Ezek mindegyike az src/skills/ konyvtarban talalhato."
+    },
+    {
+      "id": "210af936-5275-5ccf-b796-db373e427607",
+      "slug": "hu_embedder_profiles",
+      "lang": "hu",
+      "text": "Az UC2 RAG ket embedder profilt tamogat. Profile A a lokalis BAAI/bge-m3 modell, 1024 dimenzios vektorokat keszit, ingyenes es GPU-t nem igenyel. Profile B a felhos OpenAI vagy Azure OpenAI text-embedding-3-small modellt hasznalja, 1536 dimenzios vektorokkal. A valasztast a PolicyEngine.pick_embedder vegzi tenant-alapon."
+    },
+    {
+      "id": "c003dc1c-efd6-5c60-b6b4-b278b47734c7",
+      "slug": "en_pgvector_install",
+      "lang": "en",
+      "text": "Installing the pgvector extension happens with the PostgreSQL CREATE EXTENSION vector command. Version 0.7 and later supports flexible-dimension columns, letting the vector column type be declared without a fixed size. AIFlow relies on this capability for the rag_chunks embedding column so BGE-M3 (1024) and OpenAI (1536) rows can coexist."
+    },
+    {
+      "id": "18e2b6e9-da4b-538e-930a-365106e74fdb",
+      "slug": "en_pgvector_index",
+      "lang": "en",
+      "text": "Performance of pgvector is heavily influenced by the HNSW index. HNSW is tuned via the m (connections per node, default 16) and ef_construction (build-time candidate list, default 64) parameters. At query time, ef_search controls recall vs latency."
+    },
+    {
+      "id": "9573723f-f6b3-5d82-a34c-8c702c4f742e",
+      "slug": "en_aiflow_overview",
+      "lang": "en",
+      "text": "AIFlow is an enterprise AI automation framework built on Python 3.12. Its main components are the core kernel, the engine orchestrator, the state manager, the API layer, plus 27 services and 7 skills. The framework is async-first, uses Pydantic for data contracts, and emits structured events via structlog."
+    },
+    {
+      "id": "6b7192ae-61b9-5570-b7c9-0c5aaaeb38c2",
+      "slug": "en_aiflow_skills",
+      "lang": "en",
+      "text": "The AIFlow reference skills are process_docs (document ingestion), aszf_rag (terms-of-service retrieval), email_intent (email classification), invoice_processor (invoice extraction), invoice_finder (invoice search), cubix (pipeline orchestration), and spec_writer (specification authoring). Each lives under the src/skills/ directory."
+    },
+    {
+      "id": "a667643f-9d19-59d3-91fb-8a8932ca1407",
+      "slug": "en_embedder_profiles",
+      "lang": "en",
+      "text": "UC2 RAG supports two embedder profiles. Profile A is the local BAAI/bge-m3 model producing 1024-dimension vectors, free and GPU-optional. Profile B uses the cloud OpenAI or Azure OpenAI text-embedding-3-small model with 1536-dimension vectors. PolicyEngine.pick_embedder resolves the choice per tenant."
+    }
+  ],
+  "questions": [
+    {
+      "lang": "hu",
+      "question": "Hogyan kell telepiteni a pgvector bovitmenyt?",
+      "expected": ["1ffc5dfa-5c0b-56c4-b1df-16629041c7aa"]
+    },
+    {
+      "lang": "hu",
+      "question": "Milyen parameterek hangolhatok a HNSW indexen?",
+      "expected": ["c3cd257d-d563-50d1-a80e-d67908f0d1f6"]
+    },
+    {
+      "lang": "hu",
+      "question": "Milyen programozasi nyelven keszult az AIFlow framework?",
+      "expected": ["813893b4-b0e1-5bef-a18e-f30941aab97d"]
+    },
+    {
+      "lang": "hu",
+      "question": "Milyen skill-eket tartalmaz az AIFlow alapbol?",
+      "expected": ["e91dc755-4168-5965-a741-bd154bacb147"]
+    },
+    {
+      "lang": "hu",
+      "question": "Hany dimenzios vektorokat keszit a BGE-M3 modell?",
+      "expected": ["210af936-5275-5ccf-b796-db373e427607"]
+    },
+    {
+      "lang": "en",
+      "question": "How is the pgvector PostgreSQL extension installed?",
+      "expected": ["c003dc1c-efd6-5c60-b6b4-b278b47734c7"]
+    },
+    {
+      "lang": "en",
+      "question": "What tuning knobs does HNSW expose?",
+      "expected": ["18e2b6e9-da4b-538e-930a-365106e74fdb"]
+    },
+    {
+      "lang": "en",
+      "question": "What Python version does AIFlow run on?",
+      "expected": ["9573723f-f6b3-5d82-a34c-8c702c4f742e"]
+    },
+    {
+      "lang": "en",
+      "question": "Which skills ship with AIFlow out of the box?",
+      "expected": ["6b7192ae-61b9-5570-b7c9-0c5aaaeb38c2"]
+    },
+    {
+      "lang": "en",
+      "question": "What embedding dimension does BGE-M3 produce?",
+      "expected": ["a667643f-9d19-59d3-91fb-8a8932ca1407"]
+    }
+  ]
+}

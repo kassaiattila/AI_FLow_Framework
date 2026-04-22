@@ -19,6 +19,7 @@ from aiflow.providers.embedder import (
     AzureOpenAIEmbedder,
     BGEM3Embedder,
     EmbedderProvider,
+    OpenAIEmbedder,
 )
 
 __all__ = [
@@ -36,6 +37,7 @@ _PROFILE_DEFAULTS: dict[str, type[EmbedderProvider]] = {
 _PROVIDER_ALIASES: dict[str, type[EmbedderProvider]] = {
     BGEM3Embedder.PROVIDER_NAME: BGEM3Embedder,
     AzureOpenAIEmbedder.PROVIDER_NAME: AzureOpenAIEmbedder,
+    OpenAIEmbedder.PROVIDER_NAME: OpenAIEmbedder,
 }
 
 logger = structlog.get_logger(__name__)

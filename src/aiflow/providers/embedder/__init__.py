@@ -9,6 +9,7 @@ from aiflow.providers.embedder.azure_openai import (
     AzureOpenAIEmbedderConfig,
 )
 from aiflow.providers.embedder.bge_m3 import BGEM3Config, BGEM3Embedder
+from aiflow.providers.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
 from aiflow.providers.interfaces import EmbedderProvider
 
 __all__ = [
@@ -17,4 +18,6 @@ __all__ = [
     "BGEM3Config",
     "BGEM3Embedder",
     "EmbedderProvider",
+    "OpenAIEmbedder",
+    "OpenAIEmbedderConfig",
 ]

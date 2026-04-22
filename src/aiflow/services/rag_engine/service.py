@@ -58,6 +58,7 @@ class CollectionInfo(BaseModel):
     description: str | None = None
     language: str = "hu"
     embedding_model: str = "openai/text-embedding-3-small"
+    embedding_dim: int = 1536
     document_count: int = 0
     chunk_count: int = 0
     config: dict[str, Any] = Field(default_factory=dict)
@@ -217,11 +218,19 @@ class RAGEngineService(BaseService):
         description: str | None = None,
         language: str = "hu",
         embedding_model: str | None = None,
+        embedding_dim: int | None = None,
         config: dict[str, Any] | None = None,
         customer: str = "default",
     ) -> CollectionInfo:
-        """Create a new RAG collection."""
+        """Create a new RAG collection.
+
+        ``embedding_dim`` is the vector size produced by the collection's
+        embedder — defaults to 1536 (OpenAI/Azure ``text-embedding-3-small``).
+        Set to 1024 for Profile A (BGE-M3). The value gates cross-dim reads
+        in the retrieval layer (see alembic 042).
+        """
         emb_model = embedding_model or self._ext_config.default_embedding_model
+        emb_dim = embedding_dim if embedding_dim is not None else 1536
         coll_config = config or {}
 
         import json as _json
@@ -230,9 +239,9 @@ class RAGEngineService(BaseService):
             result = await session.execute(
                 text("""
                     INSERT INTO rag_collections (name, customer, skill_name, config,
-                        description, language, embedding_model)
+                        description, language, embedding_model, embedding_dim)
                     VALUES (:name, :customer, 'rag_engine', CAST(:config AS jsonb),
-                        :description, :language, :embedding_model)
+                        :description, :language, :embedding_model, :embedding_dim)
                     RETURNING id, created_at, updated_at
                 """),
                 {
@@ -242,18 +251,20 @@ class RAGEngineService(BaseService):
                     "description": description,
                     "language": language,
                     "embedding_model": emb_model,
+                    "embedding_dim": emb_dim,
                 },
             )
             row = result.fetchone()
             await session.commit()
 
-        self._logger.info("collection_created", name=name, id=str(row[0]))
+        self._logger.info("collection_created", name=name, id=str(row[0]), embedding_dim=emb_dim)
         return CollectionInfo(
             id=str(row[0]),
             name=name,
             description=description,
             language=language,
             embedding_model=emb_model,
+            embedding_dim=emb_dim,
             config=coll_config,
             created_at=row[1].isoformat() if row[1] else None,
             updated_at=row[2].isoformat() if row[2] else None,
@@ -265,7 +276,8 @@ class RAGEngineService(BaseService):
             result = await session.execute(
                 text("""
                     SELECT id, name, description, language, embedding_model,
-                           document_count, chunk_count, config, created_at, updated_at
+                           document_count, chunk_count, config, created_at, updated_at,
+                           embedding_dim
                     FROM rag_collections
                     ORDER BY created_at DESC
                 """),
@@ -284,6 +296,7 @@ class RAGEngineService(BaseService):
                 config=r[7] if isinstance(r[7], dict) else {},
                 created_at=r[8].isoformat() if r[8] else None,
                 updated_at=r[9].isoformat() if r[9] else None,
+                embedding_dim=r[10] if r[10] is not None else 1536,
             )
             for r in rows
         ]
@@ -294,7 +307,8 @@ class RAGEngineService(BaseService):
             result = await session.execute(
                 text("""
                     SELECT id, name, description, language, embedding_model,
-                           document_count, chunk_count, config, created_at, updated_at
+                           document_count, chunk_count, config, created_at, updated_at,
+                           embedding_dim
                     FROM rag_collections WHERE id = :id
                 """),
                 {"id": collection_id},
@@ -314,6 +328,7 @@ class RAGEngineService(BaseService):
             config=r[7] if isinstance(r[7], dict) else {},
             created_at=r[8].isoformat() if r[8] else None,
             updated_at=r[9].isoformat() if r[9] else None,
+            embedding_dim=r[10] if r[10] is not None else 1536,
         )
 
     async def update_collection(
@@ -549,6 +564,23 @@ class RAGEngineService(BaseService):
                     errors=[f"Embedder init failed ({embedder_cls.__name__}): {exc}"],
                 )
 
+        if coll.embedding_dim != embedder_provider.embedding_dim:
+            if coll.chunk_count > 0:
+                return IngestionResult(
+                    collection_id=collection_id,
+                    errors=[
+                        f"Dim mismatch: collection embedding_dim={coll.embedding_dim} "
+                        f"but embedder={embedder_provider.metadata.name} "
+                        f"produces dim={embedder_provider.embedding_dim}. "
+                        f"Recreate collection with matching embedding_dim."
+                    ],
+                )
+            await self._update_collection_embedding_dim(
+                collection_id=coll.id,
+                embedding_dim=embedder_provider.embedding_dim,
+            )
+            coll.embedding_dim = embedder_provider.embedding_dim
+
         parser = UnstructuredParser()
         chunker = UnstructuredChunker()
 
@@ -707,6 +739,22 @@ class RAGEngineService(BaseService):
                     "WHERE collection = :coll AND embedding_dim IS NULL"
                 ),
                 {"dim": embedding_dim, "coll": collection_name},
+            )
+            await session.commit()
+
+    async def _update_collection_embedding_dim(
+        self, collection_id: str, embedding_dim: int
+    ) -> None:
+        """Adjust rag_collections.embedding_dim when the selected embedder
+        produces a different dimensionality than the collection's current
+        default. Only called when the collection is empty."""
+        async with self._session_factory() as session:
+            await session.execute(
+                text(
+                    "UPDATE rag_collections SET embedding_dim = :dim, updated_at = NOW() "
+                    "WHERE id = :id"
+                ),
+                {"dim": embedding_dim, "id": collection_id},
             )
             await session.commit()
 

@@ -17,7 +17,7 @@ import pytest
 
 from aiflow.policy import PolicyConfig
 from aiflow.policy.engine import PolicyEngine
-from aiflow.providers.embedder import AzureOpenAIEmbedder, BGEM3Embedder
+from aiflow.providers.embedder import AzureOpenAIEmbedder, BGEM3Embedder, OpenAIEmbedder
 
 
 def _make_engine(
@@ -69,3 +69,11 @@ class TestPickEmbedderTenantOverride:
         )
         with pytest.raises(ValueError, match="not a registered embedder"):
             engine.pick_embedder("tenant-bogus", "A")
+
+    def test_tenant_override_switches_to_openai(self) -> None:
+        """Profile B with `openai` override resolves to the OpenAIEmbedder
+        (Profile B surrogate when Azure OpenAI credits are not available)."""
+        engine = _make_engine(
+            {"tenant-openai": {"embedder_provider": "openai"}},
+        )
+        assert engine.pick_embedder("tenant-openai", "B") is OpenAIEmbedder

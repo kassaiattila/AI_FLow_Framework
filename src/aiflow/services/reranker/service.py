@@ -177,6 +177,11 @@ class RerankerService(BaseService):
         except ImportError:
             self._logger.warning("sentence_transformers_not_installed")
             return self._rerank_fallback(candidates)
+        except OSError as exc:
+            self._logger.warning(
+                "cross_encoder_model_unavailable", model=config.model, error=str(exc)
+            )
+            return self._rerank_fallback(candidates)
 
     def _rerank_flashrank(
         self,
