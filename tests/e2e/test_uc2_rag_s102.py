@@ -69,7 +69,8 @@ class TestUC2S102RagUI:
 
         # Ingest / Chat / Chunks tab buttons should be present
         assert any(
-            label in body for label in ["Document Upload", "Dokumentum", "Chat", "Chunks", "Chunk-ok"]
+            label in body
+            for label in ["Document Upload", "Dokumentum", "Chat", "Chunks", "Chunk-ok"]
         ), "Detail page missing expected tab labels"
 
         # Cleanup: go back and delete the collection we just created
