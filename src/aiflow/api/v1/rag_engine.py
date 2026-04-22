@@ -118,6 +118,10 @@ class ChunkItem(BaseModel):
     content: str
     document_name: str | None = None
     created_at: str | None = None
+    chunk_index: int = 0
+    token_count: int | None = None
+    embedding_dim: int | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ChunkListResponse(BaseModel):
@@ -714,10 +718,11 @@ async def list_chunks(
 
         rows = await conn.fetch(
             f"""
-            SELECT id, content, document_name, metadata, created_at
+            SELECT id, content, document_name, metadata, chunk_index,
+                   embedding_dim, created_at
             FROM rag_chunks
             WHERE {where}
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC, chunk_index ASC
             LIMIT ${idx} OFFSET ${idx + 1}
             """,
             *params,
@@ -727,19 +732,37 @@ async def list_chunks(
             *params[:-2],
         )
 
-    return ChunkListResponse(
-        chunks=[
+    import json as _json
+
+    def _parse_meta(raw: Any) -> dict[str, Any]:
+        if raw is None:
+            return {}
+        if isinstance(raw, dict):
+            return raw
+        try:
+            parsed = _json.loads(raw)
+            return parsed if isinstance(parsed, dict) else {}
+        except (TypeError, ValueError):
+            return {}
+
+    items: list[ChunkItem] = []
+    for r in rows:
+        meta = _parse_meta(r["metadata"])
+        tc = meta.get("token_count")
+        items.append(
             ChunkItem(
                 chunk_id=str(r["id"]),
                 content=r["content"][:300],
                 document_name=r["document_name"],
                 created_at=r["created_at"].isoformat() if r["created_at"] else None,
+                chunk_index=r["chunk_index"] or 0,
+                token_count=int(tc) if isinstance(tc, (int, float)) else None,
+                embedding_dim=r["embedding_dim"],
+                metadata=meta,
             )
-            for r in rows
-        ],
-        total=total_row or 0,
-        source="backend",
-    )
+        )
+
+    return ChunkListResponse(chunks=items, total=total_row or 0, source="backend")
 
 
 @router.delete("/collections/{collection_id}/chunks/{chunk_id}", status_code=204)

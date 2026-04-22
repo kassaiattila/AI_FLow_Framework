@@ -435,7 +435,11 @@
       "ingestFormats": "PDF, DOCX, TXT, MD (max 50MB)",
       "ingestButton": "Feltoltes es feldolgozas",
       "chunksCreated": "chunk letrehozva",
-      "chunkIndex": "Index"
+      "chunkIndex": "Index",
+      "chunkTokens": "Tokenek",
+      "chunkEmbeddingDim": "Dim",
+      "chunkDetailTitle": "Chunk reszletei",
+      "chunkMetadata": "Metaadat"
     },
     "rpa": {
       "title": "RPA Browser",

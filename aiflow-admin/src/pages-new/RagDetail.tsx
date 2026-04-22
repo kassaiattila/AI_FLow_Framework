@@ -3,7 +3,7 @@
  * Accessed via /rag/:id from the Rag collections list.
  */
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
@@ -14,6 +14,7 @@ import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
 import { ChatPanel } from "../components-new/ChatPanel";
 import { FileProgressRow, FileProgressBar, type FileProgress } from "../components-new/FileProgress";
+import { ChunkViewer } from "../components/rag/ChunkViewer";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -34,19 +35,6 @@ interface IngestResponse {
   chunks_created: number;
   duration_ms: number;
   errors: string[];
-  source: string;
-}
-
-interface ChunkItem {
-  chunk_id: string;
-  content: string;
-  document_name: string | null;
-  created_at: string | null;
-}
-
-interface ChunksResponse {
-  chunks: ChunkItem[];
-  total: number;
   source: string;
 }
 
@@ -529,119 +517,6 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
 }
 
 /* ------------------------------------------------------------------ */
-/*  Chunks Tab                                                         */
-/* ------------------------------------------------------------------ */
-
-function ChunksTab({ collectionId }: { collectionId: string }) {
-  const translate = useTranslate();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterDoc, setFilterDoc] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const chunksUrl = useMemo(() => {
-    const p = new URLSearchParams();
-    p.set("limit", "50");
-    if (debouncedQuery) p.set("q", debouncedQuery);
-    if (filterDoc) p.set("document_name", filterDoc);
-    return `/api/v1/rag/collections/${collectionId}/chunks?${p.toString()}`;
-  }, [collectionId, debouncedQuery, filterDoc]);
-
-  const { data, loading, error, refetch } = useApi<ChunksResponse>(chunksUrl);
-
-  const columns: Column<Record<string, unknown>>[] = [
-    {
-      key: "content",
-      label: translate("aiflow.rag.chunkContent"),
-      render: (item) => {
-        const c = item as unknown as ChunkItem;
-        const text = c.content ?? "";
-        return (
-          <span className="text-sm text-gray-700 dark:text-gray-300" title={text}>
-            {text.length > 200 ? text.substring(0, 200) + "..." : text}
-          </span>
-        );
-      },
-    },
-    {
-      key: "document_name",
-      label: translate("aiflow.rag.chunkSource"),
-      render: (item) => {
-        const c = item as unknown as ChunkItem;
-        return (
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-            {c.document_name || "---"}
-          </span>
-        );
-      },
-    },
-    {
-      key: "created_at",
-      label: translate("aiflow.rag.chunkCreated"),
-      render: (item) => {
-        const c = item as unknown as ChunkItem;
-        return (
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {c.created_at ? new Date(c.created_at).toLocaleDateString() : "---"}
-          </span>
-        );
-      },
-    },
-  ];
-
-  if (error) {
-    return <ErrorState error={error} onRetry={refetch} />;
-  }
-
-  return (
-    <div>
-      <div className="mb-4 flex items-center gap-3">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={translate("aiflow.rag.chunkSearch")}
-          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-        />
-        <select
-          value={filterDoc}
-          onChange={(e) => setFilterDoc(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
-        >
-          <option value="">{translate("aiflow.audit.all")} — {translate("aiflow.rag.chunkSource")}</option>
-          {[...new Set((data?.chunks ?? []).map((c) => c.document_name).filter(Boolean))].map((d) => (
-            <option key={d} value={d!}>{d}</option>
-          ))}
-        </select>
-        {(debouncedQuery || filterDoc) && (
-          <button
-            onClick={() => { setSearchQuery(""); setFilterDoc(""); }}
-            className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            {translate("common.action.clear_input_value")}
-          </button>
-        )}
-      </div>
-      {data && (
-        <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{data.total} chunk(s)</p>
-      )}
-      <DataTable
-        data={(data?.chunks ?? []) as unknown as Record<string, unknown>[]}
-        columns={columns}
-        loading={loading}
-        searchKeys={["content", "document_name"]}
-        pageSize={10}
-        emptyMessageKey="aiflow.rag.noChunks"
-      />
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -798,7 +673,7 @@ export function RagDetail() {
         />
       )}
 
-      {tab === "chunks" && <ChunksTab collectionId={id} />}
+      {tab === "chunks" && <ChunkViewer collectionId={id} />}
     </PageLayout>
   );
 }
