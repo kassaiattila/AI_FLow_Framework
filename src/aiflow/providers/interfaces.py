@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 from aiflow.providers.metadata import ProviderMetadata
 
 if TYPE_CHECKING:
+    from typing import ClassVar
+
     from aiflow.intake.package import IntakeFile, IntakePackage
 
 __all__ = [
@@ -103,6 +105,9 @@ class ExtractorProvider(abc.ABC):
 
 class EmbedderProvider(abc.ABC):
     """Abstract interface for text embedding providers."""
+
+    PROVIDER_NAME: ClassVar[str]
+    """Short stable identifier (e.g. 'bge_m3', 'openai'). Concrete subclasses must set this."""
 
     @property
     @abc.abstractmethod
