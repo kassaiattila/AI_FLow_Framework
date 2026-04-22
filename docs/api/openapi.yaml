@@ -4436,6 +4436,83 @@ components:
       - edits
       title: SaveEditsRequest
       type: object
+    ScanItem:
+      description: One processed package summary.
+      properties:
+        confidence:
+          default: 0.0
+          title: Confidence
+          type: number
+        display_name:
+          default: ''
+          title: Display Name
+          type: string
+        label:
+          title: Label
+          type: string
+        method:
+          default: ''
+          title: Method
+          type: string
+        package_id:
+          title: Package Id
+          type: string
+      required:
+      - package_id
+      - label
+      title: ScanItem
+      type: object
+    ScanRequest:
+      description: Trigger EmailSource → IntakePackageSink → Classifier scan.
+      properties:
+        max_items:
+          default: 10
+          maximum: 100.0
+          minimum: 1.0
+          title: Max Items
+          type: integer
+        schema_labels:
+          anyOf:
+          - items:
+              additionalProperties: true
+              type: object
+            type: array
+          - type: 'null'
+          title: Schema Labels
+        tenant_id:
+          default: default
+          title: Tenant Id
+          type: string
+      title: ScanRequest
+      type: object
+    ScanResponse:
+      description: Result of a scan-classify run.
+      properties:
+        config_id:
+          title: Config Id
+          type: string
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        items:
+          items:
+            $ref: '#/components/schemas/ScanItem'
+          title: Items
+          type: array
+        processed:
+          default: 0
+          title: Processed
+          type: integer
+        source:
+          default: backend
+          title: Source
+          type: string
+      required:
+      - config_id
+      title: ScanResponse
+      type: object
     SendRequest:
       properties:
         channel:
@@ -7521,6 +7598,46 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: Process Batch Stream
+      tags:
+      - emails
+  /api/v1/emails/scan/{config_id}:
+    post:
+      description: 'Scan an inbox → IntakePackage → classifier → persist to workflow_runs.
+
+
+        Thin wrapper around ``scan_and_classify``; credentials are read from the
+
+        connector config''s plaintext JSON ``credentials_encrypted`` (dev) — real
+
+        credential decryption lands in S107.'
+      operationId: scan_and_classify_endpoint_api_v1_emails_scan__config_id__post
+      parameters:
+      - in: path
+        name: config_id
+        required: true
+        schema:
+          title: Config Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Scan And Classify Endpoint
       tags:
       - emails
   /api/v1/emails/upload:

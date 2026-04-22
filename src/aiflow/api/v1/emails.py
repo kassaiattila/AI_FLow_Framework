@@ -211,6 +211,34 @@ class TestConnectionResponse(BaseModel):
     source: str = "backend"
 
 
+class ScanRequest(BaseModel):
+    """Trigger EmailSource → IntakePackageSink → Classifier scan."""
+
+    max_items: int = Field(10, ge=1, le=100)
+    tenant_id: str = "default"
+    schema_labels: list[dict[str, Any]] | None = None
+
+
+class ScanItem(BaseModel):
+    """One processed package summary."""
+
+    package_id: str
+    label: str
+    display_name: str = ""
+    confidence: float = 0.0
+    method: str = ""
+
+
+class ScanResponse(BaseModel):
+    """Result of a scan-classify run."""
+
+    config_id: str
+    processed: int = 0
+    items: list[ScanItem] = Field(default_factory=list)
+    error: str | None = None
+    source: str = "backend"
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -971,6 +999,114 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# ---------------------------------------------------------------------------
+# Scan + Classify (UC3 Sprint K S106 — thin wiring over scan_and_classify)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/scan/{config_id}", response_model=ScanResponse)
+async def scan_and_classify_endpoint(config_id: str, req: ScanRequest) -> ScanResponse:
+    """Scan an inbox → IntakePackage → classifier → persist to workflow_runs.
+
+    Thin wrapper around ``scan_and_classify``; credentials are read from the
+    connector config's plaintext JSON ``credentials_encrypted`` (dev) — real
+    credential decryption lands in S107.
+    """
+    from sqlalchemy.ext.asyncio import async_sessionmaker as asm
+
+    from aiflow.services.classifier.service import ClassifierService
+    from aiflow.services.email_connector.orchestrator import scan_and_classify
+    from aiflow.sources.email_adapter import EmailSourceAdapter, ImapBackend
+    from aiflow.sources.sink import IntakePackageSink
+    from aiflow.state.repositories.intake import IntakeRepository
+    from aiflow.state.repository import StateRepository
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """SELECT id::text AS id, provider, host, port, use_ssl, mailbox,
+                      credentials_encrypted, is_active
+               FROM email_connector_configs
+               WHERE id::text = $1""",
+            config_id,
+        )
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"Connector config {config_id} not found")
+    if not row["is_active"]:
+        raise HTTPException(status_code=400, detail="Connector config is inactive")
+    if row["provider"] != "imap":
+        raise HTTPException(
+            status_code=501,
+            detail=f"Provider '{row['provider']}' not yet wired — S107 (IntentRoutingPolicy/providers)",
+        )
+
+    try:
+        creds = _json.loads(row["credentials_encrypted"] or "{}")
+    except _json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=501,
+            detail="Encrypted credentials not yet supported — S107 (DPAPI/Fernet decryption)",
+        ) from exc
+
+    user = creds.get("user") or creds.get("username")
+    password = creds.get("password") or creds.get("pass")
+    if not (user and password and row["host"]):
+        raise HTTPException(
+            status_code=400, detail="Connector config is missing host/user/password"
+        )
+
+    backend = ImapBackend(
+        host=row["host"],
+        port=int(row["port"] or 993),
+        user=user,
+        password=password,
+        mailbox=row["mailbox"] or "INBOX",
+        use_ssl=bool(row["use_ssl"]),
+    )
+    storage_root = Path(os.getenv("AIFLOW_INTAKE_STORAGE", "data/intake_storage")) / config_id
+    storage_root.mkdir(parents=True, exist_ok=True)
+    adapter = EmailSourceAdapter(
+        backend=backend, storage_root=storage_root, tenant_id=req.tenant_id
+    )
+
+    intake_repo = IntakeRepository(pool)
+    sink = IntakePackageSink(repo=intake_repo)
+
+    engine = await get_engine()
+    session_factory = asm(engine, expire_on_commit=False)
+    state_repo = StateRepository(session_factory)
+
+    classifier = ClassifierService()
+    await classifier.start()
+    try:
+        tuples = await scan_and_classify(
+            adapter,
+            sink,
+            classifier,
+            state_repo,
+            tenant_id=req.tenant_id,
+            max_items=req.max_items,
+            schema_labels=req.schema_labels,
+        )
+    except Exception as e:
+        logger.exception("scan_and_classify_failed", config_id=config_id, error=str(e))
+        return ScanResponse(config_id=config_id, processed=0, error=str(e))
+    finally:
+        await classifier.stop()
+
+    items = [
+        ScanItem(
+            package_id=pid,
+            label=r.label,
+            display_name=r.display_name,
+            confidence=r.confidence,
+            method=r.method,
+        )
+        for pid, r in tuples
+    ]
+    return ScanResponse(config_id=config_id, processed=len(items), items=items)
 
 
 # ---------------------------------------------------------------------------

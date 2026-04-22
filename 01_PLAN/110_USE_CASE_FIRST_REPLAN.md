@@ -133,13 +133,15 @@ Branch: `feature/v1.4.6-rag-chat`. Retro: `docs/sprint_j_retro.md`. PR descripti
 ### Sprint K — v1.4.7 "Email intent usable"
 Branch: `feature/v1.4.7-email-intent`.
 
+> **Rescope 2026-04-22 (architect verdict on S105-pre):** the original S104–S108 plan assumed a new `ClassificationStep`, a new `ClassificationResult` contract, and Alembic 043 `classification_results` table. Discovery found all three were redundant — `ClassifierAdapter` + `services/classifier/service.py` already exist; `workflow_runs.output_data` JSONB already persists classification results. **S106 (this sprint)** collapsed to: (a) unify `ClassificationResult` to `services/classifier/service.py` (re-export from `models/protocols/classification.py` + providers ABC), (b) ship `scan_and_classify` thin orchestrator + `POST /emails/scan/{config_id}` endpoint, (c) integration test end-to-end on real PG. Langfuse-backed email_intent skill prompts + routing stay as S107–S109 below.
+
 | Session | Scope | Acceptance |
 |---------|-------|-----------|
-| **S104** | Glue: `EmailSource` adapter (Phase 1d — DONE) → `IntakePackageSink` → Intent classifier skill. Intent classifier uses `email_intent` skill prompts via Langfuse prompt fetch. | Trigger `POST /api/v1/emails/scan/{mailbox_id}` → fetches → creates IntakePackage per email → classifier emits intent label into `ClassificationResult`. |
-| **S105** | `IntentRoutingPolicy`: intent → downstream action (notify, extract, archive, manual review). Per-tenant config via PolicyEngine. | 4-way routing test with real LLM (or deterministic mock with `AIFLOW_LLM_MODE=deterministic`). |
-| **S106** | UI `Emails.tsx`: "Scan mailbox" button, intent badge per email, routing decision chip, Langfuse trace link. Backend `POST /scan`, `GET /{id}/intent`, `.../routing`. | Playwright: click Scan → see email list with intent + routing → trace link works. |
-| **S107** | `Prompts.tsx` v2: edit Langfuse-synced prompts from UI. Backend `PUT /api/v1/prompts/{id}` → Langfuse SDK update. Read-back after save. | Prompt edit from UI → Langfuse HEAD version increments → next intent classification uses new version. |
-| **S108** | Golden-path E2E: mailbox scan → 3 test emails → intents classified → routing persisted. `/regression` + `/lint-check`. PR cut + tag `v1.4.7`. | 1 Playwright E2E GREEN. |
+| **S106** *(was S104)* | **[DELIVERED]** ClassificationResult unify (protocol + providers ABC → re-export canonical service-level model) + `scan_and_classify` thin orchestrator + `POST /api/v1/emails/scan/{config_id}` endpoint. Classifier runs sklearn-keyword strategy against `schema_labels`; Langfuse prompt fetch deferred. | `POST /api/v1/emails/scan/{config_id}` → fetches via `EmailSourceAdapter` → `IntakePackageSink` persists → classifier fills `ClassificationResult` → `workflow_runs` rows written. 1 integration test GREEN on real Docker PG. |
+| **S107** *(was S105)* | `IntentRoutingPolicy`: intent → downstream action (notify, extract, archive, manual review). Per-tenant config via PolicyEngine. Langfuse prompt fetch for email_intent skill wired here. | 4-way routing test with real LLM (or deterministic mock with `AIFLOW_LLM_MODE=deterministic`). |
+| **S108** *(was S106)* | UI `Emails.tsx`: "Scan mailbox" button, intent badge per email, routing decision chip, Langfuse trace link. Backend `POST /scan`, `GET /{id}/intent`, `.../routing`. | Playwright: click Scan → see email list with intent + routing → trace link works. |
+| **S109** *(was S107)* | `Prompts.tsx` v2: edit Langfuse-synced prompts from UI. Backend `PUT /api/v1/prompts/{id}` → Langfuse SDK update. Read-back after save. | Prompt edit from UI → Langfuse HEAD version increments → next intent classification uses new version. |
+| **S110** *(was S108)* | Golden-path E2E: mailbox scan → 3 test emails → intents classified → routing persisted. `/regression` + `/lint-check`. PR cut + tag `v1.4.7`. | 1 Playwright E2E GREEN. |
 
 ---
 

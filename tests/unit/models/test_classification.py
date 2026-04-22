@@ -28,8 +28,20 @@ class TestClassificationModels:
         assert len(inp.labels) == 2
 
     def test_result(self):
+        # ClassificationResult unified to aiflow.services.classifier.service
+        # (UC3 Sprint K): 11 operational fields, no `all_scores` — method default "".
         r = ClassificationResult(label="positive", confidence=0.95)
-        assert r.all_scores == {}
+        assert r.label == "positive"
+        assert r.confidence == 0.95
+        assert r.method == ""
+        assert r.alternatives == []
+
+    def test_result_is_canonical(self):
+        from aiflow.services.classifier.service import (
+            ClassificationResult as CanonicalResult,
+        )
+
+        assert ClassificationResult is CanonicalResult
 
     def test_output(self):
         out = ClassificationOutput(

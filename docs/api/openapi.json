@@ -1250,6 +1250,59 @@
         }
       }
     },
+    "/api/v1/emails/scan/{config_id}": {
+      "post": {
+        "tags": [
+          "emails"
+        ],
+        "summary": "Scan And Classify Endpoint",
+        "description": "Scan an inbox → IntakePackage → classifier → persist to workflow_runs.\n\nThin wrapper around ``scan_and_classify``; credentials are read from the\nconnector config's plaintext JSON ``credentials_encrypted`` (dev) — real\ncredential decryption lands in S107.",
+        "operationId": "scan_and_classify_endpoint_api_v1_emails_scan__config_id__post",
+        "parameters": [
+          {
+            "name": "config_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Config Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/emails/export/csv": {
       "get": {
         "tags": [
@@ -14348,6 +14401,116 @@
           "edits"
         ],
         "title": "SaveEditsRequest"
+      },
+      "ScanItem": {
+        "properties": {
+          "package_id": {
+            "type": "string",
+            "title": "Package Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name",
+            "default": ""
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "default": 0.0
+          },
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "package_id",
+          "label"
+        ],
+        "title": "ScanItem",
+        "description": "One processed package summary."
+      },
+      "ScanRequest": {
+        "properties": {
+          "max_items": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Max Items",
+            "default": 10
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id",
+            "default": "default"
+          },
+          "schema_labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Labels"
+          }
+        },
+        "type": "object",
+        "title": "ScanRequest",
+        "description": "Trigger EmailSource → IntakePackageSink → Classifier scan."
+      },
+      "ScanResponse": {
+        "properties": {
+          "config_id": {
+            "type": "string",
+            "title": "Config Id"
+          },
+          "processed": {
+            "type": "integer",
+            "title": "Processed",
+            "default": 0
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScanItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "config_id"
+        ],
+        "title": "ScanResponse",
+        "description": "Result of a scan-classify run."
       },
       "SendRequest": {
         "properties": {

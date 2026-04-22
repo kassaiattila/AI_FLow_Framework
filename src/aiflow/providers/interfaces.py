@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from typing import ClassVar
 
     from aiflow.intake.package import IntakeFile, IntakePackage
+    from aiflow.services.classifier.service import ClassificationResult
 
 __all__ = [
     "ParserProvider",
@@ -24,12 +25,12 @@ __all__ = [
     "ChunkerProvider",
 ]
 
-# Result types are forward-referenced as strings — they will be defined
-# in later Phase 1a sessions (ExtractionResult, ClassificationResult, etc.).
-# For now the ABCs use Any return types to avoid circular imports.
+# Result types still forward-referenced where the concrete model does not yet
+# exist (ExtractionResult, ParserResult, ChunkResult — Phase 2+).
+# ClassificationResult is unified to aiflow.services.classifier.service
+# (UC3 Sprint K). Imported only under TYPE_CHECKING to avoid runtime cycles.
 
 ParserResult = Any
-ClassificationResult = Any
 ExtractionResult = Any
 ChunkResult = Any
 
