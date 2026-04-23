@@ -1300,6 +1300,45 @@ components:
           title: Use Ssl
       title: ConnectorConfigUpdate
       type: object
+    CostCapStatus:
+      description: Cost cap status for a single tenant.
+      properties:
+        alert_level:
+          default: ok
+          title: Alert Level
+          type: string
+        breached:
+          default: false
+          title: Breached
+          type: boolean
+        cap_usd:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Cap Usd
+        current_usd:
+          default: 0.0
+          title: Current Usd
+          type: number
+        source:
+          default: backend
+          title: Source
+          type: string
+        tenant_id:
+          title: Tenant Id
+          type: string
+        utilization_pct:
+          default: 0.0
+          title: Utilization Pct
+          type: number
+        window_h:
+          default: 24
+          title: Window H
+          type: integer
+      required:
+      - tenant_id
+      title: CostCapStatus
+      type: object
     CostEstimateRequest:
       properties:
         model:
@@ -3364,6 +3403,40 @@ components:
       - provider
       title: ModelCostItem
       type: object
+    ModelSpanMetric:
+      description: Aggregate span metrics for a single model within a time window.
+      properties:
+        avg_duration_ms:
+          title: Avg Duration Ms
+          type: number
+        model:
+          title: Model
+          type: string
+        p95_duration_ms:
+          title: P95 Duration Ms
+          type: number
+        span_count:
+          title: Span Count
+          type: integer
+        total_cost_usd:
+          default: 0.0
+          title: Total Cost Usd
+          type: number
+        total_input_tokens:
+          default: 0
+          title: Total Input Tokens
+          type: integer
+        total_output_tokens:
+          default: 0
+          title: Total Output Tokens
+          type: integer
+      required:
+      - model
+      - span_count
+      - avg_duration_ms
+      - p95_duration_ms
+      title: ModelSpanMetric
+      type: object
     MoveRequest:
       properties:
         data:
@@ -5065,6 +5138,37 @@ components:
       - escalated_count
       title: SlaCheckResponse
       type: object
+    SpanMetricsResponse:
+      description: Monitoring.tsx span-metrics aggregate payload.
+      properties:
+        from_ts:
+          title: From Ts
+          type: string
+        models:
+          items:
+            $ref: '#/components/schemas/ModelSpanMetric'
+          title: Models
+          type: array
+        source:
+          default: backend
+          title: Source
+          type: string
+        to_ts:
+          title: To Ts
+          type: string
+        total_spans:
+          title: Total Spans
+          type: integer
+        window_h:
+          title: Window H
+          type: integer
+      required:
+      - window_h
+      - from_ts
+      - to_ts
+      - total_spans
+      title: SpanMetricsResponse
+      type: object
     SpecListResponse:
       properties:
         source:
@@ -5370,6 +5474,89 @@ components:
       required:
       - success
       title: TestConnectionResponse
+      type: object
+    TraceResponse:
+      description: Langfuse trace tree for a workflow run, suitable for UI drill-down.
+      properties:
+        root_spans:
+          items:
+            $ref: '#/components/schemas/TraceSpan'
+          title: Root Spans
+          type: array
+        run_id:
+          title: Run Id
+          type: string
+        source:
+          default: backend
+          title: Source
+          type: string
+        total_cost_usd:
+          title: Total Cost Usd
+          type: number
+        total_duration_ms:
+          title: Total Duration Ms
+          type: integer
+        trace_id:
+          title: Trace Id
+          type: string
+      required:
+      - trace_id
+      - run_id
+      - total_duration_ms
+      - total_cost_usd
+      - root_spans
+      title: TraceResponse
+      type: object
+    TraceSpan:
+      description: Single span in a Langfuse trace, expressed relative to trace start.
+      properties:
+        children:
+          items:
+            $ref: '#/components/schemas/TraceSpan'
+          title: Children
+          type: array
+        cost_usd:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Cost Usd
+        duration_ms:
+          title: Duration Ms
+          type: integer
+        id:
+          title: Id
+          type: string
+        input_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Input Tokens
+        model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model
+        name:
+          title: Name
+          type: string
+        output_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Output Tokens
+        start_ms:
+          title: Start Ms
+          type: integer
+        status:
+          default: ok
+          title: Status
+          type: string
+      required:
+      - id
+      - name
+      - start_ms
+      - duration_ms
+      title: TraceSpan
       type: object
     UnreadCountResponse:
       properties:
@@ -6128,6 +6315,16 @@ components:
           - type: number
           - type: 'null'
           title: Total Duration Ms
+        trace_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Trace Id
+        trace_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Trace Url
         workflow_name:
           title: Workflow Name
           type: string
@@ -6519,6 +6716,61 @@ paths:
                 type: array
           description: Successful Response
       summary: Budget Status
+      tags:
+      - costs
+  /api/v1/costs/cap-status:
+    get:
+      description: 'Return the tenant''s running cost vs. configured cost cap.
+
+
+        Parameters fall back to ``PolicyConfig`` defaults when omitted so the UI
+
+        can query without knowing the active profile. ``breached`` is true iff
+
+        ``current_usd >= cap_usd`` (matches ``PolicyEngine.enforce_cost_cap``).'
+      operationId: cost_cap_status_api_v1_costs_cap_status_get
+      parameters:
+      - in: query
+        name: tenant_id
+        required: true
+        schema:
+          maxLength: 255
+          minLength: 1
+          title: Tenant Id
+          type: string
+      - in: query
+        name: cap_usd
+        required: false
+        schema:
+          anyOf:
+          - minimum: 0.0
+            type: number
+          - type: 'null'
+          title: Cap Usd
+      - in: query
+        name: window_h
+        required: false
+        schema:
+          anyOf:
+          - maximum: 744
+            minimum: 1
+            type: integer
+          - type: 'null'
+          title: Window H
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostCapStatus'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Cost Cap Status
       tags:
       - costs
   /api/v1/costs/summary:
@@ -8335,6 +8587,44 @@ paths:
       summary: Get Job
       tags:
       - media
+  /api/v1/monitoring/span-metrics:
+    get:
+      description: 'Aggregate Langfuse observations from the last ``window_h`` hours,
+        grouped by model.
+
+
+        Returns avg/p95 duration, token totals, and cost per model. Used by the
+
+        ``Monitoring.tsx`` page to surface LLM-level health signals.'
+      operationId: get_span_metrics_api_v1_monitoring_span_metrics_get
+      parameters:
+      - description: Look-back window in hours
+        in: query
+        name: window_h
+        required: false
+        schema:
+          default: 24
+          description: Look-back window in hours
+          maximum: 168
+          minimum: 1
+          title: Window H
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpanMetricsResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Span Metrics
+      tags:
+      - monitoring
   /api/v1/notifications/channels:
     get:
       description: List all notification channels.
@@ -10607,6 +10897,40 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: Get Run
+      tags:
+      - runs
+  /api/v1/runs/{run_id}/trace:
+    get:
+      description: 'Proxy the Langfuse trace for a workflow run.
+
+
+        Returns the span tree (with timing, token, cost breakdown) associated with
+
+        the run''s ``trace_id``. Response shape is stable across Langfuse SDK bumps;
+
+        the UI relies on it directly.'
+      operationId: get_run_trace_api_v1_runs__run_id__trace_get
+      parameters:
+      - in: path
+        name: run_id
+        required: true
+        schema:
+          title: Run Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Run Trace
       tags:
       - runs
   /api/v1/services/:

@@ -590,6 +590,49 @@
         }
       }
     },
+    "/api/v1/runs/{run_id}/trace": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Get Run Trace",
+        "description": "Proxy the Langfuse trace for a workflow run.\n\nReturns the span tree (with timing, token, cost breakdown) associated with\nthe run's ``trace_id``. Response shape is stable across Langfuse SDK bumps;\nthe UI relies on it directly.",
+        "operationId": "get_run_trace_api_v1_runs__run_id__trace_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/costs/summary": {
       "get": {
         "tags": [
@@ -657,6 +700,86 @@
                   },
                   "type": "array",
                   "title": "Response Budget Status Api V1 Costs Budget Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/costs/cap-status": {
+      "get": {
+        "tags": [
+          "costs"
+        ],
+        "summary": "Cost Cap Status",
+        "description": "Return the tenant's running cost vs. configured cost cap.\n\nParameters fall back to ``PolicyConfig`` defaults when omitted so the UI\ncan query without knowing the active profile. ``breached`` is true iff\n``current_usd >= cap_usd`` (matches ``PolicyEngine.enforce_cost_cap``).",
+        "operationId": "cost_cap_status_api_v1_costs_cap_status_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "cap_usd",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cap Usd"
+            }
+          },
+          {
+            "name": "window_h",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 744,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Window H"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostCapStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -5845,6 +5968,54 @@
         }
       }
     },
+    "/api/v1/monitoring/span-metrics": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "summary": "Get Span Metrics",
+        "description": "Aggregate Langfuse observations from the last ``window_h`` hours, grouped by model.\n\nReturns avg/p95 duration, token totals, and cost per model. Used by the\n``Monitoring.tsx`` page to surface LLM-level health signals.",
+        "operationId": "get_span_metrics_api_v1_monitoring_span_metrics_get",
+        "parameters": [
+          {
+            "name": "window_h",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 168,
+              "minimum": 1,
+              "description": "Look-back window in hours",
+              "default": 24,
+              "title": "Window H"
+            },
+            "description": "Look-back window in hours"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpanMetricsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pipelines": {
       "get": {
         "tags": [
@@ -10053,6 +10224,61 @@
         "title": "ConnectorConfigUpdate",
         "description": "Update an existing connector config."
       },
+      "CostCapStatus": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "cap_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cap Usd"
+          },
+          "window_h": {
+            "type": "integer",
+            "title": "Window H",
+            "default": 24
+          },
+          "current_usd": {
+            "type": "number",
+            "title": "Current Usd",
+            "default": 0.0
+          },
+          "utilization_pct": {
+            "type": "number",
+            "title": "Utilization Pct",
+            "default": 0.0
+          },
+          "breached": {
+            "type": "boolean",
+            "title": "Breached",
+            "default": false
+          },
+          "alert_level": {
+            "type": "string",
+            "title": "Alert Level",
+            "default": "ok"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id"
+        ],
+        "title": "CostCapStatus",
+        "description": "Cost cap status for a single tenant."
+      },
       "CostEstimateRequest": {
         "properties": {
           "steps": {
@@ -13074,6 +13300,50 @@
         "title": "ModelCostItem",
         "description": "Cost breakdown per model."
       },
+      "ModelSpanMetric": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "span_count": {
+            "type": "integer",
+            "title": "Span Count"
+          },
+          "avg_duration_ms": {
+            "type": "number",
+            "title": "Avg Duration Ms"
+          },
+          "p95_duration_ms": {
+            "type": "number",
+            "title": "P95 Duration Ms"
+          },
+          "total_input_tokens": {
+            "type": "integer",
+            "title": "Total Input Tokens",
+            "default": 0
+          },
+          "total_output_tokens": {
+            "type": "integer",
+            "title": "Total Output Tokens",
+            "default": 0
+          },
+          "total_cost_usd": {
+            "type": "number",
+            "title": "Total Cost Usd",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "span_count",
+          "avg_duration_ms",
+          "p95_duration_ms"
+        ],
+        "title": "ModelSpanMetric",
+        "description": "Aggregate span metrics for a single model within a time window."
+      },
       "MoveRequest": {
         "properties": {
           "file_path": {
@@ -15526,6 +15796,47 @@
         ],
         "title": "SlaCheckResponse"
       },
+      "SpanMetricsResponse": {
+        "properties": {
+          "window_h": {
+            "type": "integer",
+            "title": "Window H"
+          },
+          "from_ts": {
+            "type": "string",
+            "title": "From Ts"
+          },
+          "to_ts": {
+            "type": "string",
+            "title": "To Ts"
+          },
+          "total_spans": {
+            "type": "integer",
+            "title": "Total Spans"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/ModelSpanMetric"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "window_h",
+          "from_ts",
+          "to_ts",
+          "total_spans"
+        ],
+        "title": "SpanMetricsResponse",
+        "description": "Monitoring.tsx span-metrics aggregate payload."
+      },
       "SpecListResponse": {
         "properties": {
           "specs": {
@@ -15973,6 +16284,133 @@
           "success"
         ],
         "title": "TestConnectionResponse"
+      },
+      "TraceResponse": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "total_duration_ms": {
+            "type": "integer",
+            "title": "Total Duration Ms"
+          },
+          "total_cost_usd": {
+            "type": "number",
+            "title": "Total Cost Usd"
+          },
+          "root_spans": {
+            "items": {
+              "$ref": "#/components/schemas/TraceSpan"
+            },
+            "type": "array",
+            "title": "Root Spans"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trace_id",
+          "run_id",
+          "total_duration_ms",
+          "total_cost_usd",
+          "root_spans"
+        ],
+        "title": "TraceResponse",
+        "description": "Langfuse trace tree for a workflow run, suitable for UI drill-down."
+      },
+      "TraceSpan": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "start_ms": {
+            "type": "integer",
+            "title": "Start Ms"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Usd"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/TraceSpan"
+            },
+            "type": "array",
+            "title": "Children"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "start_ms",
+          "duration_ms"
+        ],
+        "title": "TraceSpan",
+        "description": "Single span in a Langfuse trace, expressed relative to trace start."
       },
       "UnreadCountResponse": {
         "properties": {
@@ -17148,6 +17586,28 @@
             "type": "number",
             "title": "Total Cost Usd",
             "default": 0.0
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id"
+          },
+          "trace_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Url"
           },
           "steps": {
             "items": {

@@ -105,8 +105,20 @@ rules:
     reason: "IntakePackage / state machine change — v2 contract surface, re-run Phase 1a E2E"
 
   - pattern: "src/aiflow/policy/**"
-    suites: [phase-1a-e2e, core-unit]
-    reason: "PolicyEngine change affects profile + instance override, re-run Phase 1a E2E"
+    suites: [phase-1a-e2e, core-unit, ci-cross-uc]
+    reason: "PolicyEngine change affects profile + instance override + cost_cap, re-run Phase 1a E2E + ci-cross-uc"
+
+  - pattern: "src/aiflow/state/cost_repository.py"
+    suites: [state-unit, ci-cross-uc]
+    reason: "Cost attribution aggregate — drives cost_cap enforcement, re-run ci-cross-uc"
+
+  - pattern: "src/aiflow/contracts/cost_attribution.py"
+    suites: [ci-cross-uc, core-unit]
+    reason: "CostAttribution contract surface — Sprint L S112 additive contract, re-run ci-cross-uc"
+
+  - pattern: "alembic/versions/043_*"
+    suites: [ci-cross-uc]
+    reason: "cost_records.tenant_id + idx_cost_records_tenant_recorded — Sprint L cost_cap enforcement migration"
 
   - pattern: "src/aiflow/providers/**"
     suites: [phase-1a-e2e, core-unit]

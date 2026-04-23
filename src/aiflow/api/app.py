@@ -141,6 +141,7 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.intake import router as intake_router
     from aiflow.api.v1.intent_schemas import router as intent_schemas_router
     from aiflow.api.v1.media_processor import router as media_router
+    from aiflow.api.v1.monitoring import router as monitoring_router
     from aiflow.api.v1.notifications import router as notifications_router
     from aiflow.api.v1.pipelines import router as pipelines_router
     from aiflow.api.v1.process_docs import router as process_docs_router
@@ -179,6 +180,7 @@ def create_app() -> FastAPI:
     app.include_router(rpa_router)
     app.include_router(review_router)
     app.include_router(admin_router)
+    app.include_router(monitoring_router)
     app.include_router(pipelines_router)
     app.include_router(notifications_router)
     app.include_router(data_router_router)
@@ -189,6 +191,30 @@ def create_app() -> FastAPI:
     # Global exception handler — hides internals in production
     env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
     is_production = env in ("production", "prod")
+
+    from aiflow.core.errors import CostCapBreached
+
+    @app.exception_handler(CostCapBreached)
+    async def cost_cap_breached_handler(request: Request, exc: CostCapBreached):
+        logger.warning(
+            "cost_cap_breached",
+            tenant_id=exc.tenant_id,
+            cap_usd=exc.cap_usd,
+            current_usd=exc.current_usd,
+            window_h=exc.window_h,
+            path=request.url.path,
+        )
+        return JSONResponse(
+            status_code=exc.http_status,
+            content={
+                "detail": exc.message,
+                "error_code": exc.error_code,
+                "tenant_id": exc.tenant_id,
+                "cap_usd": exc.cap_usd,
+                "current_usd": exc.current_usd,
+                "window_h": exc.window_h,
+            },
+        )
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):

@@ -12,6 +12,15 @@ interface DailyCost { date: string; total_cost_usd: number; run_count: number; }
 interface CostsSummary { total_cost_usd: number; total_runs: number; per_skill: SkillCost[]; daily: DailyCost[]; source?: string; }
 interface ModelCostItem { model: string; provider: string; request_count: number; total_input_tokens: number; total_output_tokens: number; total_cost_usd: number; }
 interface CostBreakdown { per_model: ModelCostItem[]; total_records: number; total_tokens: number; total_cost_usd: number; source: string; }
+interface CostCapStatus { tenant_id: string; cap_usd: number | null; window_h: number; current_usd: number; utilization_pct: number; breached: boolean; alert_level: "ok" | "warning" | "critical" | "exceeded"; source: string; }
+
+const CAP_TENANT = "default";
+const CAP_BANNER_CLASSES: Record<CostCapStatus["alert_level"], string> = {
+  ok: "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300",
+  warning: "border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200",
+  critical: "border-orange-400 bg-orange-50 text-orange-900 dark:border-orange-600 dark:bg-orange-900/30 dark:text-orange-200",
+  exceeded: "border-red-500 bg-red-50 text-red-900 dark:border-red-600 dark:bg-red-900/30 dark:text-red-200",
+};
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -23,6 +32,7 @@ export function Costs() {
   const translate = useTranslate();
   const { data, loading, error, refetch } = useApi<CostsSummary>("/api/v1/costs/summary");
   const { data: breakdown } = useApi<CostBreakdown>("/api/v1/costs/breakdown");
+  const { data: capStatus } = useApi<CostCapStatus>(`/api/v1/costs/cap-status?tenant_id=${encodeURIComponent(CAP_TENANT)}`);
 
   const skillColumns: Column<Record<string, unknown>>[] = [
     { key: "skill_name", label: "Skill", render: (item) => <span className="font-medium text-gray-900 dark:text-gray-100">{String(item.skill_name)}</span> },
@@ -42,6 +52,30 @@ export function Costs() {
 
   return (
     <PageLayout titleKey="aiflow.costs.title" source={data?.source}>
+      {/* Cost cap banner */}
+      {capStatus && capStatus.cap_usd !== null && capStatus.cap_usd > 0 && (
+        <div
+          data-testid="cost-cap-banner"
+          data-alert-level={capStatus.alert_level}
+          className={`mb-3 rounded-xl border p-3 text-sm ${CAP_BANNER_CLASSES[capStatus.alert_level]}`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold">
+                {capStatus.breached ? "Cost cap breached" : "Cost cap status"} — tenant <code className="font-mono">{capStatus.tenant_id}</code>
+              </p>
+              <p className="mt-1 text-xs">
+                ${capStatus.current_usd.toFixed(4)} / ${capStatus.cap_usd.toFixed(4)} over last {capStatus.window_h}h
+                {capStatus.breached && " — new provider calls return HTTP 429 until the window rolls forward."}
+              </p>
+            </div>
+            <span className="rounded-full bg-white/60 px-2 py-0.5 font-mono text-xs dark:bg-black/20">
+              {capStatus.utilization_pct.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">

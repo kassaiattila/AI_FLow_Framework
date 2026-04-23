@@ -91,6 +91,24 @@ class PolicyConfig(BaseModel):
         description="Hard cap on daily documents (enforced). None = unlimited.",
     )
 
+    # Cost cap (Sprint L / S112)
+    cost_cap_usd: float | None = Field(
+        default=None,
+        ge=0.0,
+        description=(
+            "Hard cap on tenant running cost (USD) over cost_cap_window_h. "
+            "When the sum of cost_records.cost_usd for the tenant in the window "
+            "reaches this value, PolicyEngine.enforce_cost_cap raises "
+            "CostCapBreached (HTTP 429). None = no cap."
+        ),
+    )
+    cost_cap_window_h: int = Field(
+        default=24,
+        ge=1,
+        le=24 * 31,
+        description="Rolling window (hours) used to aggregate tenant running cost.",
+    )
+
     @field_validator("daily_document_hard_cap")
     @classmethod
     def hard_cap_gte_soft_cap(cls, v: int | None, info: object) -> int | None:

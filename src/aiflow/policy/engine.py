@@ -13,6 +13,7 @@ import asyncpg
 import structlog
 import yaml
 
+from aiflow.core.errors import CostCapBreached
 from aiflow.policy import PolicyConfig
 from aiflow.policy.repository import PolicyOverrideRepository
 from aiflow.providers.embedder import (
@@ -21,6 +22,7 @@ from aiflow.providers.embedder import (
     EmbedderProvider,
     OpenAIEmbedder,
 )
+from aiflow.state.cost_repository import CostAttributionRepository
 
 __all__ = [
     "EmbeddingProfile",
@@ -48,10 +50,10 @@ class PolicyEngine:
 
     def __init__(
         self,
-        profile_config: PolicyConfig,
+        profile_config: PolicyConfig | None = None,
         tenant_overrides: dict[str, dict[str, Any]] | None = None,
     ) -> None:
-        self.profile_config = profile_config
+        self.profile_config = profile_config if profile_config is not None else PolicyConfig()
         self.tenant_overrides: dict[str, dict[str, Any]] = tenant_overrides or {}
         logger.info(
             "policy_engine_initialized",
@@ -143,6 +145,47 @@ class PolicyEngine:
         """Get any parameter value with override chain applied."""
         cfg = self.get_for_tenant(tenant_id) if tenant_id else self.profile_config
         return getattr(cfg, parameter, None)
+
+    async def enforce_cost_cap(
+        self,
+        tenant_id: str,
+        pool: asyncpg.Pool,
+    ) -> float:
+        """Raise ``CostCapBreached`` if the tenant running cost hits its cap.
+
+        Returns the running cost (USD) over the policy-configured window so
+        callers can log utilisation even on the pass-through path. No-op when
+        ``cost_cap_usd`` is None (the default).
+        """
+        cfg = self.get_for_tenant(tenant_id)
+        cap = cfg.cost_cap_usd
+        window_h = cfg.cost_cap_window_h
+        if cap is None:
+            return 0.0
+        repo = CostAttributionRepository(pool)
+        current = await repo.aggregate_running_cost(tenant_id, window_h)
+        if current >= cap:
+            logger.warning(
+                "policy_engine.cost_cap_breached",
+                tenant_id=tenant_id,
+                cap_usd=cap,
+                current_usd=current,
+                window_h=window_h,
+            )
+            raise CostCapBreached(
+                tenant_id=tenant_id,
+                cap_usd=cap,
+                current_usd=current,
+                window_h=window_h,
+            )
+        logger.debug(
+            "policy_engine.cost_cap_ok",
+            tenant_id=tenant_id,
+            cap_usd=cap,
+            current_usd=current,
+            window_h=window_h,
+        )
+        return current
 
     def pick_embedder(
         self,
