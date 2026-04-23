@@ -1,4 +1,4 @@
-"""Secret management with pluggable providers and TTL caching."""
+"""Secret management with pluggable providers, TTL caching and resolver chain."""
 
 from __future__ import annotations
 
@@ -6,8 +6,12 @@ import abc
 import os
 import threading
 import time
+from typing import TYPE_CHECKING, Any
 
 import structlog
+
+if TYPE_CHECKING:
+    import hvac
 
 __all__ = [
     "SecretProvider",
@@ -45,16 +49,14 @@ class SecretProvider(abc.ABC):
 
 
 # ---------------------------------------------------------------------------
-# Environment variable provider (dev / CI)
+# Environment variable provider (dev / CI / fallback)
 # ---------------------------------------------------------------------------
 
 
 class EnvSecretProvider(SecretProvider):
     """Reads secrets from environment variables.
 
-    Suitable for local development and CI pipelines.  All keys are stored
-    with an optional prefix (default ``AIFLOW_SECRET_``) so they do not
-    collide with other env vars.
+    Suitable for local development, CI, and as a fallback under Vault.
     """
 
     def __init__(self, prefix: str = "AIFLOW_SECRET_") -> None:
@@ -88,116 +90,290 @@ class EnvSecretProvider(SecretProvider):
 
 
 # ---------------------------------------------------------------------------
-# HashiCorp Vault provider (production placeholder)
+# HashiCorp Vault KV v2 provider
 # ---------------------------------------------------------------------------
 
 
 class VaultSecretProvider(SecretProvider):
-    """Placeholder for HashiCorp Vault integration.
+    """HashiCorp Vault KV v2 secret backend.
 
-    All methods raise :class:`NotImplementedError` until the ``hvac``
-    dependency is wired in.
+    Keys use ``path#field`` format:
+    ``llm/openai#api_key`` maps to the ``api_key`` field of the secret
+    stored at ``<mount_point>/<kv_namespace>/llm/openai``. When ``#field``
+    is omitted, the default field name ``value`` is used.
+
+    Authenticates via either a pre-provisioned token or AppRole
+    (``role_id`` + ``secret_id``). For tests an already-built ``hvac``
+    client may be injected via ``client=``.
     """
 
-    def __init__(self, vault_url: str, token: str) -> None:
+    DEFAULT_FIELD = "value"
+
+    def __init__(
+        self,
+        vault_url: str,
+        token: str | None = None,
+        *,
+        role_id: str | None = None,
+        secret_id: str | None = None,
+        mount_point: str = "secret",
+        kv_namespace: str = "aiflow",
+        client: hvac.Client | None = None,
+    ) -> None:
+        try:
+            import hvac as _hvac
+        except ImportError as exc:  # pragma: no cover - optional extra
+            raise ImportError(
+                "VaultSecretProvider requires the 'hvac' package. "
+                "Install via `uv sync --extra vault`."
+            ) from exc
+
         self._vault_url = vault_url
-        self._token = token
-        logger.info("vault_secret_provider_initialized", vault_url=vault_url)
+        self._role_id = role_id
+        self._secret_id = secret_id
+
+        if client is not None:
+            self._client = client
+        else:
+            self._client = _hvac.Client(url=vault_url)
+            if token:
+                self._client.token = token
+            elif role_id and secret_id:
+                self._approle_login()
+            else:
+                raise ValueError(
+                    "VaultSecretProvider requires either 'token' or both 'role_id' and 'secret_id'"
+                )
+
+        self._mount = mount_point
+        self._namespace = kv_namespace.strip("/")
+        logger.info(
+            "vault_secret_provider_initialized",
+            vault_url=vault_url,
+            mount=mount_point,
+            namespace=self._namespace,
+            auth="approle" if role_id else "token",
+        )
+
+    # -- Auth --------------------------------------------------------------
+
+    def _approle_login(self) -> None:
+        """Exchange AppRole credentials for a fresh client token."""
+        if not self._role_id or not self._secret_id:
+            raise ValueError("AppRole login requires both role_id and secret_id")
+        resp = self._client.auth.approle.login(role_id=self._role_id, secret_id=self._secret_id)
+        self._client.token = resp["auth"]["client_token"]
+        logger.info(
+            "vault_approle_login",
+            role_id=self._role_id,
+            lease_duration=resp["auth"].get("lease_duration"),
+        )
+
+    def renew_token(self, increment: int | None = None) -> dict[str, Any]:
+        """Renew the current client token and return the hvac response."""
+        resp = self._client.auth.token.renew_self(increment=increment)
+        logger.info(
+            "vault_token_renewed",
+            lease_duration=resp.get("auth", {}).get("lease_duration"),
+            increment=increment,
+        )
+        return resp
+
+    def token_ttl(self) -> int | None:
+        """Return the current token TTL (seconds), or ``None`` if unavailable."""
+        try:
+            info = self._client.auth.token.lookup_self()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("vault_token_lookup_failed", error=str(exc))
+            return None
+        ttl = info.get("data", {}).get("ttl")
+        return int(ttl) if ttl is not None else None
+
+    # -- Key helpers -------------------------------------------------------
+
+    def _split_key(self, key: str) -> tuple[str, str]:
+        path, sep, field = key.partition("#")
+        return path, field if sep else self.DEFAULT_FIELD
+
+    def _full_path(self, path: str) -> str:
+        path = path.strip("/")
+        return f"{self._namespace}/{path}" if self._namespace else path
+
+    # -- KV v2 CRUD --------------------------------------------------------
 
     def get_secret(self, key: str) -> str | None:
-        raise NotImplementedError(
-            "VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default"
-        )
+        from hvac.exceptions import InvalidPath
+
+        path, field = self._split_key(key)
+        try:
+            resp = self._client.secrets.kv.v2.read_secret_version(
+                mount_point=self._mount,
+                path=self._full_path(path),
+                raise_on_deleted_version=True,
+            )
+        except InvalidPath:
+            logger.debug("vault_secret_get", key=key, found=False)
+            return None
+
+        data = resp["data"]["data"]
+        value = data.get(field)
+        logger.debug("vault_secret_get", key=key, field=field, found=value is not None)
+        return value
 
     def set_secret(self, key: str, value: str) -> None:
-        raise NotImplementedError(
-            "VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default"
+        from hvac.exceptions import InvalidPath
+
+        path, field = self._split_key(key)
+        full = self._full_path(path)
+
+        existing: dict[str, str] = {}
+        try:
+            resp = self._client.secrets.kv.v2.read_secret_version(
+                mount_point=self._mount,
+                path=full,
+                raise_on_deleted_version=True,
+            )
+            existing = dict(resp["data"]["data"])
+        except InvalidPath:
+            existing = {}
+
+        existing[field] = value
+        self._client.secrets.kv.v2.create_or_update_secret(
+            mount_point=self._mount,
+            path=full,
+            secret=existing,
         )
+        logger.info("vault_secret_set", key=key, field=field)
 
     def delete_secret(self, key: str) -> None:
-        raise NotImplementedError(
-            "VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default"
-        )
+        path, _field = self._split_key(key)
+        full = self._full_path(path)
+        try:
+            self._client.secrets.kv.v2.delete_metadata_and_all_versions(
+                mount_point=self._mount,
+                path=full,
+            )
+            logger.info("vault_secret_deleted", key=key)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("vault_secret_delete_failed", key=key, error=str(exc))
 
     def list_keys(self) -> list[str]:
-        raise NotImplementedError(
-            "VaultSecretProvider requires hvac dependency — use EnvSecretProvider as default"
-        )
+        from hvac.exceptions import InvalidPath
+
+        try:
+            resp = self._client.secrets.kv.v2.list_secrets(
+                mount_point=self._mount,
+                path=self._namespace or "",
+            )
+        except InvalidPath:
+            return []
+
+        raw = resp["data"]["keys"]
+        return sorted(raw)
 
 
 # ---------------------------------------------------------------------------
-# Secret manager with TTL cache
+# SecretManager — resolver chain (cache → primary → fallback → None)
 # ---------------------------------------------------------------------------
 
 
 class _CacheEntry:
-    """Internal cache record."""
+    """Internal cache record. ``value=None`` represents a negative lookup."""
 
     __slots__ = ("value", "expires_at")
 
-    def __init__(self, value: str, ttl_seconds: float) -> None:
+    def __init__(self, value: str | None, ttl_seconds: float) -> None:
         self.value = value
         self.expires_at = time.monotonic() + ttl_seconds
 
 
 class SecretManager:
-    """Wraps a :class:`SecretProvider` and adds a local TTL cache.
+    """Wraps :class:`SecretProvider` instances with TTL caching + fallback.
 
-    Parameters
-    ----------
-    provider:
-        Backend secret store.
-    cache_ttl_seconds:
-        How long cached values remain valid (default 300 s / 5 min).
+    Resolver order on ``get_secret(key)``:
+
+    1. local cache (positive or negative entry within TTL)
+    2. ``provider`` (primary)
+    3. ``fallback`` (optional secondary provider)
+    4. ``None``
+
+    Negative lookups use a separate (typically shorter) TTL so a repeatedly
+    missing key does not hit the primary backend on every call.
     """
 
     def __init__(
         self,
         provider: SecretProvider,
+        fallback: SecretProvider | None = None,
         cache_ttl_seconds: float = 300.0,
+        *,
+        negative_cache_ttl_seconds: float = 60.0,
     ) -> None:
         self._provider = provider
+        self._fallback = fallback
         self._ttl = cache_ttl_seconds
+        self._negative_ttl = negative_cache_ttl_seconds
         self._cache: dict[str, _CacheEntry] = {}
         self._lock = threading.Lock()
         logger.info(
             "secret_manager_initialized",
             provider=type(provider).__name__,
+            fallback=type(fallback).__name__ if fallback else None,
             ttl=cache_ttl_seconds,
+            negative_ttl=negative_cache_ttl_seconds,
         )
 
-    # -- Public API ---------------------------------------------------------
+    # -- Internal helpers --------------------------------------------------
+
+    def _cache_store(self, key: str, value: str | None, ttl: float) -> None:
+        with self._lock:
+            self._cache[key] = _CacheEntry(value, ttl)
+
+    # -- Public API --------------------------------------------------------
 
     def get_secret(self, key: str) -> str | None:
-        """Get a secret, using cache when available."""
+        """Resolve *key* through cache → primary → fallback → None."""
+        now = time.monotonic()
         with self._lock:
             entry = self._cache.get(key)
-            if entry and entry.expires_at > time.monotonic():
-                logger.debug("secret_cache_hit", key=key)
+            if entry and entry.expires_at > now:
+                logger.debug("secret_cache_hit", key=key, negative=entry.value is None)
                 return entry.value
 
-        # Cache miss -- fetch from provider
         value = self._provider.get_secret(key)
         if value is not None:
-            with self._lock:
-                self._cache[key] = _CacheEntry(value, self._ttl)
-        logger.debug("secret_cache_miss", key=key, found=value is not None)
-        return value
+            logger.debug("secret_primary_hit", key=key)
+            self._cache_store(key, value, self._ttl)
+            return value
+
+        if self._fallback is not None:
+            value = self._fallback.get_secret(key)
+            if value is not None:
+                logger.info(
+                    "secret_fallback_hit",
+                    key=key,
+                    fallback=type(self._fallback).__name__,
+                )
+                self._cache_store(key, value, self._ttl)
+                return value
+
+        logger.debug("secret_all_miss", key=key)
+        self._cache_store(key, None, self._negative_ttl)
+        return None
 
     def set_secret(self, key: str, value: str) -> None:
-        """Store a secret and update the cache."""
+        """Store a secret through the primary provider and cache the value."""
         self._provider.set_secret(key, value)
-        with self._lock:
-            self._cache[key] = _CacheEntry(value, self._ttl)
+        self._cache_store(key, value, self._ttl)
 
     def delete_secret(self, key: str) -> None:
-        """Delete a secret and evict from cache."""
+        """Delete the secret from the primary provider and evict the cache."""
         self._provider.delete_secret(key)
         with self._lock:
             self._cache.pop(key, None)
 
     def list_keys(self) -> list[str]:
-        """List all secret keys from the provider."""
+        """List keys known to the primary provider."""
         return self._provider.list_keys()
 
     def invalidate_cache(self, key: str | None = None) -> None:
