@@ -150,6 +150,12 @@ Vegallapot:
 
 <!-- Ide jon az utolso futtatas riport-ja `/live-test emails` utan. Elhagyhato commit-bol a `.gitignore` szerint ha a user nem akarja verziozni. -->
 
+### 2026-04-23 06:45 — **PASS (S108d UX sprint)**
+- Retry button: `{N} hibasokat` megjelenik a progress panel header-ben ha `errorCount > 0` & `!processing`, egyszer re-submittal `processIds`-bol.
+- Intent color standard: 7-kategorias RegExp-alapu szinmegfeleltetes (`intentColorClass(intent_id, display_name)`). "Informacio keres" most **teal** (volt brand-purple). Marketing/Hirlevel → violet. Belso → emerald. Legal → rose. Spam → slate. Finance → blue. Default → gray.
+- Per-row "Processing..." pill: ha a sor benne van a folyamatban futo batch-ben, a SZANDEK cella kek spinner-dotos Processing... pirt mutat.
+- tsc clean, 0 console error live-en.
+
 ### 2026-04-23 06:33 — **PASS (S108c email bug-fix sprint)**
 - Tool csomag: `mcp__plugin_playwright_playwright__*`
 - Fix-ek: BUG-1 (scan mailbox rewire) + BUG-2 (email detail drilldown) + asyncpg JSONB parse + i18n path + escalation field.

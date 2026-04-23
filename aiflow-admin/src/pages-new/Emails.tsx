@@ -35,6 +35,43 @@ function formatCost(usd: number): string {
   return `$${usd.toFixed(2)}`;
 }
 
+// Semantic intent color classes. Picks based on a substring match over
+// intent_id + display_name (case-insensitive). First match wins.
+const INTENT_COLOR_MAP: Array<{ match: RegExp; cls: string }> = [
+  // Finance / transactional
+  { match: /invoice|billing|payment|szamla|fizetes|refund|tranzakci/i,
+    cls: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  // Support / inquiry — customer-requested information
+  { match: /inquiry|support|informacio|kerdes|panasz|complaint/i,
+    cls: "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
+  // Internal / colleague
+  { match: /internal|belso|kolleg|colleague/i,
+    cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  // Marketing / promotional / newsletter
+  { match: /marketing|hirlevel|newsletter|promo|unsubscribe/i,
+    cls: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
+  // Spam / junk
+  { match: /spam|junk|phish/i,
+    cls: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" },
+  // Legal / urgent
+  { match: /legal|jogi|urgent|surgos|escalation/i,
+    cls: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+  // Feedback
+  { match: /feedback|visszajelzes|review/i,
+    cls: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+];
+
+const INTENT_COLOR_DEFAULT =
+  "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
+
+export function intentColorClass(intentId: string | null, displayName: string | null): string {
+  const haystack = `${intentId ?? ""} ${displayName ?? ""}`;
+  for (const rule of INTENT_COLOR_MAP) {
+    if (rule.match.test(haystack)) return rule.cls;
+  }
+  return INTENT_COLOR_DEFAULT;
+}
+
 // --- Types ---
 
 interface EmailItem {
@@ -95,6 +132,9 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
   const abortRef = useRef<AbortController | null>(null);
   const [processStartTs, setProcessStartTs] = useState<number | null>(null);
   const [doneCount, setDoneCount] = useState(0);
+  // Full email_ids aligned by index with processProgress rows, so we can
+  // retry only the failed ones without re-selecting from the table.
+  const [processIds, setProcessIds] = useState<string[]>([]);
 
   const priorityColor: Record<string, string> = {
     critical: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -112,6 +152,7 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
     setProcessing("bulk");
     setProcessStartTs(Date.now());
     setDoneCount(0);
+    setProcessIds(emailIds);
     const defaultSteps = ["parse", "classify", "extract", "priority", "route"];
     setProcessProgress(emailIds.map((id) => ({
       name: id.substring(0, 50),
@@ -214,6 +255,15 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
 
   const handleCancelProcessing = () => {
     abortRef.current?.abort();
+  };
+
+  const handleRetryFailed = () => {
+    // Collect email_ids of rows that errored (either aborted or failed step).
+    const failedIds = processProgress
+      .map((fp, i) => (fp.status === "error" ? processIds[i] : null))
+      .filter((id): id is string => !!id);
+    if (failedIds.length === 0) return;
+    void handleProcessEmails(failedIds);
   };
 
   const handleExportCsv = async () => {
@@ -362,14 +412,24 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
                   {etaText}
                 </p>
               </div>
-              {processing && (
-                <button
-                  onClick={handleCancelProcessing}
-                  className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
-                >
-                  Megszakitas
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {!processing && errorCount > 0 && (
+                  <button
+                    onClick={handleRetryFailed}
+                    className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40"
+                  >
+                    Ujra a hibasokat ({errorCount})
+                  </button>
+                )}
+                {processing && (
+                  <button
+                    onClick={handleCancelProcessing}
+                    className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    Megszakitas
+                  </button>
+                )}
+              </div>
             </div>
             <FileProgressBar done={done} total={processProgress.length} />
             <div className="max-h-48 overflow-y-auto">
@@ -404,8 +464,27 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
             { key: "subject", label: translate("aiflow.emails.subject"), render: (item) => <span className="block max-w-[250px] truncate text-gray-600 dark:text-gray-400" title={String(item.subject ?? "")}>{String(item.subject ?? "")}</span> },
             { key: "intent_display_name", label: translate("aiflow.emails.intent"), render: (item) => {
               const intent = String(item.intent_display_name ?? "");
+              const id = String((item as unknown as EmailItem).email_id);
+              // If this specific row is in a currently-running batch and not
+              // yet done, show a live "Processing..." pill with spinner dot.
+              if (processing && processIds.includes(id)) {
+                const idx = processIds.indexOf(id);
+                const fp = processProgress[idx];
+                if (fp && fp.status !== "done" && fp.status !== "error") {
+                  return (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" aria-hidden />
+                      Processing...
+                    </span>
+                  );
+                }
+              }
               if (!intent || intent === "Not processed") return <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">Not processed</span>;
-              return <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">{intent}</span>;
+              const cls = intentColorClass(
+                (item.intent_id ?? null) as string | null,
+                (item.intent_display_name ?? null) as string | null,
+              );
+              return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{intent}</span>;
             }},
             { key: "priority_level", label: translate("aiflow.emails.priority"), render: (item) => {
               const p = item.priority_level as number | null;
