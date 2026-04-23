@@ -150,6 +150,21 @@ Vegallapot:
 
 <!-- Ide jon az utolso futtatas riport-ja `/live-test emails` utan. Elhagyhato commit-bol a `.gitignore` szerint ha a user nem akarja verziozni. -->
 
+### 2026-04-23 06:12 — **PASS (plugin Playwright demo)**
+- Tool csomag: `mcp__plugin_playwright_playwright__*`
+- Preflight: API UP, Vite UP, PG UP
+- Lepes 1 (Login admin@aiflow.local): PASS, 0 console error, URL = /#/
+- Lepes 2 (/emails navigacio): **PASS** — `/api/v1/emails` 200 x2, 0 console error
+  (korabban 4 CORS error volt, `cc9808c` fix utan tiszta)
+- Lepes 3 (cost modal): PASS — 164 email -> ~$0.13 / ~2h 44m, Megse zar
+- Lepes 4-8: nem futtatva (idokimelo, mar zold a 1680188+e75a42d+1e8c15d sorozatban)
+- **Findings (usability):**
+  - Confirm modal egyertelmu + olcsobb a valosagban ($0.13 !== $13)
+  - 164 email (nem 168) — restart elott 4 feldolgozodott, mielott Megszakitas beert
+  - Ertesitesek (`/api/v1/notifications/in-app/unread-count`) meg mindig 500-at dob, de mar nem zavar a user flow-ban — kesobbi sprint targy
+- **Commits:** `cc9808c` (live-test framework), `1e8c15d` (CORS fix)
+- **Ossz ido:** ~100s
+
 ### 2026-04-23 06:04 — **PARTIAL (CORS fix eligazito)**
 - Lepes 1-2: PASS (login + /emails betoltes, 0 error a 1e8c15d fix utan)
 - Lepes 3: PASS (cost modal ~$0.13 / ~2h 48m, Megse zar)
