@@ -154,9 +154,9 @@ Branch: `feature/v1.4.8-monitoring-cost`.
 
 | Session | Scope | Acceptance |
 |---------|-------|-----------|
-| **S109** | `Runs.tsx` + `Monitoring.tsx`: Langfuse drill-down (trace tree, step timings, token counts). Backend proxies Langfuse API per tenant. | Playwright: open Runs → pick row → see tree. |
-| **S110** | `Costs.tsx` + `CostAttribution` contract (Pydantic v1 stub). `PolicyEngine.cost_cap` enforced at Extractor + Embedder providers (halt + 429 when exceeded). | Cost cap integration test: 2 calls, second one breaches cap, returns 429. Cost attribution row written per call. |
-| **S111** | Playwright regression pack: UC1 + UC2 + UC3 run together in CI profile. All 3 E2E GREEN on real services. PR cut + tag `v1.4.8`. | CI profile runs in ≤10 min. |
+| **S111** ✅ | `Runs.tsx` + `RunDetail.tsx` + `Monitoring.tsx`: Langfuse drill-down (trace tree, step timings, token counts + 24h span-metrics per model). Backend proxies Langfuse v4 SDK (`GET /runs/{id}/trace`, `GET /monitoring/span-metrics`). | Integration 5/5 GREEN (trace happy/404/502 + span-metrics happy/503); Playwright 3 smoke collect-only GREEN. **DONE 2026-04-23.** |
+| **S112** | `Costs.tsx` + `CostAttribution` contract (Pydantic v1 stub). `PolicyEngine.cost_cap` enforced at Extractor + Embedder providers (halt + 429 when exceeded). | Cost cap integration test: 2 calls, second one breaches cap, returns 429. Cost attribution row written per call. |
+| **S113** | Playwright regression pack: UC1 + UC2 + UC3 run together in CI profile. All 3 E2E GREEN on real services. PR cut + tag `v1.4.8`. | CI profile runs in ≤10 min. |
 
 **Sprint L exit gate = v1.4.8 ship:** 3 use-cases working, monitored, cost-capped, prompts admin-editable.
 

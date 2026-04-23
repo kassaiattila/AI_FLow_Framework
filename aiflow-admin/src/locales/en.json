@@ -67,7 +67,10 @@
       "stepName": "Step",
       "model": "Model",
       "tokens": "Tokens",
-      "error": "Error"
+      "error": "Error",
+      "traceTree": "Trace Tree",
+      "traceMissing": "No Langfuse trace recorded for this run.",
+      "traceError": "Trace unavailable"
     },
     "documents": {
       "title": "Documents",

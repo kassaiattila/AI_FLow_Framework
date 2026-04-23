@@ -14,11 +14,14 @@ interface ServiceHealth { service_name: string; status: string; latency_ms: numb
 interface HealthResponse { services: ServiceHealth[]; total: number; overall_status: string; source: string; }
 interface ServiceMetric { service_name: string; avg_latency_ms: number; p95_latency_ms: number; success_rate: number; }
 interface MetricsResponse { metrics: ServiceMetric[]; source: string; }
+interface ModelSpanMetric { model: string; span_count: number; avg_duration_ms: number; p95_duration_ms: number; total_input_tokens: number; total_output_tokens: number; total_cost_usd: number; }
+interface SpanMetricsResponse { window_h: number; from_ts: string; to_ts: string; total_spans: number; models: ModelSpanMetric[]; source: string; }
 
 export function Monitoring() {
   const translate = useTranslate();
   const { data: health, loading: hl, error: he, refetch } = useApi<HealthResponse>("/api/v1/admin/health");
   const { data: metrics } = useApi<MetricsResponse>("/api/v1/admin/metrics");
+  const { data: spanMetrics, error: spanError } = useApi<SpanMetricsResponse>("/api/v1/monitoring/span-metrics?window_h=24");
 
   const [restartTarget, setRestartTarget] = useState<string | null>(null);
   const [restarting, setRestarting] = useState(false);
@@ -87,6 +90,45 @@ export function Monitoring() {
               <p className="mt-1 text-2xl font-bold text-green-600">{metrics?.metrics.length ? (metrics.metrics.reduce((s, m) => s + m.success_rate, 0) / metrics.metrics.length).toFixed(1) : "—"}%</p>
             </div>
           </div>
+
+          {/* LLM span metrics (S111 — last 24h, per model) */}
+          <h3 className="mb-2 mt-6 text-base font-semibold text-gray-900 dark:text-gray-100">
+            LLM Spans &middot; 24h
+          </h3>
+          {spanError ? (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+              Span metrics unavailable: <span className="font-mono">{spanError}</span>
+            </div>
+          ) : spanMetrics ? (
+            <div className="mb-6 overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-left dark:border-gray-800">
+                    <th className="px-4 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">Model</th>
+                    <th className="px-4 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">Spans</th>
+                    <th className="px-4 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">Avg ms</th>
+                    <th className="px-4 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">P95 ms</th>
+                    <th className="px-4 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">Tokens (in/out)</th>
+                    <th className="px-4 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">Cost USD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {spanMetrics.models.length === 0 ? (
+                    <tr><td colSpan={6} className="px-4 py-4 text-center text-sm text-gray-500">No spans in the last 24h</td></tr>
+                  ) : spanMetrics.models.map((m) => (
+                    <tr key={m.model} className="border-b border-gray-50 dark:border-gray-800">
+                      <td className="px-4 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{m.model}</td>
+                      <td className="px-4 py-2 text-gray-500">{m.span_count}</td>
+                      <td className="px-4 py-2 tabular-nums text-gray-500">{m.avg_duration_ms.toFixed(0)}</td>
+                      <td className="px-4 py-2 tabular-nums text-gray-500">{m.p95_duration_ms.toFixed(0)}</td>
+                      <td className="px-4 py-2 tabular-nums text-xs text-gray-500">{m.total_input_tokens} / {m.total_output_tokens}</td>
+                      <td className="px-4 py-2 tabular-nums text-gray-500">${m.total_cost_usd.toFixed(4)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
 
           {/* Service cards */}
           <h3 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">{translate("aiflow.monitoring.serviceHealth")}</h3>

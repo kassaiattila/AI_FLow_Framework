@@ -10,6 +10,7 @@ import { PageLayout } from "../layout/PageLayout";
 import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
 import { ConfirmDialog } from "../components-new/ConfirmDialog";
+import { TraceTree, type TraceData } from "../components-new/TraceTree";
 
 interface StepRunItem {
   step_name: string;
@@ -32,6 +33,8 @@ interface RunItem {
   total_duration_ms: number | null;
   total_cost_usd: number;
   pipeline_id?: string;
+  trace_id?: string | null;
+  trace_url?: string | null;
   steps: StepRunItem[];
 }
 
@@ -40,6 +43,10 @@ export function RunDetail() {
   const navigate = useNavigate();
   const translate = useTranslate();
   const { data, loading, error, refetch } = useApi<RunItem>(`/api/v1/runs/${id}`);
+  const hasTrace = !!data?.trace_id;
+  const { data: trace, loading: traceLoading, error: traceError } = useApi<TraceData>(
+    hasTrace ? `/api/v1/runs/${id}/trace` : null,
+  );
   const [retryOpen, setRetryOpen] = useState(false);
   const [retrying, setRetrying] = useState(false);
 
@@ -167,6 +174,26 @@ export function RunDetail() {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Trace tree — S111 Langfuse drill-down */}
+      <div id="trace" className="mt-8">
+        <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-gray-100">
+          {translate("aiflow.runDetail.traceTree")}
+        </h3>
+        {!hasTrace ? (
+          <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/50">
+            {translate("aiflow.runDetail.traceMissing")}
+          </p>
+        ) : traceLoading ? (
+          <LoadingState />
+        ) : traceError ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+            {translate("aiflow.runDetail.traceError")}: <span className="font-mono text-xs">{traceError}</span>
+          </div>
+        ) : trace ? (
+          <TraceTree trace={trace} />
+        ) : null}
       </div>
 
       {/* Retry confirm dialog */}

@@ -78,9 +78,8 @@ A riport a modul `.md` fajl vegen az `## Utolso futtatas` szekcio ala kerul.
 | Prompts | [prompts.md](./prompts.md) | Active |
 | Documents | _todo_ | — |
 | RAG | _todo_ | — |
-| Runs | _todo_ | — |
+| Runs + Monitoring | [runs.md](./runs.md) | Active |
 | Costs | _todo_ | — |
-| Prompts | _todo_ | — |
 | Admin | _todo_ | — |
 
 ## Uj modul hozzaadasa

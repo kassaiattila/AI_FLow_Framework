@@ -67,7 +67,10 @@
       "stepName": "Lepes",
       "model": "Modell",
       "tokens": "Token",
-      "error": "Hiba"
+      "error": "Hiba",
+      "traceTree": "Trace fa",
+      "traceMissing": "Ehhez a futashoz nincs Langfuse trace rogzitve.",
+      "traceError": "Trace nem elerheto"
     },
     "documents": {
       "title": "Dokumentumok",
