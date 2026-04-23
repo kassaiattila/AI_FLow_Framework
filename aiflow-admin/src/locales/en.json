@@ -155,6 +155,10 @@
       "newTitle": "New rule",
       "empty": "No intent rules yet. Create one above."
     },
+    "prompts": {
+      "title": "Prompts",
+      "editorTitle": "Edit prompt"
+    },
     "connectors": {
       "title": "Email Connectors",
       "menuLabel": "Connectors",

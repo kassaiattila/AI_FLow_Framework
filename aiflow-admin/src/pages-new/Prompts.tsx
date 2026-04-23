@@ -7,6 +7,7 @@
  * prompts). Langfuse-aware tooling lives downstream (S98+).
  */
 
+import { useNavigate } from "react-router-dom";
 import { PageLayout } from "../layout/PageLayout";
 import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
@@ -33,6 +34,7 @@ function formatDate(iso: string): string {
 }
 
 export function Prompts() {
+  const navigate = useNavigate();
   const { data, loading, error, refetch } = useApi<PromptListResponse>(
     "/api/v1/prompts/list",
   );
@@ -86,7 +88,8 @@ export function Prompts() {
                 {data.prompts.map((p) => (
                   <tr
                     key={p.path}
-                    className="border-b border-gray-50 dark:border-gray-800"
+                    onClick={() => navigate(`/prompts/${p.name}`)}
+                    className="cursor-pointer border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
                   >
                     <td
                       className="px-4 py-2 font-medium text-gray-900 dark:text-gray-100"

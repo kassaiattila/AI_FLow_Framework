@@ -21,7 +21,7 @@ session_prompts/    — Session prompt archive + NEXT.md pointer (/next reads th
 27 services | 181 API endpoints (27 routers) | 50 DB tables | 42 Alembic migrations (head: 042 — Sprint J 040 embedding_decisions + 041 rag_chunks.embedding_dim + 042 pgvector flex-dim)
 22 pipeline adapters | 10 pipeline templates | 8 skills (aszf_rag_chat, cubix_course_capture, email_intent_processor, invoice_finder, invoice_processor, process_documentation, qbpp_test_automation, spec_writer) | 23 UI pages | 5 source adapters (Email, File, Folder, Batch, API)
 3 embedder providers (BGE-M3 Profile A, Azure OpenAI Profile B, OpenAI surrogate) | 1 chunker provider (UnstructuredChunker) | 5 provider-registry ABC slots (parser, classifier, extractor, embedder, chunker)
-1994 unit tests (1 xfail-quarantined: resilience 50ms timing flake) | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 413 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b + 7 Phase 1d + 3 UC2 S102) | 62+ integration tests (incl. 4 alembic association_mode + 3 alembic 040/041/042 + 5 rag_engine UC2 + 1 UC3 scan_and_classify + 1 UC3 intent_routing + 5 UC3 intent_rules_crud)
+1994 unit tests (1 xfail-quarantined: resilience 50ms timing flake) | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 413 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b + 7 Phase 1d + 3 UC2 S102) | 67+ integration tests (incl. 4 alembic association_mode + 3 alembic 040/041/042 + 5 rag_engine UC2 + 1 UC3 scan_and_classify + 1 UC3 intent_routing + 5 UC3 intent_rules_crud + 5 S109b prompt_edit)
 
 ## Build & Test
 ```bash

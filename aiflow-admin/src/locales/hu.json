@@ -155,6 +155,10 @@
       "newTitle": "Uj szabaly",
       "empty": "Meg nincs intent szabaly. Hozz letre egyet fent."
     },
+    "prompts": {
+      "title": "Prompts",
+      "editorTitle": "Prompt szerkesztes"
+    },
     "connectors": {
       "title": "Email Connectorok",
       "menuLabel": "Connectorok",

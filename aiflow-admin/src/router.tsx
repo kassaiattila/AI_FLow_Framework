@@ -32,6 +32,7 @@ import { PackageDetail } from "./pages-new/PackageDetail";
 import { Pipelines } from "./pages-new/Pipelines";
 import { PipelineDetail } from "./pages-new/PipelineDetail";
 import { Prompts } from "./pages-new/Prompts";
+import { PromptDetail } from "./pages-new/PromptDetail";
 import { Quality } from "./pages-new/Quality";
 import { Services } from "./pages-new/Services";
 // Cubix archived (Sprint C)
@@ -73,6 +74,7 @@ export const router = createHashRouter([
       { path: "documents/:id/verify", element: <Verification /> },
       { path: "packages/:id", element: <PackageDetail /> },
       { path: "prompts", element: <Prompts /> },
+      { path: "prompts/*", element: <PromptDetail /> },
       { path: "document-upload", element: <Navigate to="/documents" replace /> },
       { path: "emails", element: <EmailsNew /> },
       { path: "emails/connectors", element: <EmailConnectors /> },
