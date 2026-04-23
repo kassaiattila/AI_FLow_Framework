@@ -219,6 +219,7 @@
       "monitoring": "Monitoring",
       "pipelineRuns": "Pipeline Runs",
       "costs": "Costs",
+      "budgets": "Tenant Budgets",
       "serviceHealth": "Service Health",
       "llmQuality": "LLM Quality",
       "auditLog": "Audit Log",
@@ -620,6 +621,10 @@
       "confidence": "Confidence",
       "reviewMovedBanner": "Review functionality has been moved to the Verification page.",
       "goToVerification": "Go to Verification"
+    },
+    "budgets": {
+      "title": "Tenant Budgets",
+      "subtitle": "Per-tenant LLM cost guardrail limits and alert thresholds"
     },
     "costs": {
       "title": "Cost Analytics",

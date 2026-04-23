@@ -53,6 +53,7 @@ const MENU_GROUPS: MenuGroup[] = [
     defaultOpen: false,
     items: [
       { path: "/costs", labelKey: "aiflow.menu.costs", icon: "trending-up" },
+      { path: "/budget-management", labelKey: "aiflow.menu.budgets", icon: "bar-chart" },
       { path: "/monitoring", labelKey: "aiflow.menu.serviceHealth", icon: "activity" },
       { path: "/quality", labelKey: "aiflow.menu.llmQuality", icon: "bar-chart" },
     ],
