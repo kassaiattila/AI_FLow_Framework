@@ -131,3 +131,9 @@ CLAUDE.local.md
 
 # === Reference projects (separate repos, kept alongside) ===
 DOHA/
+
+# Playwright MCP + debug artifacts
+*.png
+dialog-snap.md
+cancel-snap.md
+.playwright-mcp/

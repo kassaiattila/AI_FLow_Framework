@@ -337,16 +337,29 @@ async def list_emails(
                 routing_data = data.get("routing") or {}
                 entities_data = data.get("entities") or {}
 
+                # Fallback for S106/S107 scan_and_classify rows: they use
+                # flat ``output_data.label`` + ``display_name`` instead of a
+                # nested ``intent`` object. Map whichever is present so both
+                # paths render uniformly in the UI list.
+                intent_id = intent_data.get("intent_id") or data.get("label")
+                intent_display = (
+                    intent_data.get("intent_display_name")
+                    or data.get("display_name")
+                    or (intent_id or "")
+                )
+                intent_confidence = intent_data.get("confidence", data.get("confidence", 0.0))
+                intent_method = intent_data.get("method") or data.get("method")
+
                 emails.append(
                     EmailResultItem(
                         email_id=data.get("email_id", str(row["id"])),
                         subject=data.get("subject", ""),
                         sender=data.get("sender", ""),
                         received_date=row["started_at"].isoformat() if row["started_at"] else None,
-                        intent_id=intent_data.get("intent_id"),
-                        intent_display_name=intent_data.get("intent_display_name"),
-                        intent_confidence=intent_data.get("confidence", 0.0),
-                        intent_method=intent_data.get("method"),
+                        intent_id=intent_id,
+                        intent_display_name=intent_display or None,
+                        intent_confidence=intent_confidence,
+                        intent_method=intent_method,
                         priority_level=priority_data.get("priority_level"),
                         department_name=routing_data.get("department_name"),
                         queue_name=routing_data.get("queue_name"),

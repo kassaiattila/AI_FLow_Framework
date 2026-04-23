@@ -3,7 +3,7 @@
  * Replaces old MUI EmailList + EmailUpload + EmailConnectors.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
@@ -12,6 +12,28 @@ import { PageLayout } from "../layout/PageLayout";
 import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
 import { FileProgressRow, FileProgressBar, type FileProgress } from "../components-new/FileProgress";
+
+// Observed averages from hybrid_llm runs (gpt-4o-mini, ~3700 input tokens).
+// Used for cost/ETA preview only — actual numbers vary per email length.
+const BATCH_CAP = 25;
+const AVG_COST_PER_EMAIL_USD = 0.0008;
+const AVG_TIME_PER_EMAIL_SEC = 60;
+
+function formatDuration(totalSec: number): string {
+  if (!Number.isFinite(totalSec) || totalSec <= 0) return "—";
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = Math.floor(totalSec % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function formatCost(usd: number): string {
+  if (usd < 0.01) return `<$0.01`;
+  if (usd < 1) return `$${usd.toFixed(2)}`;
+  return `$${usd.toFixed(2)}`;
+}
 
 // --- Types ---
 
@@ -68,6 +90,10 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
   const [processProgress, setProcessProgress] = useState<FileProgress[]>([]);
   const [selectedEmails, setSelectedEmails] = useState<Record<string, unknown>[]>([]);
   const [clearSel, setClearSel] = useState(0);
+  const [confirmBatch, setConfirmBatch] = useState<{ ids: string[]; label: string } | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const [processStartTs, setProcessStartTs] = useState<number | null>(null);
+  const [doneCount, setDoneCount] = useState(0);
 
   const priorityColor: Record<string, string> = {
     critical: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -78,10 +104,13 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
 
   const isUnprocessed = (item: Record<string, unknown>) => !item.intent_display_name || item.intent_display_name === "Not processed";
 
-  // Process unprocessed emails via SSE (per-email pipeline)
+  // Process unprocessed emails via SSE (per-email pipeline).
+  // Splits into BATCH_CAP-sized chunks; AbortController stops mid-stream.
   const handleProcessEmails = async (emailIds: string[]) => {
     if (emailIds.length === 0) return;
     setProcessing("bulk");
+    setProcessStartTs(Date.now());
+    setDoneCount(0);
     const defaultSteps = ["parse", "classify", "extract", "priority", "route"];
     setProcessProgress(emailIds.map((id) => ({
       name: id.substring(0, 50),
@@ -89,73 +118,101 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
       steps: defaultSteps.map(s => ({ name: s, status: "pending" as const })),
     })));
 
-    try {
+    const ac = new AbortController();
+    abortRef.current = ac;
+    let globalOffset = 0;
+
+    const runOneBatch = async (batchIds: string[], offset: number): Promise<boolean> => {
+      if (ac.signal.aborted) return false;
       const token = localStorage.getItem("aiflow_token");
       const resp = await fetch("/api/v1/emails/process-batch-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ email_ids: emailIds }),
+        body: JSON.stringify({ email_ids: batchIds }),
+        signal: ac.signal,
       });
 
-      if (!resp.ok || !resp.body) { refetch(); return; }
+      if (!resp.ok || !resp.body) return true;
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const msg = JSON.parse(line.slice(6));
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const msg = JSON.parse(line.slice(6));
+              const globalIdx = msg.file_index !== undefined ? offset + msg.file_index : undefined;
 
-            if (msg.event === "init") {
-              const steps: string[] = msg.steps ?? defaultSteps;
-              setProcessProgress(prev => prev.map((fp, i) => i < msg.total_files ? {
-                ...fp,
-                steps: steps.map(s => ({ name: s, status: "pending" as const })),
-              } : fp));
-            }
-            if (msg.event === "file_start" && msg.file_index !== undefined) {
-              setProcessProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, name: msg.file || fp.name, status: "processing" } : fp
-              ));
-            }
-            if (msg.event === "file_step" && msg.file_index !== undefined && msg.step_index !== undefined) {
-              setProcessProgress(prev => prev.map((fp, i) => {
-                if (i !== msg.file_index) return fp;
-                return { ...fp, steps: fp.steps.map((s, si) => si !== msg.step_index ? s : { ...s, status: msg.status === "done" ? "done" as const : "running" as const, elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms }) };
-              }));
-            }
-            if (msg.event === "file_error" && msg.file_index !== undefined) {
-              setProcessProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: "error", error: msg.error } : fp
-              ));
-            }
-            if (msg.event === "file_done" && msg.file_index !== undefined) {
-              setProcessProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: msg.ok ? "done" as const : "error" as const } : fp
-              ));
-              if (msg.ok) refetch();
-            }
-            if (msg.event === "complete") {
-              setProcessProgress(prev => prev.map(fp => fp.status === "pending" || fp.status === "processing"
-                ? { ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) } : fp));
-            }
-          } catch { /* skip */ }
+              if (msg.event === "file_start" && globalIdx !== undefined) {
+                setProcessProgress(prev => prev.map((fp, i) =>
+                  i === globalIdx ? { ...fp, name: msg.file || fp.name, status: "processing" } : fp
+                ));
+              }
+              if (msg.event === "file_step" && globalIdx !== undefined && msg.step_index !== undefined) {
+                setProcessProgress(prev => prev.map((fp, i) => {
+                  if (i !== globalIdx) return fp;
+                  return { ...fp, steps: fp.steps.map((s, si) => si !== msg.step_index ? s : { ...s, status: msg.status === "done" ? "done" as const : "running" as const, elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms }) };
+                }));
+              }
+              if (msg.event === "file_error" && globalIdx !== undefined) {
+                setProcessProgress(prev => prev.map((fp, i) =>
+                  i === globalIdx ? { ...fp, status: "error", error: msg.error } : fp
+                ));
+              }
+              if (msg.event === "file_done" && globalIdx !== undefined) {
+                setProcessProgress(prev => prev.map((fp, i) =>
+                  i === globalIdx ? { ...fp, status: msg.ok ? "done" as const : "error" as const } : fp
+                ));
+                setDoneCount(c => c + 1);
+                if (msg.ok) refetch();
+              }
+            } catch { /* skip */ }
+          }
         }
+      } catch (e) {
+        if ((e as { name?: string })?.name === "AbortError") return false;
+        throw e;
       }
+      return true;
+    };
+
+    try {
+      while (globalOffset < emailIds.length) {
+        if (ac.signal.aborted) break;
+        const batch = emailIds.slice(globalOffset, globalOffset + BATCH_CAP);
+        const ok = await runOneBatch(batch, globalOffset);
+        if (!ok) break;
+        globalOffset += batch.length;
+      }
+
+      // Mark any still-pending rows as canceled when user aborted mid-flight.
+      if (ac.signal.aborted) {
+        setProcessProgress(prev => prev.map(fp =>
+          fp.status === "pending" || fp.status === "processing"
+            ? { ...fp, status: "error" as const, error: "Megszakitva" }
+            : fp,
+        ));
+      }
+
       refetch();
       setClearSel(c => c + 1);
     } finally {
       setProcessing(null);
+      abortRef.current = null;
     }
+  };
+
+  const handleCancelProcessing = () => {
+    abortRef.current?.abort();
   };
 
   const handleExportCsv = async () => {
@@ -201,8 +258,8 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
         {unprocessedCount > 0 && (
           <button
             onClick={() => {
-              const ids = emails.filter(e => !e.intent || e.intent === "Not processed").map(e => e.email_id);
-              void handleProcessEmails(ids);
+              const ids = emails.filter(isUnprocessed).map(e => e.email_id);
+              setConfirmBatch({ ids, label: `osszes feldolgozatlan (${ids.length})` });
             }}
             disabled={!!processing}
             className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
@@ -214,7 +271,7 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
           <button
             onClick={() => {
               const ids = selectedEmails.filter(isUnprocessed).map(e => String((e as unknown as EmailItem).email_id));
-              void handleProcessEmails(ids);
+              setConfirmBatch({ ids, label: `kivalasztott (${ids.length})` });
             }}
             disabled={!!processing}
             className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
@@ -228,21 +285,98 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
         </button>
       </div>
 
-      {/* Process progress */}
-      {processProgress.length > 0 && (
-        <div className="mb-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{translate("aiflow.pipeline.title")}</p>
-            <span className="text-xs text-brand-600 dark:text-brand-400">
-              {processProgress.filter(fp => fp.status === "done").length}/{processProgress.length}
-            </span>
-          </div>
-          <FileProgressBar done={processProgress.filter(fp => fp.status === "done").length} total={processProgress.length} />
-          <div className="max-h-48 overflow-y-auto">
-            {processProgress.map((fp, i) => <FileProgressRow key={i} fp={fp} />)}
+      {/* Confirm batch modal */}
+      {confirmBatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {confirmBatch.ids.length} email feldolgozasa
+            </h3>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              Batch: {confirmBatch.label}
+            </p>
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
+                <dt className="text-xs font-medium text-gray-500">Becsult koltseg</dt>
+                <dd className="mt-1 font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
+                  ~{formatCost(confirmBatch.ids.length * AVG_COST_PER_EMAIL_USD)}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
+                <dt className="text-xs font-medium text-gray-500">Becsult ido</dt>
+                <dd className="mt-1 font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
+                  ~{formatDuration(confirmBatch.ids.length * AVG_TIME_PER_EMAIL_SEC)}
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              OpenAI gpt-4o-mini ~$0.0008/email, ~60s latency alapjan.
+              {confirmBatch.ids.length > BATCH_CAP && (
+                <> {BATCH_CAP}-esevel kuldve; kozben megszakithato.</>
+              )}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmBatch(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                Megse
+              </button>
+              <button
+                onClick={() => {
+                  const ids = confirmBatch.ids;
+                  setConfirmBatch(null);
+                  void handleProcessEmails(ids);
+                }}
+                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+              >
+                Inditas
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Process progress */}
+      {processProgress.length > 0 && (() => {
+        const done = processProgress.filter(fp => fp.status === "done").length;
+        const errorCount = processProgress.filter(fp => fp.status === "error").length;
+        const remaining = processProgress.length - done - errorCount;
+        let etaText = "";
+        if (processing && processStartTs && doneCount > 0 && remaining > 0) {
+          const elapsedSec = (Date.now() - processStartTs) / 1000;
+          const avgSec = elapsedSec / doneCount;
+          etaText = ` · ETA ~${formatDuration(remaining * avgSec)}`;
+        } else if (processing && remaining > 0) {
+          etaText = ` · ETA ~${formatDuration(remaining * AVG_TIME_PER_EMAIL_SEC)}`;
+        }
+        return (
+          <div className="mb-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+            <div className="mb-2 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{translate("aiflow.pipeline.title")}</p>
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {done}/{processProgress.length} kesz
+                  {errorCount > 0 && <span className="text-red-500"> · {errorCount} hiba</span>}
+                  {etaText}
+                </p>
+              </div>
+              {processing && (
+                <button
+                  onClick={handleCancelProcessing}
+                  className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                >
+                  Megszakitas
+                </button>
+              )}
+            </div>
+            <FileProgressBar done={done} total={processProgress.length} />
+            <div className="max-h-48 overflow-y-auto">
+              {processProgress.map((fp, i) => <FileProgressRow key={i} fp={fp} />)}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Table */}
       {error ? (
