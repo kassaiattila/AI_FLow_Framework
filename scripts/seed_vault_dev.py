@@ -43,8 +43,10 @@ SEED_MAP: list[tuple[str, str, list[str]]] = [
     ),
     ("db", "dsn", ["AIFLOW_DATABASE__URL"]),
     ("cache", "redis_url", ["AIFLOW_REDIS__URL"]),
-    ("langfuse", "public_key", ["AIFLOW_LANGFUSE__PUBLIC_KEY"]),
-    ("langfuse", "secret_key", ["AIFLOW_LANGFUSE__SECRET_KEY"]),
+    # `LANGFUSE_BOOTSTRAP_*` first so the output of `scripts/bootstrap_langfuse.py`
+    # (the self-hosted S118 stack) wins over any stale cloud keypair in `.env`.
+    ("langfuse", "public_key", ["LANGFUSE_BOOTSTRAP_PUBLIC_KEY", "AIFLOW_LANGFUSE__PUBLIC_KEY"]),
+    ("langfuse", "secret_key", ["LANGFUSE_BOOTSTRAP_SECRET_KEY", "AIFLOW_LANGFUSE__SECRET_KEY"]),
     ("webhook", "hmac_secret", ["AIFLOW_WEBHOOK_HMAC_SECRET"]),
 ]
 
