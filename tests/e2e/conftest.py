@@ -14,14 +14,18 @@ E2E test fixtures for AIFlow admin dashboard.
 
 from __future__ import annotations
 
+import os
+
 import pytest
 from playwright.sync_api import Page
 
-# AIFlow admin runs on Vite dev server with hash router
-BASE_URL = "http://localhost:5174"
+# AIFlow admin runs on Vite dev server with hash router. Port has drifted
+# between sprints (5173 default → 5174 Sprint J → back to 5173 Sprint K)
+# so allow env overrides in CI / dev.
+BASE_URL = os.getenv("AIFLOW_UI_BASE_URL", "http://localhost:5173")
 LOGIN_URL = f"{BASE_URL}/#/login"
-AUTH_EMAIL = "admin@bestix.hu"
-AUTH_PASSWORD = "admin"
+AUTH_EMAIL = os.getenv("AIFLOW_UI_AUTH_EMAIL", "admin@aiflow.local")
+AUTH_PASSWORD = os.getenv("AIFLOW_UI_AUTH_PASSWORD", "AiFlowDev2026")
 
 
 @pytest.fixture(scope="session")

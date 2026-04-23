@@ -47,10 +47,10 @@ def prompt_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     sample.mkdir()
     # Seed one prompt file
     (sample / "greeter.yaml").write_text(
-        'name: demo/greeter\n'
+        "name: demo/greeter\n"
         'version: "1.0"\n'
-        'system: |\n'
-        '  You are a friendly greeter.\n'
+        "system: |\n"
+        "  You are a friendly greeter.\n"
         'user: "Say hi to {name}."\n',
         encoding="utf-8",
     )
@@ -92,10 +92,10 @@ async def test_prompt_upsert_writes_file_and_invalidates_cache(
     client: TestClient, auth_header: dict[str, str], prompt_dir: Path
 ) -> None:
     new_yaml = (
-        'name: demo/greeter\n'
+        "name: demo/greeter\n"
         'version: "1.1"\n'
-        'system: |\n'
-        '  You are a warm + helpful greeter.\n'
+        "system: |\n"
+        "  You are a warm + helpful greeter.\n"
         'user: "Greet {name} in Hungarian."\n'
     )
     r = client.put(
@@ -113,11 +113,7 @@ async def test_prompt_upsert_writes_file_and_invalidates_cache(
 async def test_prompt_upsert_rejects_name_mismatch(
     client: TestClient, auth_header: dict[str, str]
 ) -> None:
-    bad = (
-        'name: demo/OTHER_NAME\n'
-        'version: "1.0"\n'
-        'system: "x"\n'
-    )
+    bad = 'name: demo/OTHER_NAME\nversion: "1.0"\nsystem: "x"\n'
     r = client.put(
         "/api/v1/prompts/demo/greeter",
         json={"yaml_text": bad},
