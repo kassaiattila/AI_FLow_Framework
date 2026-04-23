@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.4.5 Sprint J** — UC2 RAG chat usable, PR opened 2026-04-25 against `main`, tag `v1.4.5-sprint-j-uc2` queued (S100-S104 on `feature/v1.4.6-rag-chat`). Predecessor: **v1.4.3** Phase 1d Adapter Orchestration MERGED 2026-04-24 (PR #9, tag `v1.4.3-phase-1d`). | API: 8102 | UI: 5173 (Sprint J Vite dev: 5174)
+**v1.4.8 Sprint L** — Monitoring + Cost Enforcement, PR queued against `main`, tag `v1.4.8` queued (S111-S113 on `feature/v1.4.8-monitoring-cost`). Predecessors: **v1.4.5 Sprint J** UC2 RAG (queued), **v1.4.3** Phase 1d (MERGED 2026-04-24, PR #9, tag `v1.4.3-phase-1d`). | API: 8102 | UI: 5173
 
 ## Structure
 ```
@@ -21,7 +21,7 @@ session_prompts/    — Session prompt archive + NEXT.md pointer (/next reads th
 27 services | 189 API endpoints (28 routers — S112 adds `costs.cap_status`) | 50 DB tables | 43 Alembic migrations (head: 043 — Sprint L S112 cost_records.tenant_id + idx_cost_records_tenant_recorded)
 22 pipeline adapters | 10 pipeline templates | 8 skills (aszf_rag_chat, cubix_course_capture, email_intent_processor, invoice_finder, invoice_processor, process_documentation, qbpp_test_automation, spec_writer) | 23 UI pages | 5 source adapters (Email, File, Folder, Batch, API)
 3 embedder providers (BGE-M3 Profile A, Azure OpenAI Profile B, OpenAI surrogate) | 1 chunker provider (UnstructuredChunker) | 5 provider-registry ABC slots (parser, classifier, extractor, embedder, chunker)
-1995 unit tests (1 xfail-quarantined: resilience 50ms timing flake) | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 420 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b + 7 Phase 1d + 3 UC2 S102 + 3 Sprint L S111 Monitoring) | 75+ integration tests (incl. 4 alembic association_mode + 3 alembic 040/041/042 + 5 rag_engine UC2 + 1 UC3 scan_and_classify + 1 UC3 intent_routing + 5 UC3 intent_rules_crud + 5 S109b prompt_edit + 5 S111 trace+span-metrics + 3 S112 cost_cap_enforcement) | 7 UC golden-path E2E (4 Sprint K UC3 emails + 3 Sprint L S111 Monitoring/Runs)
+1995 unit tests (1 xfail-quarantined: resilience 50ms timing flake) | 129 guardrail tests | 97 security tests | 96 promptfoo test cases | 420 E2E tests (169 pre-existing + 199 Phase 1a + 35 Phase 1b + 7 Phase 1d + 3 UC2 S102 + 3 Sprint L S111 Monitoring) | 75+ integration tests (incl. 4 alembic association_mode + 3 alembic 040/041/042 + 5 rag_engine UC2 + 1 UC3 scan_and_classify + 1 UC3 intent_routing + 5 UC3 intent_rules_crud + 5 S109b prompt_edit + 5 S111 trace+span-metrics + 3 S112 cost_cap_enforcement) | 7 UC golden-path E2E (4 Sprint K UC3 emails + 3 Sprint L S111 Monitoring/Runs) | `ci-cross-uc` suite (Sprint L S113): 42 tests, 19s wall-clock (UC1 invoice + UC2 RAG + UC3 email + UC4 monitoring/costs)
 
 ## Build & Test
 ```bash

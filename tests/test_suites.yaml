@@ -232,3 +232,31 @@ suites:
       - skills.instance
       - pipeline.compatibility
       - services.document_extractor.shim
+
+  ci-cross-uc:
+    description: "Sprint L v1.4.8 CI gate — 4 UC smoke (Invoice + RAG + Email + Monitoring/Costs) <10 min"
+    suite_type: integration
+    run_on: [pr, merge]
+    priority: critical
+    max_duration_seconds: 600
+    coverage_target: 0.0
+    requires_services: [postgresql, redis]
+    paths:
+      - tests/unit/pipeline/test_invoice_finder_v3.py
+      - tests/unit/pipeline/test_invoice_v2_template.py
+      - tests/unit/pipeline/test_invoice_classifier.py
+      - tests/integration/services/rag_engine/test_ingest_uc2.py
+      - tests/integration/services/email_connector/test_scan_and_classify.py
+      - tests/integration/services/email_connector/test_intent_routing.py
+      - tests/integration/test_cost_cap_enforcement.py
+      - tests/integration/api/test_runs_trace.py
+    components:
+      - skills.invoice_finder
+      - skills.aszf_rag_chat
+      - skills.email_intent_processor
+      - services.rag_engine
+      - services.email_connector
+      - policy.cost_cap
+      - policy.intent_rules
+      - observability.trace
+      - observability.span_metrics
