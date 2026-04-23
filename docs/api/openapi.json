@@ -809,6 +809,236 @@
         }
       }
     },
+    "/api/v1/tenants/{tenant_id}/budget": {
+      "get": {
+        "tags": [
+          "tenant-budgets"
+        ],
+        "summary": "List Tenant Budgets",
+        "description": "All budget rows for a tenant, each paired with the live :class:`BudgetView`.",
+        "operationId": "list_tenant_budgets_api_v1_tenants__tenant_id__budget_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "title": "Tenant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TenantBudgetGetResponse"
+                  },
+                  "title": "Response List Tenant Budgets Api V1 Tenants  Tenant Id  Budget Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{tenant_id}/budget/{period}": {
+      "get": {
+        "tags": [
+          "tenant-budgets"
+        ],
+        "summary": "Get Tenant Budget",
+        "operationId": "get_tenant_budget_api_v1_tenants__tenant_id__budget__period__get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "daily",
+                "monthly"
+              ],
+              "type": "string",
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantBudgetGetResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "tenant-budgets"
+        ],
+        "summary": "Upsert Tenant Budget",
+        "operationId": "upsert_tenant_budget_api_v1_tenants__tenant_id__budget__period__put",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "daily",
+                "monthly"
+              ],
+              "type": "string",
+              "title": "Period"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TenantBudgetUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantBudgetGetResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "tenant-budgets"
+        ],
+        "summary": "Delete Tenant Budget",
+        "operationId": "delete_tenant_budget_api_v1_tenants__tenant_id__budget__period__delete",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "daily",
+                "monthly"
+              ],
+              "type": "string",
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Delete Tenant Budget Api V1 Tenants  Tenant Id  Budget  Period  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/skills": {
       "get": {
         "tags": [
@@ -8788,6 +9018,75 @@
         "title": "BudgetStatus",
         "description": "Team budget status from v_monthly_budget view."
       },
+      "BudgetView": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "monthly"
+            ],
+            "title": "Period"
+          },
+          "limit_usd": {
+            "type": "number",
+            "title": "Limit Usd"
+          },
+          "used_usd": {
+            "type": "number",
+            "title": "Used Usd"
+          },
+          "remaining_usd": {
+            "type": "number",
+            "title": "Remaining Usd"
+          },
+          "usage_pct": {
+            "type": "number",
+            "title": "Usage Pct"
+          },
+          "alert_threshold_pct": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Alert Threshold Pct"
+          },
+          "over_thresholds": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Over Thresholds"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id",
+          "period",
+          "limit_usd",
+          "used_usd",
+          "remaining_usd",
+          "usage_pct",
+          "alert_threshold_pct",
+          "over_thresholds",
+          "enabled"
+        ],
+        "title": "BudgetView",
+        "description": "Live projection of a budget row against the tenant's running cost."
+      },
       "BulkDeleteCollectionsRequest": {
         "properties": {
           "ids": {
@@ -16254,6 +16553,129 @@
           "total"
         ],
         "title": "TemplateListResponse"
+      },
+      "TenantBudget": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Tenant Id"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "monthly"
+            ],
+            "title": "Period"
+          },
+          "limit_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Limit Usd"
+          },
+          "alert_threshold_pct": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Alert Threshold Pct"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id",
+          "period",
+          "limit_usd"
+        ],
+        "title": "TenantBudget",
+        "description": "A persisted per-tenant budget row."
+      },
+      "TenantBudgetGetResponse": {
+        "properties": {
+          "budget": {
+            "$ref": "#/components/schemas/TenantBudget"
+          },
+          "view": {
+            "$ref": "#/components/schemas/BudgetView"
+          }
+        },
+        "type": "object",
+        "required": [
+          "budget",
+          "view"
+        ],
+        "title": "TenantBudgetGetResponse",
+        "description": "GET response — persisted row plus the live projection."
+      },
+      "TenantBudgetUpsertRequest": {
+        "properties": {
+          "limit_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Limit Usd"
+          },
+          "alert_threshold_pct": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Alert Threshold Pct"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "limit_usd"
+        ],
+        "title": "TenantBudgetUpsertRequest",
+        "description": "PUT body — immutable fields (tenant_id, period) come from the path."
       },
       "TestConnectionResponse": {
         "properties": {
