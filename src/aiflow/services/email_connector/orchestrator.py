@@ -147,7 +147,46 @@ async def scan_and_classify(
             skill_name=SKILL_NAME,
         )
 
-        result = await classifier.classify(text=text, schema_labels=schema_labels)
+        # UC3 Sprint O — extract attachment features BEFORE classification
+        # so the rule boost (S128) can flow through ClassifierService.classify
+        # via the ``context`` kwarg. Flag-OFF contract: zero new behaviour
+        # (no AttachmentProcessor instantiation, no extra log events, no new
+        # keys in output_data, no context passed to classify()).
+        attachment_payload: dict[str, Any] | None = None
+        classifier_context: dict[str, Any] | None = None
+        if (
+            attachment_intent_settings is not None
+            and attachment_intent_settings.enabled
+            and package.files
+        ):
+            attachment_payload = await _maybe_extract_attachment_features(
+                package.files,
+                settings=attachment_intent_settings,
+            )
+            if attachment_payload is not None:
+                features = attachment_payload.get("attachment_features")
+                preview = attachment_payload.get("attachment_text_preview", "")
+                classifier_context = {
+                    "attachment_features": features,
+                    "attachment_text_preview": preview,
+                    "attachment_intent_llm_context": attachment_intent_settings.llm_context,
+                }
+                logger.info(
+                    "email_connector.scan_and_classify.attachment_features_extracted",
+                    tenant_id=tenant_id,
+                    package_id=str(package.package_id),
+                    workflow_run_id=str(run.id),
+                    invoice_number_detected=(features or {}).get("invoice_number_detected", False),
+                    total_value_detected=(features or {}).get("total_value_detected", False),
+                    mime_profile=(features or {}).get("mime_profile", "none"),
+                    attachments_considered=(features or {}).get("attachments_considered", 0),
+                )
+
+        result = await classifier.classify(
+            text=text,
+            schema_labels=schema_labels,
+            context=classifier_context,
+        )
 
         output_data: dict[str, Any] = {
             "package_id": str(package.package_id),
@@ -162,31 +201,8 @@ async def scan_and_classify(
         if prompt_version:
             output_data["prompt_name"] = prompt_name
             output_data["prompt_version"] = prompt_version
-
-        # UC3 Sprint O / S127 — attachment-aware intent feature flag.
-        # Flag-OFF contract: zero new behaviour (no AttachmentProcessor
-        # instantiation, no extra log events, no new keys in output_data).
-        if (
-            attachment_intent_settings is not None
-            and attachment_intent_settings.enabled
-            and package.files
-        ):
-            features_payload = await _maybe_extract_attachment_features(
-                package.files,
-                settings=attachment_intent_settings,
-            )
-            if features_payload is not None:
-                output_data["attachment_features"] = features_payload
-                logger.info(
-                    "email_connector.scan_and_classify.attachment_features_extracted",
-                    tenant_id=tenant_id,
-                    package_id=str(package.package_id),
-                    workflow_run_id=str(run.id),
-                    invoice_number_detected=features_payload.get("invoice_number_detected", False),
-                    total_value_detected=features_payload.get("total_value_detected", False),
-                    mime_profile=features_payload.get("mime_profile", "none"),
-                    attachments_considered=features_payload.get("attachments_considered", 0),
-                )
+        if attachment_payload is not None and attachment_payload.get("attachment_features"):
+            output_data["attachment_features"] = attachment_payload["attachment_features"]
 
         if routing_policy is not None:
             action, target = routing_policy.decide(result.label, result.confidence)
@@ -246,8 +262,10 @@ async def _maybe_extract_attachment_features(
     :func:`asyncio.wait_for` against ``settings.total_budget_seconds`` so a
     docling stall cannot block the classifier path beyond budget.
 
-    Returns the ``AttachmentFeatures.model_dump()`` payload merged into
-    ``output_data`` by the caller, or ``None`` on timeout / total failure.
+    Returns ``{"attachment_features": <model_dump>,
+    "attachment_text_preview": <first 500 chars of concatenated attachment
+    text>}`` (S128 — the preview feeds the optional LLM-context system
+    message). Returns ``None`` on timeout / total failure.
     """
     # Lazy import — flag-off must not pay this cost.
     from aiflow.services.classifier.attachment_features import (
@@ -294,7 +312,11 @@ async def _maybe_extract_attachment_features(
             processed.append(result)
 
         features = extract_attachment_features(processed, settings=settings)
-        return features.model_dump()
+        preview_blob = "\n".join(a.text for a in processed if a.text)[:500]
+        return {
+            "attachment_features": features.model_dump(),
+            "attachment_text_preview": preview_blob,
+        }
 
     try:
         return await asyncio.wait_for(_run(), timeout=settings.total_budget_seconds)

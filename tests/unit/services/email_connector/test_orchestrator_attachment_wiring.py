@@ -70,7 +70,17 @@ class _FakeSink:
 
 
 class _FakeClassifier:
-    async def classify(self, *, text: str, schema_labels: Any = None) -> ClassificationResult:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    async def classify(
+        self,
+        *,
+        text: str,
+        schema_labels: Any = None,
+        context: dict[str, Any] | None = None,
+    ) -> ClassificationResult:
+        self.calls.append({"text": text, "schema_labels": schema_labels, "context": context})
         return ClassificationResult(
             label="invoice_question",
             display_name="Invoice Question",

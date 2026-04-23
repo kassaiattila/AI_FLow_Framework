@@ -161,7 +161,11 @@ def _render_report(result: dict[str, Any]) -> str:
     lines.append("| Fixture | Cohort | Attachments | Latency (ms) | invoice# | total$ | mime |")
     lines.append("|---|---|---|---|---|---|---|")
     for r in rows:
-        f = r.get("features") or {}
+        # S128: helper now wraps features under "attachment_features" alongside
+        # "attachment_text_preview"; unwrap defensively for the timing rows.
+        payload = r.get("features") or {}
+        f = payload.get("attachment_features") if isinstance(payload, dict) else None
+        f = f or {}
         lines.append(
             f"| `{r['id']}` | {r['cohort']} | {r['attachment_count']} | "
             f"{r['elapsed_ms']:.0f} | "

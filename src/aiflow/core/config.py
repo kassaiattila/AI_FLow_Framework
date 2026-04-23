@@ -102,6 +102,10 @@ class UC3AttachmentIntentSettings(BaseSettings):
     enabled: bool = False
     max_attachment_mb: int = 10
     total_budget_seconds: float = 5.0
+    # S128 — when True (and ``enabled`` is also True) the classifier appends
+    # an attachment-summary system message on the LLM path; default off so
+    # rule-boost can land without paying the LLM-context budget yet.
+    llm_context: bool = False
 
 
 class VaultSettings(BaseSettings):
