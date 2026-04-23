@@ -155,7 +155,10 @@ export function DashboardNew() {
   // Journey card data
   const { data: docsData } = useApi<DocsCountResponse>("/api/v1/documents?limit=1");
   const { data: collections } = useApi<CollectionsResponse>("/api/v1/rag/collections");
-  const { data: services } = useApi<ServicesResponse>("/api/v1/services");
+  // Trailing slash: /services is a prefix with @router.get("/"); without it
+  // FastAPI returns 307 with an absolute http://localhost:8102/... Location
+  // that breaks CORS via the Vite proxy.
+  const { data: services } = useApi<ServicesResponse>("/api/v1/services/");
 
   const serviceUp = services?.services?.filter(s => s.status === "healthy" || s.status === "production").length ?? 0;
   const serviceDown = services?.services?.filter(s => s.status === "down" || s.status === "degraded").length ?? 0;
