@@ -27,6 +27,7 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { path: "/documents", labelKey: "aiflow.menu.documents", icon: "file-text" },
       { path: "/emails", labelKey: "aiflow.menu.emailScan", icon: "mail" },
+      { path: "/emails/connectors", labelKey: "aiflow.menu.emailConnectors", icon: "link" },
       { path: "/reviews", labelKey: "aiflow.menu.reviewQueue", icon: "check-circle" },
     ],
   },

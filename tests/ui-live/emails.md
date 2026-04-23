@@ -150,6 +150,14 @@ Vegallapot:
 
 <!-- Ide jon az utolso futtatas riport-ja `/live-test emails` utan. Elhagyhato commit-bol a `.gitignore` szerint ha a user nem akarja verziozni. -->
 
+### 2026-04-23 08:36 — **PASS (S108b UI refactor)**
+- Inbox page: no tabs. Action bar = [Levelada szkenneles] + [Email feltoltes] + → [Connectorok].
+- /emails/connectors: standalone page via ConnectorsTab export, "← Vissza" back button, same functional CRUD + test connection.
+- Upload modal: "Email feltoltes" button opens overlay with drop zone + Bezaras close; UploadTab reused intact.
+- Sidebar: "Email connectorok" link added under Dokumentum feldolgozas group with link icon.
+- Locale keys: menu.emailConnectors, emails.uploadEmails, emails.connectorsSubtitle, common.action.close (hu/en).
+- 0 console errors on all three views. tsc clean.
+
 ### 2026-04-23 06:45 — **PASS (S108d UX sprint)**
 - Retry button: `{N} hibasokat` megjelenik a progress panel header-ben ha `errorCount > 0` & `!processing`, egyszer re-submittal `processIds`-bol.
 - Intent color standard: 7-kategorias RegExp-alapu szinmegfeleltetes (`intentColorClass(intent_id, display_name)`). "Informacio keres" most **teal** (volt brand-purple). Marketing/Hirlevel → violet. Belso → emerald. Legal → rose. Spam → slate. Finance → blue. Default → gray.

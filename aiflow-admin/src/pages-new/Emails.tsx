@@ -518,7 +518,7 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
 
 // --- Upload Tab ---
 
-function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
+export function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
   const translate = useTranslate();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -865,7 +865,7 @@ function ConnectorFormDialog({ initial, onSave, onClose, translate }: {
   );
 }
 
-function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
+export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
   const translate = useTranslate();
   const { data, loading, error, refetch } = useApi<ConnectorItem[]>("/api/v1/emails/connectors");
   const connectors = Array.isArray(data) ? data : [];
@@ -1141,9 +1141,9 @@ interface ScanResponse {
 export function Emails() {
   const translate = useTranslate();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"inbox" | "upload" | "connectors">("inbox");
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   // Scan Mailbox state
   const [scanning, setScanning] = useState(false);
@@ -1185,16 +1185,10 @@ export function Emails() {
     }
   };
 
-  const tabs = [
-    { key: "inbox" as const, label: "Inbox" },
-    { key: "upload" as const, label: "Upload" },
-    { key: "connectors" as const, label: translate("aiflow.connectors.menuLabel") },
-  ];
-
   return (
     <PageLayout titleKey="aiflow.emails.title" subtitleKey="aiflow.emails.detail">
-      {/* Scan Mailbox action bar */}
-      <div className="mb-4 flex items-center gap-3">
+      {/* Action bar — Scan Mailbox + Upload modal trigger + link to Connectors */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <button
           onClick={() => void handleScanMailbox()}
           disabled={scanning}
@@ -1202,42 +1196,57 @@ export function Emails() {
         >
           {scanning ? translate("aiflow.emails.scanning") : translate("aiflow.emails.scanMailbox")}
         </button>
+        <button
+          onClick={() => setUploadOpen(true)}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          {translate("aiflow.emails.uploadEmails") || "Email feltoltes"}
+        </button>
+        <div className="flex-1" />
+        <button
+          onClick={() => navigate("/emails/connectors")}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          {translate("aiflow.connectors.menuLabel")} →
+        </button>
         {scanResult && (
-          <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
-            Pipeline elindult — <button onClick={() => navigate("/documents")} className="font-semibold underline">
-              {translate("aiflow.emails.scanComplete")} →
-            </button>
+          <div className="w-full rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+            {scanResult.status}
           </div>
         )}
         {scanError && (
-          <span className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          <span className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
             {scanError}
           </span>
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex gap-6">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`border-b-2 pb-2 text-sm font-medium transition-colors ${
-                tab === t.key
-                  ? "border-brand-500 text-brand-600 dark:text-brand-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <InboxTab refreshKey={refreshKey} />
 
-      {tab === "inbox" && <InboxTab refreshKey={refreshKey} />}
-      {tab === "upload" && <UploadTab onProcessed={triggerRefresh} />}
-      {tab === "connectors" && <ConnectorsTab onProcessed={triggerRefresh} />}
+      {/* Upload modal */}
+      {uploadOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => { if (e.target === e.currentTarget) setUploadOpen(false); }}
+        >
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {translate("aiflow.emails.uploadEmails") || "Email feltoltes"}
+              </h3>
+              <button
+                onClick={() => setUploadOpen(false)}
+                className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
+              >
+                {translate("common.action.close") || "Bezaras"}
+              </button>
+            </div>
+            <UploadTab onProcessed={() => { triggerRefresh(); }} />
+          </div>
+        </div>
+      )}
     </PageLayout>
   );
 }
