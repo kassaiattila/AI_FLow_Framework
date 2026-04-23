@@ -148,6 +148,13 @@
       "scanStart": "Start Scan",
       "scanRunning": "Pipeline running..."
     },
+    "intentRules": {
+      "title": "Intent rules",
+      "subtitle": "Intent → downstream action routing policy YAML editor",
+      "editorTitle": "Edit rule",
+      "newTitle": "New rule",
+      "empty": "No intent rules yet. Create one above."
+    },
     "connectors": {
       "title": "Email Connectors",
       "menuLabel": "Connectors",
@@ -194,6 +201,7 @@
       "documents": "Documents",
       "emailScan": "Email Scanning",
       "emailConnectors": "Email connectors",
+      "intentRules": "Intent rules",
       "verification": "Verification",
       "knowledgeBase": "Knowledge Base",
       "collections": "Collections",
@@ -698,6 +706,9 @@
       "back": "Back",
       "cancel": "Cancel",
       "close": "Close",
+      "create": "Create",
+      "delete": "Delete",
+      "save": "Save",
       "clone": "Clone",
       "confirm": "Confirm",
       "create": "Create",

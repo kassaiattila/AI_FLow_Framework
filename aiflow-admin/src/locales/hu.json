@@ -148,6 +148,13 @@
       "scanStart": "Scan Inditas",
       "scanRunning": "Pipeline fut..."
     },
+    "intentRules": {
+      "title": "Intent szabalyok",
+      "subtitle": "Intent → downstream action routing policy YAML editor",
+      "editorTitle": "Szabaly szerkesztes",
+      "newTitle": "Uj szabaly",
+      "empty": "Meg nincs intent szabaly. Hozz letre egyet fent."
+    },
     "connectors": {
       "title": "Email Connectorok",
       "menuLabel": "Connectorok",
@@ -194,6 +201,7 @@
       "documents": "Dokumentumok",
       "emailScan": "Email feldolgozas",
       "emailConnectors": "Email connectorok",
+      "intentRules": "Intent szabalyok",
       "verification": "Verifikacio",
       "knowledgeBase": "Tudasbazis",
       "collections": "Kollekcok",
@@ -698,6 +706,9 @@
       "back": "Vissza",
       "cancel": "Megse",
       "close": "Bezaras",
+      "create": "Letrehozas",
+      "delete": "Torles",
+      "save": "Mentes",
       "clone": "Masolat",
       "confirm": "Megerosites",
       "create": "Letrehozas",

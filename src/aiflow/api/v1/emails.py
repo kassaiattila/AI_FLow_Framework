@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json as _json
 import os
+import re
 import tempfile
 import time as _time
 from datetime import date, datetime
@@ -246,6 +247,44 @@ class ScanResponse(BaseModel):
     items: list[ScanItem] = Field(default_factory=list)
     error: str | None = None
     source: str = "backend"
+
+
+# --- Intent Routing Rules CRUD (S109a) ---
+
+
+class IntentRulesListItem(BaseModel):
+    """Summary row for the rules list page."""
+
+    tenant_id: str
+    rule_count: int
+    default_action: str
+    default_target: str = ""
+    path: str
+
+
+class IntentRulesListResponse(BaseModel):
+    rules: list[IntentRulesListItem]
+    total: int
+    source: str = "backend"
+
+
+class IntentRulesDetailResponse(BaseModel):
+    """Detail read — returns both structured fields and raw YAML so the
+    editor can round-trip comments/formatting the user entered."""
+
+    tenant_id: str
+    default_action: str
+    default_target: str = ""
+    rules: list[dict[str, Any]] = Field(default_factory=list)
+    yaml_text: str = ""
+    path: str = ""
+    source: str = "backend"
+
+
+class IntentRulesUpsertRequest(BaseModel):
+    """User-edited raw YAML — validated server-side before write."""
+
+    yaml_text: str
 
 
 # ---------------------------------------------------------------------------
@@ -1229,6 +1268,140 @@ async def get_fetch_history(
     except Exception as e:
         logger.error("fetch_history_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+# ---------------------------------------------------------------------------
+# Intent Routing Rules CRUD (S109a) — MUST be above /{email_id}
+# ---------------------------------------------------------------------------
+
+
+_TENANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$")
+
+
+def _intent_rules_dir() -> Path:
+    """Root directory for intent routing YAML files, created on first use."""
+    root = Path(os.getenv("AIFLOW_POLICY_DIR", "config/policies")) / "intent_routing"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _validate_tenant_id(tenant_id: str) -> None:
+    """Reject path traversal + enforce safe filesystem character set."""
+    if not _TENANT_ID_PATTERN.match(tenant_id):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Invalid tenant_id: must start with alphanumeric and only "
+                "contain [a-zA-Z0-9_.-], max 64 chars."
+            ),
+        )
+
+
+@router.get("/intent-rules", response_model=IntentRulesListResponse)
+async def list_intent_rules() -> IntentRulesListResponse:
+    """List every tenant that has an intent routing YAML in POLICY_DIR."""
+    from aiflow.policy.intent_routing import IntentRoutingPolicy
+
+    root = _intent_rules_dir()
+    items: list[IntentRulesListItem] = []
+    for yaml_path in sorted(root.glob("*.yaml")):
+        try:
+            policy = IntentRoutingPolicy.from_yaml(yaml_path)
+        except (OSError, ValueError) as exc:
+            logger.warning("intent_rules_parse_failed", path=str(yaml_path), error=str(exc))
+            continue
+        items.append(
+            IntentRulesListItem(
+                tenant_id=policy.tenant_id,
+                rule_count=len(policy.rules),
+                default_action=policy.default_action.value,
+                default_target=policy.default_target,
+                path=str(yaml_path),
+            )
+        )
+    return IntentRulesListResponse(rules=items, total=len(items))
+
+
+@router.get("/intent-rules/{tenant_id}", response_model=IntentRulesDetailResponse)
+async def get_intent_rules(tenant_id: str) -> IntentRulesDetailResponse:
+    """Return the policy for a tenant, plus the raw YAML so the editor can
+    preserve user formatting. 404 when the file does not exist."""
+    from aiflow.policy.intent_routing import IntentRoutingPolicy
+
+    _validate_tenant_id(tenant_id)
+    path = _intent_rules_dir() / f"{tenant_id}.yaml"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Intent rules not found: {tenant_id}")
+    try:
+        policy = IntentRoutingPolicy.from_yaml(path)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=f"Invalid YAML: {exc}") from exc
+    yaml_text = path.read_text(encoding="utf-8")
+    return IntentRulesDetailResponse(
+        tenant_id=policy.tenant_id,
+        default_action=policy.default_action.value,
+        default_target=policy.default_target,
+        rules=[r.model_dump() for r in policy.rules],
+        yaml_text=yaml_text,
+        path=str(path),
+    )
+
+
+@router.put("/intent-rules/{tenant_id}", response_model=IntentRulesDetailResponse)
+async def upsert_intent_rules(
+    tenant_id: str, req: IntentRulesUpsertRequest
+) -> IntentRulesDetailResponse:
+    """Upsert the policy for a tenant. YAML is parsed and validated as
+    ``IntentRoutingPolicy`` before being written — invalid payloads return 422.
+    The ``tenant_id`` in the URL must match the ``tenant_id`` in the YAML.
+    """
+    import yaml as _yaml
+    from pydantic import ValidationError
+
+    from aiflow.policy.intent_routing import IntentRoutingPolicy
+
+    _validate_tenant_id(tenant_id)
+    try:
+        data = _yaml.safe_load(req.yaml_text)
+    except _yaml.YAMLError as exc:
+        raise HTTPException(status_code=422, detail=f"YAML parse error: {exc}") from exc
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="YAML root must be a mapping")
+    try:
+        policy = IntentRoutingPolicy(**data)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+    if policy.tenant_id != tenant_id:
+        raise HTTPException(
+            status_code=422,
+            detail=(f"tenant_id mismatch: URL={tenant_id!r}, YAML={policy.tenant_id!r}"),
+        )
+    path = _intent_rules_dir() / f"{tenant_id}.yaml"
+    path.write_text(req.yaml_text, encoding="utf-8")
+    logger.info(
+        "intent_rules_upserted",
+        tenant_id=tenant_id,
+        rule_count=len(policy.rules),
+        path=str(path),
+    )
+    return IntentRulesDetailResponse(
+        tenant_id=policy.tenant_id,
+        default_action=policy.default_action.value,
+        default_target=policy.default_target,
+        rules=[r.model_dump() for r in policy.rules],
+        yaml_text=req.yaml_text,
+        path=str(path),
+    )
+
+
+@router.delete("/intent-rules/{tenant_id}", status_code=204)
+async def delete_intent_rules(tenant_id: str) -> None:
+    """Delete the policy file for a tenant. Idempotent — 204 when missing."""
+    _validate_tenant_id(tenant_id)
+    path = _intent_rules_dir() / f"{tenant_id}.yaml"
+    if path.exists():
+        path.unlink()
+        logger.info("intent_rules_deleted", tenant_id=tenant_id, path=str(path))
 
 
 # ---------------------------------------------------------------------------

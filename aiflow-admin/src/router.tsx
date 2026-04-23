@@ -15,6 +15,7 @@ import { Documents as DocumentsNew } from "./pages-new/Documents";
 import { Emails as EmailsNew } from "./pages-new/Emails";
 import { EmailDetail } from "./pages-new/EmailDetail";
 import { EmailConnectors } from "./pages-new/EmailConnectors";
+import { IntentRules } from "./pages-new/IntentRules";
 import { Rag as RagNew } from "./pages-new/Rag";
 import { RagDetail } from "./pages-new/RagDetail";
 // J4 archived pages — redirected to dashboard (Sprint C)
@@ -75,6 +76,8 @@ export const router = createHashRouter([
       { path: "document-upload", element: <Navigate to="/documents" replace /> },
       { path: "emails", element: <EmailsNew /> },
       { path: "emails/connectors", element: <EmailConnectors /> },
+      { path: "emails/intent-rules", element: <IntentRules /> },
+      { path: "emails/intent-rules/:tenantId", element: <IntentRules /> },
       { path: "emails/:id", element: <EmailDetail /> },
       { path: "email-upload", element: <Navigate to="/emails" replace /> },
       { path: "email-connectors", element: <Navigate to="/emails" replace /> },

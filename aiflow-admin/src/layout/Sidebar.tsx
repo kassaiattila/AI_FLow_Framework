@@ -28,6 +28,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { path: "/documents", labelKey: "aiflow.menu.documents", icon: "file-text" },
       { path: "/emails", labelKey: "aiflow.menu.emailScan", icon: "mail" },
       { path: "/emails/connectors", labelKey: "aiflow.menu.emailConnectors", icon: "link" },
+      { path: "/emails/intent-rules", labelKey: "aiflow.menu.intentRules", icon: "filter" },
       { path: "/reviews", labelKey: "aiflow.menu.reviewQueue", icon: "check-circle" },
     ],
   },
@@ -99,6 +100,8 @@ function MenuIcon({ name }: { name: string }) {
     server: "M2 2h20v8H2z M2 14h20v8H2z M6 6h.01 M6 18h.01",
     terminal: "M4 17l6-6-6-6 M12 19h8",
     book: "M4 19.5A2.5 2.5 0 016.5 17H20 M4 19.5A2.5 2.5 0 014 17V5a2 2 0 012-2h14v14H6.5",
+    link: "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71 M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71",
+    filter: "M22 3H2l8 9.46V19l4 2v-8.54z",
     chevronDown: "M6 9l6 6 6-6",
     chevronRight: "M9 18l6-6-6-6",
   };

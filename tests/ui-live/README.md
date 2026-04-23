@@ -74,6 +74,7 @@ A riport a modul `.md` fajl vegen az `## Utolso futtatas` szekcio ala kerul.
 | Modul | Fajl | Status |
 |-------|------|--------|
 | Emails | [emails.md](./emails.md) | Active |
+| Intent Rules | [intent-rules.md](./intent-rules.md) | Active |
 | Documents | _todo_ | — |
 | RAG | _todo_ | — |
 | Runs | _todo_ | — |
