@@ -1,6 +1,6 @@
 # AIFlow v1.4.11 Sprint O — UC3 Attachment-Aware Intent Signals
 
-> **Status:** KICKOFF — S126 on 2026-04-29.
+> **Status:** KICKOFF — S126 on 2026-04-30.
 > **Branch:** `feature/v1.4.11-uc3-attachment-intent` (cut from `main` @ `13a2f08`, Sprint N squash-merge).
 > **Predecessor:** v1.4.10 Sprint N MERGED 2026-04-29 (cost guardrail + per-tenant budget).
 > **Target tag (post-merge):** `v1.4.11`.
@@ -43,8 +43,10 @@ Sprint O closes these. The classifier learns to see inside attachments.
 S126 will produce `docs/uc3_attachment_baseline.md` containing:
 
 - **Misclassification rate** on a frozen 25-email fixture built from anonymised
-  samples in `data/fixtures/emails_sprint_o/` (4 intent categories × ~6 each,
-  with and without attachments).
+  samples in `data/fixtures/emails_sprint_o/` (cohort split 6 invoice-PDF +
+  6 contract-DOCX + 6 body-only + 7 mixed/ambiguous = 25; four abstract intent
+  categories — EXTRACT, INFORMATION_REQUEST, SUPPORT, SPAM — mapped onto the
+  Sprint K v1 intent schema's 12 `intent_id` values).
 - **Processing latency baseline** — how long does `AttachmentProcessor`
   currently take on each fixture email (p50 / p95)?
 - **Attachment coverage** — what mime types / sizes do fixture emails have?

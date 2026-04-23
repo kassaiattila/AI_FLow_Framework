@@ -53,7 +53,19 @@ node_modules/
 .next/
 
 # === Data ===
-data/
+# `data/*` (not `data/`) lets git recurse into subdirs so we can whitelist
+# synthetic fixture corpora below. REAL customer data (emails, uploads,
+# invoices, routed files, etc.) stays ignored via the path-prefix entries.
+data/emails/
+data/invoices/
+data/uploads/
+data/routed/
+data/e2e_results/
+# Sprint O (v1.4.11) UC3 synthetic fixture corpus — 25 generated .eml files,
+# their manifest, and the regeneration script. Synthetic-only (reportlab +
+# python-docx). REAL customer emails/invoices must NEVER be committed here.
+!data/fixtures/
+!data/fixtures/**
 outputs/
 test_runs/
 *.sqlite

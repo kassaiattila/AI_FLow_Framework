@@ -1,6 +1,6 @@
 # Sprint O (v1.4.11) — UC3 Attachment-Aware Intent Signals
 
-> **Status:** KICKOFF — S126 on 2026-04-29.
+> **Status:** KICKOFF — S126 on 2026-04-30.
 > **Branch:** `feature/v1.4.11-uc3-attachment-intent` (cut from `main` @ `13a2f08`).
 > **Full plan:** `01_PLAN/112_SPRINT_O_UC3_ATTACHMENT_INTENT_PLAN.md`.
 > **Predecessor:** v1.4.10 Sprint N MERGED 2026-04-29 (cost guardrail + per-tenant budget).
@@ -46,6 +46,8 @@ Ship-off.
   emails → sprint value unproven; hand back to user for rescope.
 - Azure DI fallback mandatory for > 30% of fixture → Azure cost model
   changes; halt and confirm with user.
+- Baseline script wall-clock > 180s on the 25-email fixture → latency-gated
+  baseline is not trustworthy; halt S126.
 
 ## Out of scope
 

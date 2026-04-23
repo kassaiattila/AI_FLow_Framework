@@ -1,0 +1,23 @@
+Subject: App crashes on upload
+From: sender@example.com
+To: intake@example.com
+Message-ID: <016_support_app_error@sprint-o.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============1067748734119371707=="
+
+--===============1067748734119371707==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+The mobile app crashes whenever I try to upload a file larger than 5 MB. Plea=
+se help.
+
+--===============1067748734119371707==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="note.txt"
+MIME-Version: 1.0
+
+Zml4dHVyZSBtYXJrZXIK
+
+--===============1067748734119371707==--

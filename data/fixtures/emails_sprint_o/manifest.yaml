@@ -1,0 +1,294 @@
+schema_version: "1.0"
+name: "uc3_sprint_o_fixture"
+fixture_count: 25
+intent_schema: "skills/email_intent_processor/schemas/v1/intents.json"
+description: |
+  Sprint O (v1.4.11) UC3 attachment-aware intent fixture. 25 hand-curated
+  synthetic emails covering four abstract intent categories — EXTRACT,
+  INFORMATION_REQUEST, SUPPORT, SPAM — mapped onto the Sprint K v1 intent
+  schema. The split is 6 invoice-attachment + 6 contract-DOCX + 6 body-only
+  + 7 mixed/ambiguous. Each expected intent is the "body+subject wins"
+  truth; Sprint O will measure how many of these the Sprint K classifier
+  already gets wrong when the signal actually lives in the attachment.
+
+categories:
+  EXTRACT:
+    description: "Invoice / contract — requires downstream field extraction."
+    sprint_k_intents: [invoice_received, order]
+  INFORMATION_REQUEST:
+    description: "Customer asks about product, pricing, process."
+    sprint_k_intents: [inquiry]
+  SUPPORT:
+    description: "Technical support / bug reports."
+    sprint_k_intents: [support]
+  SPAM:
+    description: "Marketing newsletters or automated system notifications."
+    sprint_k_intents: [marketing, notification]
+
+# ------------------------------------------------------------
+# 25 fixture emails. Each row:
+#   id               — fixture stable id, matches filename stem (NNN_slug.eml)
+#   subject          — email subject line
+#   body             — plain-text body
+#   attachment       — none | invoice_pdf_N | contract_docx_N | other_pdf_N
+#   expected_intent  — ground-truth Sprint K v1 intent id
+#   category         — one of EXTRACT / INFORMATION_REQUEST / SUPPORT / SPAM
+#   cohort           — invoice_attachment | contract_docx | body_only | mixed
+#   lang             — hu | en
+#   note             — why this is the expected intent / what signal it carries
+# ------------------------------------------------------------
+
+fixtures:
+  # ── Cohort 1: invoice-attachment (6) — thin body, PDF carries the signal ──
+  - id: "001_invoice_march"
+    subject: "Márciusi számla"
+    body: "Küldjük a márciusi számlát. Kérjük utalja át a megadott bankszámlára."
+    attachment: "invoice_pdf_1"
+    expected_intent: "invoice_received"
+    category: "EXTRACT"
+    cohort: "invoice_attachment"
+    lang: "hu"
+    note: "Body is generic 'attached invoice'; PDF has real invoice number + amount."
+
+  - id: "002_invoice_en_supplier"
+    subject: "Your monthly invoice"
+    body: "Please find attached the invoice for services rendered in March."
+    attachment: "invoice_pdf_2"
+    expected_intent: "invoice_received"
+    category: "EXTRACT"
+    cohort: "invoice_attachment"
+    lang: "en"
+    note: "One-sentence body classic Sprint O miss-case."
+
+  - id: "003_invoice_overdue_reminder"
+    subject: "Overdue payment reminder"
+    body: "Friendly reminder: your invoice is now 14 days overdue."
+    attachment: "invoice_pdf_3"
+    expected_intent: "invoice_received"
+    category: "EXTRACT"
+    cohort: "invoice_attachment"
+    lang: "en"
+    note: "Body reads like support/warning, PDF proves invoice."
+
+  - id: "004_invoice_recurring"
+    subject: "Havi előfizetés díjbekérő"
+    body: "Előfizetési díj beérkezett, csatolva a részletes számla."
+    attachment: "invoice_pdf_4"
+    expected_intent: "invoice_received"
+    category: "EXTRACT"
+    cohort: "invoice_attachment"
+    lang: "hu"
+    note: "HU body leans 'subscribe/order' — classic confusion with order."
+
+  - id: "005_invoice_utility"
+    subject: "Közüzemi számla — április"
+    body: "Csatoljuk az áprilisi közüzemi elszámolást."
+    attachment: "invoice_pdf_5"
+    expected_intent: "invoice_received"
+    category: "EXTRACT"
+    cohort: "invoice_attachment"
+    lang: "hu"
+    note: "Clean invoice, short body."
+
+  - id: "006_invoice_wire_transfer"
+    subject: "Wire transfer instructions"
+    body: "Kindly see the attached wire-transfer instructions for invoice payment."
+    attachment: "invoice_pdf_6"
+    expected_intent: "invoice_received"
+    category: "EXTRACT"
+    cohort: "invoice_attachment"
+    lang: "en"
+    note: "Body mentions 'wire transfer', can drift to support/notify."
+
+  # ── Cohort 2: contract-DOCX (6) — short body, DOCX carries the signal ──
+  - id: "007_contract_sign"
+    subject: "Please sign the attached contract"
+    body: "Kindly review and sign the attached service contract. Thank you."
+    attachment: "contract_docx_1"
+    expected_intent: "order"
+    category: "EXTRACT"
+    cohort: "contract_docx"
+    lang: "en"
+    note: "DOCX contains contract clauses; body is generic."
+
+  - id: "008_contract_renewal"
+    subject: "Szerződés megújítás"
+    body: "Csatoljuk az új szerződést aláírásra."
+    attachment: "contract_docx_2"
+    expected_intent: "order"
+    category: "EXTRACT"
+    cohort: "contract_docx"
+    lang: "hu"
+    note: "HU contract renewal — 'szerződés' keyword leaks into body."
+
+  - id: "009_contract_nda"
+    subject: "NDA draft for review"
+    body: "Here is the NDA draft — looking forward to your feedback."
+    attachment: "contract_docx_3"
+    expected_intent: "order"
+    category: "EXTRACT"
+    cohort: "contract_docx"
+    lang: "en"
+    note: "Body-only classifier may route to 'inquiry'."
+
+  - id: "010_contract_amendment"
+    subject: "Contract amendment — Q2 2026"
+    body: "Attached: amendment to the existing service agreement."
+    attachment: "contract_docx_4"
+    expected_intent: "order"
+    category: "EXTRACT"
+    cohort: "contract_docx"
+    lang: "en"
+    note: "Amendment is an order-class signal — contract_modification sub_intent."
+
+  - id: "011_contract_sla"
+    subject: "Szolgáltatási szerződés (SLA)"
+    body: "Kérjük, olvassa át a mellékelt SLA-t."
+    attachment: "contract_docx_5"
+    expected_intent: "order"
+    category: "EXTRACT"
+    cohort: "contract_docx"
+    lang: "hu"
+    note: "Short HU body; DOCX carries SLA terms."
+
+  - id: "012_contract_msa"
+    subject: "MSA attached"
+    body: "Please find the Master Services Agreement attached."
+    attachment: "contract_docx_6"
+    expected_intent: "order"
+    category: "EXTRACT"
+    cohort: "contract_docx"
+    lang: "en"
+    note: "3-noun title + thin body; DOCX holds the legal clauses."
+
+  # ── Cohort 3: body-only (6) — classic Sprint K sweet spot ──
+  - id: "013_inquiry_pricing"
+    subject: "Kérdés az árakról"
+    body: "Szeretném megtudni, mennyibe kerül a prémium csomag és milyen kedvezmény lehetséges éves előfizetésre. Köszönöm."
+    attachment: "none"
+    expected_intent: "inquiry"
+    category: "INFORMATION_REQUEST"
+    cohort: "body_only"
+    lang: "hu"
+    note: "Pure pricing inquiry, no attachment."
+
+  - id: "014_inquiry_process"
+    subject: "How do I modify my plan?"
+    body: "Hi team, how can I change my subscription plan from standard to premium mid-cycle?"
+    attachment: "none"
+    expected_intent: "inquiry"
+    category: "INFORMATION_REQUEST"
+    cohort: "body_only"
+    lang: "en"
+    note: "Process question, no attachment."
+
+  - id: "015_support_login"
+    subject: "Nem tudok belépni"
+    body: "Nem tudok bejelentkezni a fiókomba, jelszó helyreállítási e-mailt sem kapok. Kérek sürgős technikai segítséget."
+    attachment: "none"
+    expected_intent: "support"
+    category: "SUPPORT"
+    cohort: "body_only"
+    lang: "hu"
+    note: "Clear support case — login issue."
+
+  - id: "016_support_app_error"
+    subject: "App crashes on upload"
+    body: "The mobile app crashes whenever I try to upload a file larger than 5 MB. Please help."
+    attachment: "none"
+    expected_intent: "support"
+    category: "SUPPORT"
+    cohort: "body_only"
+    lang: "en"
+    note: "Clear support / bug report — app_error sub_intent."
+
+  - id: "017_marketing_newsletter"
+    subject: "Tavaszi akció — 30% kedvezmény"
+    body: "Iratkozzon fel hírlevelünkre a hétvégi kedvezményekért! Leiratkozás lent."
+    attachment: "none"
+    expected_intent: "marketing"
+    category: "SPAM"
+    cohort: "body_only"
+    lang: "hu"
+    note: "Marketing newsletter, auto_action=archive."
+
+  - id: "018_notification_ci_failed"
+    subject: "[AI_FLow_Framework] Run failed: Framework CI"
+    body: "The run failed at step 'unit-tests'. See GitHub Actions for details."
+    attachment: "none"
+    expected_intent: "notification"
+    category: "SPAM"
+    cohort: "body_only"
+    lang: "en"
+    note: "Automated CI notification — often misrouted to support."
+
+  # ── Cohort 4: mixed / ambiguous (7) ──
+  - id: "019_invoice_no_attachment"
+    subject: "Invoice INV-2026-0042 — due 2026-05-15"
+    body: "Invoice INV-2026-0042 for 48,500 HUF is due on 2026-05-15. Thank you."
+    attachment: "none"
+    expected_intent: "invoice_received"
+    category: "EXTRACT"
+    cohort: "mixed"
+    lang: "en"
+    note: "Body-only but explicit invoice signal — control for S128 regression."
+
+  - id: "020_support_with_log_pdf"
+    subject: "Bug report with attached log"
+    body: "Please see attached log file — steps to reproduce in the log."
+    attachment: "other_pdf_1"
+    expected_intent: "support"
+    category: "SUPPORT"
+    cohort: "mixed"
+    lang: "en"
+    note: "Attachment is a log, not an invoice — attachment-regex must NOT match."
+
+  - id: "021_contract_inquiry_no_attach"
+    subject: "Kérdés a szerződésről"
+    body: "Szeretnék érdeklődni, a jövő hónapban köthető-e új szerződés online is?"
+    attachment: "none"
+    expected_intent: "inquiry"
+    category: "INFORMATION_REQUEST"
+    cohort: "mixed"
+    lang: "hu"
+    note: "Word 'szerződés' in body, but it's an inquiry — confuses order-leaning keywords."
+
+  - id: "022_marketing_with_pdf"
+    subject: "Új katalógus — tavaszi termékek"
+    body: "Mellékeljük az új katalógust. Iratkozzon fel a hírlevelünkre."
+    attachment: "other_pdf_2"
+    expected_intent: "marketing"
+    category: "SPAM"
+    cohort: "mixed"
+    lang: "hu"
+    note: "Attached PDF is a brochure — attachment extractor must NOT boost to EXTRACT."
+
+  - id: "023_meeting_invite"
+    subject: "Meeting: Sprint review — 2026-05-08 10:00 CET"
+    body: "Meghívás a sprint review-re. RSVP az Outlookban."
+    attachment: "none"
+    expected_intent: "calendar_invite"
+    category: "INFORMATION_REQUEST"
+    cohort: "mixed"
+    lang: "hu"
+    note: "Mixed HU/EN meeting invite body."
+
+  - id: "024_complaint_about_invoice"
+    subject: "Reklamáció a kapott számlával kapcsolatban"
+    body: "A kapott számla összege nem egyezik a szerződésünkkel. Felháborító, kérem vizsgálják ki."
+    attachment: "invoice_pdf_7"
+    expected_intent: "complaint"
+    category: "INFORMATION_REQUEST"
+    cohort: "mixed"
+    lang: "hu"
+    note: "Invoice PDF attached, but primary intent is complaint — attachment must NOT force EXTRACT."
+
+  - id: "025_internal_forward_invoice"
+    subject: "Fw: Invoice INV-2026-0099"
+    body: "FYI kollégák, továbbítom a beérkezett számlát könyveléshez."
+    attachment: "invoice_pdf_8"
+    expected_intent: "invoice_received"
+    category: "EXTRACT"
+    cohort: "mixed"
+    lang: "hu"
+    note: "Internal forward — 'FYI / kollégák' may pull to internal, but intent = invoice_received."

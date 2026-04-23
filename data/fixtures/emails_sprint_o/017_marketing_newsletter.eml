@@ -1,0 +1,23 @@
+Subject: Tavaszi =?utf-8?b?YWtjacOzIOKAlCAzMCUga2VkdmV6bcOpbnk=?=
+From: sender@example.com
+To: intake@example.com
+Message-ID: <017_marketing_newsletter@sprint-o.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============3952921474970169117=="
+
+--===============3952921474970169117==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+SXJhdGtvenpvbiBmZWwgaMOtcmxldmVsw7xua3JlIGEgaMOpdHbDqWdpIGtlZHZlem3DqW55ZWvD
+qXJ0ISBMZWlyYXRrb3rDoXMgbGVudC4K
+
+--===============3952921474970169117==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="note.txt"
+MIME-Version: 1.0
+
+Zml4dHVyZSBtYXJrZXIK
+
+--===============3952921474970169117==--

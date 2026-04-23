@@ -1,0 +1,23 @@
+Subject: How do I modify my plan?
+From: sender@example.com
+To: intake@example.com
+Message-ID: <014_inquiry_process@sprint-o.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============7843440968618594833=="
+
+--===============7843440968618594833==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hi team, how can I change my subscription plan from standard to premium mid-c=
+ycle?
+
+--===============7843440968618594833==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="note.txt"
+MIME-Version: 1.0
+
+Zml4dHVyZSBtYXJrZXIK
+
+--===============7843440968618594833==--

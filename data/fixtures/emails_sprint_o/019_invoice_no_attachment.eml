@@ -1,0 +1,22 @@
+Subject: Invoice INV-2026-0042 =?utf-8?b?4oCU?= due 2026-05-15
+From: sender@example.com
+To: intake@example.com
+Message-ID: <019_invoice_no_attachment@sprint-o.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============7233476085744252232=="
+
+--===============7233476085744252232==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Invoice INV-2026-0042 for 48,500 HUF is due on 2026-05-15. Thank you.
+
+--===============7233476085744252232==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="note.txt"
+MIME-Version: 1.0
+
+Zml4dHVyZSBtYXJrZXIK
+
+--===============7233476085744252232==--
