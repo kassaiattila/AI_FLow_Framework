@@ -63,9 +63,15 @@ def create_app() -> FastAPI:
         langfuse_tracer = None
         try:
             from aiflow.observability.tracing import LangfuseTracer
+            from aiflow.security.resolver import get_secret_manager
 
-            pk = os.getenv("AIFLOW_LANGFUSE__PUBLIC_KEY", "")
-            sk = os.getenv("AIFLOW_LANGFUSE__SECRET_KEY", "")
+            mgr = get_secret_manager()
+            pk = (
+                mgr.get_secret("langfuse#public_key", env_alias="AIFLOW_LANGFUSE__PUBLIC_KEY") or ""
+            )
+            sk = (
+                mgr.get_secret("langfuse#secret_key", env_alias="AIFLOW_LANGFUSE__SECRET_KEY") or ""
+            )
             host = os.getenv("AIFLOW_LANGFUSE__HOST", "https://cloud.langfuse.com")
             enabled = os.getenv("AIFLOW_LANGFUSE__ENABLED", "false").lower() in ("true", "1", "yes")
             if pk and sk:

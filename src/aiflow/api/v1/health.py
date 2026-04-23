@@ -196,7 +196,14 @@ async def _check_langfuse() -> ReadyCheck:
         client = get_langfuse_client()
         if client is None:
             # Check if keys are configured but client not initialized
-            pk = os.getenv("AIFLOW_LANGFUSE__PUBLIC_KEY", "")
+            from aiflow.security.resolver import get_secret_manager
+
+            pk = (
+                get_secret_manager().get_secret(
+                    "langfuse#public_key", env_alias="AIFLOW_LANGFUSE__PUBLIC_KEY"
+                )
+                or ""
+            )
             if not pk:
                 return ReadyCheck(
                     name="langfuse",

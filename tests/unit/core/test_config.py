@@ -12,7 +12,7 @@
 
 import os
 
-from aiflow.core.config import AIFlowSettings, get_settings
+from aiflow.core.config import AIFlowSettings, VaultSettings, get_settings
 
 
 class TestAIFlowSettings:
@@ -78,6 +78,44 @@ class TestAIFlowSettings:
         monkeypatch.setenv("AIFLOW_LLM__DEFAULT_MODEL", "anthropic/claude-sonnet-4-20250514")
         settings = AIFlowSettings()
         assert settings.llm.default_model == "anthropic/claude-sonnet-4-20250514"
+
+
+class TestVaultSettings:
+    def test_vault_defaults(self, monkeypatch):
+        for key in list(os.environ):
+            if key.startswith("AIFLOW_VAULT__"):
+                monkeypatch.delenv(key, raising=False)
+        settings = AIFlowSettings()
+        assert settings.vault.enabled is False
+        assert settings.vault.url == "http://localhost:8210"
+        assert settings.vault.token is None
+        assert settings.vault.role_id is None
+        assert settings.vault.secret_id is None
+        assert settings.vault.mount_point == "secret"
+        assert settings.vault.kv_namespace == "aiflow"
+        assert settings.vault.cache_ttl_seconds == 300.0
+        assert settings.vault.negative_cache_ttl_seconds == 60.0
+
+    def test_vault_env_override(self, monkeypatch):
+        monkeypatch.setenv("AIFLOW_VAULT__ENABLED", "true")
+        monkeypatch.setenv("AIFLOW_VAULT__URL", "https://vault.example:8200")
+        monkeypatch.setenv("AIFLOW_VAULT__TOKEN", "hvs.AAA")
+        monkeypatch.setenv("AIFLOW_VAULT__KV_NAMESPACE", "tenant42")
+        monkeypatch.setenv("AIFLOW_VAULT__CACHE_TTL_SECONDS", "120.5")
+        settings = AIFlowSettings()
+        assert settings.vault.enabled is True
+        assert settings.vault.url == "https://vault.example:8200"
+        assert settings.vault.token is not None
+        assert settings.vault.token.get_secret_value() == "hvs.AAA"
+        assert settings.vault.kv_namespace == "tenant42"
+        assert settings.vault.cache_ttl_seconds == 120.5
+
+    def test_vault_settings_direct(self):
+        vs = VaultSettings(enabled=True, role_id="role-a", secret_id="s-x")
+        assert vs.enabled is True
+        assert vs.role_id == "role-a"
+        assert vs.secret_id is not None
+        assert vs.secret_id.get_secret_value() == "s-x"
 
 
 class TestGetSettings:

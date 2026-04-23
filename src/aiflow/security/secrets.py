@@ -331,8 +331,16 @@ class SecretManager:
 
     # -- Public API --------------------------------------------------------
 
-    def get_secret(self, key: str) -> str | None:
-        """Resolve *key* through cache → primary → fallback → None."""
+    def get_secret(self, key: str, env_alias: str | None = None) -> str | None:
+        """Resolve *key* through cache → primary → fallback → None.
+
+        When *env_alias* is given, the fallback provider is queried with the
+        alias instead of *key*, letting the fallback namespace (typically bare
+        env vars such as ``OPENAI_API_KEY``) differ from the primary
+        (``path#field`` Vault keys). In env-only mode (no fallback) the alias
+        is retried against the primary so migrated consumers still resolve
+        through their legacy env name.
+        """
         now = time.monotonic()
         with self._lock:
             entry = self._cache.get(key)
@@ -347,17 +355,25 @@ class SecretManager:
             return value
 
         if self._fallback is not None:
-            value = self._fallback.get_secret(key)
+            fb_key = env_alias if env_alias is not None else key
+            value = self._fallback.get_secret(fb_key)
             if value is not None:
                 logger.info(
                     "secret_fallback_hit",
                     key=key,
+                    fallback_key=fb_key,
                     fallback=type(self._fallback).__name__,
                 )
                 self._cache_store(key, value, self._ttl)
                 return value
+        elif env_alias is not None and env_alias != key:
+            value = self._provider.get_secret(env_alias)
+            if value is not None:
+                logger.info("secret_alias_hit", key=key, env_alias=env_alias)
+                self._cache_store(key, value, self._ttl)
+                return value
 
-        logger.debug("secret_all_miss", key=key)
+        logger.debug("secret_all_miss", key=key, env_alias=env_alias)
         self._cache_store(key, None, self._negative_ttl)
         return None
 

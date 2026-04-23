@@ -5,8 +5,6 @@ All API endpoints should use these instead of creating their own connections.
 
 from __future__ import annotations
 
-import os
-
 import asyncpg
 import structlog
 from sqlalchemy.ext.asyncio import (
@@ -25,21 +23,25 @@ _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
 
 
+_DEFAULT_DSN = "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev"
+
+
+def _resolve_dsn() -> str:
+    """Resolve the DSN via Vault (if enabled) then env fallback."""
+    from aiflow.security.resolver import get_secret_manager
+
+    dsn = get_secret_manager().get_secret("db#dsn", env_alias="AIFLOW_DATABASE__URL")
+    return dsn or _DEFAULT_DSN
+
+
 def _get_db_url_raw() -> str:
     """Get raw asyncpg connection URL (no SQLAlchemy prefix)."""
-    url = os.environ.get(
-        "AIFLOW_DATABASE__URL",
-        "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-    )
-    return url.replace("postgresql+asyncpg://", "postgresql://")
+    return _resolve_dsn().replace("postgresql+asyncpg://", "postgresql://")
 
 
 def _get_db_url_sa() -> str:
     """Get SQLAlchemy async connection URL."""
-    url = os.environ.get(
-        "AIFLOW_DATABASE__URL",
-        "postgresql+asyncpg://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
-    )
+    url = _resolve_dsn()
     if not url.startswith("postgresql+asyncpg://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://")
     return url

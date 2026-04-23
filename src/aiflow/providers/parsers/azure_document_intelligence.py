@@ -75,13 +75,14 @@ class AzureDIConfig(BaseModel):
 
     @classmethod
     def from_env(cls) -> AzureDIConfig:
+        from aiflow.security.resolver import get_secret_manager
+
+        api_key = get_secret_manager().get_secret(
+            "parsers/azure_doc_intel#api_key", env_alias="AZURE_DOC_INTEL_KEY"
+        )
         return cls(
             endpoint=os.getenv("AZURE_DOC_INTEL_ENDPOINT"),
-            api_key=(
-                SecretStr(os.environ["AZURE_DOC_INTEL_KEY"])
-                if "AZURE_DOC_INTEL_KEY" in os.environ
-                else None
-            ),
+            api_key=SecretStr(api_key) if api_key else None,
         )
 
 
@@ -114,15 +115,18 @@ class AzureDocumentIntelligenceParser(ParserProvider):
         """Submit ``file`` to Azure DI and map the response to ParserResult."""
         start = time.perf_counter()
         endpoint = self._config.endpoint or os.getenv("AZURE_DOC_INTEL_ENDPOINT")
-        key = (
-            self._config.api_key.get_secret_value()
-            if self._config.api_key is not None
-            else os.getenv("AZURE_DOC_INTEL_KEY")
-        )
+        if self._config.api_key is not None:
+            key: str | None = self._config.api_key.get_secret_value()
+        else:
+            from aiflow.security.resolver import get_secret_manager
+
+            key = get_secret_manager().get_secret(
+                "parsers/azure_doc_intel#api_key", env_alias="AZURE_DOC_INTEL_KEY"
+            )
         if not endpoint or not key:
             raise RuntimeError(
                 "AzureDocumentIntelligenceParser requires both AZURE_DOC_INTEL_ENDPOINT "
-                "and AZURE_DOC_INTEL_KEY to be configured."
+                "and AZURE_DOC_INTEL_KEY (or kv/aiflow/parsers/azure_doc_intel#api_key)."
             )
 
         path = Path(file.file_path)
@@ -184,10 +188,13 @@ class AzureDocumentIntelligenceParser(ParserProvider):
         except Exception as exc:
             logger.warning("azure_di_health_check_failed", error=str(exc))
             return False
-        return bool(
-            (self._config.endpoint or os.getenv("AZURE_DOC_INTEL_ENDPOINT"))
-            and (self._config.api_key or os.getenv("AZURE_DOC_INTEL_KEY"))
+        from aiflow.security.resolver import get_secret_manager
+
+        endpoint = self._config.endpoint or os.getenv("AZURE_DOC_INTEL_ENDPOINT")
+        key = self._config.api_key or get_secret_manager().get_secret(
+            "parsers/azure_doc_intel#api_key", env_alias="AZURE_DOC_INTEL_KEY"
         )
+        return bool(endpoint and key)
 
     @staticmethod
     def _import_check() -> None:

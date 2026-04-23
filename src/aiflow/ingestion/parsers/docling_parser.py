@@ -224,9 +224,22 @@ class DoclingParser:
         """Try parsing with Azure Document Intelligence. Returns None if unavailable."""
         import os
 
+        from aiflow.security.resolver import get_secret_manager
+
         endpoint = os.environ.get("AZURE_DI_ENDPOINT", "")
-        api_key = os.environ.get("AZURE_DI_API_KEY", "") or os.environ.get("AZURE_DI_KEY", "")
         enabled = os.environ.get("AZURE_DI_ENABLED", "false").lower() == "true"
+        # Primary lookup via Vault (or AZURE_DI_API_KEY fallback); the remaining
+        # two legacy env aliases are checked directly to avoid the negative
+        # cache clobbering subsequent resolver calls on the same key. S119 will
+        # collapse to a single canonical env name.
+        api_key = (
+            get_secret_manager().get_secret(
+                "parsers/azure_doc_intel#api_key", env_alias="AZURE_DI_API_KEY"
+            )
+            or os.environ.get("AZURE_DI_KEY")
+            or os.environ.get("AZURE_DOC_INTEL_KEY")
+            or ""
+        )
         if not enabled or not endpoint or not api_key:
             return None
 

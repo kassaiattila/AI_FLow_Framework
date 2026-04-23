@@ -60,10 +60,11 @@ class OpenAIEmbedderConfig(BaseModel):
 
     @classmethod
     def from_env(cls) -> OpenAIEmbedderConfig:
+        from aiflow.security.resolver import get_secret_manager
+
+        api_key = get_secret_manager().get_secret("llm/openai#api_key", env_alias="OPENAI_API_KEY")
         return cls(
-            api_key=(
-                SecretStr(os.environ["OPENAI_API_KEY"]) if "OPENAI_API_KEY" in os.environ else None
-            ),
+            api_key=SecretStr(api_key) if api_key else None,
             model_name=os.getenv("AIFLOW_OPENAI__EMBEDDING_MODEL", _DEFAULT_MODEL_NAME),
             base_url=os.getenv("AIFLOW_OPENAI__BASE_URL", _DEFAULT_BASE_URL),
             embedding_dim=int(os.getenv("AIFLOW_OPENAI__EMBEDDING_DIM", str(_DEFAULT_DIM))),
@@ -102,10 +103,14 @@ class OpenAIEmbedder(EmbedderProvider):
     def _resolve_api_key(self) -> str:
         if self._config.api_key is not None:
             return self._config.api_key.get_secret_value()
-        env_key = os.getenv("OPENAI_API_KEY")
-        if not env_key:
-            raise RuntimeError("OpenAIEmbedder requires OPENAI_API_KEY to be configured.")
-        return env_key
+        from aiflow.security.resolver import get_secret_manager
+
+        api_key = get_secret_manager().get_secret("llm/openai#api_key", env_alias="OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "OpenAIEmbedder requires OPENAI_API_KEY (env) or kv/aiflow/llm/openai#api_key (Vault)."
+            )
+        return api_key
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:
