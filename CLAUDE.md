@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.4.8 Sprint L** — Monitoring + Cost Enforcement, PR queued against `main`, tag `v1.4.8` queued (S111-S113 on `feature/v1.4.8-monitoring-cost`). Predecessors: **v1.4.5 Sprint J** UC2 RAG (queued), **v1.4.3** Phase 1d (MERGED 2026-04-24, PR #9, tag `v1.4.3-phase-1d`). | API: 8102 | UI: 5173
+**v1.4.9 Sprint M** — Vault hvac + self-hosted Langfuse (S115 kickoff on `feature/v1.4.9-vault-langfuse`, cut from `main` @ `ab63c93`). Predecessors: **v1.4.8 Sprint L** Monitoring + Cost Enforcement (MERGED 2026-04-23, PR #16, squash `ab63c93`, tag `v1.4.8`); **v1.4.5 Sprint J** UC2 RAG (queued); **v1.4.3** Phase 1d (MERGED 2026-04-24, PR #9, tag `v1.4.3-phase-1d`). | API: 8102 | UI: 5173 | Vault dev: 8210 | Langfuse dev (S118): 3000
 
 ## Structure
 ```
