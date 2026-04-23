@@ -368,6 +368,59 @@ components:
           type: number
       title: BudgetStatus
       type: object
+    BudgetView:
+      description: Live projection of a budget row against the tenant's running cost.
+      properties:
+        alert_threshold_pct:
+          items:
+            type: integer
+          title: Alert Threshold Pct
+          type: array
+        as_of:
+          format: date-time
+          title: As Of
+          type: string
+        enabled:
+          title: Enabled
+          type: boolean
+        limit_usd:
+          title: Limit Usd
+          type: number
+        over_thresholds:
+          items:
+            type: integer
+          title: Over Thresholds
+          type: array
+        period:
+          enum:
+          - daily
+          - monthly
+          title: Period
+          type: string
+        remaining_usd:
+          title: Remaining Usd
+          type: number
+        tenant_id:
+          title: Tenant Id
+          type: string
+        usage_pct:
+          title: Usage Pct
+          type: number
+        used_usd:
+          title: Used Usd
+          type: number
+      required:
+      - tenant_id
+      - period
+      - limit_usd
+      - used_usd
+      - remaining_usd
+      - usage_pct
+      - alert_threshold_pct
+      - over_thresholds
+      - enabled
+      title: BudgetView
+      type: object
     BulkDeleteCollectionsRequest:
       properties:
         ids:
@@ -5452,6 +5505,89 @@ components:
       - templates
       - total
       title: TemplateListResponse
+      type: object
+    TenantBudget:
+      description: A persisted per-tenant budget row.
+      properties:
+        alert_threshold_pct:
+          items:
+            type: integer
+          title: Alert Threshold Pct
+          type: array
+        created_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Created At
+        enabled:
+          default: true
+          title: Enabled
+          type: boolean
+        id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Id
+        limit_usd:
+          minimum: 0.0
+          title: Limit Usd
+          type: number
+        period:
+          enum:
+          - daily
+          - monthly
+          title: Period
+          type: string
+        tenant_id:
+          maxLength: 255
+          minLength: 1
+          title: Tenant Id
+          type: string
+        updated_at:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          title: Updated At
+      required:
+      - tenant_id
+      - period
+      - limit_usd
+      title: TenantBudget
+      type: object
+    TenantBudgetGetResponse:
+      description: GET response — persisted row plus the live projection.
+      properties:
+        budget:
+          $ref: '#/components/schemas/TenantBudget'
+        view:
+          $ref: '#/components/schemas/BudgetView'
+      required:
+      - budget
+      - view
+      title: TenantBudgetGetResponse
+      type: object
+    TenantBudgetUpsertRequest:
+      description: PUT body — immutable fields (tenant_id, period) come from the path.
+      properties:
+        alert_threshold_pct:
+          items:
+            type: integer
+          title: Alert Threshold Pct
+          type: array
+        enabled:
+          default: true
+          title: Enabled
+          type: boolean
+        limit_usd:
+          minimum: 0.0
+          title: Limit Usd
+          type: number
+      required:
+      - limit_usd
+      title: TenantBudgetUpsertRequest
       type: object
     TestConnectionResponse:
       properties:
@@ -11504,6 +11640,157 @@ paths:
       summary: Export Spec
       tags:
       - specs
+  /api/v1/tenants/{tenant_id}/budget:
+    get:
+      description: All budget rows for a tenant, each paired with the live :class:`BudgetView`.
+      operationId: list_tenant_budgets_api_v1_tenants__tenant_id__budget_get
+      parameters:
+      - in: path
+        name: tenant_id
+        required: true
+        schema:
+          maxLength: 255
+          minLength: 1
+          title: Tenant Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/TenantBudgetGetResponse'
+                title: Response List Tenant Budgets Api V1 Tenants  Tenant Id  Budget
+                  Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Tenant Budgets
+      tags:
+      - tenant-budgets
+  /api/v1/tenants/{tenant_id}/budget/{period}:
+    delete:
+      operationId: delete_tenant_budget_api_v1_tenants__tenant_id__budget__period__delete
+      parameters:
+      - in: path
+        name: tenant_id
+        required: true
+        schema:
+          maxLength: 255
+          minLength: 1
+          title: Tenant Id
+          type: string
+      - in: path
+        name: period
+        required: true
+        schema:
+          enum:
+          - daily
+          - monthly
+          title: Period
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: boolean
+                title: Response Delete Tenant Budget Api V1 Tenants  Tenant Id  Budget  Period  Delete
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete Tenant Budget
+      tags:
+      - tenant-budgets
+    get:
+      operationId: get_tenant_budget_api_v1_tenants__tenant_id__budget__period__get
+      parameters:
+      - in: path
+        name: tenant_id
+        required: true
+        schema:
+          maxLength: 255
+          minLength: 1
+          title: Tenant Id
+          type: string
+      - in: path
+        name: period
+        required: true
+        schema:
+          enum:
+          - daily
+          - monthly
+          title: Period
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantBudgetGetResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Tenant Budget
+      tags:
+      - tenant-budgets
+    put:
+      operationId: upsert_tenant_budget_api_v1_tenants__tenant_id__budget__period__put
+      parameters:
+      - in: path
+        name: tenant_id
+        required: true
+        schema:
+          maxLength: 255
+          minLength: 1
+          title: Tenant Id
+          type: string
+      - in: path
+        name: period
+        required: true
+        schema:
+          enum:
+          - daily
+          - monthly
+          title: Period
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantBudgetUpsertRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantBudgetGetResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Upsert Tenant Budget
+      tags:
+      - tenant-budgets
   /api/v1/verifications/history:
     get:
       description: Global audit trail for verification edits.

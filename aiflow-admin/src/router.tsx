@@ -23,6 +23,7 @@ import { Reviews as ReviewsNew } from "./pages-new/Reviews";
 import { Runs as RunsNew } from "./pages-new/Runs";
 import { RunDetail } from "./pages-new/RunDetail";
 import { Costs as CostsNew } from "./pages-new/Costs";
+import { BudgetManagement } from "./pages-new/BudgetManagement";
 import { Monitoring as MonitoringNew } from "./pages-new/Monitoring";
 import { Audit as AuditNew } from "./pages-new/Audit";
 import { Admin as AdminNew } from "./pages-new/Admin";
@@ -65,6 +66,7 @@ export const router = createHashRouter([
       { path: "runs", element: <RunsNew /> },
       { path: "runs/:id", element: <RunDetail /> },
       { path: "costs", element: <CostsNew /> },
+      { path: "budget-management", element: <BudgetManagement /> },
       { path: "monitoring", element: <MonitoringNew /> },
       { path: "quality", element: <Quality /> },
 

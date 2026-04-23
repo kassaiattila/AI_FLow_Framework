@@ -47,8 +47,22 @@ class ModelClient:
         max_tokens: int = 4096,
         response_model: Any | None = None,
         stop: list[str] | None = None,
+        tenant_id: str | None = None,
     ) -> ModelCallResult[GenerationOutput]:
-        """Generate text or structured output from LLM."""
+        """Generate text or structured output from LLM.
+
+        ``tenant_id`` is optional. When supplied the Sprint N pre-flight cost
+        guardrail may refuse the call with :class:`CostGuardrailRefused` if
+        the projected cost exceeds remaining budget. Internal / maintenance
+        calls that pass no tenant_id are never gated.
+        """
+        if tenant_id:
+            await _llm_client_preflight(
+                tenant_id=tenant_id,
+                model=model or "openai/gpt-4o-mini",
+                messages=messages,
+                max_tokens=max_tokens,
+            )
         input_data = GenerationInput(
             messages=messages,
             model=model,
@@ -87,6 +101,63 @@ class ModelClient:
             latency_ms=round(result.latency_ms, 1),
         )
         return result
+
+
+async def _llm_client_preflight(
+    *,
+    tenant_id: str,
+    model: str,
+    messages: list[dict[str, str]],
+    max_tokens: int,
+) -> None:
+    """Sprint N / S122 — LLM-client-level pre-flight backstop.
+
+    Estimates prompt tokens from message content (char/4 heuristic) and
+    refuses the call via :class:`CostGuardrailRefused` when the guardrail is
+    enforced. Flag-off and flag-on-dry-run are both non-blocking; any
+    dependency failure is swallowed so a guardrail bug never 500s a call.
+    """
+    try:
+        from aiflow.core.errors import CostGuardrailRefused
+        from aiflow.guardrails.cost_preflight import build_guardrail_from_settings
+
+        guardrail = await build_guardrail_from_settings()
+        if guardrail is None:
+            return
+
+        prompt_chars = sum(len(m.get("content", "")) for m in messages)
+        input_tokens = max(prompt_chars // 4, 1)
+
+        decision = await guardrail.check(
+            tenant_id=tenant_id,
+            model=model,
+            input_tokens=input_tokens,
+            max_output_tokens=max_tokens,
+        )
+    except Exception as exc:
+        from aiflow.core.errors import CostGuardrailRefused as _Refused
+
+        if isinstance(exc, _Refused):
+            raise
+        logger.warning(
+            "cost_preflight_failed",
+            run_context="model_client",
+            tenant_id=tenant_id,
+            error=str(exc)[:200],
+        )
+        return
+
+    if decision.allowed:
+        return
+
+    raise CostGuardrailRefused(
+        tenant_id=tenant_id,
+        projected_usd=decision.projected_usd,
+        remaining_usd=decision.remaining_usd or 0.0,
+        period=decision.period,
+        reason=decision.reason,
+        dry_run=decision.dry_run,
+    )
 
 
 # Backward compatibility alias

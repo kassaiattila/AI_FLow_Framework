@@ -219,6 +219,7 @@
       "monitoring": "Monitoring",
       "pipelineRuns": "Pipeline futasok",
       "costs": "Koltsegek",
+      "budgets": "Tenant koltsegvetesek",
       "serviceHealth": "Szolgaltatas allapot",
       "llmQuality": "LLM minoseg",
       "auditLog": "Audit naplo",
@@ -620,6 +621,10 @@
       "confidence": "Konfidencia",
       "reviewMovedBanner": "A review funkcio athelyezve a Verifikacio oldalra.",
       "goToVerification": "Ugras a Verifikacihoz"
+    },
+    "budgets": {
+      "title": "Tenant koltsegvetesek",
+      "subtitle": "Per-tenant LLM koltseg guardrail limitek es alert kuszobok"
     },
     "costs": {
       "title": "Koltseg analitika",

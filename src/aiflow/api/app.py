@@ -161,6 +161,7 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.skills_api import router as skills_router
     from aiflow.api.v1.sources_webhook import router as sources_webhook_router
     from aiflow.api.v1.spec_writer import router as spec_writer_router
+    from aiflow.api.v1.tenant_budgets import router as tenant_budgets_router
     from aiflow.api.v1.verifications import router as verifications_router
 
     app.include_router(health_router)
@@ -170,6 +171,7 @@ def create_app() -> FastAPI:
     app.include_router(feedback_router)
     app.include_router(runs_router)
     app.include_router(costs_router)
+    app.include_router(tenant_budgets_router)
     app.include_router(skills_router)
     app.include_router(emails_router)
     app.include_router(auth_router)
@@ -198,7 +200,7 @@ def create_app() -> FastAPI:
     env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
     is_production = env in ("production", "prod")
 
-    from aiflow.core.errors import CostCapBreached
+    from aiflow.core.errors import CostCapBreached, CostGuardrailRefused
 
     @app.exception_handler(CostCapBreached)
     async def cost_cap_breached_handler(request: Request, exc: CostCapBreached):
@@ -219,6 +221,27 @@ def create_app() -> FastAPI:
                 "cap_usd": exc.cap_usd,
                 "current_usd": exc.current_usd,
                 "window_h": exc.window_h,
+            },
+        )
+
+    @app.exception_handler(CostGuardrailRefused)
+    async def cost_guardrail_refused_handler(request: Request, exc: CostGuardrailRefused):
+        logger.warning(
+            "cost_guardrail_refused",
+            tenant_id=exc.tenant_id,
+            projected_usd=exc.projected_usd,
+            remaining_usd=exc.remaining_usd,
+            period=exc.period,
+            reason=exc.reason,
+            dry_run=exc.dry_run,
+            path=request.url.path,
+        )
+        return JSONResponse(
+            status_code=exc.http_status,
+            content={
+                "detail": exc.message,
+                "error_code": exc.error_code,
+                **exc.details,
             },
         )
 

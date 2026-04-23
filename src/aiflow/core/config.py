@@ -10,7 +10,7 @@ import structlog
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-__all__ = ["AIFlowSettings", "VaultSettings", "get_settings"]
+__all__ = ["AIFlowSettings", "CostGuardrailSettings", "VaultSettings", "get_settings"]
 
 logger = structlog.get_logger(__name__)
 
@@ -63,6 +63,24 @@ class BudgetSettings(BaseSettings):
     alert_threshold_pct: int = 80
 
 
+class CostGuardrailSettings(BaseSettings):
+    """Pre-flight cost guardrail (Sprint N / S122).
+
+    Gates projected LLM/pipeline cost against ``tenant_budgets`` before work
+    starts. Flag-off by default; when ``enabled`` is flipped on the guardrail
+    logs over-budget events but still allows the call until ``dry_run`` is
+    turned off for enforced refusal.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="AIFLOW_COST_GUARDRAIL__")
+    enabled: bool = False
+    dry_run: bool = True
+    period: Literal["daily", "monthly"] = "daily"
+    # Ceilings used when the caller cannot supply a per-call estimate.
+    default_input_tokens: int = 4000
+    default_output_tokens: int = 1000
+
+
 class VaultSettings(BaseSettings):
     """HashiCorp Vault integration for production secret resolution.
 
@@ -107,6 +125,7 @@ class AIFlowSettings(BaseSettings):
     llm: LLMSettings = Field(default_factory=LLMSettings)
     langfuse: LangfuseSettings = Field(default_factory=LangfuseSettings)
     budget: BudgetSettings = Field(default_factory=BudgetSettings)
+    cost_guardrail: CostGuardrailSettings = Field(default_factory=CostGuardrailSettings)
     vault: VaultSettings = Field(default_factory=VaultSettings)
 
     @property
