@@ -82,7 +82,7 @@ alembic upgrade head                      # DB migrations
 
 **Session lifecycle:** `/next` → `/status` → `/implement` → `/dev-step` → `/review` → `/session-close`
 **Auto session:** `/auto-sprint max_sessions=N notify=stop_only|all` (autonóm lánc, lásd Session Workflow)
-**Quick checks:** `/smoke-test`, `/regression`, `/lint-check`
+**Quick checks:** `/smoke-test`, `/regression`, `/lint-check`, `/live-test <module>` (UI browser journey Playwright MCP-n át)
 **Prompts:** `/new-prompt`, `/prompt-tuning`, `/quality-check`
 **Services:** `/service-test`, `/service-hardening`, `/pipeline-test`, `/new-pipeline`
 **Generators:** `/new-step`, `/new-test`
@@ -96,6 +96,7 @@ alembic upgrade head                      # DB migrations
 - **After EVERY session:** `/update-plan` → progress table + key numbers
 - **UI work:** 7 HARD GATES enforced — see skill `aiflow-ui-pipeline`
 - **A feature is DONE only after** Playwright E2E passes with real data
+- **UI változás után KÖTELEZŐ `/live-test <module>`** — session-time browser journey a Playwright MCP-n át (`tests/ui-live/`). NEM helyettesíti a CI specet, de minden UI PR-ban friss riport kell mellette.
 - **Detailed testing rules:** see skill `aiflow-testing` (auto-loaded when testing)
 - **Pipeline dev rules:** see skill `aiflow-pipeline` (auto-loaded for pipeline work)
 - **Service conventions:** see skill `aiflow-services` (auto-loaded for service work)
