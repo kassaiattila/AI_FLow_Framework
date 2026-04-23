@@ -1253,8 +1253,20 @@ async def get_email(email_id: str) -> EmailDetailResponse:
                 email_id,
             )
             if row:
-                data = row["output_data"] or {}
-                input_data = row["input_data"] or {}
+                # asyncpg returns JSONB as a string (not dict) unless a
+                # type codec is registered — list_emails does the same dance.
+                raw_od = row["output_data"] or {}
+                raw_id = row["input_data"] or {}
+                data = (
+                    raw_od
+                    if isinstance(raw_od, dict)
+                    else (_json.loads(raw_od) if isinstance(raw_od, str) else {})
+                )
+                input_data = (
+                    raw_id
+                    if isinstance(raw_id, dict)
+                    else (_json.loads(raw_id) if isinstance(raw_id, str) else {})
+                )
                 return EmailDetailResponse(
                     email_id=data.get("email_id", str(row["id"])),
                     subject=data.get("subject", input_data.get("subject", "")),

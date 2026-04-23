@@ -141,6 +141,8 @@
       "scanning": "Scanning...",
       "scanComplete": "Scan complete",
       "noPipeline": "No invoice_finder pipeline available",
+      "noActiveConnector": "No active email connector — add one in the Connectors tab",
+      "scanSuccessful": "{count} email processed from {connector}",
       "scanStart": "Start Scan",
       "scanRunning": "Pipeline running..."
     },

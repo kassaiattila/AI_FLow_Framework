@@ -141,6 +141,8 @@
       "scanning": "Szkenneles...",
       "scanComplete": "Szkenneles befejezve",
       "noPipeline": "Nincs elerheto invoice_finder pipeline",
+      "noActiveConnector": "Nincs aktiv email connector — adj hozza egyet a Connectorok tabon",
+      "scanSuccessful": "{count} email feldolgozva a(z) {connector} connectorbol",
       "scanStart": "Scan Inditas",
       "scanRunning": "Pipeline fut..."
     },

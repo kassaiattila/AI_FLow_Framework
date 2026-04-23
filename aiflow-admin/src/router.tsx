@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 import { DashboardNew } from "./pages-new/Dashboard";
 import { Documents as DocumentsNew } from "./pages-new/Documents";
 import { Emails as EmailsNew } from "./pages-new/Emails";
+import { EmailDetail } from "./pages-new/EmailDetail";
 import { Rag as RagNew } from "./pages-new/Rag";
 import { RagDetail } from "./pages-new/RagDetail";
 // J4 archived pages — redirected to dashboard (Sprint C)
@@ -72,6 +73,7 @@ export const router = createHashRouter([
       { path: "prompts", element: <Prompts /> },
       { path: "document-upload", element: <Navigate to="/documents" replace /> },
       { path: "emails", element: <EmailsNew /> },
+      { path: "emails/:id", element: <EmailDetail /> },
       { path: "email-upload", element: <Navigate to="/emails" replace /> },
       { path: "email-connectors", element: <Navigate to="/emails" replace /> },
 

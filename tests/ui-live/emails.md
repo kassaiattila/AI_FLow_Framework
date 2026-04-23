@@ -150,6 +150,19 @@ Vegallapot:
 
 <!-- Ide jon az utolso futtatas riport-ja `/live-test emails` utan. Elhagyhato commit-bol a `.gitignore` szerint ha a user nem akarja verziozni. -->
 
+### 2026-04-23 06:33 — **PASS (S108c email bug-fix sprint)**
+- Tool csomag: `mcp__plugin_playwright_playwright__*`
+- Fix-ek: BUG-1 (scan mailbox rewire) + BUG-2 (email detail drilldown) + asyncpg JSONB parse + i18n path + escalation field.
+- **Audit talalatok:**
+  - Scan mailbox → "Nincs elerheto invoice_finder pipeline" (kritikus, FIX: `/api/v1/emails/scan/{config_id}`)
+  - Row click → nincs navigate (kritikus, FIX: new route + EmailDetail page)
+  - GET `/api/v1/emails/{id}` → 404 feldolgozott sorra (root cause: asyncpg JSONB kap stringet, nem dict-et — `list_emails` defense miatt megy, `get_email` nem. FIX: isinstance check)
+- **Post-fix live-test:**
+  - Row click processed email-re → navigate to /emails/:id → 200 OK backend, full intent+priority+routing+meta cards, `Vissza` button, 0 console error
+  - Unprocessed rowra kattintas → guard, nem navigal (helyes)
+  - Levelada szkenneles → most connectorral dolgozik (nem szinaptikus teszt most, backend OK)
+- **Commits:** _(ebben a commit-ban landolnak)_
+
 ### 2026-04-23 06:12 — **PASS (plugin Playwright demo)**
 - Tool csomag: `mcp__plugin_playwright_playwright__*`
 - Preflight: API UP, Vite UP, PG UP

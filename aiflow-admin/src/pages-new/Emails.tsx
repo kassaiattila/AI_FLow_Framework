@@ -81,6 +81,7 @@ interface ConnectorItem {
 
 function InboxTab({ refreshKey }: { refreshKey: number }) {
   const translate = useTranslate();
+  const navigate = useNavigate();
   const { data, loading, error, refetch } = useApi<EmailsResponse>("/api/v1/emails");
 
   // Re-fetch when other tabs trigger a refresh
@@ -390,6 +391,14 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
           selectable
           onSelectionChange={setSelectedEmails}
           clearSelection={clearSel}
+          onRowClick={(item) => {
+            // Unprocessed rows have no workflow_run yet (email_id = .eml file
+            // stem); /emails/{id} backend looks in DB and returns 404. Drill
+            // down only for processed rows where the route has real data.
+            if (isUnprocessed(item)) return;
+            const id = String((item as unknown as EmailItem).email_id);
+            if (id) navigate(`/emails/${encodeURIComponent(id)}`);
+          }}
           columns={[
             { key: "sender", label: translate("aiflow.emails.sender"), render: (item) => <span className="block max-w-[180px] truncate font-medium text-gray-900 dark:text-gray-100" title={String(item.sender ?? "")}>{String(item.sender ?? "")}</span> },
             { key: "subject", label: translate("aiflow.emails.subject"), render: (item) => <span className="block max-w-[250px] truncate text-gray-600 dark:text-gray-400" title={String(item.subject ?? "")}>{String(item.subject ?? "")}</span> },
@@ -1034,16 +1043,20 @@ interface PipelineListItem {
   enabled: boolean;
 }
 
-interface PipelineListResponse {
-  pipelines: PipelineListItem[];
-  total: number;
+interface ScanResponseItem {
+  package_id: string;
+  label: string;
+  display_name: string;
+  confidence: number;
+  method: string;
 }
 
-interface PipelineRunResponse {
-  run_id: string;
-  pipeline_id: string;
-  pipeline_name: string;
-  status: string;
+interface ScanResponse {
+  config_id: string;
+  processed: number;
+  items: ScanResponseItem[];
+  error: string | null;
+  source: string;
 }
 
 export function Emails() {
@@ -1063,16 +1076,28 @@ export function Emails() {
     setScanResult(null);
     setScanError(null);
     try {
-      // Find the invoice_finder pipeline
-      const list = await fetchApi<PipelineListResponse>("GET", "/api/v1/pipelines");
-      const pipeline = list.pipelines.find(p => p.name.includes("invoice_finder") && p.enabled);
-      if (!pipeline) {
-        setScanError(translate("aiflow.emails.noPipeline"));
+      // S106/S107 scan_and_classify endpoint: fetch new emails from the
+      // configured IMAP inbox, classify intent with the sklearn+LLM hybrid,
+      // optionally route via IntentRoutingPolicy (server-side config).
+      const connectors = await fetchApi<ConnectorItem[]>("GET", "/api/v1/emails/connectors");
+      const active = connectors.filter(c => c.is_active);
+      if (active.length === 0) {
+        setScanError(translate("aiflow.emails.noActiveConnector"));
         return;
       }
-      // Run the pipeline
-      const result = await fetchApi<PipelineRunResponse>("POST", `/api/v1/pipelines/${pipeline.id}/run`, { input_data: {} });
-      setScanResult({ status: result.status, runId: result.run_id });
+      // Pick the first active connector — a picker UI is the next iteration
+      // when there is more than one active. For now the most-recently-created
+      // active connector wins (API returns ORDER BY created_at DESC).
+      const connector = active[0];
+      const result = await fetchApi<ScanResponse>(
+        "POST",
+        `/api/v1/emails/scan/${connector.id}`,
+        { tenant_id: "default", max_items: 50 },
+      );
+      const msg = translate("aiflow.emails.scanSuccessful")
+        .replace("{count}", String(result.processed))
+        .replace("{connector}", connector.name);
+      setScanResult({ status: msg, runId: connector.id });
       triggerRefresh();
     } catch (e) {
       setScanError(e instanceof Error ? e.message : "Scan failed");
