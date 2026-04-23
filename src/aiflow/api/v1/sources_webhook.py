@@ -79,12 +79,16 @@ def _load_adapter_from_env() -> ApiSourceAdapter:
     Required: ``AIFLOW_WEBHOOK_HMAC_SECRET``. Optional overrides mirror the
     adapter kwargs (storage_root, tenant_id, max_package_bytes, max_clock_skew).
     """
-    secret = os.getenv("AIFLOW_WEBHOOK_HMAC_SECRET", "")
+    from aiflow.security.resolver import get_secret_manager
+
+    secret = get_secret_manager().get_secret(
+        "webhook#hmac_secret", env_alias="AIFLOW_WEBHOOK_HMAC_SECRET"
+    )
     if not secret:
         raise RuntimeError(
-            "AIFLOW_WEBHOOK_HMAC_SECRET env var is required to serve "
-            "/api/v1/sources/webhook. Set it or override the adapter via "
-            "FastAPI dependency_overrides in tests."
+            "AIFLOW_WEBHOOK_HMAC_SECRET env var (or kv/aiflow/webhook#hmac_secret) "
+            "is required to serve /api/v1/sources/webhook. Set it or override the "
+            "adapter via FastAPI dependency_overrides in tests."
         )
     storage_root = Path(os.getenv("AIFLOW_WEBHOOK_STORAGE_ROOT", "./var/intake/webhook"))
     tenant_id = os.getenv("AIFLOW_WEBHOOK_TENANT_ID", "default")

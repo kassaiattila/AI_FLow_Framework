@@ -7,11 +7,15 @@ assets/external/
 .env
 .env.*
 !.env.example
+!.env.langfuse.example
 **/credentials.json
 **/secrets.yaml
 jwt_private.pem
 jwt_public.pem
 *.pem
+
+# Tenant-specific policy files (generated per-tenant, not shipped in repo)
+config/policies/
 
 # === Python ===
 __pycache__/

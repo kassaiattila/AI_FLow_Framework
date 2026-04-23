@@ -46,7 +46,17 @@ class EmailParser:
     def parse_eml(self, source: str | Path | bytes) -> ParsedEmail:
         """Parse an .eml file or raw email bytes."""
         # Handle file path, raw bytes, or string
-        if isinstance(source, (str, Path)) and Path(source).exists():
+        # Path(...).exists() can raise OSError on Linux when `source` is raw
+        # email text longer than the filesystem's NAME_MAX (typically 255
+        # bytes).  Treat any such error as "not a path" and fall through to
+        # the raw-string / bytes branches below.
+        is_path = False
+        if isinstance(source, (str, Path)):
+            try:
+                is_path = Path(source).exists()
+            except OSError:
+                is_path = False
+        if is_path:
             raw = Path(source).read_bytes()
         elif isinstance(source, bytes):
             raw = source

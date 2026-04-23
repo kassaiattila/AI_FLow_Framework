@@ -1,0 +1,112 @@
+# Self-hosted Langfuse overlay — Sprint M (v1.4.9) S118
+#
+# Usage (dev):
+#   cp .env.langfuse.example .env.langfuse   # persist NEXTAUTH_SECRET + SALT
+#   docker compose -f docker-compose.langfuse.yml --env-file .env.langfuse up -d langfuse-postgres langfuse-web
+#   docker compose -f docker-compose.langfuse.yml --env-file .env.langfuse --profile bootstrap run --rm langfuse-init
+#
+# Air-gapped workflow: see docs/airgapped_deployment.md (docker save/load for the
+# 3 required images — hashicorp/vault:1.15, langfuse/langfuse:3, postgres:16-alpine).
+#
+# Port layout:
+#   - langfuse-web           3000:3000  (host)
+#   - langfuse-postgres      5434:5432  (host — avoids AIFlow Postgres on 5433)
+#
+# Persistent secrets (NEXTAUTH_SECRET, SALT) MUST be stable across restarts; if
+# rotated, every existing Langfuse user session + API key breaks. Keep them in
+# .env.langfuse (gitignored by .env.*).
+
+services:
+  langfuse-postgres:
+    image: postgres:16-alpine
+    container_name: aiflow-langfuse-postgres
+    environment:
+      POSTGRES_PASSWORD: langfuse_dev_password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "${AIFLOW_LANGFUSE_PG_PORT:-5434}:5432"
+    volumes:
+      - langfuse_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - langfuse-net
+
+  langfuse-web:
+    image: langfuse/langfuse:3
+    container_name: aiflow-langfuse-web
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:langfuse_dev_password@langfuse-postgres:5432/postgres
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?set NEXTAUTH_SECRET in .env.langfuse}
+      SALT: ${LANGFUSE_SALT:?set LANGFUSE_SALT in .env.langfuse}
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+      # Dev-friendly bootstrap: pre-provision org + project + API keys on first boot.
+      # The one-shot langfuse-init container still runs to capture the keypair for
+      # Vault seeding (keeps script idempotent even if these vars are unset later).
+      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-aiflow-dev}
+      LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-AIFlow Dev}
+      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-aiflow-dev}
+      LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME:-AIFlow Dev}
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:-}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY:-}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-admin@aiflow.dev}
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-AIFlow Admin}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-aiflow-dev-password}
+    ports:
+      - "${AIFLOW_LANGFUSE_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/public/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - langfuse-net
+
+  # One-shot bootstrap: reads the (deterministic) admin credentials and calls the
+  # Langfuse public API to obtain the project keypair, printing them as
+  # `LANGFUSE_BOOTSTRAP_PUBLIC_KEY=...` / `LANGFUSE_BOOTSTRAP_SECRET_KEY=...` on
+  # stdout. Downstream: `scripts/seed_vault_dev.py` consumes those env vars and
+  # writes `langfuse#public_key` + `langfuse#secret_key` into Vault.
+  #
+  # Activated via `--profile bootstrap` so it does NOT run on normal `up`.
+  langfuse-init:
+    image: python:3.12-alpine
+    container_name: aiflow-langfuse-init
+    profiles: [bootstrap]
+    depends_on:
+      langfuse-web:
+        condition: service_healthy
+    environment:
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LANGFUSE_ADMIN_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-admin@aiflow.dev}
+      LANGFUSE_ADMIN_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-aiflow-dev-password}
+      LANGFUSE_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-aiflow-dev}
+      LANGFUSE_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-aiflow-dev}
+      LANGFUSE_SEEDED_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:-}
+      LANGFUSE_SEEDED_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY:-}
+    volumes:
+      - ./scripts/bootstrap_langfuse.py:/app/bootstrap_langfuse.py:ro
+    command: ["sh", "-c", "pip install --quiet requests && python /app/bootstrap_langfuse.py"]
+    networks:
+      - langfuse-net
+
+volumes:
+  langfuse_pg_data:
+    name: aiflow_langfuse_pg_data
+
+networks:
+  # Private bridge for Langfuse stack. The AIFlow API runs on the host (from .venv)
+  # and reaches Langfuse via localhost:3000, so cross-compose network join is not
+  # required for dev. For production, see docs/airgapped_deployment.md for the
+  # external `aiflow-dev-net` layering pattern with vault + langfuse.
+  langfuse-net:
+    name: aiflow-langfuse-net

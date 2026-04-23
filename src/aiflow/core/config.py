@@ -7,10 +7,10 @@ from functools import lru_cache
 from typing import Literal
 
 import structlog
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-__all__ = ["AIFlowSettings", "get_settings"]
+__all__ = ["AIFlowSettings", "VaultSettings", "get_settings"]
 
 logger = structlog.get_logger(__name__)
 
@@ -63,6 +63,27 @@ class BudgetSettings(BaseSettings):
     alert_threshold_pct: int = 80
 
 
+class VaultSettings(BaseSettings):
+    """HashiCorp Vault integration for production secret resolution.
+
+    When ``enabled`` is ``False`` (the default) the :func:`build_secret_manager`
+    factory returns an env-only :class:`SecretManager`, so local dev and CI
+    behave exactly as before. Token auth is used in dev; AppRole
+    (``role_id`` + ``secret_id``) is intended for prod.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="AIFLOW_VAULT__")
+    enabled: bool = False
+    url: str = "http://localhost:8210"
+    token: SecretStr | None = None
+    role_id: str | None = None
+    secret_id: SecretStr | None = None
+    mount_point: str = "secret"
+    kv_namespace: str = "aiflow"
+    cache_ttl_seconds: float = 300.0
+    negative_cache_ttl_seconds: float = 60.0
+
+
 class AIFlowSettings(BaseSettings):
     """Main configuration class. Reads AIFLOW_* environment variables."""
 
@@ -86,6 +107,7 @@ class AIFlowSettings(BaseSettings):
     llm: LLMSettings = Field(default_factory=LLMSettings)
     langfuse: LangfuseSettings = Field(default_factory=LangfuseSettings)
     budget: BudgetSettings = Field(default_factory=BudgetSettings)
+    vault: VaultSettings = Field(default_factory=VaultSettings)
 
     @property
     def is_production(self) -> bool:

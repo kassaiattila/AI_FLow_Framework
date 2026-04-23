@@ -57,13 +57,14 @@ class AzureOpenAIEmbedderConfig(BaseModel):
 
     @classmethod
     def from_env(cls) -> AzureOpenAIEmbedderConfig:
+        from aiflow.security.resolver import get_secret_manager
+
+        api_key = get_secret_manager().get_secret(
+            "llm/azure_openai#api_key", env_alias="AIFLOW_AZURE_OPENAI__API_KEY"
+        )
         return cls(
             endpoint=os.getenv("AIFLOW_AZURE_OPENAI__ENDPOINT"),
-            api_key=(
-                SecretStr(os.environ["AIFLOW_AZURE_OPENAI__API_KEY"])
-                if "AIFLOW_AZURE_OPENAI__API_KEY" in os.environ
-                else None
-            ),
+            api_key=SecretStr(api_key) if api_key else None,
             api_version=os.getenv(
                 "AIFLOW_AZURE_OPENAI__API_VERSION",
                 _DEFAULT_API_VERSION,
@@ -105,16 +106,19 @@ class AzureOpenAIEmbedder(EmbedderProvider):
         return self._config.deployment
 
     def _resolve_credentials(self) -> tuple[str, str]:
+        from aiflow.security.resolver import get_secret_manager
+
         endpoint = self._config.endpoint or os.getenv("AIFLOW_AZURE_OPENAI__ENDPOINT")
-        key = (
-            self._config.api_key.get_secret_value()
-            if self._config.api_key is not None
-            else os.getenv("AIFLOW_AZURE_OPENAI__API_KEY")
-        )
+        if self._config.api_key is not None:
+            key: str | None = self._config.api_key.get_secret_value()
+        else:
+            key = get_secret_manager().get_secret(
+                "llm/azure_openai#api_key", env_alias="AIFLOW_AZURE_OPENAI__API_KEY"
+            )
         if not endpoint or not key:
             raise RuntimeError(
                 "AzureOpenAIEmbedder requires both AIFLOW_AZURE_OPENAI__ENDPOINT "
-                "and AIFLOW_AZURE_OPENAI__API_KEY to be configured."
+                "and AIFLOW_AZURE_OPENAI__API_KEY (or kv/aiflow/llm/azure_openai#api_key)."
             )
         return endpoint, key
 
@@ -156,12 +160,10 @@ class AzureOpenAIEmbedder(EmbedderProvider):
         except Exception as exc:
             logger.warning("azure_openai_health_check_failed", error=str(exc))
             return False
-        endpoint = self._config.endpoint or os.getenv("AIFLOW_AZURE_OPENAI__ENDPOINT")
-        key = (
-            self._config.api_key.get_secret_value()
-            if self._config.api_key is not None
-            else os.getenv("AIFLOW_AZURE_OPENAI__API_KEY")
-        )
+        try:
+            endpoint, key = self._resolve_credentials()
+        except RuntimeError:
+            return False
         return bool(endpoint and key)
 
     @staticmethod

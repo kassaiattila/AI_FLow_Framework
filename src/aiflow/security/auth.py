@@ -57,14 +57,22 @@ class AuthProvider:
 
     @classmethod
     def from_env(cls) -> AuthProvider:
-        """Create AuthProvider from environment configuration.
+        """Create AuthProvider from environment / Vault configuration.
 
-        Reads AIFLOW_JWT_PRIVATE_KEY_PATH and AIFLOW_JWT_PUBLIC_KEY_PATH.
-        Production (AIFLOW_ENVIRONMENT=prod/production): keys are REQUIRED.
-        Dev/test: auto-generates ephemeral key pair with a warning.
+        Resolver chain per key material:
+          1. Vault ``kv/aiflow/jwt#private_pem`` / ``#public_pem`` (value = PEM).
+          2. File path from ``AIFLOW_JWT_PRIVATE_KEY_PATH`` (legacy).
+          3. Dev/test: ephemeral auto-generated pair (warning logged).
+        Production (``AIFLOW_ENVIRONMENT=prod``) still REQUIRES resolved keys.
         """
+        from aiflow.security.resolver import get_secret_manager
+
         env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
         is_production = env in ("production", "prod")
+
+        mgr = get_secret_manager()
+        priv_pem = mgr.get_secret("jwt#private_pem")
+        pub_pem = mgr.get_secret("jwt#public_pem")
 
         priv_path = os.getenv("AIFLOW_JWT_PRIVATE_KEY_PATH", "") or os.getenv(
             "AIFLOW_SECURITY__JWT_PRIVATE_KEY_PATH", ""
@@ -76,12 +84,19 @@ class AuthProvider:
         private_key: bytes | None = None
         public_key: bytes | None = None
 
-        if priv_path and Path(priv_path).is_file():
+        if priv_pem:
+            private_key = priv_pem.encode("utf-8")
+            logger.info("jwt_private_key_loaded", source="vault")
+        elif priv_path and Path(priv_path).is_file():
             private_key = Path(priv_path).read_bytes()
-            logger.info("jwt_private_key_loaded", path=priv_path)
-        if pub_path and Path(pub_path).is_file():
+            logger.info("jwt_private_key_loaded", source="path", path=priv_path)
+
+        if pub_pem:
+            public_key = pub_pem.encode("utf-8")
+            logger.info("jwt_public_key_loaded", source="vault")
+        elif pub_path and Path(pub_path).is_file():
             public_key = Path(pub_path).read_bytes()
-            logger.info("jwt_public_key_loaded", path=pub_path)
+            logger.info("jwt_public_key_loaded", source="path", path=pub_path)
 
         if is_production and (not private_key or not public_key):
             raise RuntimeError(
