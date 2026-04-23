@@ -18,6 +18,8 @@ is deferred to S108).
 
 from __future__ import annotations
 
+import asyncio
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import structlog
@@ -25,7 +27,8 @@ import structlog
 from aiflow.intake.package import DescriptionRole
 
 if TYPE_CHECKING:
-    from aiflow.intake.package import IntakePackage
+    from aiflow.core.config import UC3AttachmentIntentSettings
+    from aiflow.intake.package import IntakeFile, IntakePackage
     from aiflow.policy.intent_routing import IntentRoutingPolicy
     from aiflow.prompts.manager import PromptManager
     from aiflow.services.classifier.service import (
@@ -35,6 +38,11 @@ if TYPE_CHECKING:
     from aiflow.sources.base import SourceAdapter
     from aiflow.sources.sink import IntakePackageSink
     from aiflow.state.repository import StateRepository
+    from aiflow.tools.attachment_processor import ProcessedAttachment
+
+# Runtime references — keep these visible to ruff so the autoformatter
+# doesn't strip them as unused on subsequent edits.
+_RUNTIME_HOOKS = (asyncio, Path)
 
 __all__ = ["scan_and_classify"]
 
@@ -58,6 +66,7 @@ async def scan_and_classify(
     prompt_manager: PromptManager | None = None,
     prompt_name: str = "",
     prompt_label: str = "prod",
+    attachment_intent_settings: UC3AttachmentIntentSettings | None = None,
 ) -> list[tuple[str, ClassificationResult]]:
     """Drain up to ``max_items`` packages: fetch → sink → classify → (route) → persist.
 
@@ -154,6 +163,31 @@ async def scan_and_classify(
             output_data["prompt_name"] = prompt_name
             output_data["prompt_version"] = prompt_version
 
+        # UC3 Sprint O / S127 — attachment-aware intent feature flag.
+        # Flag-OFF contract: zero new behaviour (no AttachmentProcessor
+        # instantiation, no extra log events, no new keys in output_data).
+        if (
+            attachment_intent_settings is not None
+            and attachment_intent_settings.enabled
+            and package.files
+        ):
+            features_payload = await _maybe_extract_attachment_features(
+                package.files,
+                settings=attachment_intent_settings,
+            )
+            if features_payload is not None:
+                output_data["attachment_features"] = features_payload
+                logger.info(
+                    "email_connector.scan_and_classify.attachment_features_extracted",
+                    tenant_id=tenant_id,
+                    package_id=str(package.package_id),
+                    workflow_run_id=str(run.id),
+                    invoice_number_detected=features_payload.get("invoice_number_detected", False),
+                    total_value_detected=features_payload.get("total_value_detected", False),
+                    mime_profile=features_payload.get("mime_profile", "none"),
+                    attachments_considered=features_payload.get("attachments_considered", 0),
+                )
+
         if routing_policy is not None:
             action, target = routing_policy.decide(result.label, result.confidence)
             output_data["routing_action"] = action.value
@@ -197,3 +231,84 @@ def _extract_classifiable_text(package: IntakePackage) -> str:
     if email_bodies:
         return "\n\n".join(t for t in email_bodies if t)
     return "\n\n".join(d.text for d in package.descriptions if d.text)
+
+
+async def _maybe_extract_attachment_features(
+    files: list[IntakeFile],
+    *,
+    settings: UC3AttachmentIntentSettings,
+) -> dict[str, Any] | None:
+    """Run AttachmentProcessor over package files + extract features (Sprint O / S127).
+
+    Pure-helper guarded by the caller's flag check — instantiates
+    :class:`AttachmentProcessor` lazily so the flag-off path never imports it
+    or pays the docling/Azure-DI cold start. Wrapped in
+    :func:`asyncio.wait_for` against ``settings.total_budget_seconds`` so a
+    docling stall cannot block the classifier path beyond budget.
+
+    Returns the ``AttachmentFeatures.model_dump()`` payload merged into
+    ``output_data`` by the caller, or ``None`` on timeout / total failure.
+    """
+    # Lazy import — flag-off must not pay this cost.
+    from aiflow.services.classifier.attachment_features import (
+        extract_attachment_features,
+    )
+    from aiflow.tools.attachment_processor import AttachmentConfig, AttachmentProcessor
+
+    max_bytes = settings.max_attachment_mb * 1024 * 1024
+    processor = AttachmentProcessor(config=AttachmentConfig(max_size_mb=settings.max_attachment_mb))
+
+    async def _run() -> dict[str, Any]:
+        processed: list[ProcessedAttachment] = []
+        for f in files:
+            path = Path(f.file_path)
+            if not path.exists():
+                continue
+            try:
+                content = path.read_bytes()
+            except OSError as exc:
+                logger.info(
+                    "email_connector.scan_and_classify.attachment_read_failed",
+                    file_id=str(f.file_id),
+                    file_name=f.file_name,
+                    reason=str(exc),
+                )
+                continue
+            if len(content) > max_bytes:
+                continue
+            try:
+                result = await processor.process(f.file_name, content, f.mime_type)
+            except Exception as exc:
+                logger.info(
+                    "email_connector.scan_and_classify.attachment_process_failed",
+                    file_id=str(f.file_id),
+                    file_name=f.file_name,
+                    reason=str(exc),
+                )
+                continue
+            # AttachmentProcessor's per-layer paths leave ``mime_type`` blank
+            # on the ProcessedAttachment. Propagate the upstream IntakeFile
+            # mime so the extractor can compute a meaningful ``mime_profile``.
+            if not result.mime_type and f.mime_type:
+                result.mime_type = f.mime_type
+            processed.append(result)
+
+        features = extract_attachment_features(processed, settings=settings)
+        return features.model_dump()
+
+    try:
+        return await asyncio.wait_for(_run(), timeout=settings.total_budget_seconds)
+    except TimeoutError:
+        logger.info(
+            "email_connector.scan_and_classify.attachment_extraction_timeout",
+            file_count=len(files),
+            budget_seconds=settings.total_budget_seconds,
+        )
+        return None
+    except Exception as exc:  # pragma: no cover — defensive guardrail
+        logger.warning(
+            "email_connector.scan_and_classify.attachment_extraction_failed",
+            file_count=len(files),
+            reason=str(exc),
+        )
+        return None

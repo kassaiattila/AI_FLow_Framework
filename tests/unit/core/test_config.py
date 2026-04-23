@@ -12,7 +12,12 @@
 
 import os
 
-from aiflow.core.config import AIFlowSettings, VaultSettings, get_settings
+from aiflow.core.config import (
+    AIFlowSettings,
+    UC3AttachmentIntentSettings,
+    VaultSettings,
+    get_settings,
+)
 
 
 class TestAIFlowSettings:
@@ -116,6 +121,34 @@ class TestVaultSettings:
         assert vs.role_id == "role-a"
         assert vs.secret_id is not None
         assert vs.secret_id.get_secret_value() == "s-x"
+
+
+class TestUC3AttachmentIntentSettings:
+    def test_defaults(self, monkeypatch):
+        for key in list(os.environ):
+            if key.startswith("AIFLOW_UC3_ATTACHMENT_INTENT__"):
+                monkeypatch.delenv(key, raising=False)
+        settings = AIFlowSettings()
+        assert settings.uc3_attachment_intent.enabled is False
+        assert settings.uc3_attachment_intent.max_attachment_mb == 10
+        assert settings.uc3_attachment_intent.total_budget_seconds == 5.0
+
+    def test_env_override(self, monkeypatch):
+        monkeypatch.setenv("AIFLOW_UC3_ATTACHMENT_INTENT__ENABLED", "true")
+        monkeypatch.setenv("AIFLOW_UC3_ATTACHMENT_INTENT__MAX_ATTACHMENT_MB", "20")
+        monkeypatch.setenv("AIFLOW_UC3_ATTACHMENT_INTENT__TOTAL_BUDGET_SECONDS", "8.5")
+        settings = AIFlowSettings()
+        assert settings.uc3_attachment_intent.enabled is True
+        assert settings.uc3_attachment_intent.max_attachment_mb == 20
+        assert settings.uc3_attachment_intent.total_budget_seconds == 8.5
+
+    def test_direct_construction(self):
+        cfg = UC3AttachmentIntentSettings(
+            enabled=True, max_attachment_mb=5, total_budget_seconds=2.0
+        )
+        assert cfg.enabled is True
+        assert cfg.max_attachment_mb == 5
+        assert cfg.total_budget_seconds == 2.0
 
 
 class TestGetSettings:
