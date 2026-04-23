@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json as _json
 import os
+import re
 import tempfile
 import time as _time
 from datetime import date, datetime
@@ -211,6 +212,81 @@ class TestConnectionResponse(BaseModel):
     source: str = "backend"
 
 
+class ScanRequest(BaseModel):
+    """Trigger EmailSource → IntakePackageSink → Classifier scan."""
+
+    max_items: int = Field(10, ge=1, le=100)
+    tenant_id: str = "default"
+    schema_labels: list[dict[str, Any]] | None = None
+    routing_policy_id: str | None = Field(
+        default=None,
+        description=(
+            "Optional IntentRoutingPolicy YAML id to load from "
+            "``$AIFLOW_POLICY_DIR/intent_routing/{id}.yaml``. When set, the "
+            "orchestrator maps each classification to a routing action and "
+            "persists it under ``output_data.routing_action``."
+        ),
+    )
+
+
+class ScanItem(BaseModel):
+    """One processed package summary."""
+
+    package_id: str
+    label: str
+    display_name: str = ""
+    confidence: float = 0.0
+    method: str = ""
+
+
+class ScanResponse(BaseModel):
+    """Result of a scan-classify run."""
+
+    config_id: str
+    processed: int = 0
+    items: list[ScanItem] = Field(default_factory=list)
+    error: str | None = None
+    source: str = "backend"
+
+
+# --- Intent Routing Rules CRUD (S109a) ---
+
+
+class IntentRulesListItem(BaseModel):
+    """Summary row for the rules list page."""
+
+    tenant_id: str
+    rule_count: int
+    default_action: str
+    default_target: str = ""
+    path: str
+
+
+class IntentRulesListResponse(BaseModel):
+    rules: list[IntentRulesListItem]
+    total: int
+    source: str = "backend"
+
+
+class IntentRulesDetailResponse(BaseModel):
+    """Detail read — returns both structured fields and raw YAML so the
+    editor can round-trip comments/formatting the user entered."""
+
+    tenant_id: str
+    default_action: str
+    default_target: str = ""
+    rules: list[dict[str, Any]] = Field(default_factory=list)
+    yaml_text: str = ""
+    path: str = ""
+    source: str = "backend"
+
+
+class IntentRulesUpsertRequest(BaseModel):
+    """User-edited raw YAML — validated server-side before write."""
+
+    yaml_text: str
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -300,16 +376,29 @@ async def list_emails(
                 routing_data = data.get("routing") or {}
                 entities_data = data.get("entities") or {}
 
+                # Fallback for S106/S107 scan_and_classify rows: they use
+                # flat ``output_data.label`` + ``display_name`` instead of a
+                # nested ``intent`` object. Map whichever is present so both
+                # paths render uniformly in the UI list.
+                intent_id = intent_data.get("intent_id") or data.get("label")
+                intent_display = (
+                    intent_data.get("intent_display_name")
+                    or data.get("display_name")
+                    or (intent_id or "")
+                )
+                intent_confidence = intent_data.get("confidence", data.get("confidence", 0.0))
+                intent_method = intent_data.get("method") or data.get("method")
+
                 emails.append(
                     EmailResultItem(
                         email_id=data.get("email_id", str(row["id"])),
                         subject=data.get("subject", ""),
                         sender=data.get("sender", ""),
                         received_date=row["started_at"].isoformat() if row["started_at"] else None,
-                        intent_id=intent_data.get("intent_id"),
-                        intent_display_name=intent_data.get("intent_display_name"),
-                        intent_confidence=intent_data.get("confidence", 0.0),
-                        intent_method=intent_data.get("method"),
+                        intent_id=intent_id,
+                        intent_display_name=intent_display or None,
+                        intent_confidence=intent_confidence,
+                        intent_method=intent_method,
                         priority_level=priority_data.get("priority_level"),
                         department_name=routing_data.get("department_name"),
                         queue_name=routing_data.get("queue_name"),
@@ -974,6 +1063,132 @@ async def fetch_and_process_stream(request: FetchRequest) -> StreamingResponse:
 
 
 # ---------------------------------------------------------------------------
+# Scan + Classify (UC3 Sprint K S106 — thin wiring over scan_and_classify)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/scan/{config_id}", response_model=ScanResponse)
+async def scan_and_classify_endpoint(config_id: str, req: ScanRequest) -> ScanResponse:
+    """Scan an inbox → IntakePackage → classifier → persist to workflow_runs.
+
+    Thin wrapper around ``scan_and_classify``; credentials are read from the
+    connector config's plaintext JSON ``credentials_encrypted`` (dev) — real
+    credential decryption lands in S107.
+    """
+    from sqlalchemy.ext.asyncio import async_sessionmaker as asm
+
+    from aiflow.policy.intent_routing import IntentRoutingPolicy
+    from aiflow.services.classifier.service import ClassifierService
+    from aiflow.services.email_connector.orchestrator import scan_and_classify
+    from aiflow.sources.email_adapter import EmailSourceAdapter, ImapBackend
+    from aiflow.sources.sink import IntakePackageSink
+    from aiflow.state.repositories.intake import IntakeRepository
+    from aiflow.state.repository import StateRepository
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """SELECT id::text AS id, provider, host, port, use_ssl, mailbox,
+                      credentials_encrypted, is_active
+               FROM email_connector_configs
+               WHERE id::text = $1""",
+            config_id,
+        )
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"Connector config {config_id} not found")
+    if not row["is_active"]:
+        raise HTTPException(status_code=400, detail="Connector config is inactive")
+    if row["provider"] != "imap":
+        raise HTTPException(
+            status_code=501,
+            detail=f"Provider '{row['provider']}' not yet wired — S107 (IntentRoutingPolicy/providers)",
+        )
+
+    try:
+        creds = _json.loads(row["credentials_encrypted"] or "{}")
+    except _json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=501,
+            detail="Encrypted credentials not yet supported — S107 (DPAPI/Fernet decryption)",
+        ) from exc
+
+    user = creds.get("user") or creds.get("username")
+    password = creds.get("password") or creds.get("pass")
+    if not (user and password and row["host"]):
+        raise HTTPException(
+            status_code=400, detail="Connector config is missing host/user/password"
+        )
+
+    backend = ImapBackend(
+        host=row["host"],
+        port=int(row["port"] or 993),
+        user=user,
+        password=password,
+        mailbox=row["mailbox"] or "INBOX",
+        use_ssl=bool(row["use_ssl"]),
+    )
+    storage_root = Path(os.getenv("AIFLOW_INTAKE_STORAGE", "data/intake_storage")) / config_id
+    storage_root.mkdir(parents=True, exist_ok=True)
+    adapter = EmailSourceAdapter(
+        backend=backend, storage_root=storage_root, tenant_id=req.tenant_id
+    )
+
+    intake_repo = IntakeRepository(pool)
+    sink = IntakePackageSink(repo=intake_repo)
+
+    engine = await get_engine()
+    session_factory = asm(engine, expire_on_commit=False)
+    state_repo = StateRepository(session_factory)
+
+    routing_policy = None
+    if req.routing_policy_id:
+        policy_dir = Path(os.getenv("AIFLOW_POLICY_DIR", "config/policies"))
+        policy_path = policy_dir / "intent_routing" / f"{req.routing_policy_id}.yaml"
+        if not policy_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Routing policy not found: {req.routing_policy_id}",
+            )
+        try:
+            routing_policy = IntentRoutingPolicy.from_yaml(policy_path)
+        except (ValueError, OSError) as exc:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid routing policy YAML: {exc}"
+            ) from exc
+
+    classifier = ClassifierService()
+    await classifier.start()
+    try:
+        tuples = await scan_and_classify(
+            adapter,
+            sink,
+            classifier,
+            state_repo,
+            tenant_id=req.tenant_id,
+            max_items=req.max_items,
+            schema_labels=req.schema_labels,
+            routing_policy=routing_policy,
+        )
+    except Exception as e:
+        logger.exception("scan_and_classify_failed", config_id=config_id, error=str(e))
+        return ScanResponse(config_id=config_id, processed=0, error=str(e))
+    finally:
+        await classifier.stop()
+
+    items = [
+        ScanItem(
+            package_id=pid,
+            label=r.label,
+            display_name=r.display_name,
+            confidence=r.confidence,
+            method=r.method,
+        )
+        for pid, r in tuples
+    ]
+    return ScanResponse(config_id=config_id, processed=len(items), items=items)
+
+
+# ---------------------------------------------------------------------------
 # Export (CSV)
 # ---------------------------------------------------------------------------
 
@@ -1056,6 +1271,140 @@ async def get_fetch_history(
 
 
 # ---------------------------------------------------------------------------
+# Intent Routing Rules CRUD (S109a) — MUST be above /{email_id}
+# ---------------------------------------------------------------------------
+
+
+_TENANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$")
+
+
+def _intent_rules_dir() -> Path:
+    """Root directory for intent routing YAML files, created on first use."""
+    root = Path(os.getenv("AIFLOW_POLICY_DIR", "config/policies")) / "intent_routing"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _validate_tenant_id(tenant_id: str) -> None:
+    """Reject path traversal + enforce safe filesystem character set."""
+    if not _TENANT_ID_PATTERN.match(tenant_id):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Invalid tenant_id: must start with alphanumeric and only "
+                "contain [a-zA-Z0-9_.-], max 64 chars."
+            ),
+        )
+
+
+@router.get("/intent-rules", response_model=IntentRulesListResponse)
+async def list_intent_rules() -> IntentRulesListResponse:
+    """List every tenant that has an intent routing YAML in POLICY_DIR."""
+    from aiflow.policy.intent_routing import IntentRoutingPolicy
+
+    root = _intent_rules_dir()
+    items: list[IntentRulesListItem] = []
+    for yaml_path in sorted(root.glob("*.yaml")):
+        try:
+            policy = IntentRoutingPolicy.from_yaml(yaml_path)
+        except (OSError, ValueError) as exc:
+            logger.warning("intent_rules_parse_failed", path=str(yaml_path), error=str(exc))
+            continue
+        items.append(
+            IntentRulesListItem(
+                tenant_id=policy.tenant_id,
+                rule_count=len(policy.rules),
+                default_action=policy.default_action.value,
+                default_target=policy.default_target,
+                path=str(yaml_path),
+            )
+        )
+    return IntentRulesListResponse(rules=items, total=len(items))
+
+
+@router.get("/intent-rules/{tenant_id}", response_model=IntentRulesDetailResponse)
+async def get_intent_rules(tenant_id: str) -> IntentRulesDetailResponse:
+    """Return the policy for a tenant, plus the raw YAML so the editor can
+    preserve user formatting. 404 when the file does not exist."""
+    from aiflow.policy.intent_routing import IntentRoutingPolicy
+
+    _validate_tenant_id(tenant_id)
+    path = _intent_rules_dir() / f"{tenant_id}.yaml"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Intent rules not found: {tenant_id}")
+    try:
+        policy = IntentRoutingPolicy.from_yaml(path)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=f"Invalid YAML: {exc}") from exc
+    yaml_text = path.read_text(encoding="utf-8")
+    return IntentRulesDetailResponse(
+        tenant_id=policy.tenant_id,
+        default_action=policy.default_action.value,
+        default_target=policy.default_target,
+        rules=[r.model_dump() for r in policy.rules],
+        yaml_text=yaml_text,
+        path=str(path),
+    )
+
+
+@router.put("/intent-rules/{tenant_id}", response_model=IntentRulesDetailResponse)
+async def upsert_intent_rules(
+    tenant_id: str, req: IntentRulesUpsertRequest
+) -> IntentRulesDetailResponse:
+    """Upsert the policy for a tenant. YAML is parsed and validated as
+    ``IntentRoutingPolicy`` before being written — invalid payloads return 422.
+    The ``tenant_id`` in the URL must match the ``tenant_id`` in the YAML.
+    """
+    import yaml as _yaml
+    from pydantic import ValidationError
+
+    from aiflow.policy.intent_routing import IntentRoutingPolicy
+
+    _validate_tenant_id(tenant_id)
+    try:
+        data = _yaml.safe_load(req.yaml_text)
+    except _yaml.YAMLError as exc:
+        raise HTTPException(status_code=422, detail=f"YAML parse error: {exc}") from exc
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="YAML root must be a mapping")
+    try:
+        policy = IntentRoutingPolicy(**data)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+    if policy.tenant_id != tenant_id:
+        raise HTTPException(
+            status_code=422,
+            detail=(f"tenant_id mismatch: URL={tenant_id!r}, YAML={policy.tenant_id!r}"),
+        )
+    path = _intent_rules_dir() / f"{tenant_id}.yaml"
+    path.write_text(req.yaml_text, encoding="utf-8")
+    logger.info(
+        "intent_rules_upserted",
+        tenant_id=tenant_id,
+        rule_count=len(policy.rules),
+        path=str(path),
+    )
+    return IntentRulesDetailResponse(
+        tenant_id=policy.tenant_id,
+        default_action=policy.default_action.value,
+        default_target=policy.default_target,
+        rules=[r.model_dump() for r in policy.rules],
+        yaml_text=req.yaml_text,
+        path=str(path),
+    )
+
+
+@router.delete("/intent-rules/{tenant_id}", status_code=204)
+async def delete_intent_rules(tenant_id: str) -> None:
+    """Delete the policy file for a tenant. Idempotent — 204 when missing."""
+    _validate_tenant_id(tenant_id)
+    path = _intent_rules_dir() / f"{tenant_id}.yaml"
+    if path.exists():
+        path.unlink()
+        logger.info("intent_rules_deleted", tenant_id=tenant_id, path=str(path))
+
+
+# ---------------------------------------------------------------------------
 # Email Detail (F2.5 — MUST be last to avoid /{email_id} catching /connectors etc)
 # ---------------------------------------------------------------------------
 
@@ -1077,8 +1426,20 @@ async def get_email(email_id: str) -> EmailDetailResponse:
                 email_id,
             )
             if row:
-                data = row["output_data"] or {}
-                input_data = row["input_data"] or {}
+                # asyncpg returns JSONB as a string (not dict) unless a
+                # type codec is registered — list_emails does the same dance.
+                raw_od = row["output_data"] or {}
+                raw_id = row["input_data"] or {}
+                data = (
+                    raw_od
+                    if isinstance(raw_od, dict)
+                    else (_json.loads(raw_od) if isinstance(raw_od, str) else {})
+                )
+                input_data = (
+                    raw_id
+                    if isinstance(raw_id, dict)
+                    else (_json.loads(raw_id) if isinstance(raw_id, str) else {})
+                )
                 return EmailDetailResponse(
                     email_id=data.get("email_id", str(row["id"])),
                     subject=data.get("subject", input_data.get("subject", "")),

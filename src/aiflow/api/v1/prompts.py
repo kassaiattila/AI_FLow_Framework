@@ -7,12 +7,13 @@ enabling release-free prompt updates via Langfuse label swaps.
 from __future__ import annotations
 
 import os
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
 import yaml
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from aiflow.prompts.manager import PromptManager
@@ -109,6 +110,133 @@ async def list_prompts() -> PromptListResponse:
 
     items.sort(key=lambda p: p.name)
     return PromptListResponse(prompts=items, total=len(items))
+
+
+# Prompt detail / edit — S109b
+# -----------------------------------------------------------------------------
+
+_PROMPT_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_./-]{0,127}$")
+
+
+class PromptDetailResponse(BaseModel):
+    """Full prompt content for the editor."""
+
+    name: str
+    version: str | int | None = None
+    path: str
+    updated_at: str
+    tags: list[str] = []
+    yaml_text: str
+    source: str = "backend"
+
+
+class PromptUpsertRequest(BaseModel):
+    """User-edited raw YAML — validated server-side before write."""
+
+    yaml_text: str
+
+
+def _resolve_prompt_path(prompt_name: str) -> Path | None:
+    """Find the on-disk YAML for a prompt_name across the configured roots."""
+    for root in _prompt_search_roots():
+        if not root.exists():
+            continue
+        for yaml_path in root.rglob("*.yaml"):
+            try:
+                data = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+            except (yaml.YAMLError, OSError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            name = str(data.get("name") or yaml_path.stem)
+            if name == prompt_name:
+                return yaml_path
+    return None
+
+
+def _validate_prompt_name(prompt_name: str) -> None:
+    if not _PROMPT_NAME_PATTERN.match(prompt_name):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Invalid prompt_name: must start with alphanumeric and only "
+                "contain [a-zA-Z0-9_./-], max 128 chars."
+            ),
+        )
+
+
+@router.get("/{prompt_name:path}", response_model=PromptDetailResponse)
+async def get_prompt_detail(prompt_name: str) -> PromptDetailResponse:
+    """Return the raw YAML + parsed metadata for a single prompt."""
+    _validate_prompt_name(prompt_name)
+    path = _resolve_prompt_path(prompt_name)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"Prompt not found: {prompt_name}")
+    try:
+        yaml_text = path.read_text(encoding="utf-8")
+        data = yaml.safe_load(yaml_text) or {}
+    except (yaml.YAMLError, OSError) as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read prompt: {exc}") from exc
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=500, detail="Prompt YAML is not a mapping")
+    stat = path.stat()
+    updated = datetime.fromtimestamp(stat.st_mtime, tz=UTC)
+    tags_raw = data.get("tags") or []
+    tags = [str(t) for t in tags_raw] if isinstance(tags_raw, list) else []
+    return PromptDetailResponse(
+        name=str(data.get("name") or path.stem),
+        version=data.get("version"),
+        path=str(path),
+        updated_at=updated.isoformat(),
+        tags=tags,
+        yaml_text=yaml_text,
+    )
+
+
+@router.put("/{prompt_name:path}", response_model=PromptDetailResponse)
+async def upsert_prompt(prompt_name: str, req: PromptUpsertRequest) -> PromptDetailResponse:
+    """Write updated YAML back to disk and invalidate the cache.
+
+    The prompt must already exist on disk — create-new is intentionally out of
+    scope. YAML is parsed + the top-level ``name`` must match the URL to catch
+    rename-vs-edit confusion.
+    """
+    _validate_prompt_name(prompt_name)
+    path = _resolve_prompt_path(prompt_name)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"Prompt not found: {prompt_name}")
+    try:
+        data = yaml.safe_load(req.yaml_text)
+    except yaml.YAMLError as exc:
+        raise HTTPException(status_code=422, detail=f"YAML parse error: {exc}") from exc
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="YAML root must be a mapping")
+    yaml_name = str(data.get("name") or path.stem)
+    if yaml_name != prompt_name:
+        raise HTTPException(
+            status_code=422,
+            detail=f"name mismatch: URL={prompt_name!r}, YAML={yaml_name!r}",
+        )
+    path.write_text(req.yaml_text, encoding="utf-8")
+    # Invalidate cache so the next request reads the new YAML
+    try:
+        get_prompt_manager().invalidate(prompt_name)
+    except Exception as exc:  # noqa: BLE001 — cache miss is non-fatal
+        logger.warning("prompt_invalidate_failed", prompt=prompt_name, error=str(exc))
+    logger.info("prompt_upserted", prompt=prompt_name, path=str(path))
+
+    stat = path.stat()
+    updated = datetime.fromtimestamp(stat.st_mtime, tz=UTC)
+    tags_raw = data.get("tags") or []
+    tags = [str(t) for t in tags_raw] if isinstance(tags_raw, list) else []
+    return PromptDetailResponse(
+        name=prompt_name,
+        version=data.get("version"),
+        path=str(path),
+        updated_at=updated.isoformat(),
+        tags=tags,
+        yaml_text=req.yaml_text,
+    )
 
 
 # Singleton — same instance used by SkillRunner / services

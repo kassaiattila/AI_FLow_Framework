@@ -6,6 +6,13 @@
     "AIFLOW_AUTOSPRINT_NO_EMAIL": "1"
   },
 
+  "permissions": {
+    "allow": [
+      "Bash(curl --max-time*)",
+      "mcp__playwright__browser_snapshot"
+    ]
+  },
+
   "hooks": {
     "SessionStart": [
       {
@@ -77,6 +84,12 @@
             "command": ".venv/Scripts/python.exe -c \"import sys,json,subprocess;d=json.load(sys.stdin);f=d.get('tool_response',{}).get('filePath') or d.get('tool_input',{}).get('file_path','');exec('') if not f.endswith('.py') else (subprocess.run([sys.executable,'-m','ruff','check','--fix',f],capture_output=True),subprocess.run([sys.executable,'-m','ruff','format',f],capture_output=True))\"",
             "timeout": 30,
             "statusMessage": "Running ruff..."
+          },
+          {
+            "type": "command",
+            "command": ".venv/Scripts/python.exe .claude/hooks/tsc_check.py",
+            "timeout": 30,
+            "statusMessage": "Running tsc..."
           }
         ]
       },

@@ -1250,6 +1250,59 @@
         }
       }
     },
+    "/api/v1/emails/scan/{config_id}": {
+      "post": {
+        "tags": [
+          "emails"
+        ],
+        "summary": "Scan And Classify Endpoint",
+        "description": "Scan an inbox → IntakePackage → classifier → persist to workflow_runs.\n\nThin wrapper around ``scan_and_classify``; credentials are read from the\nconnector config's plaintext JSON ``credentials_encrypted`` (dev) — real\ncredential decryption lands in S107.",
+        "operationId": "scan_and_classify_endpoint_api_v1_emails_scan__config_id__post",
+        "parameters": [
+          {
+            "name": "config_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Config Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/emails/export/csv": {
       "get": {
         "tags": [
@@ -1315,6 +1368,156 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/emails/intent-rules": {
+      "get": {
+        "tags": [
+          "emails"
+        ],
+        "summary": "List Intent Rules",
+        "description": "List every tenant that has an intent routing YAML in POLICY_DIR.",
+        "operationId": "list_intent_rules_api_v1_emails_intent_rules_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentRulesListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/emails/intent-rules/{tenant_id}": {
+      "get": {
+        "tags": [
+          "emails"
+        ],
+        "summary": "Get Intent Rules",
+        "description": "Return the policy for a tenant, plus the raw YAML so the editor can\npreserve user formatting. 404 when the file does not exist.",
+        "operationId": "get_intent_rules_api_v1_emails_intent_rules__tenant_id__get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tenant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentRulesDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "emails"
+        ],
+        "summary": "Upsert Intent Rules",
+        "description": "Upsert the policy for a tenant. YAML is parsed and validated as\n``IntentRoutingPolicy`` before being written — invalid payloads return 422.\nThe ``tenant_id`` in the URL must match the ``tenant_id`` in the YAML.",
+        "operationId": "upsert_intent_rules_api_v1_emails_intent_rules__tenant_id__put",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tenant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntentRulesUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentRulesDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "emails"
+        ],
+        "summary": "Delete Intent Rules",
+        "description": "Delete the policy file for a tenant. Idempotent — 204 when missing.",
+        "operationId": "delete_intent_rules_api_v1_emails_intent_rules__tenant_id__delete",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tenant Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -7687,6 +7890,100 @@
         }
       }
     },
+    "/api/v1/prompts/{prompt_name}": {
+      "get": {
+        "tags": [
+          "prompts"
+        ],
+        "summary": "Get Prompt Detail",
+        "description": "Return the raw YAML + parsed metadata for a single prompt.",
+        "operationId": "get_prompt_detail_api_v1_prompts__prompt_name__get",
+        "parameters": [
+          {
+            "name": "prompt_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Prompt Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "prompts"
+        ],
+        "summary": "Upsert Prompt",
+        "description": "Write updated YAML back to disk and invalidate the cache.\n\nThe prompt must already exist on disk — create-new is intentionally out of\nscope. YAML is parsed + the top-level ``name`` must match the URL to catch\nrename-vs-edit confusion.",
+        "operationId": "upsert_prompt_api_v1_prompts__prompt_name__put",
+        "parameters": [
+          {
+            "name": "prompt_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Prompt Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/prompts/{prompt_name}/invalidate": {
       "post": {
         "tags": [
@@ -11948,6 +12245,127 @@
         "type": "object",
         "title": "IntentRouting"
       },
+      "IntentRulesDetailResponse": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "default_action": {
+            "type": "string",
+            "title": "Default Action"
+          },
+          "default_target": {
+            "type": "string",
+            "title": "Default Target",
+            "default": ""
+          },
+          "rules": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Rules"
+          },
+          "yaml_text": {
+            "type": "string",
+            "title": "Yaml Text",
+            "default": ""
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "default": ""
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id",
+          "default_action"
+        ],
+        "title": "IntentRulesDetailResponse",
+        "description": "Detail read — returns both structured fields and raw YAML so the\neditor can round-trip comments/formatting the user entered."
+      },
+      "IntentRulesListItem": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "rule_count": {
+            "type": "integer",
+            "title": "Rule Count"
+          },
+          "default_action": {
+            "type": "string",
+            "title": "Default Action"
+          },
+          "default_target": {
+            "type": "string",
+            "title": "Default Target",
+            "default": ""
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id",
+          "rule_count",
+          "default_action",
+          "path"
+        ],
+        "title": "IntentRulesListItem",
+        "description": "Summary row for the rules list page."
+      },
+      "IntentRulesListResponse": {
+        "properties": {
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/IntentRulesListItem"
+            },
+            "type": "array",
+            "title": "Rules"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rules",
+          "total"
+        ],
+        "title": "IntentRulesListResponse"
+      },
+      "IntentRulesUpsertRequest": {
+        "properties": {
+          "yaml_text": {
+            "type": "string",
+            "title": "Yaml Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "yaml_text"
+        ],
+        "title": "IntentRulesUpsertRequest",
+        "description": "User-edited raw YAML — validated server-side before write."
+      },
       "IntentSchemaCreateRequest": {
         "properties": {
           "name": {
@@ -13302,6 +13720,62 @@
         "title": "ProcessResponse",
         "description": "Response after processing documents."
       },
+      "PromptDetailResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
+          "yaml_text": {
+            "type": "string",
+            "title": "Yaml Text"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "path",
+          "updated_at",
+          "yaml_text"
+        ],
+        "title": "PromptDetailResponse",
+        "description": "Full prompt content for the editor."
+      },
       "PromptListItem": {
         "properties": {
           "name": {
@@ -13373,6 +13847,20 @@
           "total"
         ],
         "title": "PromptListResponse"
+      },
+      "PromptUpsertRequest": {
+        "properties": {
+          "yaml_text": {
+            "type": "string",
+            "title": "Yaml Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "yaml_text"
+        ],
+        "title": "PromptUpsertRequest",
+        "description": "User-edited raw YAML — validated server-side before write."
       },
       "QualityOverviewResponse": {
         "properties": {
@@ -14348,6 +14836,128 @@
           "edits"
         ],
         "title": "SaveEditsRequest"
+      },
+      "ScanItem": {
+        "properties": {
+          "package_id": {
+            "type": "string",
+            "title": "Package Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name",
+            "default": ""
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "default": 0.0
+          },
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "package_id",
+          "label"
+        ],
+        "title": "ScanItem",
+        "description": "One processed package summary."
+      },
+      "ScanRequest": {
+        "properties": {
+          "max_items": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Max Items",
+            "default": 10
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id",
+            "default": "default"
+          },
+          "schema_labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Labels"
+          },
+          "routing_policy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routing Policy Id",
+            "description": "Optional IntentRoutingPolicy YAML id to load from ``$AIFLOW_POLICY_DIR/intent_routing/{id}.yaml``. When set, the orchestrator maps each classification to a routing action and persists it under ``output_data.routing_action``."
+          }
+        },
+        "type": "object",
+        "title": "ScanRequest",
+        "description": "Trigger EmailSource → IntakePackageSink → Classifier scan."
+      },
+      "ScanResponse": {
+        "properties": {
+          "config_id": {
+            "type": "string",
+            "title": "Config Id"
+          },
+          "processed": {
+            "type": "integer",
+            "title": "Processed",
+            "default": 0
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScanItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "config_id"
+        ],
+        "title": "ScanResponse",
+        "description": "Result of a scan-classify run."
       },
       "SendRequest": {
         "properties": {

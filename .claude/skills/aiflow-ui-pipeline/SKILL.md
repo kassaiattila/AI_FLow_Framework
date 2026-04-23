@@ -27,8 +27,11 @@ GATE 4: /ui-design (Figma MCP) → OUTPUT: PAGE_SPECS.md frissitve + Figma frame
 GATE 5: /ui-page vagy /ui-component → OUTPUT: .tsx fajl + tsc --noEmit PASS
    GATE CHECK: TypeScript HIBA NELKUL?
 
-GATE 6: Playwright E2E → OUTPUT: screenshot + 0 console error + i18n HU/EN
-   GATE CHECK: MINDEN E2E check PASS?
+GATE 6: Playwright E2E (KET reteg!)
+   6a: Live E2E (Playwright MCP, session-time) — OUTPUT: tests/ui-live/<module>.md riport
+       GATE CHECK: `/live-test <module>` PASS, 0 console error, 0 network 5xx
+   6b: CI spec (Playwright test runner) — OUTPUT: aiflow-admin/tests/e2e/<module>.spec.ts
+       GATE CHECK: `npx playwright test` PASS
 
 GATE 7: Figma sync → OUTPUT: PAGE_SPECS.md vegso frissites
    GATE CHECK: PAGE_SPECS.md es a .tsx fajl KONZISZTENS?

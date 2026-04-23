@@ -43,6 +43,14 @@ fi
 
 # Gate 5: Git status snapshot
 git status --short
+
+# Gate 6: Live E2E ha UI érintett (KÖTELEZŐ Playwright MCP futtatás)
+UI_CHANGED=$(git diff --cached --name-only HEAD 2>/dev/null | grep -E '^aiflow-admin/src/(pages-new|components-new|layout)/' || true)
+if [ -n "$UI_CHANGED" ]; then
+  echo "UI változás — KÖTELEZŐ /live-test a modulokra:"
+  echo "$UI_CHANGED" | sed -E 's|aiflow-admin/src/pages-new/([A-Z][a-z]+).*|  /live-test \L\1|;s|aiflow-admin/src/(components-new|layout)/.*||' | sort -u
+  echo "Ha nem futtattad, ÁLLJ meg — running /live-test módon <modul>."
+fi
 ```
 
 **Gate értékelés:**

@@ -1,5 +1,9 @@
 # AIFlow v1.4.7 Sprint K — Session 105 Prompt (UC3 kickoff: EmailSource → IntakePackageSink → Intent classifier glue)
 
+> ⚠️ **SUPERSEDED 2026-04-22** by architect rescope (S105-pre session discovery). Aktualis scope: `session_prompts/S106_v1_4_7_contract_unify_and_glue_prompt.md`.
+>
+> **Felulirando feltevesek** ebben a prompt-ban: (1) `skills/email_intent/` — valojaban `email_intent_processor`; (2) uj `ClassificationResult` contract `contracts/`-ban — valojaban mar 3 versenyzo definicio van, unify szukseges; (3) uj `ClassificationStep` — redundans, `pipeline/adapters/classifier_adapter.py` letezik; (4) Alembic 043 `classification_results` tabla — redundans, `workflow_runs.output_data` JSONB mar tarol. Resz­letek: S106 archive + architect verdikt.
+
 > **Datum:** 2026-04-26 (tervezett folytatas)
 > **Branch:** `feature/v1.4.7-email-intent` — **NEW** branch, kiindulas: `main` @ tag `v1.4.5-sprint-j-uc2` (Sprint J merge utan).
 > **HEAD prereq:** PR #14 merged + `v1.4.5-sprint-j-uc2` tag pushed. Fallback: ha meg nem merge-olt, allj meg es jelezd.

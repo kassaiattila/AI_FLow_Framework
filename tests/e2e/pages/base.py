@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
+
 from playwright.sync_api import Page
 
-BASE_URL = "http://localhost:5174"
+BASE_URL = os.getenv("AIFLOW_UI_BASE_URL", "http://localhost:5173")
 
 
 class BasePage:

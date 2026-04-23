@@ -118,6 +118,8 @@
     "emails": {
       "title": "Emails",
       "detail": "Email Details",
+      "uploadEmails": "Upload emails",
+      "connectorsSubtitle": "Manage IMAP / Gmail / O365 connections",
       "sender": "Sender",
       "subject": "Subject",
       "intent": "Intent",
@@ -141,8 +143,21 @@
       "scanning": "Scanning...",
       "scanComplete": "Scan complete",
       "noPipeline": "No invoice_finder pipeline available",
+      "noActiveConnector": "No active email connector — add one in the Connectors tab",
+      "scanSuccessful": "{count} email processed from {connector}",
       "scanStart": "Start Scan",
       "scanRunning": "Pipeline running..."
+    },
+    "intentRules": {
+      "title": "Intent rules",
+      "subtitle": "Intent → downstream action routing policy YAML editor",
+      "editorTitle": "Edit rule",
+      "newTitle": "New rule",
+      "empty": "No intent rules yet. Create one above."
+    },
+    "prompts": {
+      "title": "Prompts",
+      "editorTitle": "Edit prompt"
     },
     "connectors": {
       "title": "Email Connectors",
@@ -189,6 +204,8 @@
       "documentProcessing": "Document Processing",
       "documents": "Documents",
       "emailScan": "Email Scanning",
+      "emailConnectors": "Email connectors",
+      "intentRules": "Intent rules",
       "verification": "Verification",
       "knowledgeBase": "Knowledge Base",
       "collections": "Collections",
@@ -692,6 +709,10 @@
       "add": "Add",
       "back": "Back",
       "cancel": "Cancel",
+      "close": "Close",
+      "create": "Create",
+      "delete": "Delete",
+      "save": "Save",
       "clone": "Clone",
       "confirm": "Confirm",
       "create": "Create",

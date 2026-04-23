@@ -3,7 +3,7 @@
  * Replaces old MUI EmailList + EmailUpload + EmailConnectors.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslate } from "../lib/i18n";
 import { useApi } from "../lib/hooks";
@@ -12,6 +12,65 @@ import { PageLayout } from "../layout/PageLayout";
 import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
 import { FileProgressRow, FileProgressBar, type FileProgress } from "../components-new/FileProgress";
+
+// Observed averages from hybrid_llm runs (gpt-4o-mini, ~3700 input tokens).
+// Used for cost/ETA preview only — actual numbers vary per email length.
+const BATCH_CAP = 25;
+const AVG_COST_PER_EMAIL_USD = 0.0008;
+const AVG_TIME_PER_EMAIL_SEC = 60;
+
+function formatDuration(totalSec: number): string {
+  if (!Number.isFinite(totalSec) || totalSec <= 0) return "—";
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = Math.floor(totalSec % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function formatCost(usd: number): string {
+  if (usd < 0.01) return `<$0.01`;
+  if (usd < 1) return `$${usd.toFixed(2)}`;
+  return `$${usd.toFixed(2)}`;
+}
+
+// Semantic intent color classes. Picks based on a substring match over
+// intent_id + display_name (case-insensitive). First match wins.
+const INTENT_COLOR_MAP: Array<{ match: RegExp; cls: string }> = [
+  // Finance / transactional
+  { match: /invoice|billing|payment|szamla|fizetes|refund|tranzakci/i,
+    cls: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  // Support / inquiry — customer-requested information
+  { match: /inquiry|support|informacio|kerdes|panasz|complaint/i,
+    cls: "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
+  // Internal / colleague
+  { match: /internal|belso|kolleg|colleague/i,
+    cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  // Marketing / promotional / newsletter
+  { match: /marketing|hirlevel|newsletter|promo|unsubscribe/i,
+    cls: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
+  // Spam / junk
+  { match: /spam|junk|phish/i,
+    cls: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" },
+  // Legal / urgent
+  { match: /legal|jogi|urgent|surgos|escalation/i,
+    cls: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+  // Feedback
+  { match: /feedback|visszajelzes|review/i,
+    cls: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+];
+
+const INTENT_COLOR_DEFAULT =
+  "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
+
+export function intentColorClass(intentId: string | null, displayName: string | null): string {
+  const haystack = `${intentId ?? ""} ${displayName ?? ""}`;
+  for (const rule of INTENT_COLOR_MAP) {
+    if (rule.match.test(haystack)) return rule.cls;
+  }
+  return INTENT_COLOR_DEFAULT;
+}
 
 // --- Types ---
 
@@ -59,6 +118,7 @@ interface ConnectorItem {
 
 function InboxTab({ refreshKey }: { refreshKey: number }) {
   const translate = useTranslate();
+  const navigate = useNavigate();
   const { data, loading, error, refetch } = useApi<EmailsResponse>("/api/v1/emails");
 
   // Re-fetch when other tabs trigger a refresh
@@ -68,6 +128,13 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
   const [processProgress, setProcessProgress] = useState<FileProgress[]>([]);
   const [selectedEmails, setSelectedEmails] = useState<Record<string, unknown>[]>([]);
   const [clearSel, setClearSel] = useState(0);
+  const [confirmBatch, setConfirmBatch] = useState<{ ids: string[]; label: string } | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const [processStartTs, setProcessStartTs] = useState<number | null>(null);
+  const [doneCount, setDoneCount] = useState(0);
+  // Full email_ids aligned by index with processProgress rows, so we can
+  // retry only the failed ones without re-selecting from the table.
+  const [processIds, setProcessIds] = useState<string[]>([]);
 
   const priorityColor: Record<string, string> = {
     critical: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -78,10 +145,14 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
 
   const isUnprocessed = (item: Record<string, unknown>) => !item.intent_display_name || item.intent_display_name === "Not processed";
 
-  // Process unprocessed emails via SSE (per-email pipeline)
+  // Process unprocessed emails via SSE (per-email pipeline).
+  // Splits into BATCH_CAP-sized chunks; AbortController stops mid-stream.
   const handleProcessEmails = async (emailIds: string[]) => {
     if (emailIds.length === 0) return;
     setProcessing("bulk");
+    setProcessStartTs(Date.now());
+    setDoneCount(0);
+    setProcessIds(emailIds);
     const defaultSteps = ["parse", "classify", "extract", "priority", "route"];
     setProcessProgress(emailIds.map((id) => ({
       name: id.substring(0, 50),
@@ -89,73 +160,110 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
       steps: defaultSteps.map(s => ({ name: s, status: "pending" as const })),
     })));
 
-    try {
+    const ac = new AbortController();
+    abortRef.current = ac;
+    let globalOffset = 0;
+
+    const runOneBatch = async (batchIds: string[], offset: number): Promise<boolean> => {
+      if (ac.signal.aborted) return false;
       const token = localStorage.getItem("aiflow_token");
       const resp = await fetch("/api/v1/emails/process-batch-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ email_ids: emailIds }),
+        body: JSON.stringify({ email_ids: batchIds }),
+        signal: ac.signal,
       });
 
-      if (!resp.ok || !resp.body) { refetch(); return; }
+      if (!resp.ok || !resp.body) return true;
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const msg = JSON.parse(line.slice(6));
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const msg = JSON.parse(line.slice(6));
+              const globalIdx = msg.file_index !== undefined ? offset + msg.file_index : undefined;
 
-            if (msg.event === "init") {
-              const steps: string[] = msg.steps ?? defaultSteps;
-              setProcessProgress(prev => prev.map((fp, i) => i < msg.total_files ? {
-                ...fp,
-                steps: steps.map(s => ({ name: s, status: "pending" as const })),
-              } : fp));
-            }
-            if (msg.event === "file_start" && msg.file_index !== undefined) {
-              setProcessProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, name: msg.file || fp.name, status: "processing" } : fp
-              ));
-            }
-            if (msg.event === "file_step" && msg.file_index !== undefined && msg.step_index !== undefined) {
-              setProcessProgress(prev => prev.map((fp, i) => {
-                if (i !== msg.file_index) return fp;
-                return { ...fp, steps: fp.steps.map((s, si) => si !== msg.step_index ? s : { ...s, status: msg.status === "done" ? "done" as const : "running" as const, elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms }) };
-              }));
-            }
-            if (msg.event === "file_error" && msg.file_index !== undefined) {
-              setProcessProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: "error", error: msg.error } : fp
-              ));
-            }
-            if (msg.event === "file_done" && msg.file_index !== undefined) {
-              setProcessProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: msg.ok ? "done" as const : "error" as const } : fp
-              ));
-              if (msg.ok) refetch();
-            }
-            if (msg.event === "complete") {
-              setProcessProgress(prev => prev.map(fp => fp.status === "pending" || fp.status === "processing"
-                ? { ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) } : fp));
-            }
-          } catch { /* skip */ }
+              if (msg.event === "file_start" && globalIdx !== undefined) {
+                setProcessProgress(prev => prev.map((fp, i) =>
+                  i === globalIdx ? { ...fp, name: msg.file || fp.name, status: "processing" } : fp
+                ));
+              }
+              if (msg.event === "file_step" && globalIdx !== undefined && msg.step_index !== undefined) {
+                setProcessProgress(prev => prev.map((fp, i) => {
+                  if (i !== globalIdx) return fp;
+                  return { ...fp, steps: fp.steps.map((s, si) => si !== msg.step_index ? s : { ...s, status: msg.status === "done" ? "done" as const : "running" as const, elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms }) };
+                }));
+              }
+              if (msg.event === "file_error" && globalIdx !== undefined) {
+                setProcessProgress(prev => prev.map((fp, i) =>
+                  i === globalIdx ? { ...fp, status: "error", error: msg.error } : fp
+                ));
+              }
+              if (msg.event === "file_done" && globalIdx !== undefined) {
+                setProcessProgress(prev => prev.map((fp, i) =>
+                  i === globalIdx ? { ...fp, status: msg.ok ? "done" as const : "error" as const } : fp
+                ));
+                setDoneCount(c => c + 1);
+                if (msg.ok) refetch();
+              }
+            } catch { /* skip */ }
+          }
         }
+      } catch (e) {
+        if ((e as { name?: string })?.name === "AbortError") return false;
+        throw e;
       }
+      return true;
+    };
+
+    try {
+      while (globalOffset < emailIds.length) {
+        if (ac.signal.aborted) break;
+        const batch = emailIds.slice(globalOffset, globalOffset + BATCH_CAP);
+        const ok = await runOneBatch(batch, globalOffset);
+        if (!ok) break;
+        globalOffset += batch.length;
+      }
+
+      // Mark any still-pending rows as canceled when user aborted mid-flight.
+      if (ac.signal.aborted) {
+        setProcessProgress(prev => prev.map(fp =>
+          fp.status === "pending" || fp.status === "processing"
+            ? { ...fp, status: "error" as const, error: "Megszakitva" }
+            : fp,
+        ));
+      }
+
       refetch();
       setClearSel(c => c + 1);
     } finally {
       setProcessing(null);
+      abortRef.current = null;
     }
+  };
+
+  const handleCancelProcessing = () => {
+    abortRef.current?.abort();
+  };
+
+  const handleRetryFailed = () => {
+    // Collect email_ids of rows that errored (either aborted or failed step).
+    const failedIds = processProgress
+      .map((fp, i) => (fp.status === "error" ? processIds[i] : null))
+      .filter((id): id is string => !!id);
+    if (failedIds.length === 0) return;
+    void handleProcessEmails(failedIds);
   };
 
   const handleExportCsv = async () => {
@@ -201,8 +309,8 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
         {unprocessedCount > 0 && (
           <button
             onClick={() => {
-              const ids = emails.filter(e => !e.intent || e.intent === "Not processed").map(e => e.email_id);
-              void handleProcessEmails(ids);
+              const ids = emails.filter(isUnprocessed).map(e => e.email_id);
+              setConfirmBatch({ ids, label: `osszes feldolgozatlan (${ids.length})` });
             }}
             disabled={!!processing}
             className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
@@ -214,7 +322,7 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
           <button
             onClick={() => {
               const ids = selectedEmails.filter(isUnprocessed).map(e => String((e as unknown as EmailItem).email_id));
-              void handleProcessEmails(ids);
+              setConfirmBatch({ ids, label: `kivalasztott (${ids.length})` });
             }}
             disabled={!!processing}
             className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
@@ -228,21 +336,108 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
         </button>
       </div>
 
-      {/* Process progress */}
-      {processProgress.length > 0 && (
-        <div className="mb-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{translate("aiflow.pipeline.title")}</p>
-            <span className="text-xs text-brand-600 dark:text-brand-400">
-              {processProgress.filter(fp => fp.status === "done").length}/{processProgress.length}
-            </span>
-          </div>
-          <FileProgressBar done={processProgress.filter(fp => fp.status === "done").length} total={processProgress.length} />
-          <div className="max-h-48 overflow-y-auto">
-            {processProgress.map((fp, i) => <FileProgressRow key={i} fp={fp} />)}
+      {/* Confirm batch modal */}
+      {confirmBatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {confirmBatch.ids.length} email feldolgozasa
+            </h3>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              Batch: {confirmBatch.label}
+            </p>
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
+                <dt className="text-xs font-medium text-gray-500">Becsult koltseg</dt>
+                <dd className="mt-1 font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
+                  ~{formatCost(confirmBatch.ids.length * AVG_COST_PER_EMAIL_USD)}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
+                <dt className="text-xs font-medium text-gray-500">Becsult ido</dt>
+                <dd className="mt-1 font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
+                  ~{formatDuration(confirmBatch.ids.length * AVG_TIME_PER_EMAIL_SEC)}
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              OpenAI gpt-4o-mini ~$0.0008/email, ~60s latency alapjan.
+              {confirmBatch.ids.length > BATCH_CAP && (
+                <> {BATCH_CAP}-esevel kuldve; kozben megszakithato.</>
+              )}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmBatch(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                Megse
+              </button>
+              <button
+                onClick={() => {
+                  const ids = confirmBatch.ids;
+                  setConfirmBatch(null);
+                  void handleProcessEmails(ids);
+                }}
+                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+              >
+                Inditas
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Process progress */}
+      {processProgress.length > 0 && (() => {
+        const done = processProgress.filter(fp => fp.status === "done").length;
+        const errorCount = processProgress.filter(fp => fp.status === "error").length;
+        const remaining = processProgress.length - done - errorCount;
+        let etaText = "";
+        if (processing && processStartTs && doneCount > 0 && remaining > 0) {
+          const elapsedSec = (Date.now() - processStartTs) / 1000;
+          const avgSec = elapsedSec / doneCount;
+          etaText = ` · ETA ~${formatDuration(remaining * avgSec)}`;
+        } else if (processing && remaining > 0) {
+          etaText = ` · ETA ~${formatDuration(remaining * AVG_TIME_PER_EMAIL_SEC)}`;
+        }
+        return (
+          <div className="mb-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+            <div className="mb-2 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{translate("aiflow.pipeline.title")}</p>
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {done}/{processProgress.length} kesz
+                  {errorCount > 0 && <span className="text-red-500"> · {errorCount} hiba</span>}
+                  {etaText}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {!processing && errorCount > 0 && (
+                  <button
+                    onClick={handleRetryFailed}
+                    className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40"
+                  >
+                    Ujra a hibasokat ({errorCount})
+                  </button>
+                )}
+                {processing && (
+                  <button
+                    onClick={handleCancelProcessing}
+                    className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    Megszakitas
+                  </button>
+                )}
+              </div>
+            </div>
+            <FileProgressBar done={done} total={processProgress.length} />
+            <div className="max-h-48 overflow-y-auto">
+              {processProgress.map((fp, i) => <FileProgressRow key={i} fp={fp} />)}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Table */}
       {error ? (
@@ -256,13 +451,40 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
           selectable
           onSelectionChange={setSelectedEmails}
           clearSelection={clearSel}
+          onRowClick={(item) => {
+            // Unprocessed rows have no workflow_run yet (email_id = .eml file
+            // stem); /emails/{id} backend looks in DB and returns 404. Drill
+            // down only for processed rows where the route has real data.
+            if (isUnprocessed(item)) return;
+            const id = String((item as unknown as EmailItem).email_id);
+            if (id) navigate(`/emails/${encodeURIComponent(id)}`);
+          }}
           columns={[
             { key: "sender", label: translate("aiflow.emails.sender"), render: (item) => <span className="block max-w-[180px] truncate font-medium text-gray-900 dark:text-gray-100" title={String(item.sender ?? "")}>{String(item.sender ?? "")}</span> },
             { key: "subject", label: translate("aiflow.emails.subject"), render: (item) => <span className="block max-w-[250px] truncate text-gray-600 dark:text-gray-400" title={String(item.subject ?? "")}>{String(item.subject ?? "")}</span> },
             { key: "intent_display_name", label: translate("aiflow.emails.intent"), render: (item) => {
               const intent = String(item.intent_display_name ?? "");
+              const id = String((item as unknown as EmailItem).email_id);
+              // If this specific row is in a currently-running batch and not
+              // yet done, show a live "Processing..." pill with spinner dot.
+              if (processing && processIds.includes(id)) {
+                const idx = processIds.indexOf(id);
+                const fp = processProgress[idx];
+                if (fp && fp.status !== "done" && fp.status !== "error") {
+                  return (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" aria-hidden />
+                      Processing...
+                    </span>
+                  );
+                }
+              }
               if (!intent || intent === "Not processed") return <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">Not processed</span>;
-              return <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">{intent}</span>;
+              const cls = intentColorClass(
+                (item.intent_id ?? null) as string | null,
+                (item.intent_display_name ?? null) as string | null,
+              );
+              return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{intent}</span>;
             }},
             { key: "priority_level", label: translate("aiflow.emails.priority"), render: (item) => {
               const p = item.priority_level as number | null;
@@ -296,7 +518,7 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
 
 // --- Upload Tab ---
 
-function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
+export function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
   const translate = useTranslate();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -643,7 +865,7 @@ function ConnectorFormDialog({ initial, onSave, onClose, translate }: {
   );
 }
 
-function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
+export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
   const translate = useTranslate();
   const { data, loading, error, refetch } = useApi<ConnectorItem[]>("/api/v1/emails/connectors");
   const connectors = Array.isArray(data) ? data : [];
@@ -900,24 +1122,28 @@ interface PipelineListItem {
   enabled: boolean;
 }
 
-interface PipelineListResponse {
-  pipelines: PipelineListItem[];
-  total: number;
+interface ScanResponseItem {
+  package_id: string;
+  label: string;
+  display_name: string;
+  confidence: number;
+  method: string;
 }
 
-interface PipelineRunResponse {
-  run_id: string;
-  pipeline_id: string;
-  pipeline_name: string;
-  status: string;
+interface ScanResponse {
+  config_id: string;
+  processed: number;
+  items: ScanResponseItem[];
+  error: string | null;
+  source: string;
 }
 
 export function Emails() {
   const translate = useTranslate();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"inbox" | "upload" | "connectors">("inbox");
   const [refreshKey, setRefreshKey] = useState(0);
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   // Scan Mailbox state
   const [scanning, setScanning] = useState(false);
@@ -929,16 +1155,28 @@ export function Emails() {
     setScanResult(null);
     setScanError(null);
     try {
-      // Find the invoice_finder pipeline
-      const list = await fetchApi<PipelineListResponse>("GET", "/api/v1/pipelines");
-      const pipeline = list.pipelines.find(p => p.name.includes("invoice_finder") && p.enabled);
-      if (!pipeline) {
-        setScanError(translate("aiflow.emails.noPipeline"));
+      // S106/S107 scan_and_classify endpoint: fetch new emails from the
+      // configured IMAP inbox, classify intent with the sklearn+LLM hybrid,
+      // optionally route via IntentRoutingPolicy (server-side config).
+      const connectors = await fetchApi<ConnectorItem[]>("GET", "/api/v1/emails/connectors");
+      const active = connectors.filter(c => c.is_active);
+      if (active.length === 0) {
+        setScanError(translate("aiflow.emails.noActiveConnector"));
         return;
       }
-      // Run the pipeline
-      const result = await fetchApi<PipelineRunResponse>("POST", `/api/v1/pipelines/${pipeline.id}/run`, { input_data: {} });
-      setScanResult({ status: result.status, runId: result.run_id });
+      // Pick the first active connector — a picker UI is the next iteration
+      // when there is more than one active. For now the most-recently-created
+      // active connector wins (API returns ORDER BY created_at DESC).
+      const connector = active[0];
+      const result = await fetchApi<ScanResponse>(
+        "POST",
+        `/api/v1/emails/scan/${connector.id}`,
+        { tenant_id: "default", max_items: 50 },
+      );
+      const msg = translate("aiflow.emails.scanSuccessful")
+        .replace("{count}", String(result.processed))
+        .replace("{connector}", connector.name);
+      setScanResult({ status: msg, runId: connector.id });
       triggerRefresh();
     } catch (e) {
       setScanError(e instanceof Error ? e.message : "Scan failed");
@@ -947,16 +1185,10 @@ export function Emails() {
     }
   };
 
-  const tabs = [
-    { key: "inbox" as const, label: "Inbox" },
-    { key: "upload" as const, label: "Upload" },
-    { key: "connectors" as const, label: translate("aiflow.connectors.menuLabel") },
-  ];
-
   return (
     <PageLayout titleKey="aiflow.emails.title" subtitleKey="aiflow.emails.detail">
-      {/* Scan Mailbox action bar */}
-      <div className="mb-4 flex items-center gap-3">
+      {/* Action bar — Scan Mailbox + Upload modal trigger + link to Connectors */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <button
           onClick={() => void handleScanMailbox()}
           disabled={scanning}
@@ -964,42 +1196,57 @@ export function Emails() {
         >
           {scanning ? translate("aiflow.emails.scanning") : translate("aiflow.emails.scanMailbox")}
         </button>
+        <button
+          onClick={() => setUploadOpen(true)}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          {translate("aiflow.emails.uploadEmails") || "Email feltoltes"}
+        </button>
+        <div className="flex-1" />
+        <button
+          onClick={() => navigate("/emails/connectors")}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          {translate("aiflow.connectors.menuLabel")} →
+        </button>
         {scanResult && (
-          <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
-            Pipeline elindult — <button onClick={() => navigate("/documents")} className="font-semibold underline">
-              {translate("aiflow.emails.scanComplete")} →
-            </button>
+          <div className="w-full rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+            {scanResult.status}
           </div>
         )}
         {scanError && (
-          <span className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          <span className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
             {scanError}
           </span>
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex gap-6">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`border-b-2 pb-2 text-sm font-medium transition-colors ${
-                tab === t.key
-                  ? "border-brand-500 text-brand-600 dark:text-brand-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <InboxTab refreshKey={refreshKey} />
 
-      {tab === "inbox" && <InboxTab refreshKey={refreshKey} />}
-      {tab === "upload" && <UploadTab onProcessed={triggerRefresh} />}
-      {tab === "connectors" && <ConnectorsTab onProcessed={triggerRefresh} />}
+      {/* Upload modal */}
+      {uploadOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => { if (e.target === e.currentTarget) setUploadOpen(false); }}
+        >
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {translate("aiflow.emails.uploadEmails") || "Email feltoltes"}
+              </h3>
+              <button
+                onClick={() => setUploadOpen(false)}
+                className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
+              >
+                {translate("common.action.close") || "Bezaras"}
+              </button>
+            </div>
+            <UploadTab onProcessed={() => { triggerRefresh(); }} />
+          </div>
+        </div>
+      )}
     </PageLayout>
   );
 }

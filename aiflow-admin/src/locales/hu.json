@@ -118,6 +118,8 @@
     "emails": {
       "title": "Emailek",
       "detail": "Email reszletek",
+      "uploadEmails": "Email feltoltes",
+      "connectorsSubtitle": "IMAP / Gmail / O365 kapcsolatok kezelese",
       "sender": "Felado",
       "subject": "Targy",
       "intent": "Szandek",
@@ -141,8 +143,21 @@
       "scanning": "Szkenneles...",
       "scanComplete": "Szkenneles befejezve",
       "noPipeline": "Nincs elerheto invoice_finder pipeline",
+      "noActiveConnector": "Nincs aktiv email connector — adj hozza egyet a Connectorok tabon",
+      "scanSuccessful": "{count} email feldolgozva a(z) {connector} connectorbol",
       "scanStart": "Scan Inditas",
       "scanRunning": "Pipeline fut..."
+    },
+    "intentRules": {
+      "title": "Intent szabalyok",
+      "subtitle": "Intent → downstream action routing policy YAML editor",
+      "editorTitle": "Szabaly szerkesztes",
+      "newTitle": "Uj szabaly",
+      "empty": "Meg nincs intent szabaly. Hozz letre egyet fent."
+    },
+    "prompts": {
+      "title": "Prompts",
+      "editorTitle": "Prompt szerkesztes"
     },
     "connectors": {
       "title": "Email Connectorok",
@@ -189,6 +204,8 @@
       "documentProcessing": "Dokumentum feldolgozas",
       "documents": "Dokumentumok",
       "emailScan": "Email feldolgozas",
+      "emailConnectors": "Email connectorok",
+      "intentRules": "Intent szabalyok",
       "verification": "Verifikacio",
       "knowledgeBase": "Tudasbazis",
       "collections": "Kollekcok",
@@ -692,6 +709,10 @@
       "add": "Hozzaadas",
       "back": "Vissza",
       "cancel": "Megse",
+      "close": "Bezaras",
+      "create": "Letrehozas",
+      "delete": "Torles",
+      "save": "Mentes",
       "clone": "Masolat",
       "confirm": "Megerosites",
       "create": "Letrehozas",

@@ -71,10 +71,15 @@ export async function fetchApi<T>(
     }
 
     let detail: unknown;
+    const responseClone = response.clone();
     try {
       detail = await response.json();
     } catch {
-      detail = await response.text();
+      try {
+        detail = await responseClone.text();
+      } catch {
+        detail = null;
+      }
     }
     throw new ApiClientError(
       response.status,

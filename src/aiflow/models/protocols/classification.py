@@ -1,10 +1,18 @@
-"""Classification protocol for text categorization models."""
+"""Classification protocol for text categorization models.
+
+`ClassificationResult` is re-exported from `aiflow.services.classifier.service`
+— that is the single source-of-truth operational result model used at runtime
+(UC3 Sprint K unification). The protocol input/output envelope here stays for
+the abstract `ClassificationProtocol` contract; Phase 2 implementers return
+the same 11-field result shape.
+"""
 
 from abc import abstractmethod
 
 from pydantic import BaseModel
 
 from aiflow.models.protocols.base import BaseModelProtocol, ModelCallResult
+from aiflow.services.classifier.service import ClassificationResult
 
 __all__ = [
     "ClassificationInput",
@@ -12,12 +20,6 @@ __all__ = [
     "ClassificationOutput",
     "ClassificationProtocol",
 ]
-
-
-class ClassificationResult(BaseModel):
-    label: str
-    confidence: float
-    all_scores: dict[str, float] = {}
 
 
 class ClassificationInput(BaseModel):

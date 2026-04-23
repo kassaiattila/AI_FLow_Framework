@@ -2805,6 +2805,99 @@ components:
           type: integer
       title: IntentRouting
       type: object
+    IntentRulesDetailResponse:
+      description: 'Detail read — returns both structured fields and raw YAML so the
+
+        editor can round-trip comments/formatting the user entered.'
+      properties:
+        default_action:
+          title: Default Action
+          type: string
+        default_target:
+          default: ''
+          title: Default Target
+          type: string
+        path:
+          default: ''
+          title: Path
+          type: string
+        rules:
+          items:
+            additionalProperties: true
+            type: object
+          title: Rules
+          type: array
+        source:
+          default: backend
+          title: Source
+          type: string
+        tenant_id:
+          title: Tenant Id
+          type: string
+        yaml_text:
+          default: ''
+          title: Yaml Text
+          type: string
+      required:
+      - tenant_id
+      - default_action
+      title: IntentRulesDetailResponse
+      type: object
+    IntentRulesListItem:
+      description: Summary row for the rules list page.
+      properties:
+        default_action:
+          title: Default Action
+          type: string
+        default_target:
+          default: ''
+          title: Default Target
+          type: string
+        path:
+          title: Path
+          type: string
+        rule_count:
+          title: Rule Count
+          type: integer
+        tenant_id:
+          title: Tenant Id
+          type: string
+      required:
+      - tenant_id
+      - rule_count
+      - default_action
+      - path
+      title: IntentRulesListItem
+      type: object
+    IntentRulesListResponse:
+      properties:
+        rules:
+          items:
+            $ref: '#/components/schemas/IntentRulesListItem'
+          title: Rules
+          type: array
+        source:
+          default: backend
+          title: Source
+          type: string
+        total:
+          title: Total
+          type: integer
+      required:
+      - rules
+      - total
+      title: IntentRulesListResponse
+      type: object
+    IntentRulesUpsertRequest:
+      description: User-edited raw YAML — validated server-side before write.
+      properties:
+        yaml_text:
+          title: Yaml Text
+          type: string
+      required:
+      - yaml_text
+      title: IntentRulesUpsertRequest
+      type: object
     IntentSchemaCreateRequest:
       properties:
         customer:
@@ -3729,6 +3822,44 @@ components:
       - results
       title: ProcessResponse
       type: object
+    PromptDetailResponse:
+      description: Full prompt content for the editor.
+      properties:
+        name:
+          title: Name
+          type: string
+        path:
+          title: Path
+          type: string
+        source:
+          default: backend
+          title: Source
+          type: string
+        tags:
+          default: []
+          items:
+            type: string
+          title: Tags
+          type: array
+        updated_at:
+          title: Updated At
+          type: string
+        version:
+          anyOf:
+          - type: string
+          - type: integer
+          - type: 'null'
+          title: Version
+        yaml_text:
+          title: Yaml Text
+          type: string
+      required:
+      - name
+      - path
+      - updated_at
+      - yaml_text
+      title: PromptDetailResponse
+      type: object
     PromptListItem:
       description: Read-only metadata for one prompt YAML file.
       properties:
@@ -3777,6 +3908,16 @@ components:
       - prompts
       - total
       title: PromptListResponse
+      type: object
+    PromptUpsertRequest:
+      description: User-edited raw YAML — validated server-side before write.
+      properties:
+        yaml_text:
+          title: Yaml Text
+          type: string
+      required:
+      - yaml_text
+      title: PromptUpsertRequest
       type: object
     QualityOverviewResponse:
       properties:
@@ -4435,6 +4576,91 @@ components:
       required:
       - edits
       title: SaveEditsRequest
+      type: object
+    ScanItem:
+      description: One processed package summary.
+      properties:
+        confidence:
+          default: 0.0
+          title: Confidence
+          type: number
+        display_name:
+          default: ''
+          title: Display Name
+          type: string
+        label:
+          title: Label
+          type: string
+        method:
+          default: ''
+          title: Method
+          type: string
+        package_id:
+          title: Package Id
+          type: string
+      required:
+      - package_id
+      - label
+      title: ScanItem
+      type: object
+    ScanRequest:
+      description: Trigger EmailSource → IntakePackageSink → Classifier scan.
+      properties:
+        max_items:
+          default: 10
+          maximum: 100.0
+          minimum: 1.0
+          title: Max Items
+          type: integer
+        routing_policy_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Optional IntentRoutingPolicy YAML id to load from ``$AIFLOW_POLICY_DIR/intent_routing/{id}.yaml``.
+            When set, the orchestrator maps each classification to a routing action
+            and persists it under ``output_data.routing_action``.
+          title: Routing Policy Id
+        schema_labels:
+          anyOf:
+          - items:
+              additionalProperties: true
+              type: object
+            type: array
+          - type: 'null'
+          title: Schema Labels
+        tenant_id:
+          default: default
+          title: Tenant Id
+          type: string
+      title: ScanRequest
+      type: object
+    ScanResponse:
+      description: Result of a scan-classify run.
+      properties:
+        config_id:
+          title: Config Id
+          type: string
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        items:
+          items:
+            $ref: '#/components/schemas/ScanItem'
+          title: Items
+          type: array
+        processed:
+          default: 0
+          title: Processed
+          type: integer
+        source:
+          default: backend
+          title: Source
+          type: string
+      required:
+      - config_id
+      title: ScanResponse
       type: object
     SendRequest:
       properties:
@@ -7468,6 +7694,108 @@ paths:
       summary: Fetch And Process Stream
       tags:
       - emails
+  /api/v1/emails/intent-rules:
+    get:
+      description: List every tenant that has an intent routing YAML in POLICY_DIR.
+      operationId: list_intent_rules_api_v1_emails_intent_rules_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentRulesListResponse'
+          description: Successful Response
+      summary: List Intent Rules
+      tags:
+      - emails
+  /api/v1/emails/intent-rules/{tenant_id}:
+    delete:
+      description: Delete the policy file for a tenant. Idempotent — 204 when missing.
+      operationId: delete_intent_rules_api_v1_emails_intent_rules__tenant_id__delete
+      parameters:
+      - in: path
+        name: tenant_id
+        required: true
+        schema:
+          title: Tenant Id
+          type: string
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete Intent Rules
+      tags:
+      - emails
+    get:
+      description: 'Return the policy for a tenant, plus the raw YAML so the editor
+        can
+
+        preserve user formatting. 404 when the file does not exist.'
+      operationId: get_intent_rules_api_v1_emails_intent_rules__tenant_id__get
+      parameters:
+      - in: path
+        name: tenant_id
+        required: true
+        schema:
+          title: Tenant Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentRulesDetailResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Intent Rules
+      tags:
+      - emails
+    put:
+      description: 'Upsert the policy for a tenant. YAML is parsed and validated as
+
+        ``IntentRoutingPolicy`` before being written — invalid payloads return 422.
+
+        The ``tenant_id`` in the URL must match the ``tenant_id`` in the YAML.'
+      operationId: upsert_intent_rules_api_v1_emails_intent_rules__tenant_id__put
+      parameters:
+      - in: path
+        name: tenant_id
+        required: true
+        schema:
+          title: Tenant Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntentRulesUpsertRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentRulesDetailResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Upsert Intent Rules
+      tags:
+      - emails
   /api/v1/emails/process:
     post:
       description: Process an uploaded email using the email_intent_processor skill
@@ -7521,6 +7849,46 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: Process Batch Stream
+      tags:
+      - emails
+  /api/v1/emails/scan/{config_id}:
+    post:
+      description: 'Scan an inbox → IntakePackage → classifier → persist to workflow_runs.
+
+
+        Thin wrapper around ``scan_and_classify``; credentials are read from the
+
+        connector config''s plaintext JSON ``credentials_encrypted`` (dev) — real
+
+        credential decryption lands in S107.'
+      operationId: scan_and_classify_endpoint_api_v1_emails_scan__config_id__post
+      parameters:
+      - in: path
+        name: config_id
+        required: true
+        schema:
+          title: Config Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Scan And Classify Endpoint
       tags:
       - emails
   /api/v1/emails/upload:
@@ -8841,6 +9209,72 @@ paths:
                 $ref: '#/components/schemas/ReloadAllResponse'
           description: Successful Response
       summary: Reload All Prompts
+      tags:
+      - prompts
+  /api/v1/prompts/{prompt_name}:
+    get:
+      description: Return the raw YAML + parsed metadata for a single prompt.
+      operationId: get_prompt_detail_api_v1_prompts__prompt_name__get
+      parameters:
+      - in: path
+        name: prompt_name
+        required: true
+        schema:
+          title: Prompt Name
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptDetailResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Prompt Detail
+      tags:
+      - prompts
+    put:
+      description: 'Write updated YAML back to disk and invalidate the cache.
+
+
+        The prompt must already exist on disk — create-new is intentionally out of
+
+        scope. YAML is parsed + the top-level ``name`` must match the URL to catch
+
+        rename-vs-edit confusion.'
+      operationId: upsert_prompt_api_v1_prompts__prompt_name__put
+      parameters:
+      - in: path
+        name: prompt_name
+        required: true
+        schema:
+          title: Prompt Name
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromptUpsertRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptDetailResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Upsert Prompt
       tags:
       - prompts
   /api/v1/prompts/{prompt_name}/invalidate:

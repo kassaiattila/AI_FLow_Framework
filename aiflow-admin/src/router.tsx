@@ -13,6 +13,9 @@ import type { ReactNode } from "react";
 import { DashboardNew } from "./pages-new/Dashboard";
 import { Documents as DocumentsNew } from "./pages-new/Documents";
 import { Emails as EmailsNew } from "./pages-new/Emails";
+import { EmailDetail } from "./pages-new/EmailDetail";
+import { EmailConnectors } from "./pages-new/EmailConnectors";
+import { IntentRules } from "./pages-new/IntentRules";
 import { Rag as RagNew } from "./pages-new/Rag";
 import { RagDetail } from "./pages-new/RagDetail";
 // J4 archived pages — redirected to dashboard (Sprint C)
@@ -29,6 +32,7 @@ import { PackageDetail } from "./pages-new/PackageDetail";
 import { Pipelines } from "./pages-new/Pipelines";
 import { PipelineDetail } from "./pages-new/PipelineDetail";
 import { Prompts } from "./pages-new/Prompts";
+import { PromptDetail } from "./pages-new/PromptDetail";
 import { Quality } from "./pages-new/Quality";
 import { Services } from "./pages-new/Services";
 // Cubix archived (Sprint C)
@@ -70,8 +74,13 @@ export const router = createHashRouter([
       { path: "documents/:id/verify", element: <Verification /> },
       { path: "packages/:id", element: <PackageDetail /> },
       { path: "prompts", element: <Prompts /> },
+      { path: "prompts/*", element: <PromptDetail /> },
       { path: "document-upload", element: <Navigate to="/documents" replace /> },
       { path: "emails", element: <EmailsNew /> },
+      { path: "emails/connectors", element: <EmailConnectors /> },
+      { path: "emails/intent-rules", element: <IntentRules /> },
+      { path: "emails/intent-rules/:tenantId", element: <IntentRules /> },
+      { path: "emails/:id", element: <EmailDetail /> },
       { path: "email-upload", element: <Navigate to="/emails" replace /> },
       { path: "email-connectors", element: <Navigate to="/emails" replace /> },
 
