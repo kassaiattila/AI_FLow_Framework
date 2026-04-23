@@ -2,7 +2,7 @@
 
 ## Overview
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
-**v1.4.9 Sprint M** — **DONE 2026-04-25** Vault hvac + self-hosted Langfuse on `feature/v1.4.9-vault-langfuse` (cut from `main` @ `ab63c93`). HEAD `1f02d00` (S118). PR queued against `main`, tag `v1.4.9` queued post-merge. Predecessors: **v1.4.8 Sprint L** Monitoring + Cost Enforcement (MERGED 2026-04-23, PR #16, squash `ab63c93`, tag `v1.4.8`); **v1.4.5 Sprint J** UC2 RAG (queued); **v1.4.3** Phase 1d (MERGED 2026-04-24, PR #9, tag `v1.4.3-phase-1d`). | API: 8102 | UI: 5173 | Vault dev: 8210 | Langfuse dev: 3000 | Langfuse Postgres: 5434
+**v1.4.10 Sprint N** — LLM cost guardrail + per-tenant budget (S120 kickoff 2026-04-26 on `feature/v1.4.10-cost-guardrail-budget`, cut from `feature/v1.4.9-vault-langfuse` tip `d3e2d4a` while PR #17 OPEN, MERGEABLE). Plan: `01_PLAN/111_SPRINT_N_COST_GUARDRAIL_BUDGET_PLAN.md` — S121 `tenant_budgets` (Alembic 045), S122 pre-flight guardrail, S123 admin UI, S124 close (tag `v1.4.10`). Predecessor: **v1.4.9 Sprint M** — **DONE 2026-04-25** Vault hvac + self-hosted Langfuse on `feature/v1.4.9-vault-langfuse` (cut from `main` @ `ab63c93`). HEAD `1f02d00` (S118). PR queued against `main`, tag `v1.4.9` queued post-merge. Predecessors: **v1.4.8 Sprint L** Monitoring + Cost Enforcement (MERGED 2026-04-23, PR #16, squash `ab63c93`, tag `v1.4.8`); **v1.4.5 Sprint J** UC2 RAG (queued); **v1.4.3** Phase 1d (MERGED 2026-04-24, PR #9, tag `v1.4.3-phase-1d`). | API: 8102 | UI: 5173 | Vault dev: 8210 | Langfuse dev: 3000 | Langfuse Postgres: 5434
 
 ## Structure
 ```
