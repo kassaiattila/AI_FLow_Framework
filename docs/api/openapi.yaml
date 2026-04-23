@@ -1300,6 +1300,45 @@ components:
           title: Use Ssl
       title: ConnectorConfigUpdate
       type: object
+    CostCapStatus:
+      description: Cost cap status for a single tenant.
+      properties:
+        alert_level:
+          default: ok
+          title: Alert Level
+          type: string
+        breached:
+          default: false
+          title: Breached
+          type: boolean
+        cap_usd:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Cap Usd
+        current_usd:
+          default: 0.0
+          title: Current Usd
+          type: number
+        source:
+          default: backend
+          title: Source
+          type: string
+        tenant_id:
+          title: Tenant Id
+          type: string
+        utilization_pct:
+          default: 0.0
+          title: Utilization Pct
+          type: number
+        window_h:
+          default: 24
+          title: Window H
+          type: integer
+      required:
+      - tenant_id
+      title: CostCapStatus
+      type: object
     CostEstimateRequest:
       properties:
         model:
@@ -6677,6 +6716,61 @@ paths:
                 type: array
           description: Successful Response
       summary: Budget Status
+      tags:
+      - costs
+  /api/v1/costs/cap-status:
+    get:
+      description: 'Return the tenant''s running cost vs. configured cost cap.
+
+
+        Parameters fall back to ``PolicyConfig`` defaults when omitted so the UI
+
+        can query without knowing the active profile. ``breached`` is true iff
+
+        ``current_usd >= cap_usd`` (matches ``PolicyEngine.enforce_cost_cap``).'
+      operationId: cost_cap_status_api_v1_costs_cap_status_get
+      parameters:
+      - in: query
+        name: tenant_id
+        required: true
+        schema:
+          maxLength: 255
+          minLength: 1
+          title: Tenant Id
+          type: string
+      - in: query
+        name: cap_usd
+        required: false
+        schema:
+          anyOf:
+          - minimum: 0.0
+            type: number
+          - type: 'null'
+          title: Cap Usd
+      - in: query
+        name: window_h
+        required: false
+        schema:
+          anyOf:
+          - maximum: 744
+            minimum: 1
+            type: integer
+          - type: 'null'
+          title: Window H
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostCapStatus'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Cost Cap Status
       tags:
       - costs
   /api/v1/costs/summary:

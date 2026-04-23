@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import structlog
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
 from aiflow.api.deps import get_pool
+from aiflow.policy import PolicyConfig
+from aiflow.state.cost_repository import CostAttributionRepository
 
 __all__ = ["router"]
 
@@ -192,6 +194,70 @@ class CostRecordsBreakdown(BaseModel):
     total_tokens: int = 0
     total_cost_usd: float = 0.0
     source: str = "backend"
+
+
+class CostCapStatus(BaseModel):
+    """Cost cap status for a single tenant."""
+
+    tenant_id: str
+    cap_usd: float | None = None
+    window_h: int = 24
+    current_usd: float = 0.0
+    utilization_pct: float = 0.0
+    breached: bool = False
+    alert_level: str = "ok"  # ok | warning | critical | exceeded
+    source: str = "backend"
+
+
+@router.get("/cap-status", response_model=CostCapStatus)
+async def cost_cap_status(
+    tenant_id: str = Query(..., min_length=1, max_length=255),
+    cap_usd: float | None = Query(None, ge=0.0),
+    window_h: int | None = Query(None, ge=1, le=24 * 31),
+) -> CostCapStatus:
+    """Return the tenant's running cost vs. configured cost cap.
+
+    Parameters fall back to ``PolicyConfig`` defaults when omitted so the UI
+    can query without knowing the active profile. ``breached`` is true iff
+    ``current_usd >= cap_usd`` (matches ``PolicyEngine.enforce_cost_cap``).
+    """
+    defaults = PolicyConfig()
+    effective_cap = cap_usd if cap_usd is not None else defaults.cost_cap_usd
+    effective_window = window_h if window_h is not None else defaults.cost_cap_window_h
+
+    current = 0.0
+    try:
+        pool = await get_pool()
+        repo = CostAttributionRepository(pool)
+        current = await repo.aggregate_running_cost(tenant_id, effective_window)
+    except Exception as e:
+        logger.warning("cost_cap_status_db_failed", tenant_id=tenant_id, error=str(e))
+
+    if effective_cap is None or effective_cap <= 0.0:
+        utilization = 0.0
+        breached = False
+        alert = "ok"
+    else:
+        utilization = round((current / effective_cap) * 100.0, 2)
+        breached = current >= effective_cap
+        if breached:
+            alert = "exceeded"
+        elif utilization >= 80.0:
+            alert = "critical"
+        elif utilization >= 50.0:
+            alert = "warning"
+        else:
+            alert = "ok"
+
+    return CostCapStatus(
+        tenant_id=tenant_id,
+        cap_usd=effective_cap,
+        window_h=effective_window,
+        current_usd=current,
+        utilization_pct=utilization,
+        breached=breached,
+        alert_level=alert,
+    )
 
 
 @router.get("/breakdown", response_model=CostRecordsBreakdown)

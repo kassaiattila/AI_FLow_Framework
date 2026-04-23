@@ -707,6 +707,86 @@
         }
       }
     },
+    "/api/v1/costs/cap-status": {
+      "get": {
+        "tags": [
+          "costs"
+        ],
+        "summary": "Cost Cap Status",
+        "description": "Return the tenant's running cost vs. configured cost cap.\n\nParameters fall back to ``PolicyConfig`` defaults when omitted so the UI\ncan query without knowing the active profile. ``breached`` is true iff\n``current_usd >= cap_usd`` (matches ``PolicyEngine.enforce_cost_cap``).",
+        "operationId": "cost_cap_status_api_v1_costs_cap_status_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "cap_usd",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cap Usd"
+            }
+          },
+          {
+            "name": "window_h",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 744,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Window H"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostCapStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/costs/breakdown": {
       "get": {
         "tags": [
@@ -10143,6 +10223,61 @@
         "type": "object",
         "title": "ConnectorConfigUpdate",
         "description": "Update an existing connector config."
+      },
+      "CostCapStatus": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "cap_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cap Usd"
+          },
+          "window_h": {
+            "type": "integer",
+            "title": "Window H",
+            "default": 24
+          },
+          "current_usd": {
+            "type": "number",
+            "title": "Current Usd",
+            "default": 0.0
+          },
+          "utilization_pct": {
+            "type": "number",
+            "title": "Utilization Pct",
+            "default": 0.0
+          },
+          "breached": {
+            "type": "boolean",
+            "title": "Breached",
+            "default": false
+          },
+          "alert_level": {
+            "type": "string",
+            "title": "Alert Level",
+            "default": "ok"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id"
+        ],
+        "title": "CostCapStatus",
+        "description": "Cost cap status for a single tenant."
       },
       "CostEstimateRequest": {
         "properties": {

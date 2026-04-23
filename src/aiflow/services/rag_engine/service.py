@@ -552,6 +552,13 @@ class RAGEngineService(BaseService):
         tenant_override_applied = False
         if embedder_provider is None:
             policy = PolicyEngine()
+            try:
+                from aiflow.api.deps import get_pool
+
+                pool = await get_pool()
+                await policy.enforce_cost_cap(tenant_id=tenant_id, pool=pool)
+            except ImportError:
+                pass
             embedder_cls = policy.pick_embedder(tenant_id=tenant_id, profile=profile)
             tenant_override_applied = bool(
                 policy.tenant_overrides.get(tenant_id, {}).get("embedder_provider")

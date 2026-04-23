@@ -14,6 +14,7 @@ __all__ = [
     "ExternalServiceError",
     "PermanentError",
     "BudgetExceededError",
+    "CostCapBreached",
     "QualityGateFailedError",
     "InvalidInputError",
     "WorkflowNotFoundError",
@@ -65,6 +66,40 @@ class PermanentError(AIFlowError):
 class BudgetExceededError(PermanentError):
     error_code: ClassVar[str] = "BUDGET_EXCEEDED"
     http_status: ClassVar[int] = 402
+
+
+class CostCapBreached(PermanentError):  # noqa: N818 — semantic name preserved for ExternalAPI/docs
+    """Raised when a tenant's running cost exceeds its configured cap.
+
+    Mapped to HTTP 429 so clients back off rather than retrying instantly.
+    Carries ``tenant_id``, ``cap_usd``, ``current_usd``, and ``window_h`` in
+    ``details`` for observability and UI rendering.
+    """
+
+    error_code: ClassVar[str] = "COST_CAP_BREACHED"
+    http_status: ClassVar[int] = 429
+
+    def __init__(
+        self,
+        tenant_id: str,
+        cap_usd: float,
+        current_usd: float,
+        window_h: int,
+    ) -> None:
+        super().__init__(
+            f"Cost cap breached for tenant {tenant_id!r}: "
+            f"${current_usd:.6f} >= ${cap_usd:.6f} over {window_h}h window.",
+            details={
+                "tenant_id": tenant_id,
+                "cap_usd": cap_usd,
+                "current_usd": current_usd,
+                "window_h": window_h,
+            },
+        )
+        self.tenant_id = tenant_id
+        self.cap_usd = cap_usd
+        self.current_usd = current_usd
+        self.window_h = window_h
 
 
 class QualityGateFailedError(PermanentError):

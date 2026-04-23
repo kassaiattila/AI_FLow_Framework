@@ -192,6 +192,30 @@ def create_app() -> FastAPI:
     env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()
     is_production = env in ("production", "prod")
 
+    from aiflow.core.errors import CostCapBreached
+
+    @app.exception_handler(CostCapBreached)
+    async def cost_cap_breached_handler(request: Request, exc: CostCapBreached):
+        logger.warning(
+            "cost_cap_breached",
+            tenant_id=exc.tenant_id,
+            cap_usd=exc.cap_usd,
+            current_usd=exc.current_usd,
+            window_h=exc.window_h,
+            path=request.url.path,
+        )
+        return JSONResponse(
+            status_code=exc.http_status,
+            content={
+                "detail": exc.message,
+                "error_code": exc.error_code,
+                "tenant_id": exc.tenant_id,
+                "cap_usd": exc.cap_usd,
+                "current_usd": exc.current_usd,
+                "window_h": exc.window_h,
+            },
+        )
+
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
         error_id = str(uuid.uuid4())
