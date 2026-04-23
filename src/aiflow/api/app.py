@@ -161,6 +161,7 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.skills_api import router as skills_router
     from aiflow.api.v1.sources_webhook import router as sources_webhook_router
     from aiflow.api.v1.spec_writer import router as spec_writer_router
+    from aiflow.api.v1.tenant_budgets import router as tenant_budgets_router
     from aiflow.api.v1.verifications import router as verifications_router
 
     app.include_router(health_router)
@@ -170,6 +171,7 @@ def create_app() -> FastAPI:
     app.include_router(feedback_router)
     app.include_router(runs_router)
     app.include_router(costs_router)
+    app.include_router(tenant_budgets_router)
     app.include_router(skills_router)
     app.include_router(emails_router)
     app.include_router(auth_router)
