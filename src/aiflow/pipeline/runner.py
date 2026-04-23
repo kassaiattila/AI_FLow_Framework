@@ -15,6 +15,7 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from aiflow.core.context import ExecutionContext
+from aiflow.core.errors import CostGuardrailRefused
 from aiflow.observability.tracing import TraceManager
 from aiflow.pipeline.adapter_base import AdapterRegistry
 from aiflow.pipeline.compiler import PipelineCompiler
@@ -129,6 +130,11 @@ class PipelineRunner:
         """
         start = time.monotonic()
         compilation = self._compiler.compile(pipeline_def)
+
+        # Sprint N / S122 — pre-flight cost guardrail. Flag-off by default;
+        # refuses the run before any step executes when the projected cost
+        # exceeds the tenant's remaining budget.
+        await _preflight_pipeline_cost(ctx=ctx, pipeline_def=pipeline_def)
 
         # Create workflow run
         run_id = uuid.uuid4()
@@ -358,6 +364,67 @@ def _extract_step_cost(output: Any) -> float:
         except (TypeError, ValueError):
             return 0.0
     return 0.0
+
+
+async def _preflight_pipeline_cost(
+    *,
+    ctx: ExecutionContext,
+    pipeline_def: PipelineDefinition,
+) -> None:
+    """Refuse the pipeline run up-front if projected cost exceeds remaining budget.
+
+    No-op when the guardrail is disabled, ``ctx.team_id`` is missing, or any
+    guardrail dependency fails — a guardrail bug must never 500 a request.
+    Only raises :class:`CostGuardrailRefused` when the flag is enforced
+    (``dry_run=False``) AND the projected cost strictly exceeds the budget.
+    """
+    tenant_id = ctx.team_id
+    if not tenant_id:
+        logger.debug("cost_preflight_skipped_no_tenant", run_context="pipeline")
+        return
+
+    try:
+        from aiflow.core.config import get_settings
+        from aiflow.guardrails.cost_preflight import build_guardrail_from_settings
+
+        guardrail = await build_guardrail_from_settings()
+        if guardrail is None:
+            return
+
+        settings = get_settings().cost_guardrail
+        step_count = max(len(pipeline_def.steps), 1)
+        input_tokens = settings.default_input_tokens * step_count
+        max_output_tokens = settings.default_output_tokens * step_count
+        model = ctx.model_override or "openai/gpt-4o-mini"
+
+        decision = await guardrail.check(
+            tenant_id=tenant_id,
+            model=model,
+            input_tokens=input_tokens,
+            max_output_tokens=max_output_tokens,
+        )
+    except CostGuardrailRefused:
+        raise
+    except Exception as exc:
+        logger.warning(
+            "cost_preflight_failed",
+            run_context="pipeline",
+            tenant_id=tenant_id,
+            error=str(exc)[:200],
+        )
+        return
+
+    if decision.allowed:
+        return
+
+    raise CostGuardrailRefused(
+        tenant_id=tenant_id,
+        projected_usd=decision.projected_usd,
+        remaining_usd=decision.remaining_usd or 0.0,
+        period=decision.period,
+        reason=decision.reason,
+        dry_run=decision.dry_run,
+    )
 
 
 async def _record_pipeline_cost(

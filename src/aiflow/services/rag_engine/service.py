@@ -552,6 +552,13 @@ class RAGEngineService(BaseService):
         tenant_override_applied = False
         if embedder_provider is None:
             policy = PolicyEngine()
+            # Sprint N / S122 — pre-flight layered ABOVE the reactive
+            # enforce_cost_cap below. Pre-flight is the first gate; cap stays
+            # as the reactive second gate.
+            await _rag_preflight_cost(
+                tenant_id=tenant_id,
+                file_count=len(file_paths),
+            )
             try:
                 from aiflow.api.deps import get_pool
 
@@ -990,3 +997,62 @@ _MIME_BY_SUFFIX: dict[str, str] = {
 
 def _mime_for(file_path: Path) -> str:
     return _MIME_BY_SUFFIX.get(file_path.suffix.lower(), "application/octet-stream")
+
+
+async def _rag_preflight_cost(*, tenant_id: str, file_count: int) -> None:
+    """Sprint N / S122 — pre-flight cost guardrail for the RAG ingest path.
+
+    Sits above :meth:`PolicyEngine.enforce_cost_cap`. Flag-off by default; on
+    refusal raises :class:`CostGuardrailRefused` (HTTP 429). Any dependency
+    failure is swallowed so the reactive cap remains the only gate.
+    """
+    if not tenant_id:
+        logger.debug("cost_preflight_skipped_no_tenant", run_context="rag_engine")
+        return
+
+    try:
+        from aiflow.core.config import get_settings
+        from aiflow.core.errors import CostGuardrailRefused
+        from aiflow.guardrails.cost_preflight import build_guardrail_from_settings
+
+        guardrail = await build_guardrail_from_settings()
+        if guardrail is None:
+            return
+
+        settings = get_settings().cost_guardrail
+        scale = max(file_count, 1)
+        input_tokens = settings.default_input_tokens * scale
+        max_output_tokens = 0  # embed-only; no completion cost
+
+        decision = await guardrail.check(
+            tenant_id=tenant_id,
+            model="openai/text-embedding-3-small",
+            input_tokens=input_tokens,
+            max_output_tokens=max_output_tokens,
+        )
+    except Exception as exc:
+        # Re-raise the structured refusal; swallow everything else so a
+        # guardrail bug never 500s the ingest request.
+        from aiflow.core.errors import CostGuardrailRefused as _Refused
+
+        if isinstance(exc, _Refused):
+            raise
+        logger.warning(
+            "cost_preflight_failed",
+            run_context="rag_engine",
+            tenant_id=tenant_id,
+            error=str(exc)[:200],
+        )
+        return
+
+    if decision.allowed:
+        return
+
+    raise CostGuardrailRefused(
+        tenant_id=tenant_id,
+        projected_usd=decision.projected_usd,
+        remaining_usd=decision.remaining_usd or 0.0,
+        period=decision.period,
+        reason=decision.reason,
+        dry_run=decision.dry_run,
+    )

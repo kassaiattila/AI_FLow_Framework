@@ -15,6 +15,7 @@ __all__ = [
     "PermanentError",
     "BudgetExceededError",
     "CostCapBreached",
+    "CostGuardrailRefused",
     "QualityGateFailedError",
     "InvalidInputError",
     "WorkflowNotFoundError",
@@ -100,6 +101,48 @@ class CostCapBreached(PermanentError):  # noqa: N818 — semantic name preserved
         self.cap_usd = cap_usd
         self.current_usd = current_usd
         self.window_h = window_h
+
+
+class CostGuardrailRefused(PermanentError):  # noqa: N818 — semantic name preserved for ExternalAPI/docs
+    """Raised when a pre-flight cost estimate exceeds the tenant's remaining budget.
+
+    Mirrors :class:`CostCapBreached` (HTTP 429) but fires *before* any cost is
+    incurred. Carries the structured refusal payload in ``details`` so the API
+    layer can surface it verbatim to the client.
+    """
+
+    error_code: ClassVar[str] = "COST_GUARDRAIL_REFUSED"
+    http_status: ClassVar[int] = 429
+
+    def __init__(
+        self,
+        tenant_id: str,
+        projected_usd: float,
+        remaining_usd: float,
+        period: str,
+        reason: str = "over_budget",
+        dry_run: bool = False,
+    ) -> None:
+        super().__init__(
+            f"Cost guardrail refused call for tenant {tenant_id!r}: "
+            f"projected ${projected_usd:.6f} > remaining ${remaining_usd:.6f} "
+            f"(period={period}).",
+            details={
+                "refused": True,
+                "tenant_id": tenant_id,
+                "projected_usd": projected_usd,
+                "remaining_usd": remaining_usd,
+                "period": period,
+                "reason": reason,
+                "dry_run": dry_run,
+            },
+        )
+        self.tenant_id = tenant_id
+        self.projected_usd = projected_usd
+        self.remaining_usd = remaining_usd
+        self.period = period
+        self.reason = reason
+        self.dry_run = dry_run
 
 
 class QualityGateFailedError(PermanentError):
