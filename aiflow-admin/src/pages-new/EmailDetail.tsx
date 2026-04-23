@@ -9,6 +9,10 @@ import { useApi } from "../lib/hooks";
 import { PageLayout } from "../layout/PageLayout";
 import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
+import {
+  AttachmentSignalsCard,
+  type AttachmentFeatures,
+} from "../components-new/AttachmentSignalsCard";
 
 interface EmailDetail {
   email_id: string;
@@ -23,6 +27,8 @@ interface EmailDetail {
   priority: Record<string, unknown> | null;
   routing: Record<string, unknown> | null;
   attachment_summaries: Array<Record<string, unknown>>;
+  attachment_features: AttachmentFeatures | null;
+  classification_method: string | null;
   processing_time_ms: number;
   status: string;
   source: string;
@@ -116,6 +122,11 @@ export function EmailDetail() {
           <KV label="Status" value={data.status} />
         </Card>
       </div>
+
+      <AttachmentSignalsCard
+        features={data.attachment_features}
+        classificationMethod={data.classification_method}
+      />
 
       {data.body && (
         <div className="mb-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
