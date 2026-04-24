@@ -102,7 +102,9 @@ class TestWarmupGracefulDegradation:
         assert result.warmed is False
         assert "RuntimeError" in result.reason
         assert "boom" in result.reason
-        assert result.elapsed_seconds > 0.0
+        # CI runners can complete the patched path faster than the
+        # round(..., 3) resolution; accept >= 0 rather than > 0.
+        assert result.elapsed_seconds >= 0.0
 
     def test_missing_docling_is_caught(self, _fake_reportlab: None) -> None:
         """ImportError raised by docling must fall through without crashing."""
