@@ -46,9 +46,10 @@ from aiflow.tools.attachment_processor import ProcessedAttachment
 
 pytestmark = pytest.mark.asyncio
 
-PG_DSN = os.getenv(
-    "AIFLOW_TEST_DSN",
-    "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev",
+PG_DSN = (
+    os.getenv("AIFLOW_DATABASE__URL")
+    or os.getenv("AIFLOW_TEST_DSN")
+    or "postgresql://aiflow:aiflow_dev_password@localhost:5433/aiflow_dev"
 ).replace("postgresql+asyncpg://", "postgresql://")
 
 
