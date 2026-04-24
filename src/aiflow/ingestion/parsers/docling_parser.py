@@ -19,13 +19,26 @@ Usage:
 
 from __future__ import annotations
 
+import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
 import structlog
 from pydantic import BaseModel, Field
 
-__all__ = ["DoclingParser", "ParsedDocument", "ParsedPage", "ParsedTable"]
+# Pin runtime imports — the autoformatter treats names used only inside
+# method bodies as unused if the method body gets stripped to a stub
+# during an intermediate edit. `warmup()` uses both.
+_RUNTIME_HOOKS = (tempfile, time)
+
+__all__ = [
+    "DoclingParser",
+    "ParsedDocument",
+    "ParsedPage",
+    "ParsedTable",
+    "WarmupResult",
+]
 
 logger = structlog.get_logger(__name__)
 
@@ -60,6 +73,22 @@ class ParsedDocument(BaseModel):
     page_count: int = 0
     word_count: int = 0
     char_count: int = 0
+
+
+class WarmupResult(BaseModel):
+    """Sprint O FU-4 — outcome of a DoclingParser warmup pass.
+
+    The ``elapsed_seconds`` is the wall clock of the first full
+    converter.convert() pass against a minimal 1-page payload, which
+    is dominated by docling's model + weights load. Subsequent parses
+    on the same ``DoclingParser`` instance skip that cost (lazy
+    singleton ``_converter`` on the instance).
+    """
+
+    warmed: bool = False
+    elapsed_seconds: float = 0.0
+    reason: str = ""
+    file_type: str = ""
 
 
 class DoclingParser:
@@ -181,6 +210,70 @@ class DoclingParser:
             pages=page_count,
         )
         return doc
+
+    def warmup(self) -> WarmupResult:
+        """Sprint O FU-4 — pre-load docling so the first real parse avoids
+        the 10-20 s cold start measured in ``docs/uc3_attachment_extract_timing.md``.
+
+        Generates a minimal 1-page PDF in-memory via reportlab (a dev
+        dependency already pinned via the Sprint O fixture script), runs
+        it through ``self.parse()`` once, and discards the result. The
+        parser's ``_converter`` singleton is now live and subsequent
+        ``parse()`` calls on this instance (and any further instances
+        that reuse the same converter via a shared registry) hit the
+        hot path.
+
+        Returns a :class:`WarmupResult` with the measured wall-clock so
+        callers can assert SLOs or emit structured telemetry. Missing
+        optional dependencies (``reportlab`` or ``docling`` itself)
+        return ``warmed=False`` + a reason string rather than raising —
+        the caller typically wants the app to start regardless.
+        """
+        start = time.perf_counter()
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.pdfgen import canvas
+        except ImportError as exc:
+            return WarmupResult(
+                warmed=False,
+                elapsed_seconds=0.0,
+                reason=f"reportlab missing: {exc}",
+            )
+
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as fp:
+                c = canvas.Canvas(fp.name, pagesize=A4)
+                c.setFont("Helvetica", 11)
+                c.drawString(72, 750, "Docling warmup — this page is intentionally minimal.")
+                c.drawString(72, 720, "Sprint O FU-4 cold-start instrumentation.")
+                c.showPage()
+                c.save()
+                tmp_path = fp.name
+
+            try:
+                self.parse(tmp_path)
+            finally:
+                Path(tmp_path).unlink(missing_ok=True)
+        except ImportError as exc:
+            return WarmupResult(
+                warmed=False,
+                elapsed_seconds=round(time.perf_counter() - start, 3),
+                reason=f"docling missing: {exc}",
+            )
+        except Exception as exc:  # pragma: no cover — telemetry only
+            return WarmupResult(
+                warmed=False,
+                elapsed_seconds=round(time.perf_counter() - start, 3),
+                reason=f"warmup failed: {type(exc).__name__}: {exc}",
+            )
+
+        elapsed = round(time.perf_counter() - start, 3)
+        logger.info("docling_warmup_done", elapsed_seconds=elapsed)
+        return WarmupResult(
+            warmed=True,
+            elapsed_seconds=elapsed,
+            file_type="pdf",
+        )
 
     def parse_batch(self, file_paths: list[str | Path]) -> list[ParsedDocument]:
         """Parse multiple documents."""
