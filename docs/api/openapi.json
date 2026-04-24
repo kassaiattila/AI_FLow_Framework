@@ -11430,6 +11430,17 @@
             ],
             "title": "Classification Method"
           },
+          "intent_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intent Class"
+          },
           "processing_time_ms": {
             "type": "number",
             "title": "Processing Time Ms",
