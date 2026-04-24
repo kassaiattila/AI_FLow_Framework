@@ -245,11 +245,36 @@ async def test_flag_on_zero_files_skips_extraction(monkeypatch) -> None:
     assert "attachment_features" not in repo.updates[0]["output_data"]
 
 
-async def test_flag_on_real_file_emits_features_and_event(tmp_path: Path) -> None:
-    """End-to-end happy path: real on-disk text attachment flows through the
-    extractor and lands in ``output_data['attachment_features']``."""
+async def test_flag_on_real_file_emits_features_and_event(tmp_path: Path, monkeypatch) -> None:
+    """End-to-end happy path: a flag-ON run with at least one file flows through
+    the orchestrator hook and lands the extractor result in
+    ``output_data['attachment_features']`` + emits the extraction structlog event.
+
+    AttachmentProcessor is stubbed to return a deterministic ProcessedAttachment
+    so the test is hermetic — docling's per-OS behaviour on ``.txt`` files (the
+    Linux build returns empty text where Windows returns the file body) would
+    otherwise make this assert flaky cross-platform. Real docling extraction is
+    covered by the integration test
+    ``tests/integration/services/email_connector/test_attachment_intent_classify.py``.
+    """
+    from aiflow.tools.attachment_processor import ProcessedAttachment
+
     adapter = _FakeAdapter([_make_package(tenant_id="t3", files=[_real_intake_file(tmp_path)])])
     repo = _FakeRepo()
+
+    class _StubProcessor:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def process(self, filename, content, mime_type):
+            return ProcessedAttachment(
+                filename=filename,
+                mime_type=mime_type,
+                text="Invoice INV-2026-0042\nTotal: 48,500 HUF\n",
+                processor_used="stub",
+            )
+
+    monkeypatch.setattr("aiflow.tools.attachment_processor.AttachmentProcessor", _StubProcessor)
 
     settings_on = UC3AttachmentIntentSettings(enabled=True, total_budget_seconds=30.0)
 

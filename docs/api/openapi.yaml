@@ -1918,6 +1918,12 @@ components:
     EmailDetailResponse:
       description: Full email detail with all processing results.
       properties:
+        attachment_features:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Attachment Features
         attachment_summaries:
           items:
             additionalProperties: true
@@ -1932,6 +1938,11 @@ components:
           default: ''
           title: Body Html
           type: string
+        classification_method:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Classification Method
         email_id:
           title: Email Id
           type: string
