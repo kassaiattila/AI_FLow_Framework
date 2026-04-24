@@ -21,6 +21,7 @@ __all__ = [
     "WorkflowNotFoundError",
     "AuthorizationError",
     "CircuitBreakerOpenError",
+    "FeatureDisabled",
     "HumanReviewRequiredError",
     "ConfigurationError",
 ]
@@ -168,6 +169,23 @@ class AuthorizationError(PermanentError):
 class CircuitBreakerOpenError(PermanentError):
     error_code: ClassVar[str] = "CIRCUIT_OPEN"
     http_status: ClassVar[int] = 503
+
+
+class FeatureDisabled(PermanentError):  # noqa: N818 — semantic name preserved for ExternalAPI/docs
+    """Raised when an opt-in feature is requested while its flag is off.
+
+    Sprint R / S139 introduces this as a generic gate. The first
+    consumer is :meth:`PromptManager.get_workflow`, which raises with
+    ``feature="prompt_workflows"`` when the matching settings flag is
+    disabled.
+    """
+
+    error_code: ClassVar[str] = "FEATURE_DISABLED"
+    http_status: ClassVar[int] = 503
+
+    def __init__(self, feature: str, message: str | None = None) -> None:
+        self.feature = feature
+        super().__init__(message or f"feature {feature!r} is disabled")
 
 
 class HumanReviewRequiredError(PermanentError):
