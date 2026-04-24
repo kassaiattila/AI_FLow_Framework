@@ -183,10 +183,23 @@ async def scan_and_classify(
                     attachments_considered=(features or {}).get("attachments_considered", 0),
                 )
 
+        # S132 — when the attachment-intent flag is on, let the operator
+        # pick the classifier strategy (default SKLEARN_FIRST — see plan
+        # 113 §3). Flag-off callers stick with the service's configured
+        # default so Sprint K behaviour is unchanged.
+        strategy_override: str | None = None
+        if (
+            attachment_intent_settings is not None
+            and attachment_intent_settings.enabled
+            and attachment_intent_settings.classifier_strategy
+        ):
+            strategy_override = attachment_intent_settings.classifier_strategy
+
         result = await classifier.classify(
             text=text,
             schema_labels=schema_labels,
             context=classifier_context,
+            strategy=strategy_override,
         )
 
         output_data: dict[str, Any] = {

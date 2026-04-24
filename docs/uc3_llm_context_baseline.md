@@ -6,87 +6,87 @@
 
 | # | Strategy | LLM-context | Misclass % | Invoice | Contract | Body-only | Mixed | LLM calls | Cost (USD) | p50 / p95 ms |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | sklearn_only_no_ctx | False | **32.0%** | 6/6 | 5/6 | 3/6 | 3/7 | 0 | $0.0 | 282 / 22141 |
-| 2 | sklearn_only_with_ctx | True | **32.0%** | 6/6 | 5/6 | 3/6 | 3/7 | 0 | $0.0 | 225 / 6695 |
-| 3 | sklearn_first_no_ctx | False | **12.0%** | 6/6 | 3/6 | 6/6 | 7/7 | 25 | $0.0045 | 1681 / 14661 |
-| 4 | sklearn_first_with_ctx | True | **16.0%** | 6/6 | 3/6 | 6/6 | 6/7 | 25 | $0.0045 | 2048 / 10845 |
+| 1 | sklearn_only_no_ctx | False | **28.0%** | 6/6 | 6/6 | 3/6 | 3/7 | 11 | $0.002 | 252 / 16622 |
+| 2 | sklearn_only_with_ctx | True | **28.0%** | 6/6 | 6/6 | 3/6 | 3/7 | 11 | $0.002 | 175 / 5460 |
+| 3 | sklearn_first_no_ctx | False | **4.0%** | 6/6 | 6/6 | 6/6 | 6/7 | 11 | $0.002 | 1968 / 6845 |
+| 4 | sklearn_first_with_ctx | True | **4.0%** | 6/6 | 6/6 | 6/6 | 6/7 | 11 | $0.002 | 1590 / 6130 |
 
 ## sklearn_only_no_ctx
 
 | Fixture | Cohort | Expected | Predicted | OK | Method |
 |---|---|---|---|---|---|
-| `001_invoice_march` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_rule |
-| `002_invoice_en_supplier` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords+attachment_rule |
-| `003_invoice_overdue_reminder` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords+attachment_rule |
-| `004_invoice_recurring` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_rule |
-| `005_invoice_utility` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_rule |
-| `006_invoice_wire_transfer` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords+attachment_rule |
-| `007_contract_sign` | contract_docx | `order` | `order` | ✅ | keywords+attachment_rule |
-| `008_contract_renewal` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_rule |
-| `009_contract_nda` | contract_docx | `order` | `feedback` | ❌ | keywords |
-| `010_contract_amendment` | contract_docx | `order` | `order` | ✅ | keywords+attachment_rule |
-| `011_contract_sla` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_rule |
-| `012_contract_msa` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_rule |
-| `013_inquiry_pricing` | body_only | `inquiry` | `order` | ❌ | keywords |
-| `014_inquiry_process` | body_only | `inquiry` | `inquiry` | ✅ | keywords |
-| `015_support_login` | body_only | `support` | `support` | ✅ | keywords |
-| `016_support_app_error` | body_only | `support` | `support` | ✅ | keywords |
-| `017_marketing_newsletter` | body_only | `marketing` | `unknown` | ❌ | keywords_no_match |
-| `018_notification_ci_failed` | body_only | `notification` | `inquiry` | ❌ | keywords |
-| `019_invoice_no_attachment` | mixed | `invoice_received` | `invoice_received` | ✅ | keywords |
-| `020_support_with_log_pdf` | mixed | `support` | `support` | ✅ | keywords |
-| `021_contract_inquiry_no_attach` | mixed | `inquiry` | `unknown` | ❌ | keywords_no_match |
-| `022_marketing_with_pdf` | mixed | `marketing` | `unknown` | ❌ | keywords_no_match |
-| `023_meeting_invite` | mixed | `calendar_invite` | `internal` | ❌ | keywords |
-| `024_complaint_about_invoice` | mixed | `complaint` | `invoice_received` | ❌ | keywords_no_match+attachment_rule |
-| `025_internal_forward_invoice` | mixed | `invoice_received` | `invoice_received` | ✅ | keywords+attachment_rule |
+| `001_invoice_march` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `002_invoice_en_supplier` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `003_invoice_overdue_reminder` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `004_invoice_recurring` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `005_invoice_utility` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `006_invoice_wire_transfer` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `007_contract_sign` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `008_contract_renewal` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `009_contract_nda` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `010_contract_amendment` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `011_contract_sla` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `012_contract_msa` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `013_inquiry_pricing` | body_only | `inquiry` | `order` | ❌ | keywords_only_no_llm |
+| `014_inquiry_process` | body_only | `inquiry` | `inquiry` | ✅ | keywords_only_no_llm |
+| `015_support_login` | body_only | `support` | `support` | ✅ | keywords_only_no_llm |
+| `016_support_app_error` | body_only | `support` | `support` | ✅ | keywords_only_no_llm |
+| `017_marketing_newsletter` | body_only | `marketing` | `unknown` | ❌ | keywords_only_no_llm |
+| `018_notification_ci_failed` | body_only | `notification` | `inquiry` | ❌ | keywords_only_no_llm |
+| `019_invoice_no_attachment` | mixed | `invoice_received` | `invoice_received` | ✅ | keywords_only_no_llm |
+| `020_support_with_log_pdf` | mixed | `support` | `support` | ✅ | keywords_only_no_llm |
+| `021_contract_inquiry_no_attach` | mixed | `inquiry` | `unknown` | ❌ | keywords_only_no_llm |
+| `022_marketing_with_pdf` | mixed | `marketing` | `unknown` | ❌ | keywords_only_no_llm |
+| `023_meeting_invite` | mixed | `calendar_invite` | `internal` | ❌ | keywords_only_no_llm |
+| `024_complaint_about_invoice` | mixed | `complaint` | `invoice_received` | ❌ | keywords_no_match+attachment_signal+attachment_rule |
+| `025_internal_forward_invoice` | mixed | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
 
 ## sklearn_only_with_ctx
 
 | Fixture | Cohort | Expected | Predicted | OK | Method |
 |---|---|---|---|---|---|
-| `001_invoice_march` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_rule |
-| `002_invoice_en_supplier` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords+attachment_rule |
-| `003_invoice_overdue_reminder` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords+attachment_rule |
-| `004_invoice_recurring` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_rule |
-| `005_invoice_utility` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_rule |
-| `006_invoice_wire_transfer` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords+attachment_rule |
-| `007_contract_sign` | contract_docx | `order` | `order` | ✅ | keywords+attachment_rule |
-| `008_contract_renewal` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_rule |
-| `009_contract_nda` | contract_docx | `order` | `feedback` | ❌ | keywords |
-| `010_contract_amendment` | contract_docx | `order` | `order` | ✅ | keywords+attachment_rule |
-| `011_contract_sla` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_rule |
-| `012_contract_msa` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_rule |
-| `013_inquiry_pricing` | body_only | `inquiry` | `order` | ❌ | keywords |
-| `014_inquiry_process` | body_only | `inquiry` | `inquiry` | ✅ | keywords |
-| `015_support_login` | body_only | `support` | `support` | ✅ | keywords |
-| `016_support_app_error` | body_only | `support` | `support` | ✅ | keywords |
-| `017_marketing_newsletter` | body_only | `marketing` | `unknown` | ❌ | keywords_no_match |
-| `018_notification_ci_failed` | body_only | `notification` | `inquiry` | ❌ | keywords |
-| `019_invoice_no_attachment` | mixed | `invoice_received` | `invoice_received` | ✅ | keywords |
-| `020_support_with_log_pdf` | mixed | `support` | `support` | ✅ | keywords |
-| `021_contract_inquiry_no_attach` | mixed | `inquiry` | `unknown` | ❌ | keywords_no_match |
-| `022_marketing_with_pdf` | mixed | `marketing` | `unknown` | ❌ | keywords_no_match |
-| `023_meeting_invite` | mixed | `calendar_invite` | `internal` | ❌ | keywords |
-| `024_complaint_about_invoice` | mixed | `complaint` | `invoice_received` | ❌ | keywords_no_match+attachment_rule |
-| `025_internal_forward_invoice` | mixed | `invoice_received` | `invoice_received` | ✅ | keywords+attachment_rule |
+| `001_invoice_march` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `002_invoice_en_supplier` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `003_invoice_overdue_reminder` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `004_invoice_recurring` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `005_invoice_utility` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `006_invoice_wire_transfer` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `007_contract_sign` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `008_contract_renewal` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `009_contract_nda` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `010_contract_amendment` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `011_contract_sla` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `012_contract_msa` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `013_inquiry_pricing` | body_only | `inquiry` | `order` | ❌ | keywords_only_no_llm |
+| `014_inquiry_process` | body_only | `inquiry` | `inquiry` | ✅ | keywords_only_no_llm |
+| `015_support_login` | body_only | `support` | `support` | ✅ | keywords_only_no_llm |
+| `016_support_app_error` | body_only | `support` | `support` | ✅ | keywords_only_no_llm |
+| `017_marketing_newsletter` | body_only | `marketing` | `unknown` | ❌ | keywords_only_no_llm |
+| `018_notification_ci_failed` | body_only | `notification` | `inquiry` | ❌ | keywords_only_no_llm |
+| `019_invoice_no_attachment` | mixed | `invoice_received` | `invoice_received` | ✅ | keywords_only_no_llm |
+| `020_support_with_log_pdf` | mixed | `support` | `support` | ✅ | keywords_only_no_llm |
+| `021_contract_inquiry_no_attach` | mixed | `inquiry` | `unknown` | ❌ | keywords_only_no_llm |
+| `022_marketing_with_pdf` | mixed | `marketing` | `unknown` | ❌ | keywords_only_no_llm |
+| `023_meeting_invite` | mixed | `calendar_invite` | `internal` | ❌ | keywords_only_no_llm |
+| `024_complaint_about_invoice` | mixed | `complaint` | `invoice_received` | ❌ | keywords_no_match+attachment_signal+attachment_rule |
+| `025_internal_forward_invoice` | mixed | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
 
 ## sklearn_first_no_ctx
 
 | Fixture | Cohort | Expected | Predicted | OK | Method |
 |---|---|---|---|---|---|
-| `001_invoice_march` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `002_invoice_en_supplier` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `003_invoice_overdue_reminder` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `004_invoice_recurring` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `005_invoice_utility` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `006_invoice_wire_transfer` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `007_contract_sign` | contract_docx | `order` | `order` | ✅ | hybrid_llm |
-| `008_contract_renewal` | contract_docx | `order` | `order` | ✅ | hybrid_llm |
-| `009_contract_nda` | contract_docx | `order` | `internal` | ❌ | hybrid_llm |
-| `010_contract_amendment` | contract_docx | `order` | `order` | ✅ | hybrid_llm |
-| `011_contract_sla` | contract_docx | `order` | `internal` | ❌ | hybrid_llm |
-| `012_contract_msa` | contract_docx | `order` | `internal` | ❌ | hybrid_llm |
+| `001_invoice_march` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `002_invoice_en_supplier` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `003_invoice_overdue_reminder` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `004_invoice_recurring` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `005_invoice_utility` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `006_invoice_wire_transfer` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `007_contract_sign` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `008_contract_renewal` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `009_contract_nda` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `010_contract_amendment` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `011_contract_sla` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `012_contract_msa` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
 | `013_inquiry_pricing` | body_only | `inquiry` | `inquiry` | ✅ | hybrid_llm |
 | `014_inquiry_process` | body_only | `inquiry` | `inquiry` | ✅ | hybrid_llm |
 | `015_support_login` | body_only | `support` | `support` | ✅ | hybrid_llm |
@@ -98,25 +98,25 @@
 | `021_contract_inquiry_no_attach` | mixed | `inquiry` | `inquiry` | ✅ | hybrid_llm |
 | `022_marketing_with_pdf` | mixed | `marketing` | `marketing` | ✅ | hybrid_llm |
 | `023_meeting_invite` | mixed | `calendar_invite` | `calendar_invite` | ✅ | hybrid_llm |
-| `024_complaint_about_invoice` | mixed | `complaint` | `complaint` | ✅ | hybrid_llm |
-| `025_internal_forward_invoice` | mixed | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
+| `024_complaint_about_invoice` | mixed | `complaint` | `invoice_received` | ❌ | keywords_no_match+attachment_signal+attachment_rule |
+| `025_internal_forward_invoice` | mixed | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
 
 ## sklearn_first_with_ctx
 
 | Fixture | Cohort | Expected | Predicted | OK | Method |
 |---|---|---|---|---|---|
-| `001_invoice_march` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `002_invoice_en_supplier` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `003_invoice_overdue_reminder` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `004_invoice_recurring` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `005_invoice_utility` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `006_invoice_wire_transfer` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | hybrid_llm |
-| `007_contract_sign` | contract_docx | `order` | `order` | ✅ | hybrid_llm |
-| `008_contract_renewal` | contract_docx | `order` | `order` | ✅ | hybrid_llm |
-| `009_contract_nda` | contract_docx | `order` | `feedback` | ❌ | hybrid_llm |
-| `010_contract_amendment` | contract_docx | `order` | `order` | ✅ | hybrid_llm |
-| `011_contract_sla` | contract_docx | `order` | `internal` | ❌ | hybrid_llm |
-| `012_contract_msa` | contract_docx | `order` | `internal` | ❌ | hybrid_llm |
+| `001_invoice_march` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `002_invoice_en_supplier` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `003_invoice_overdue_reminder` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `004_invoice_recurring` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `005_invoice_utility` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `006_invoice_wire_transfer` | invoice_attachment | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `007_contract_sign` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `008_contract_renewal` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `009_contract_nda` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `010_contract_amendment` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `011_contract_sla` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
+| `012_contract_msa` | contract_docx | `order` | `order` | ✅ | keywords_no_match+attachment_signal+attachment_rule |
 | `013_inquiry_pricing` | body_only | `inquiry` | `inquiry` | ✅ | hybrid_llm |
 | `014_inquiry_process` | body_only | `inquiry` | `inquiry` | ✅ | hybrid_llm |
 | `015_support_login` | body_only | `support` | `support` | ✅ | hybrid_llm |
@@ -128,5 +128,5 @@
 | `021_contract_inquiry_no_attach` | mixed | `inquiry` | `inquiry` | ✅ | hybrid_llm |
 | `022_marketing_with_pdf` | mixed | `marketing` | `marketing` | ✅ | hybrid_llm |
 | `023_meeting_invite` | mixed | `calendar_invite` | `calendar_invite` | ✅ | hybrid_llm |
-| `024_complaint_about_invoice` | mixed | `complaint` | `complaint` | ✅ | hybrid_llm |
-| `025_internal_forward_invoice` | mixed | `invoice_received` | `internal` | ❌ | hybrid_llm |
+| `024_complaint_about_invoice` | mixed | `complaint` | `invoice_received` | ❌ | keywords_no_match+attachment_signal+attachment_rule |
+| `025_internal_forward_invoice` | mixed | `invoice_received` | `invoice_received` | ✅ | keywords_no_match+attachment_signal+attachment_rule |

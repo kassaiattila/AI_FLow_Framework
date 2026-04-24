@@ -234,6 +234,24 @@ class ClassifierService(BaseService):
             threshold=self._cls_config.confidence_threshold,
         )
 
+        # S132 — when keywords are low-confidence BUT attachment signals
+        # carry a strong EXTRACT hint, skip the LLM fallback and force
+        # the attachment rule boost through. Without this the body-label
+        # gate in ``_apply_attachment_rule_boost`` would pass on
+        # non-EXTRACT low-confidence guesses (e.g. ``feedback`` for the
+        # NDA fixture) and leak them as final labels. We force the base
+        # label to ``unknown`` so the gate admits the boost.
+        if _attachment_signal_is_strong(context):
+            self._logger.info(
+                "keywords_low_confidence_attachment_signal_early_return",
+                label=kw_result.label,
+                confidence=kw_result.confidence,
+            )
+            kw_result.label = "unknown"
+            kw_result.display_name = ""
+            kw_result.method = "keywords_no_match+attachment_signal"
+            return kw_result
+
         if self._models_client is None:
             kw_result.method = "keywords_only_no_llm"
             return kw_result
@@ -568,6 +586,29 @@ def _build_attachment_context_message(context: dict[str, Any] | None) -> str | N
         lines.append("- attachment_text_preview (truncated to 500 chars):")
         lines.append(preview)
     return "\n".join(lines)
+
+
+def _attachment_signal_is_strong(context: dict[str, Any] | None) -> bool:
+    """S132 — does the classifier's context carry a strong EXTRACT signal?
+
+    Used by ``_keywords_first`` to short-circuit the LLM fallback when the
+    attachment-feature rule boost would pick the right EXTRACT label on its
+    own (pre-LLM early-return). Sprint P S131 matrix showed the LLM
+    otherwise mis-classifies structured contracts (NDA/SLA/MSA) as
+    ``internal``.
+
+    "Strong" = any of:
+      - ``invoice_number_detected`` True
+      - ``total_value_detected`` True
+      - ``keyword_buckets["contract"] > 0``
+    """
+    if not context:
+        return False
+    features = context.get("attachment_features") or {}
+    if features.get("invoice_number_detected") or features.get("total_value_detected"):
+        return True
+    buckets = features.get("keyword_buckets") or {}
+    return int(buckets.get("contract", 0)) > 0
 
 
 def _apply_attachment_rule_boost(

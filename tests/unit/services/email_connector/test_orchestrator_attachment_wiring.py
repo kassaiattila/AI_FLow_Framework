@@ -79,8 +79,16 @@ class _FakeClassifier:
         text: str,
         schema_labels: Any = None,
         context: dict[str, Any] | None = None,
+        strategy: str | None = None,
     ) -> ClassificationResult:
-        self.calls.append({"text": text, "schema_labels": schema_labels, "context": context})
+        self.calls.append(
+            {
+                "text": text,
+                "schema_labels": schema_labels,
+                "context": context,
+                "strategy": strategy,
+            }
+        )
         return ClassificationResult(
             label="invoice_question",
             display_name="Invoice Question",

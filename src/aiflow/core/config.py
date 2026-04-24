@@ -106,6 +106,13 @@ class UC3AttachmentIntentSettings(BaseSettings):
     # an attachment-summary system message on the LLM path; default off so
     # rule-boost can land without paying the LLM-context budget yet.
     llm_context: bool = False
+    # S132 — classifier strategy to use when flag-on. Sprint P measurement
+    # showed SKLEARN_FIRST (keyword first, LLM fallback at < threshold)
+    # drops misclass 32% → 12% on the 25-fixture corpus (body_only 3/6 → 6/6,
+    # mixed 3/7 → 7/7). Operators can still set "sklearn_only" to preserve
+    # the Sprint O latency/cost profile. Values: sklearn_only | sklearn_first
+    # | llm_first | ensemble.
+    classifier_strategy: str = "sklearn_first"
 
 
 class VaultSettings(BaseSettings):
