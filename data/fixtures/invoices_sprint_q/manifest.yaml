@@ -1,0 +1,140 @@
+schema_version: "1.0"
+name: "uc1_invoice_finder_sprint_q"
+fixture_count: 10
+description: |
+  Sprint Q (v1.5.0) S137 UC1 golden-path corpus. 10 anonymised synthetic
+  invoices generated via reportlab; covers 4 HU / 4 EN / 2 mixed, with
+  varied layout (5 simple, 3 tabular-multi-line, 2 multi-section).
+  Ground-truth field values are authoritative — the measurement script
+  compares extractor output against these keys.
+
+fixtures:
+  - id: "001_hu_simple"
+    pdf: "001_hu_simple.pdf"
+    cohort: "simple"
+    lang: "hu"
+    expected:
+      invoice_number: "SZLA-2026-1001"
+      vendor_name: "Acme Tanacsado Kft"
+      buyer_name: "BestIx Kft"
+      currency: "HUF"
+      issue_date: "2026-03-15"
+      due_date: "2026-04-15"
+      gross_total: 127000
+
+  - id: "002_en_simple"
+    pdf: "002_en_simple.pdf"
+    cohort: "simple"
+    lang: "en"
+    expected:
+      invoice_number: "INV-2026-1002"
+      vendor_name: "Globex Consulting Ltd"
+      buyer_name: "Acme Corp"
+      currency: "EUR"
+      issue_date: "2026-03-20"
+      due_date: "2026-04-20"
+      gross_total: 3810
+
+  - id: "003_hu_tabular"
+    pdf: "003_hu_tabular.pdf"
+    cohort: "tabular"
+    lang: "hu"
+    expected:
+      invoice_number: "SZLA-2026-1003"
+      vendor_name: "IT Szolgaltato Zrt"
+      buyer_name: "Customer Kft"
+      currency: "HUF"
+      issue_date: "2026-03-25"
+      due_date: "2026-04-25"
+      gross_total: 635000
+
+  - id: "004_en_tabular"
+    pdf: "004_en_tabular.pdf"
+    cohort: "tabular"
+    lang: "en"
+    expected:
+      invoice_number: "INV-2026-1004"
+      vendor_name: "CloudOps Inc"
+      buyer_name: "Startup LLC"
+      currency: "USD"
+      issue_date: "2026-03-28"
+      due_date: "2026-04-28"
+      gross_total: 1524
+
+  - id: "005_hu_simple_small"
+    pdf: "005_hu_simple_small.pdf"
+    cohort: "simple"
+    lang: "hu"
+    expected:
+      invoice_number: "SZLA-2026-1005"
+      vendor_name: "Grafika Stuido Bt"
+      buyer_name: "Marketing Kft"
+      currency: "HUF"
+      issue_date: "2026-04-01"
+      due_date: "2026-05-01"
+      gross_total: 88900
+
+  - id: "006_en_simple"
+    pdf: "006_en_simple.pdf"
+    cohort: "simple"
+    lang: "en"
+    expected:
+      invoice_number: "INV-2026-1006"
+      vendor_name: "Legal Advisors LLP"
+      buyer_name: "Enterprise Co"
+      currency: "GBP"
+      issue_date: "2026-04-02"
+      due_date: "2026-05-02"
+      gross_total: 2400
+
+  - id: "007_hu_multi_section"
+    pdf: "007_hu_multi_section.pdf"
+    cohort: "multi_section"
+    lang: "hu"
+    expected:
+      invoice_number: "SZLA-2026-1007"
+      vendor_name: "Epitesz Iroda Kft"
+      buyer_name: "Ingatlanfejleszto Zrt"
+      currency: "HUF"
+      issue_date: "2026-04-05"
+      due_date: "2026-05-05"
+      gross_total: 3810000
+
+  - id: "008_en_multi_section"
+    pdf: "008_en_multi_section.pdf"
+    cohort: "multi_section"
+    lang: "en"
+    expected:
+      invoice_number: "INV-2026-1008"
+      vendor_name: "Manufacturing Corp"
+      buyer_name: "Distributor Inc"
+      currency: "USD"
+      issue_date: "2026-04-08"
+      due_date: "2026-05-08"
+      gross_total: 21590
+
+  - id: "009_mixed_hu_en"
+    pdf: "009_mixed_hu_en.pdf"
+    cohort: "tabular"
+    lang: "mixed"
+    expected:
+      invoice_number: "SZLA-2026-1009"
+      vendor_name: "Multilang Services Kft"
+      buyer_name: "International Client Ltd"
+      currency: "EUR"
+      issue_date: "2026-04-10"
+      due_date: "2026-05-10"
+      gross_total: 1905
+
+  - id: "010_hu_simple"
+    pdf: "010_hu_simple.pdf"
+    cohort: "simple"
+    lang: "hu"
+    expected:
+      invoice_number: "SZLA-2026-1010"
+      vendor_name: "Logisztikai Kft"
+      buyer_name: "Nagykereskedes Zrt"
+      currency: "HUF"
+      issue_date: "2026-04-12"
+      due_date: "2026-05-12"
+      gross_total: 254000
