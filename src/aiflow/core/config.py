@@ -155,6 +155,17 @@ class PromptWorkflowSettings(BaseSettings):
     enabled: bool = False
     workflows_dir: str = "prompts/workflows"
     cache_ttl_seconds: int = 300
+    # CSV of skill names that should consume PromptWorkflow via the
+    # PromptWorkflowExecutor (Sprint R / S141). Empty default = no skill
+    # is migrated; legacy per-prompt path runs everywhere. Per-skill
+    # opt-in keeps Sprint K/Q/J golden paths untouched until the operator
+    # explicitly enables migration on a per-tenant rollout.
+    skills_csv: str = ""
+
+    @property
+    def skills(self) -> list[str]:
+        """Parsed CSV → list of skill names that should consume workflows."""
+        return [s.strip() for s in self.skills_csv.split(",") if s.strip()]
 
 
 class VaultSettings(BaseSettings):

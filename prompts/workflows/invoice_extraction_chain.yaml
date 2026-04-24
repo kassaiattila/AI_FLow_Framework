@@ -1,0 +1,41 @@
+name: invoice_extraction_chain
+version: "0.1.0"
+description: |
+  Sprint Q UC1 invoice extraction chain expressed as a workflow
+  descriptor. Skill consumer migration lands in S141-FU-2 — today
+  invoice_processor.workflows.process invokes these prompts directly.
+
+default_label: prod
+tags:
+  - uc1
+  - invoice
+  - sprint-r-foundation
+
+steps:
+  - id: classify
+    prompt_name: invoice/classifier
+    description: Decide if the document is an invoice + which schema variant.
+    output_key: classification
+
+  - id: extract_header
+    prompt_name: invoice/header_extractor
+    description: Vendor, buyer, invoice number, dates, currency, totals.
+    depends_on: [classify]
+    output_key: header
+    metadata:
+      cost_ceiling_usd: 0.02
+
+  - id: extract_lines
+    prompt_name: invoice/line_extractor
+    description: Per-line item description, quantity, unit price, line total.
+    depends_on: [extract_header]
+    output_key: line_items
+    metadata:
+      cost_ceiling_usd: 0.03
+
+  - id: validate
+    prompt_name: invoice/validator
+    description: Cross-check totals, currency consistency, header/line agreement.
+    required: false
+    depends_on: [extract_header, extract_lines]
+    output_key: validation

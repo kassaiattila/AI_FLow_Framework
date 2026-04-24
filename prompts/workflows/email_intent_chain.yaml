@@ -1,0 +1,35 @@
+name: email_intent_chain
+version: "0.1.0"
+description: |
+  Sprint K UC3 email intent classification chain expressed as a
+  workflow descriptor. Skill consumer migration lands in S141-FU-1.
+  Today the email_intent_processor invokes these prompts directly.
+
+default_label: prod
+tags:
+  - uc3
+  - email
+  - sprint-r-foundation
+
+steps:
+  - id: classify
+    prompt_name: email-intent/classifier
+    description: Sprint K base intent classifier (LLM-aware).
+    output_key: classification
+
+  - id: extract_entities
+    prompt_name: email-intent/entity_extractor
+    description: |
+      Pull named entities (people, dates, amounts) from the email
+      body. Optional — body-only emails may skip if classifier
+      already disambiguates.
+    required: false
+    depends_on: [classify]
+    output_key: entities
+
+  - id: score_priority
+    prompt_name: email-intent/priority_scorer
+    description: Confidence + urgency score for the routing decision.
+    required: false
+    depends_on: [classify]
+    output_key: priority
