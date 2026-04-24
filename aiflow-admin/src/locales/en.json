@@ -160,6 +160,8 @@
         "keywordBuckets": "Keywords",
         "consideredSkipped": "%{considered} processed, %{skipped} skipped",
         "boostedIndicator": "Classifier intent boosted by attachment rule",
+        "costUsd": "Cost (USD)",
+        "pages": "pages",
         "yes": "yes",
         "no": "no"
       }

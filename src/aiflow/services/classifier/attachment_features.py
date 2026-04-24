@@ -114,6 +114,11 @@ class AttachmentFeatures(BaseModel):
     text_quality: float = 0.0
     attachments_considered: int = 0
     attachments_skipped: int = 0
+    # Sprint O / FU-7 — aggregate per-attachment USD cost from the processor
+    # layer (docling=0, Azure DI=per-page, LLM vision=per-image). Feeds into
+    # per-tenant budgets via cost_records rows emitted by the orchestrator.
+    total_cost_usd: float = 0.0
+    total_pages_processed: int = 0
 
 
 def extract_attachment_features(
@@ -183,6 +188,20 @@ def extract_attachment_features(
     ]
     text_quality = sum(quality_scores) / len(quality_scores) if quality_scores else 0.0
 
+    # Sprint O / FU-7 — aggregate pre-computed per-attachment cost.
+    # AttachmentProcessor writes `cost_usd` + `pages_processed` into
+    # `metadata` after each process() call. The extractor stays pure
+    # (no estimator call here) — just sums what the processor reports.
+    total_cost_usd = 0.0
+    total_pages = 0
+    for a in considered:
+        cost = a.metadata.get("cost_usd")
+        pages = a.metadata.get("pages_processed")
+        if isinstance(cost, (int, float)):
+            total_cost_usd += float(cost)
+        if isinstance(pages, int):
+            total_pages += pages
+
     return AttachmentFeatures(
         invoice_number_detected=invoice_number_detected,
         total_value_detected=total_value_detected,
@@ -190,6 +209,8 @@ def extract_attachment_features(
         mime_profile=mime_profile,
         keyword_buckets=keyword_buckets,
         text_quality=round(text_quality, 4),
+        total_cost_usd=round(total_cost_usd, 6),
+        total_pages_processed=total_pages,
         attachments_considered=len(considered),
         attachments_skipped=skipped,
     )

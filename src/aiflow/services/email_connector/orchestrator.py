@@ -162,6 +162,7 @@ async def scan_and_classify(
             attachment_payload = await _maybe_extract_attachment_features(
                 package.files,
                 settings=attachment_intent_settings,
+                workflow_run_id=str(run.id),
             )
             if attachment_payload is not None:
                 features = attachment_payload.get("attachment_features")
@@ -253,6 +254,8 @@ async def _maybe_extract_attachment_features(
     files: list[IntakeFile],
     *,
     settings: UC3AttachmentIntentSettings,
+    workflow_run_id: str | None = None,
+    team_id: str | None = None,
 ) -> dict[str, Any] | None:
     """Run AttachmentProcessor over package files + extract features (Sprint O / S127).
 
@@ -262,19 +265,28 @@ async def _maybe_extract_attachment_features(
     :func:`asyncio.wait_for` against ``settings.total_budget_seconds`` so a
     docling stall cannot block the classifier path beyond budget.
 
+    FU-7 extension: when ``workflow_run_id`` is provided, emit a
+    ``cost_records`` row per processed attachment so per-tenant budgets
+    account for docling / Azure DI / LLM-vision spend alongside LLM
+    classification cost. Pricing is looked up via
+    :class:`aiflow.tools.attachment_cost.AttachmentCostEstimator`.
+
     Returns ``{"attachment_features": <model_dump>,
     "attachment_text_preview": <first 500 chars of concatenated attachment
     text>}`` (S128 — the preview feeds the optional LLM-context system
     message). Returns ``None`` on timeout / total failure.
     """
     # Lazy import — flag-off must not pay this cost.
+    from aiflow.api.cost_recorder import record_cost
     from aiflow.services.classifier.attachment_features import (
         extract_attachment_features,
     )
+    from aiflow.tools.attachment_cost import AttachmentCostEstimator
     from aiflow.tools.attachment_processor import AttachmentConfig, AttachmentProcessor
 
     max_bytes = settings.max_attachment_mb * 1024 * 1024
     processor = AttachmentProcessor(config=AttachmentConfig(max_size_mb=settings.max_attachment_mb))
+    cost_estimator = AttachmentCostEstimator()
 
     async def _run() -> dict[str, Any]:
         processed: list[ProcessedAttachment] = []
@@ -309,10 +321,43 @@ async def _maybe_extract_attachment_features(
             # mime so the extractor can compute a meaningful ``mime_profile``.
             if not result.mime_type and f.mime_type:
                 result.mime_type = f.mime_type
+            # FU-7 — annotate metadata with cost + pages so the extractor
+            # can sum AttachmentFeatures.total_cost_usd without knowing
+            # about pricing.
+            cost_usd, pages_processed = cost_estimator.estimate(result)
+            result.metadata["cost_usd"] = cost_usd
+            result.metadata["pages_processed"] = pages_processed
             processed.append(result)
 
         features = extract_attachment_features(processed, settings=settings)
         preview_blob = "\n".join(a.text for a in processed if a.text)[:500]
+
+        # FU-7 — emit one cost_records row per processed attachment when the
+        # caller threaded a workflow_run_id. Wrap in try/except so a missing
+        # DB pool (unit tests, mis-configured env) never blocks the classifier
+        # path. ``record_cost`` already swallows its own DB exceptions; this
+        # outer guard catches pool bootstrap failures.
+        if workflow_run_id:
+            for att in processed:
+                if att.error:
+                    continue
+                try:
+                    await record_cost(
+                        workflow_run_id=workflow_run_id,
+                        step_name=f"attachment:{att.processor_used or 'unknown'}",
+                        model=att.processor_used or "unknown",
+                        input_tokens=0,
+                        output_tokens=0,
+                        cost_usd=float(att.metadata.get("cost_usd") or 0.0),
+                        team_id=team_id,
+                    )
+                except Exception as exc:  # pragma: no cover — defensive
+                    logger.info(
+                        "email_connector.scan_and_classify.cost_record_skipped",
+                        reason=str(exc),
+                        filename=att.filename,
+                    )
+
         return {
             "attachment_features": features.model_dump(),
             "attachment_text_preview": preview_blob,
