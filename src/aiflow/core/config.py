@@ -141,6 +141,22 @@ class UC3ExtractionSettings(BaseSettings):
     extraction_budget_usd: float = 0.05
 
 
+class PromptWorkflowSettings(BaseSettings):
+    """PromptWorkflow feature flag (Sprint R / S139).
+
+    Gates the new ``PromptManager.get_workflow`` lookup path. When
+    ``enabled`` is False (default) the manager raises
+    ``FeatureDisabled("prompt_workflows")`` for any workflow request,
+    keeping the codebase a pure no-op for callers until S140/S141 wire
+    UI + skill consumers.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="AIFLOW_PROMPT_WORKFLOWS__")
+    enabled: bool = False
+    workflows_dir: str = "prompts/workflows"
+    cache_ttl_seconds: int = 300
+
+
 class VaultSettings(BaseSettings):
     """HashiCorp Vault integration for production secret resolution.
 
@@ -190,6 +206,7 @@ class AIFlowSettings(BaseSettings):
         default_factory=UC3AttachmentIntentSettings
     )
     uc3_extraction: UC3ExtractionSettings = Field(default_factory=UC3ExtractionSettings)
+    prompt_workflows: PromptWorkflowSettings = Field(default_factory=PromptWorkflowSettings)
     vault: VaultSettings = Field(default_factory=VaultSettings)
 
     @property

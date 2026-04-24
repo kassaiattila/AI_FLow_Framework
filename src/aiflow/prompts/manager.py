@@ -15,9 +15,34 @@ import structlog
 import yaml
 from pydantic import BaseModel
 
+from aiflow.core.errors import FeatureDisabled
 from aiflow.prompts.schema import PromptConfig, PromptDefinition
+from aiflow.prompts.workflow import PromptWorkflow
+from aiflow.prompts.workflow_loader import PromptWorkflowLoader, WorkflowYamlError
 
-__all__ = ["PromptManager"]
+# Re-export workflow types so callers can import them via `aiflow.prompts.manager`
+# (also keeps the formatter from stripping these "unused" imports).
+_RUNTIME_HOOKS = (FeatureDisabled, PromptWorkflow, PromptWorkflowLoader, WorkflowYamlError)
+
+__all__ = ["PromptManager", "WorkflowResolutionError"]
+
+
+class WorkflowResolutionError(LookupError):
+    """Raised when a workflow's nested prompt cannot be resolved.
+
+    Carries ``workflow`` + ``step_id`` so callers can pinpoint the
+    failure (vs. a bare ``KeyError`` from the underlying ``get`` call).
+    """
+
+    def __init__(self, workflow: str, step_id: str, prompt_name: str, cause: Exception) -> None:
+        self.workflow = workflow
+        self.step_id = step_id
+        self.prompt_name = prompt_name
+        self.__cause__ = cause
+        super().__init__(
+            f"workflow {workflow!r}: step {step_id!r} prompt {prompt_name!r} not resolvable: {cause}"
+        )
+
 
 logger = structlog.get_logger(__name__)
 
@@ -48,17 +73,25 @@ class PromptManager:
         cache_ttl: float = 300.0,
         langfuse_enabled: bool = False,
         langfuse_client: Any = None,
+        *,
+        workflows_enabled: bool = False,
+        workflow_loader: PromptWorkflowLoader | None = None,
     ) -> None:
         self._cache: dict[str, _CacheEntry] = {}
         self._cache_ttl = cache_ttl
         self._langfuse_enabled = langfuse_enabled
         self._langfuse_client = langfuse_client
         self._yaml_registry: dict[str, Path] = {}  # prompt_name -> yaml_path
+        self._workflows_enabled = workflows_enabled
+        self._workflow_loader = workflow_loader
+        self._workflow_cache: dict[str, tuple[PromptWorkflow, float]] = {}
         logger.info(
             "prompt_manager.init",
             cache_ttl=cache_ttl,
             langfuse_enabled=langfuse_enabled,
             has_langfuse_client=langfuse_client is not None,
+            workflows_enabled=workflows_enabled,
+            has_workflow_loader=workflow_loader is not None,
         )
 
     # --- Public API ---
@@ -173,6 +206,143 @@ class PromptManager:
             count=count,
         )
         return count
+
+    def get_workflow(
+        self,
+        name: str,
+        *,
+        label: str | None = None,
+    ) -> tuple[PromptWorkflow, dict[str, PromptDefinition]]:
+        """Resolve a :class:`PromptWorkflow` and all its nested prompts.
+
+        Sprint R / S139 — descriptor lookup only. Resolution order:
+            1. In-memory workflow cache (TTL-bounded).
+            2. Langfuse JSON-typed prompt under ``workflow:<name>``
+               (if ``langfuse_enabled``).
+            3. Local YAML via the configured :class:`PromptWorkflowLoader`.
+
+        Each step's prompt is then resolved through the existing
+        :meth:`get` 3-layer lookup using the workflow's ``default_label``
+        (or the override passed in).
+
+        Args:
+            name: Workflow name.
+            label: Override for nested prompt label resolution; defaults
+                to the workflow's ``default_label``.
+
+        Returns:
+            ``(workflow, {step_id: PromptDefinition})``
+
+        Raises:
+            FeatureDisabled: When ``workflows_enabled`` is False.
+            KeyError: When the workflow itself cannot be found in any
+                layer.
+            WorkflowResolutionError: When the workflow loads but a
+                nested prompt cannot be resolved.
+        """
+        if not self._workflows_enabled:
+            raise FeatureDisabled("prompt_workflows")
+
+        workflow = self._resolve_workflow(name)
+        effective_label = label or workflow.default_label
+
+        resolved: dict[str, PromptDefinition] = {}
+        for step in workflow.steps:
+            try:
+                resolved[step.id] = self.get(step.prompt_name, label=effective_label)
+            except Exception as exc:  # noqa: BLE001 — caught + rewrapped
+                raise WorkflowResolutionError(
+                    workflow=workflow.name,
+                    step_id=step.id,
+                    prompt_name=step.prompt_name,
+                    cause=exc,
+                ) from exc
+
+        logger.info(
+            "prompt_manager.get_workflow_ok",
+            workflow=workflow.name,
+            label=effective_label,
+            steps=len(resolved),
+        )
+        return workflow, resolved
+
+    def _resolve_workflow(self, name: str) -> PromptWorkflow:
+        """3-layer resolution for a workflow descriptor itself."""
+        cached = self._workflow_cache.get(name)
+        if cached is not None and cached[1] > time.monotonic():
+            return cached[0]
+
+        # 2. Langfuse (JSON-typed prompt under workflow:<name>)
+        if self._langfuse_enabled:
+            wf = self._fetch_workflow_from_langfuse(name)
+            if wf is not None:
+                self._workflow_cache[name] = (wf, time.monotonic() + self._cache_ttl)
+                return wf
+
+        # 3. Local YAML via the loader
+        if self._workflow_loader is not None:
+            path = self._workflow_loader.path_for(name)
+            if path is not None:
+                wf = self._workflow_loader.load_from_yaml(path)
+                self._workflow_cache[name] = (wf, time.monotonic() + self._cache_ttl)
+                logger.info(
+                    "prompt_manager.workflow_yaml_fallback",
+                    workflow=name,
+                    path=str(path),
+                )
+                return wf
+
+        raise KeyError(f"Workflow {name!r} not found in cache, Langfuse, or local YAML registry")
+
+    def _fetch_workflow_from_langfuse(self, name: str) -> PromptWorkflow | None:
+        """Fetch a workflow descriptor from Langfuse as a JSON prompt.
+
+        Convention: workflows live under the prompt name
+        ``workflow:<name>`` with ``type="text"`` and JSON content.
+        Returns ``None`` on miss / failure (caller falls back to local).
+        """
+        client = self._langfuse_client
+        if client is None:
+            try:
+                from aiflow.observability.tracing import get_langfuse_client
+
+                client = get_langfuse_client()
+            except ImportError:
+                return None
+
+        if client is None:
+            return None
+
+        langfuse_key = f"workflow:{name}"
+        try:
+            remote = client.get_prompt(name=langfuse_key, label="prod", type="text")
+            payload = remote.prompt
+            if isinstance(payload, str):
+                import json as _json
+
+                payload = _json.loads(payload)
+            if not isinstance(payload, dict):
+                logger.warning(
+                    "prompt_manager.workflow_langfuse_bad_payload",
+                    workflow=name,
+                    payload_type=type(payload).__name__,
+                )
+                return None
+            return PromptWorkflow(**payload)
+        except Exception as exc:  # noqa: BLE001 — Langfuse is best-effort
+            error_str = str(exc)
+            if "not found" in error_str.lower() or "404" in error_str:
+                logger.debug(
+                    "prompt_manager.workflow_langfuse_miss",
+                    workflow=name,
+                )
+            else:
+                logger.warning(
+                    "prompt_manager.workflow_langfuse_error",
+                    workflow=name,
+                    error=error_str,
+                )
+            return None
 
     def invalidate(self, prompt_name: str, label: str | None = None) -> None:
         """Remove prompt(s) from cache.

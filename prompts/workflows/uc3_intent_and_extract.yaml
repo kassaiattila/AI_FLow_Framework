@@ -1,0 +1,40 @@
+name: uc3_intent_and_extract
+version: "0.1.0"
+description: |
+  Sprint Q chain expressed as a descriptor.
+
+  S139 lands the model + lookup. S141 will migrate
+  email_intent_processor and invoice_processor to consume this
+  workflow via PromptManager.get_workflow.
+
+default_label: prod
+tags:
+  - uc3
+  - sprint-q-bridge
+  - sprint-r-foundation
+
+steps:
+  - id: classify
+    prompt_name: email-intent/classifier
+    description: Sprint K base classifier prompt (email_intent_processor).
+    output_key: classification
+
+  - id: extract_header
+    prompt_name: invoice/header_extractor
+    description: Sprint Q header extractor (invoice_processor).
+    required: false
+    depends_on: [classify]
+    output_key: extracted_fields.header
+    metadata:
+      gate: "intent_class == EXTRACT"
+      cost_ceiling_usd: 0.02
+
+  - id: extract_lines
+    prompt_name: invoice/line_extractor
+    description: Sprint Q line-item extractor (invoice_processor).
+    required: false
+    depends_on: [extract_header]
+    output_key: extracted_fields.line_items
+    metadata:
+      gate: "extract_header.succeeded"
+      cost_ceiling_usd: 0.03
