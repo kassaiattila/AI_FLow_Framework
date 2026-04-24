@@ -14,6 +14,7 @@ __all__ = [
     "AIFlowSettings",
     "CostGuardrailSettings",
     "UC3AttachmentIntentSettings",
+    "UC3ExtractionSettings",
     "VaultSettings",
     "get_settings",
 ]
@@ -115,6 +116,31 @@ class UC3AttachmentIntentSettings(BaseSettings):
     classifier_strategy: str = "sklearn_first"
 
 
+class UC3ExtractionSettings(BaseSettings):
+    """UC3 extraction feature flag (Sprint Q / S135).
+
+    Bridges Sprint P's intent classification with the ``invoice_processor``
+    skill's extraction pipeline. When ``enabled`` is True and the UC3
+    classifier outputs ``intent_class == "EXTRACT"`` on an email with
+    PDF/DOCX attachments, the orchestrator runs the invoice extractor and
+    merges the resulting structured fields into
+    ``workflow_runs.output_data.extracted_fields``.
+
+    Flag-off (default) restores Sprint P tip behaviour exactly — no import
+    of the invoice_processor skill, no extra DB writes, no log events.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="AIFLOW_UC3_EXTRACTION__")
+    enabled: bool = False
+    max_attachments_per_email: int = 5
+    total_budget_seconds: float = 60.0
+    # Per-invoice USD hard ceiling. The extractor runs two parallel LLM
+    # calls (header + line items); pricing ~0.02 USD/invoice on
+    # gpt-4o-mini. Ceiling leaves headroom for escalation to a larger
+    # model (Sprint T).
+    extraction_budget_usd: float = 0.05
+
+
 class VaultSettings(BaseSettings):
     """HashiCorp Vault integration for production secret resolution.
 
@@ -163,6 +189,7 @@ class AIFlowSettings(BaseSettings):
     uc3_attachment_intent: UC3AttachmentIntentSettings = Field(
         default_factory=UC3AttachmentIntentSettings
     )
+    uc3_extraction: UC3ExtractionSettings = Field(default_factory=UC3ExtractionSettings)
     vault: VaultSettings = Field(default_factory=VaultSettings)
 
     @property

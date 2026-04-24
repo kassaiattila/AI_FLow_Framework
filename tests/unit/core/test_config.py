@@ -15,6 +15,7 @@ import os
 from aiflow.core.config import (
     AIFlowSettings,
     UC3AttachmentIntentSettings,
+    UC3ExtractionSettings,
     VaultSettings,
     get_settings,
 )
@@ -149,6 +150,43 @@ class TestUC3AttachmentIntentSettings:
         assert cfg.enabled is True
         assert cfg.max_attachment_mb == 5
         assert cfg.total_budget_seconds == 2.0
+
+
+class TestUC3ExtractionSettings:
+    """S135 — new flag bridging UC3 classifier to invoice_processor."""
+
+    def test_defaults(self, monkeypatch):
+        for key in list(os.environ):
+            if key.startswith("AIFLOW_UC3_EXTRACTION__"):
+                monkeypatch.delenv(key, raising=False)
+        settings = AIFlowSettings()
+        assert settings.uc3_extraction.enabled is False
+        assert settings.uc3_extraction.max_attachments_per_email == 5
+        assert settings.uc3_extraction.total_budget_seconds == 60.0
+        assert settings.uc3_extraction.extraction_budget_usd == 0.05
+
+    def test_env_override(self, monkeypatch):
+        monkeypatch.setenv("AIFLOW_UC3_EXTRACTION__ENABLED", "true")
+        monkeypatch.setenv("AIFLOW_UC3_EXTRACTION__MAX_ATTACHMENTS_PER_EMAIL", "10")
+        monkeypatch.setenv("AIFLOW_UC3_EXTRACTION__TOTAL_BUDGET_SECONDS", "120")
+        monkeypatch.setenv("AIFLOW_UC3_EXTRACTION__EXTRACTION_BUDGET_USD", "0.1")
+        settings = AIFlowSettings()
+        assert settings.uc3_extraction.enabled is True
+        assert settings.uc3_extraction.max_attachments_per_email == 10
+        assert settings.uc3_extraction.total_budget_seconds == 120.0
+        assert settings.uc3_extraction.extraction_budget_usd == 0.1
+
+    def test_direct_construction(self):
+        cfg = UC3ExtractionSettings(
+            enabled=True,
+            max_attachments_per_email=3,
+            total_budget_seconds=30.0,
+            extraction_budget_usd=0.02,
+        )
+        assert cfg.enabled is True
+        assert cfg.max_attachments_per_email == 3
+        assert cfg.total_budget_seconds == 30.0
+        assert cfg.extraction_budget_usd == 0.02
 
 
 class TestGetSettings:

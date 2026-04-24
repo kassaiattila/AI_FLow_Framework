@@ -27,7 +27,10 @@ import structlog
 from aiflow.intake.package import DescriptionRole
 
 if TYPE_CHECKING:
-    from aiflow.core.config import UC3AttachmentIntentSettings
+    from aiflow.core.config import (
+        UC3AttachmentIntentSettings,
+        UC3ExtractionSettings,
+    )
     from aiflow.intake.package import IntakeFile, IntakePackage
     from aiflow.policy.intent_routing import IntentRoutingPolicy
     from aiflow.prompts.manager import PromptManager
@@ -67,6 +70,7 @@ async def scan_and_classify(
     prompt_name: str = "",
     prompt_label: str = "prod",
     attachment_intent_settings: UC3AttachmentIntentSettings | None = None,
+    extraction_settings: UC3ExtractionSettings | None = None,
 ) -> list[tuple[str, ClassificationResult]]:
     """Drain up to ``max_items`` packages: fetch → sink → classify → (route) → persist.
 
@@ -218,6 +222,32 @@ async def scan_and_classify(
         if attachment_payload is not None and attachment_payload.get("attachment_features"):
             output_data["attachment_features"] = attachment_payload["attachment_features"]
 
+        # Sprint Q / S135 — invoice_processor extraction when the classifier
+        # outputs intent_class == "EXTRACT" AND the caller opted in via
+        # UC3ExtractionSettings. Flag-off contract: no import, no log event,
+        # no new keys in output_data.
+        if (
+            extraction_settings is not None
+            and extraction_settings.enabled
+            and package.files
+            and _intent_class_is_extract(result)
+        ):
+            extraction_payload = await _maybe_extract_invoice_fields(
+                package.files,
+                settings=extraction_settings,
+                workflow_run_id=str(run.id),
+            )
+            if extraction_payload is not None:
+                output_data["extracted_fields"] = extraction_payload["extracted_fields"]
+                logger.info(
+                    "email_connector.scan_and_classify.extracted_fields_persisted",
+                    tenant_id=tenant_id,
+                    package_id=str(package.package_id),
+                    workflow_run_id=str(run.id),
+                    file_count=len(extraction_payload["extracted_fields"]),
+                    total_cost_usd=extraction_payload.get("total_cost_usd", 0.0),
+                )
+
         if routing_policy is not None:
             action, target = routing_policy.decide(result.label, result.confidence)
             output_data["routing_action"] = action.value
@@ -261,6 +291,148 @@ def _extract_classifiable_text(package: IntakePackage) -> str:
     if email_bodies:
         return "\n\n".join(t for t in email_bodies if t)
     return "\n\n".join(d.text for d in package.descriptions if d.text)
+
+
+def _intent_class_is_extract(result: ClassificationResult) -> bool:
+    """Sprint Q / S135 — check if the classifier's result falls into the
+    EXTRACT abstract class.
+
+    Uses the FU-2 lookup table (``_resolve_intent_class``). The email-
+    connector orchestrator calls this gate before running the expensive
+    invoice extraction pipeline, so Sprint O's intent_class schema
+    groundwork pays off directly here.
+    """
+    from aiflow.api.v1.emails import _resolve_intent_class
+
+    intent_class = _resolve_intent_class(result.label)
+    return intent_class == "EXTRACT"
+
+
+# Attachment mime types the invoice_processor skill is known to handle.
+_INVOICE_EXTRACT_MIMES = {
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+
+async def _maybe_extract_invoice_fields(
+    files: list[IntakeFile],
+    *,
+    settings: UC3ExtractionSettings,
+    workflow_run_id: str | None = None,
+) -> dict[str, Any] | None:
+    """Sprint Q / S135 — run the invoice_processor extractor on each
+    attachment file and return the merged structured-field payload.
+
+    Lazy-imports the skill so the flag-off path never pays the docling or
+    gpt-4o cold-start cost. Wrapped in :func:`asyncio.wait_for` against
+    ``settings.total_budget_seconds``. Per-file errors are captured per
+    ``filename`` — one bad attachment doesn't abort the rest.
+
+    Return shape::
+
+        {
+          "extracted_fields": {
+             "<filename>": {"vendor": {...}, "buyer": {...}, "header": {...},
+                            "line_items": [...], "totals": {...},
+                            "extraction_confidence": float,
+                            "extraction_time_ms": float,
+                            "cost_usd": float, "error": "..."},
+             ...
+          },
+          "total_cost_usd": float,
+        }
+
+    Returns ``None`` on timeout or total failure.
+    """
+    # Lazy import — flag-off must not pay this cost.
+    from skills.invoice_processor.workflows.process import (
+        extract_invoice_data,
+        parse_invoice,
+    )
+
+    eligible = [
+        f
+        for f in files[: settings.max_attachments_per_email]
+        if f.mime_type in _INVOICE_EXTRACT_MIMES and Path(f.file_path).exists()
+    ]
+    if not eligible:
+        return {"extracted_fields": {}, "total_cost_usd": 0.0}
+
+    # Approximate cost per file based on gpt-4o-mini pricing — the extractor
+    # fires 2 LLM calls/invoice (header + lines), each ~1500 in + ~300 out
+    # tokens ≈ 3600 tokens/invoice × $0.15/1M = ~$0.00054. Ceiling per
+    # settings stops the loop when projected cost crosses the threshold.
+    per_file_budget = settings.extraction_budget_usd
+
+    async def _run() -> dict[str, Any]:
+        extracted: dict[str, dict[str, Any]] = {}
+        total_cost = 0.0
+        for f in eligible:
+            filename = f.file_name
+            try:
+                parse_result = await parse_invoice({"source_path": str(f.file_path)})
+                extract_result = await extract_invoice_data(parse_result)
+                parsed_files = extract_result.get("files", [])
+                if not parsed_files:
+                    extracted[filename] = {"error": "no parse output"}
+                    continue
+                first = parsed_files[0]
+                if first.get("error"):
+                    extracted[filename] = {"error": first["error"]}
+                    continue
+                # Approximate per-file cost from token counts if present.
+                in_tokens = first.get("_llm_total_input_tokens", 0)
+                out_tokens = first.get("_llm_total_output_tokens", 0)
+                file_cost = round((in_tokens * 0.15 + out_tokens * 0.6) * 1e-6, 6)
+                if file_cost > per_file_budget:
+                    extracted[filename] = {
+                        "error": f"budget breach: ${file_cost} > ${per_file_budget}"
+                    }
+                    total_cost += file_cost
+                    continue
+                extracted[filename] = {
+                    "vendor": first.get("vendor", {}),
+                    "buyer": first.get("buyer", {}),
+                    "header": first.get("header", {}),
+                    "line_items": first.get("line_items", []),
+                    "totals": first.get("totals", {}),
+                    "extraction_confidence": first.get("extraction_confidence", 0.0),
+                    "extraction_time_ms": first.get("extraction_time_ms", 0.0),
+                    "cost_usd": file_cost,
+                }
+                total_cost += file_cost
+            except Exception as exc:  # pragma: no cover — per-file guard
+                logger.info(
+                    "email_connector.scan_and_classify.invoice_extract_failed",
+                    filename=filename,
+                    reason=str(exc),
+                )
+                extracted[filename] = {"error": f"{type(exc).__name__}: {exc}"}
+
+        return {
+            "extracted_fields": extracted,
+            "total_cost_usd": round(total_cost, 6),
+        }
+
+    try:
+        return await asyncio.wait_for(_run(), timeout=settings.total_budget_seconds)
+    except TimeoutError:
+        logger.info(
+            "email_connector.scan_and_classify.invoice_extract_timeout",
+            file_count=len(eligible),
+            budget_seconds=settings.total_budget_seconds,
+            workflow_run_id=workflow_run_id,
+        )
+        return None
+    except Exception as exc:  # pragma: no cover — defensive
+        logger.warning(
+            "email_connector.scan_and_classify.invoice_extract_failed_total",
+            reason=str(exc),
+            workflow_run_id=workflow_run_id,
+        )
+        return None
 
 
 async def _maybe_extract_attachment_features(
