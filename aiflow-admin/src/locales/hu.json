@@ -188,7 +188,30 @@
     },
     "prompts": {
       "title": "Prompts",
-      "editorTitle": "Prompt szerkesztes"
+      "editorTitle": "Prompt szerkesztes",
+      "workflows": {
+        "title": "Prompt Workflowk",
+        "menuLabel": "Workflowk",
+        "columnName": "Nev",
+        "columnVersion": "Verzio",
+        "columnSteps": "Lepesek",
+        "columnTags": "Cimkek",
+        "columnLabel": "Alapertelmezett label",
+        "detailTitle": "Workflow reszletek",
+        "stepsHeading": "Lepesek (DAG sorrend)",
+        "dependsOn": "fugg",
+        "metadataHeading": "Metaadat",
+        "promptPreview": "Prompt elonezet",
+        "system": "system",
+        "user": "user",
+        "dryRunButton": "Probafutas (dry)",
+        "dryRunOutput": "Probafutas eredmeny (nincs LLM hivas)",
+        "dryRunRunning": "Feloldas folyamatban…",
+        "noWorkflows": "Nincs workflow regisztralva. Allitsd be: AIFLOW_PROMPT_WORKFLOWS__ENABLED=true es helyezz el YAML-t a prompts/workflows/ alatt.",
+        "flagDisabled": "A PromptWorkflows ki van kapcsolva. Allitsd be AIFLOW_PROMPT_WORKFLOWS__ENABLED=true ertekre.",
+        "loadFailed": "Workflow betoltese sikertelen.",
+        "copyJson": "JSON masolasa"
+      }
     },
     "connectors": {
       "title": "Email Connectorok",
@@ -260,7 +283,9 @@
       "cubixCourse": "Cubix Kurzusok",
       "pipelineAndRuns": "Pipeline & Futasok",
       "archive": "Archiv",
-      "reviewQueue": "Ellenorzes"
+      "reviewQueue": "Ellenorzes",
+      "prompts": "Promptok",
+      "promptWorkflows": "Prompt Workflowk"
     },
     "monitoring": {
       "title": "Monitoring",

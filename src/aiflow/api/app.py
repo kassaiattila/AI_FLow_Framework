@@ -151,6 +151,7 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.notifications import router as notifications_router
     from aiflow.api.v1.pipelines import router as pipelines_router
     from aiflow.api.v1.process_docs import router as process_docs_router
+    from aiflow.api.v1.prompt_workflows import router as prompt_workflows_router
     from aiflow.api.v1.prompts import router as prompts_router
     from aiflow.api.v1.quality import router as quality_router
     from aiflow.api.v1.rag_advanced import router as rag_advanced_router
@@ -195,6 +196,10 @@ def create_app() -> FastAPI:
     app.include_router(rag_advanced_router)
     app.include_router(quality_router)
     app.include_router(intent_schemas_router)
+    # IMPORTANT: workflow router must be mounted BEFORE the prompts router —
+    # the latter has a `/{prompt_name:path}` catch-all that would shadow
+    # `/api/v1/prompts/workflows*` otherwise.
+    app.include_router(prompt_workflows_router)
     app.include_router(prompts_router)
     # Global exception handler — hides internals in production
     env = os.getenv("AIFLOW_ENVIRONMENT", "dev").lower()

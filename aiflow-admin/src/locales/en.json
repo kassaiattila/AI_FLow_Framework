@@ -188,7 +188,30 @@
     },
     "prompts": {
       "title": "Prompts",
-      "editorTitle": "Edit prompt"
+      "editorTitle": "Edit prompt",
+      "workflows": {
+        "title": "Prompt Workflows",
+        "menuLabel": "Workflows",
+        "columnName": "Name",
+        "columnVersion": "Version",
+        "columnSteps": "Steps",
+        "columnTags": "Tags",
+        "columnLabel": "Default label",
+        "detailTitle": "Workflow detail",
+        "stepsHeading": "Steps (DAG order)",
+        "dependsOn": "depends on",
+        "metadataHeading": "Metadata",
+        "promptPreview": "Prompt preview",
+        "system": "system",
+        "user": "user",
+        "dryRunButton": "Test run (dry)",
+        "dryRunOutput": "Dry-run output (no LLM call)",
+        "dryRunRunning": "Resolving…",
+        "noWorkflows": "No workflows registered. Set AIFLOW_PROMPT_WORKFLOWS__ENABLED=true and add a YAML under prompts/workflows/.",
+        "flagDisabled": "PromptWorkflows is disabled. Set AIFLOW_PROMPT_WORKFLOWS__ENABLED=true to enable.",
+        "loadFailed": "Failed to load workflow.",
+        "copyJson": "Copy JSON"
+      }
     },
     "connectors": {
       "title": "Email Connectors",
@@ -260,7 +283,9 @@
       "cubixCourse": "Cubix Courses",
       "pipelineAndRuns": "Pipelines & Runs",
       "archive": "Archive",
-      "reviewQueue": "Review Queue"
+      "reviewQueue": "Review Queue",
+      "prompts": "Prompts",
+      "promptWorkflows": "Prompt Workflows"
     },
     "monitoring": {
       "title": "Monitoring",

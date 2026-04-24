@@ -64,6 +64,8 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { path: "/admin", labelKey: "aiflow.menu.usersApi", icon: "users" },
       { path: "/audit", labelKey: "aiflow.menu.auditLog", icon: "clock" },
+      { path: "/prompts", labelKey: "aiflow.menu.prompts", icon: "file-text" },
+      { path: "/prompts/workflows", labelKey: "aiflow.menu.promptWorkflows", icon: "git-branch" },
     ],
   },
   {

@@ -8269,6 +8269,133 @@
         }
       }
     },
+    "/api/v1/prompts/workflows": {
+      "get": {
+        "tags": [
+          "prompts",
+          "workflows"
+        ],
+        "summary": "List Workflows",
+        "description": "List all locally-discoverable workflows.\n\nFlag-off → 503 ``FeatureDisabled``.\nLangfuse-only workflows are not enumerated here (Langfuse v4 has no\ncheap list-by-prefix call); that surfaces as a follow-up if needed.",
+        "operationId": "list_workflows_api_v1_prompts_workflows_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/prompts/workflows/{name}": {
+      "get": {
+        "tags": [
+          "prompts",
+          "workflows"
+        ],
+        "summary": "Get Workflow",
+        "description": "Return the full :class:`PromptWorkflow` descriptor (no nested resolution).",
+        "operationId": "get_workflow_api_v1_prompts_workflows__name__get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptWorkflow"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/prompts/workflows/{name}/dry-run": {
+      "get": {
+        "tags": [
+          "prompts",
+          "workflows"
+        ],
+        "summary": "Dry Run Workflow",
+        "description": "Resolve the workflow + its nested step prompts.\n\nNo LLM call, no side effect. Use the optional ``label`` query param\nto override the workflow's ``default_label``.",
+        "operationId": "dry_run_workflow_api_v1_prompts_workflows__name__dry_run_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Label"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDryRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/prompts/list": {
       "get": {
         "tags": [
@@ -13249,6 +13376,25 @@
         ],
         "title": "InvalidateResponse"
       },
+      "LangfuseSettings": {
+        "properties": {
+          "sync": {
+            "type": "boolean",
+            "title": "Sync",
+            "default": true
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels"
+          }
+        },
+        "type": "object",
+        "title": "LangfuseSettings",
+        "description": "Langfuse sync and label settings."
+      },
       "LiveResponse": {
         "properties": {
           "status": {
@@ -14335,6 +14481,89 @@
         "title": "ProcessResponse",
         "description": "Response after processing documents."
       },
+      "PromptConfig": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "default": "gpt-4o"
+          },
+          "temperature": {
+            "type": "number",
+            "title": "Temperature",
+            "default": 0.7
+          },
+          "max_tokens": {
+            "type": "integer",
+            "title": "Max Tokens",
+            "default": 2048
+          },
+          "response_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Format"
+          }
+        },
+        "type": "object",
+        "title": "PromptConfig",
+        "description": "LLM configuration parameters."
+      },
+      "PromptDefinition": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "default": "1.0"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
+          },
+          "system": {
+            "type": "string",
+            "title": "System",
+            "default": ""
+          },
+          "user": {
+            "type": "string",
+            "title": "User",
+            "default": ""
+          },
+          "config": {
+            "$ref": "#/components/schemas/PromptConfig"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PromptMetadata"
+          },
+          "examples": {
+            "items": {
+              "$ref": "#/components/schemas/PromptExample"
+            },
+            "type": "array",
+            "title": "Examples"
+          },
+          "langfuse": {
+            "$ref": "#/components/schemas/LangfuseSettings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "PromptDefinition",
+        "description": "Full prompt definition matching the YAML source format.\n\nArchitecture: YAML source (Git) -> Langfuse (Cloud SSOT) -> Runtime cache."
+      },
       "PromptDetailResponse": {
         "properties": {
           "name": {
@@ -14390,6 +14619,30 @@
         ],
         "title": "PromptDetailResponse",
         "description": "Full prompt content for the editor."
+      },
+      "PromptExample": {
+        "properties": {
+          "input": {
+            "type": "string",
+            "title": "Input"
+          },
+          "output": {
+            "type": "string",
+            "title": "Output"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "input",
+          "output"
+        ],
+        "title": "PromptExample",
+        "description": "Few-shot example for a prompt."
       },
       "PromptListItem": {
         "properties": {
@@ -14463,6 +14716,25 @@
         ],
         "title": "PromptListResponse"
       },
+      "PromptMetadata": {
+        "properties": {
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "en"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "type": "object",
+        "title": "PromptMetadata",
+        "description": "Prompt metadata for cataloguing."
+      },
       "PromptUpsertRequest": {
         "properties": {
           "yaml_text": {
@@ -14476,6 +14748,120 @@
         ],
         "title": "PromptUpsertRequest",
         "description": "User-edited raw YAML — validated server-side before write."
+      },
+      "PromptWorkflow": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Version"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PromptWorkflowStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "default_label": {
+            "type": "string",
+            "title": "Default Label",
+            "default": "prod"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "steps"
+        ],
+        "title": "PromptWorkflow",
+        "description": "A named, versioned, DAG-structured composition of prompt steps.\n\nValidation rejects:\n  * empty ``steps``\n  * duplicate step ids\n  * ``depends_on`` referencing an unknown step\n  * cycles in the dependency graph (Kahn topological sort)"
+      },
+      "PromptWorkflowStep": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "prompt_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Prompt Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": true
+          },
+          "depends_on": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Depends On"
+          },
+          "output_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Key"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "prompt_name"
+        ],
+        "title": "PromptWorkflowStep",
+        "description": "One step inside a :class:`PromptWorkflow`.\n\nFields:\n    id: Stable identifier within the workflow (referenced by other\n        steps via ``depends_on``).\n    prompt_name: Name passed to ``PromptManager.get(...)`` to fetch\n        the actual prompt definition.\n    description: Free-form human description.\n    required: When ``False`` the step may be skipped at execution\n        time (executor lands S141).\n    depends_on: Step ids that must complete before this one runs.\n    output_key: Hint for the executor on where to merge this step's\n        output in the final payload (e.g.,\n        ``\"extracted_fields.header\"``).\n    metadata: Arbitrary key-value bag for executor hints\n        (cost ceiling, gate condition, langfuse variant, ...)."
       },
       "QualityOverviewResponse": {
         "properties": {
@@ -17629,6 +18015,99 @@
         ],
         "title": "WebhookErrorResponse",
         "description": "Error envelope for 4xx responses."
+      },
+      "WorkflowDryRunResponse": {
+        "properties": {
+          "workflow": {
+            "$ref": "#/components/schemas/PromptWorkflow"
+          },
+          "steps": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PromptDefinition"
+            },
+            "type": "object",
+            "title": "Steps"
+          },
+          "resolved_label": {
+            "type": "string",
+            "title": "Resolved Label"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workflow",
+          "steps",
+          "resolved_label"
+        ],
+        "title": "WorkflowDryRunResponse"
+      },
+      "WorkflowListItem": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "step_count": {
+            "type": "integer",
+            "title": "Step Count"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "default_label": {
+            "type": "string",
+            "title": "Default Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "step_count",
+          "tags",
+          "default_label"
+        ],
+        "title": "WorkflowListItem",
+        "description": "One row in the listing response."
+      },
+      "WorkflowListResponse": {
+        "properties": {
+          "workflows": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowListItem"
+            },
+            "type": "array",
+            "title": "Workflows"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "backend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workflows",
+          "total"
+        ],
+        "title": "WorkflowListResponse"
       },
       "WriteSpecRequest": {
         "properties": {
