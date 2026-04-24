@@ -61,14 +61,26 @@ class ResilienceConfig(ServiceConfig):
 
 
 class _CircuitBreaker:
-    """Internal circuit breaker state for a single key."""
+    """Internal circuit breaker state for a single key.
 
-    def __init__(self, rule: ResilienceRule) -> None:
+    The ``clock`` parameter is a callable returning a monotonic float (defaults
+    to :func:`time.monotonic`). Tests can inject a controllable clock to make
+    the OPEN→HALF_OPEN recovery deterministic — see
+    ``tests/unit/services/test_resilience_service.py`` (Sprint O FU-5).
+    """
+
+    def __init__(
+        self,
+        rule: ResilienceRule,
+        *,
+        clock: Callable[[], float] | None = None,
+    ) -> None:
         self.rule = rule
         self.state = CircuitState.CLOSED
         self.failure_count = 0
         self.last_failure_time = 0.0
         self.half_open_calls = 0
+        self._clock: Callable[[], float] = clock or time.monotonic
 
     def record_success(self) -> None:
         self.failure_count = 0
@@ -77,7 +89,7 @@ class _CircuitBreaker:
 
     def record_failure(self) -> None:
         self.failure_count += 1
-        self.last_failure_time = time.monotonic()
+        self.last_failure_time = self._clock()
         if self.failure_count >= self.rule.circuit_failure_threshold:
             self.state = CircuitState.OPEN
 
@@ -85,7 +97,7 @@ class _CircuitBreaker:
         if self.state == CircuitState.CLOSED:
             return True
         if self.state == CircuitState.OPEN:
-            elapsed = time.monotonic() - self.last_failure_time
+            elapsed = self._clock() - self.last_failure_time
             if elapsed >= self.rule.circuit_recovery_timeout_seconds:
                 self.state = CircuitState.HALF_OPEN
                 self.half_open_calls = 0
@@ -101,11 +113,17 @@ class _CircuitBreaker:
 class ResilienceService(BaseService):
     """Centralized retry + circuit breaker for external service calls."""
 
-    def __init__(self, config: ResilienceConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: ResilienceConfig | None = None,
+        *,
+        clock: Callable[[], float] | None = None,
+    ) -> None:
         self._res_config = config or ResilienceConfig()
         super().__init__(self._res_config)
         self._rules: dict[str, ResilienceRule] = {r.key: r for r in self._res_config.rules}
         self._breakers: dict[str, _CircuitBreaker] = {}
+        self._clock: Callable[[], float] | None = clock
 
     @property
     def service_name(self) -> str:
@@ -129,7 +147,7 @@ class ResilienceService(BaseService):
 
     def _get_breaker(self, key: str) -> _CircuitBreaker:
         if key not in self._breakers:
-            self._breakers[key] = _CircuitBreaker(self._get_rule(key))
+            self._breakers[key] = _CircuitBreaker(self._get_rule(key), clock=self._clock)
         return self._breakers[key]
 
     async def execute(

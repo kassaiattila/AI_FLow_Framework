@@ -63,17 +63,38 @@ class TestResilienceService:
         assert result == "ok"
         assert func.await_count == 2
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "Quarantined 2026-04-25 (S104): timing-sensitive 50ms recovery window "
-            "flakes under full-suite load; PASSes in isolation. See docs/quarantine.md."
-        ),
-    )
     @pytest.mark.asyncio
-    async def test_circuit_opens_on_failures(self, svc: ResilienceService) -> None:
-        """Repeated failures open the circuit breaker."""
+    async def test_circuit_opens_on_failures(self) -> None:
+        """Repeated failures open the circuit breaker.
+
+        Sprint O FU-5 — unquarantined after the Clock seam landed in
+        ``ResilienceService.__init__(clock=...)``. The fixture pins the
+        breaker's clock at t=0 so the OPEN→HALF_OPEN recovery window
+        (50 ms) cannot elapse mid-loop under full-suite load — that was
+        the original flake source (see ``docs/quarantine.md``).
+        """
         from aiflow.core.errors import CircuitBreakerOpenError
+
+        # Pinned clock: every breaker call sees t=0.0, so recovery
+        # timeout (0.05s) can never elapse. Deterministic.
+        svc = ResilienceService(
+            config=ResilienceConfig(
+                rules=[
+                    ResilienceRule(
+                        key="test",
+                        max_retries=2,
+                        retry_delay_seconds=0.01,
+                        retry_backoff_factor=1.0,
+                        retry_max_delay_seconds=0.1,
+                        retryable_exceptions=["ConnectionError"],
+                        circuit_failure_threshold=3,
+                        circuit_recovery_timeout_seconds=0.05,
+                        circuit_half_open_max_calls=1,
+                    )
+                ]
+            ),
+            clock=lambda: 0.0,
+        )
 
         fail_func = AsyncMock(side_effect=ValueError("permanent"))
 
@@ -85,7 +106,8 @@ class TestResilienceService:
         state = svc.get_circuit_state("test")
         assert state["state"] == CircuitState.OPEN.value
 
-        # Next call should be rejected immediately
+        # Next call should be rejected immediately — pinned clock guarantees
+        # the recovery window has not elapsed.
         with pytest.raises(CircuitBreakerOpenError):
             await svc.execute("test", AsyncMock())
 

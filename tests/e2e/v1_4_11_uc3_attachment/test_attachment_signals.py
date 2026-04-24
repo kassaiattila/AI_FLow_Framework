@@ -199,14 +199,81 @@ _FAKE_DETAIL_PAYLOAD = {
 }
 
 
-class TestAttachmentSignalsCard:
-    """S129 golden-path: operator opens an attachment-boosted email
-    and sees the AttachmentSignalsCard with the rule-boost indicator.
+def _api_serves_attachment_features(base_url: str) -> bool:
+    """True iff `make api` is up AND the OpenAPI spec exposes the Sprint O
+    additive fields. False on any network/OpenAPI failure.
 
-    The detail-page API call is intercepted at the Playwright network layer
-    so the UI render path is exercised independently of the FastAPI hot-
-    reload state (the new ``EmailDetailResponse`` fields ship in the same
-    commit; this test asserts the UI honors them once the API ships them).
+    Used by the live-API test to skip cleanly when the dev API is down or
+    is running pre-Sprint-O code (hot-reload-stale uvicorn — exactly the
+    SO-6 regression the OpenAPI drift detector is meant to catch).
+    """
+    import urllib.error
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"{base_url.rstrip('/')}/openapi.json", timeout=2) as resp:
+            spec = json.loads(resp.read())
+    except (urllib.error.URLError, OSError, ValueError, json.JSONDecodeError):
+        return False
+    schema = (
+        spec.get("components", {})
+        .get("schemas", {})
+        .get("EmailDetailResponse", {})
+        .get("properties", {})
+    )
+    return "attachment_features" in schema and "classification_method" in schema
+
+
+# API base URL — defaults to the same port `make api` listens on (8102).
+API_BASE_URL = os.getenv("AIFLOW_API_BASE_URL", "http://localhost:8102")
+
+
+def _ui_is_up(base_url: str) -> bool:
+    """True iff the Vite dev server (or production build) is reachable.
+
+    The whole E2E suite is dependency-gated on `make api` + `npm run dev`
+    being live; the existing Sprint K E2E suite assumes both are up. We
+    add a per-test skip here because the new live-API variant should not
+    fail the suite on a session-resume where the user simply hasn't
+    started the dev stack yet.
+    """
+    import urllib.error
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(base_url.rstrip("/") + "/", timeout=2) as resp:
+            return resp.status < 500
+    except (urllib.error.URLError, OSError):
+        return False
+
+
+@pytest.fixture(autouse=True)
+def _skip_when_dev_stack_down() -> None:
+    """Skip the whole module cleanly if the Vite dev server is unreachable."""
+    if not _ui_is_up(BASE_URL):
+        pytest.skip(
+            f"UI dev server at {BASE_URL} is unreachable — "
+            "start `cd aiflow-admin && npm run dev` to run this E2E."
+        )
+
+
+class TestAttachmentSignalsCard:
+    """S129 golden-path + FU-1 follow-up: operator opens an attachment-
+    boosted email and sees the AttachmentSignalsCard with the rule-boost
+    indicator.
+
+    Two flavours, both gated on the dev API being up:
+
+    - **Route-mock UI smoke** (always runs when the UI is up). The detail
+      endpoint is intercepted at the Playwright network layer and a fixed
+      Sprint O payload is returned. Asserts the UI render honors the new
+      ``attachment_features`` shape independently of the FastAPI hot-
+      reload state.
+    - **Live-API smoke** (skipped if the API is down OR if its OpenAPI
+      spec lacks the Sprint O additive fields, i.e. uvicorn is running
+      pre-S129 code). Seeds a real ``workflow_runs`` row, hits
+      ``GET /api/v1/emails/{id}`` end-to-end, then loads the page and
+      runs the same render assertions.
     """
 
     def test_card_renders_with_boosted_indicator(
@@ -241,3 +308,43 @@ class TestAttachmentSignalsCard:
             e for e in console_errors if "WebSocket" not in e and "Failed to load" not in e
         ]
         assert real_errors == [], f"Console errors: {real_errors}"
+
+    def test_live_api_serves_attachment_features_end_to_end(
+        self,
+        authenticated_page: Page,
+        seeded_run_id: uuid.UUID,
+    ) -> None:
+        """FU-1 follow-up — live-API path with no route mock.
+
+        Skipped when the dev API is unreachable or running stale code.
+        Promote to "always-run" in CI once `make api` lifecycle is stable.
+        """
+        if not _api_serves_attachment_features(API_BASE_URL):
+            pytest.skip(
+                f"Live API at {API_BASE_URL} is down or pre-Sprint-O — "
+                "restart `make api` and re-run."
+            )
+
+        page = authenticated_page
+        run_id = str(seeded_run_id)
+
+        token = page.evaluate("() => localStorage.getItem('aiflow_token')")
+        assert token, "UI login did not set aiflow_token in localStorage"
+
+        api_resp = page.request.get(
+            f"{API_BASE_URL}/api/v1/emails/{run_id}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert api_resp.ok, f"GET /api/v1/emails failed: {api_resp.status} {api_resp.text()}"
+        api_data = api_resp.json()
+        assert api_data.get("attachment_features"), (
+            "API missing attachment_features — uvicorn is serving pre-Sprint-O code"
+        )
+        assert api_data["attachment_features"]["invoice_number_detected"] is True
+        assert "attachment_rule" in (api_data.get("classification_method") or "")
+
+        # UI render against the live response (no route mock).
+        page.goto(f"{BASE_URL}/#/emails/{run_id}")
+        page.wait_for_load_state("networkidle")
+        expect(page.get_by_test_id("attachment-signals-heading")).to_be_visible()
+        expect(page.get_by_test_id("attachment-signals-boosted")).to_be_visible()
