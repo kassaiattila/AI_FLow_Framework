@@ -31,6 +31,52 @@ _upload_file_field = File(...)
 
 
 # ---------------------------------------------------------------------------
+# Sprint O / FU-2 — intent_class lookup from the v1 intent schema
+# ---------------------------------------------------------------------------
+
+_INTENT_SCHEMA_PATH = (
+    Path(__file__).resolve().parents[4]
+    / "skills"
+    / "email_intent_processor"
+    / "schemas"
+    / "v1"
+    / "intents.json"
+)
+
+
+def _load_intent_class_map() -> dict[str, str]:
+    """Return ``{intent_id: intent_class}`` from the v1 intent schema.
+
+    Cached on first call via module-level memoisation (cheap — the schema
+    is a ~25 KB JSON). Missing schema returns an empty map so the API
+    stays up even if the skill directory is excluded from a deployment.
+    """
+    try:
+        data = _json.loads(_INTENT_SCHEMA_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        logger.warning("intent_class_map_load_failed", path=str(_INTENT_SCHEMA_PATH))
+        return {}
+    return {
+        intent["id"]: intent.get("intent_class", "OTHER")
+        for intent in data.get("intents", [])
+        if isinstance(intent, dict) and "id" in intent
+    }
+
+
+_INTENT_CLASS_MAP: dict[str, str] | None = None
+
+
+def _resolve_intent_class(intent_id: str | None) -> str | None:
+    """Look up the abstract intent_class for a given intent_id (lazy cache)."""
+    global _INTENT_CLASS_MAP
+    if _INTENT_CLASS_MAP is None:
+        _INTENT_CLASS_MAP = _load_intent_class_map()
+    if not intent_id:
+        return None
+    return _INTENT_CLASS_MAP.get(intent_id)
+
+
+# ---------------------------------------------------------------------------
 # Pydantic Models
 # ---------------------------------------------------------------------------
 
@@ -85,6 +131,11 @@ class EmailDetailResponse(BaseModel):
     # "...+attachment_rule" suffix when the rule boost fired so the UI can
     # surface that in the AttachmentSignalsCard.
     classification_method: str | None = None
+    # Sprint O / FU-2 — abstract intent class (EXTRACT / INFORMATION_REQUEST
+    # / SUPPORT / SPAM / OTHER). Derived from the v1 schema's ``intent_class``
+    # field on each intent. UI renders this as a coarse-grained badge so new
+    # intent_ids can slot into an existing class without UI changes.
+    intent_class: str | None = None
     processing_time_ms: float = 0.0
     status: str = "completed"
     source: str = "backend"
@@ -1462,6 +1513,9 @@ async def get_email(email_id: str) -> EmailDetailResponse:
                     attachment_summaries=data.get("attachment_summaries", []),
                     attachment_features=data.get("attachment_features"),
                     classification_method=data.get("method"),
+                    intent_class=_resolve_intent_class(
+                        (data.get("intent") or {}).get("intent_id") or data.get("label")
+                    ),
                     processing_time_ms=row["total_duration_ms"] or 0.0,
                     status=row["status"],
                     source="backend",

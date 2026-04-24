@@ -1958,6 +1958,11 @@ components:
             type: object
           - type: 'null'
           title: Intent
+        intent_class:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Intent Class
         priority:
           anyOf:
           - additionalProperties: true

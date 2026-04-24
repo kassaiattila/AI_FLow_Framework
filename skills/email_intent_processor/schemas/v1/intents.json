@@ -1,5 +1,15 @@
 {
-  "schema_version": "1.2",
+  "schema_version": "1.3",
+  "intent_classes": {
+    "description": "Abstract intent category (Sprint O FU-2). Downstream routing + UI badges use intent_class instead of the specific intent_id so new intent_ids can slot into an existing class without UI changes.",
+    "values": [
+      "EXTRACT",
+      "INFORMATION_REQUEST",
+      "SUPPORT",
+      "SPAM",
+      "OTHER"
+    ]
+  },
   "intents": [
     {
       "id": "complaint",
@@ -42,7 +52,8 @@
         "service_complaint",
         "product_complaint",
         "staff_complaint"
-      ]
+      ],
+      "intent_class": "OTHER"
     },
     {
       "id": "inquiry",
@@ -86,7 +97,8 @@
         "pricing_inquiry",
         "process_inquiry",
         "status_inquiry"
-      ]
+      ],
+      "intent_class": "INFORMATION_REQUEST"
     },
     {
       "id": "order",
@@ -129,7 +141,8 @@
         "contract_modification",
         "product_order",
         "upgrade"
-      ]
+      ],
+      "intent_class": "EXTRACT"
     },
     {
       "id": "support",
@@ -174,7 +187,8 @@
         "app_error",
         "portal_issue",
         "system_outage"
-      ]
+      ],
+      "intent_class": "SUPPORT"
     },
     {
       "id": "feedback",
@@ -217,7 +231,8 @@
         "negative_feedback",
         "suggestion",
         "survey_response"
-      ]
+      ],
+      "intent_class": "OTHER"
     },
     {
       "id": "claim",
@@ -263,7 +278,8 @@
         "theft_claim",
         "natural_disaster",
         "health_claim"
-      ]
+      ],
+      "intent_class": "EXTRACT"
     },
     {
       "id": "cancellation",
@@ -305,7 +321,8 @@
         "subscription_cancel",
         "service_termination",
         "partial_cancel"
-      ]
+      ],
+      "intent_class": "OTHER"
     },
     {
       "id": "marketing",
@@ -345,7 +362,8 @@
         "promotion",
         "advertisement"
       ],
-      "auto_action": "archive"
+      "auto_action": "archive",
+      "intent_class": "SPAM"
     },
     {
       "id": "notification",
@@ -385,7 +403,8 @@
         "subscription",
         "ci_cd"
       ],
-      "auto_action": "classify_and_route"
+      "auto_action": "classify_and_route",
+      "intent_class": "SPAM"
     },
     {
       "id": "internal",
@@ -424,7 +443,8 @@
         "project",
         "request"
       ],
-      "auto_action": "none"
+      "auto_action": "none",
+      "intent_class": "OTHER"
     },
     {
       "id": "invoice_received",
@@ -464,7 +484,8 @@
         "one_time_invoice",
         "recurring_invoice",
         "overdue_reminder"
-      ]
+      ],
+      "intent_class": "EXTRACT"
     },
     {
       "id": "calendar_invite",
@@ -509,7 +530,8 @@
         "tentative",
         "new_invite"
       ],
-      "auto_action": "rsvp_process"
+      "auto_action": "rsvp_process",
+      "intent_class": "OTHER"
     }
   ]
 }

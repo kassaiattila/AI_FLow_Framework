@@ -29,17 +29,54 @@ interface EmailDetail {
   attachment_summaries: Array<Record<string, unknown>>;
   attachment_features: AttachmentFeatures | null;
   classification_method: string | null;
+  intent_class: string | null;
   processing_time_ms: number;
   status: string;
   source: string;
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({
+  title,
+  headerExtra,
+  children,
+}: {
+  title: string;
+  headerExtra?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{title}</h3>
+      <h3 className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <span>{title}</span>
+        {headerExtra}
+      </h3>
       {children}
     </div>
+  );
+}
+
+const INTENT_CLASS_TONE: Record<string, string> = {
+  EXTRACT:
+    "bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-300",
+  INFORMATION_REQUEST:
+    "bg-indigo-50 text-indigo-700 ring-indigo-600/20 dark:bg-indigo-500/10 dark:text-indigo-300",
+  SUPPORT:
+    "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300",
+  SPAM: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-500/10 dark:text-rose-300",
+  OTHER:
+    "bg-gray-50 text-gray-700 ring-gray-500/20 dark:bg-gray-700/40 dark:text-gray-300",
+};
+
+function IntentClassBadge({ value }: { value: string | null }) {
+  if (!value) return null;
+  const tone = INTENT_CLASS_TONE[value] ?? INTENT_CLASS_TONE.OTHER;
+  return (
+    <span
+      data-testid="intent-class-badge"
+      className={`ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ${tone}`}
+    >
+      {value}
+    </span>
   );
 }
 
@@ -94,7 +131,7 @@ export function EmailDetail() {
       </div>
 
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card title="Intent">
+        <Card title="Intent" headerExtra={<IntentClassBadge value={data.intent_class} />}>
           <KV label="Label" value={String(intent.intent_id ?? "—")} />
           <KV label="Display" value={String(intent.intent_display_name ?? "—")} />
           <KV
