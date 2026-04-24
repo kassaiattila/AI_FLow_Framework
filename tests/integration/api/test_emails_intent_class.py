@@ -23,13 +23,13 @@ import json
 import os
 import uuid
 from collections.abc import AsyncGenerator
+from unittest.mock import patch
 
 import asyncpg
 import httpx
 import pytest
 from httpx import ASGITransport
 
-from aiflow.api.app import create_app
 from aiflow.api.v1 import emails as emails_module
 from aiflow.security.auth import AuthProvider
 
@@ -42,12 +42,26 @@ DATABASE_URL = os.getenv(
 # asyncpg speaks the libpq URL without the +asyncpg suffix.
 PG_DSN = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
 
+# Share a single AuthProvider instance between the token signer (test) and
+# the app-under-test. Without this patch, CI runners that lazy-generate
+# JWT keys produce mismatched key pairs → "invalid_token" on every call.
+_SHARED_AUTH = AuthProvider.from_env()
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _patch_auth_provider() -> None:
+    with patch.object(AuthProvider, "from_env", return_value=_SHARED_AUTH):
+        yield
+
 
 def _auth_headers() -> dict[str, str]:
-    """Mint a signed admin token for the in-process FastAPI app."""
-    auth = AuthProvider.from_env()
-    token = auth.create_token(user_id="fu-2-test", role="admin", team_id="default")
+    token = _SHARED_AUTH.create_token(user_id="fu-2-test", role="admin", team_id="default")
     return {"Authorization": f"Bearer {token}"}
+
+
+# Import create_app AFTER _SHARED_AUTH is constructed so the first reference
+# doesn't bake in a divergent AuthProvider instance.
+from aiflow.api.app import create_app  # noqa: E402
 
 
 @pytest.fixture()
