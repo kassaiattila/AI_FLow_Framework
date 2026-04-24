@@ -11,7 +11,7 @@
  */
 
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "../lib/i18n";
 import { PageLayout } from "../layout/PageLayout";
 import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
@@ -27,7 +27,7 @@ import type {
 const LIST_PATH = "/api/v1/prompts/workflows";
 
 export function PromptWorkflows() {
-  const { t } = useTranslation();
+  const t = useTranslate();
   const { data, loading, error, refetch } = useApi<PromptWorkflowListResponse>(
     LIST_PATH,
   );
@@ -137,7 +137,7 @@ interface WorkflowDetailPanelProps {
 }
 
 function WorkflowDetailPanel({ name }: WorkflowDetailPanelProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   const { data, loading, error } = useApi<PromptWorkflow>(
     `/api/v1/prompts/workflows/${encodeURIComponent(name)}`,
   );
