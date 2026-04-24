@@ -1952,6 +1952,12 @@ components:
             type: object
           - type: 'null'
           title: Entities
+        extracted_fields:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Extracted Fields
         intent:
           anyOf:
           - additionalProperties: true

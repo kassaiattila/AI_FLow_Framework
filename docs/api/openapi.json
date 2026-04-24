@@ -11441,6 +11441,18 @@
             ],
             "title": "Intent Class"
           },
+          "extracted_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extracted Fields"
+          },
           "processing_time_ms": {
             "type": "number",
             "title": "Processing Time Ms",

@@ -13,6 +13,10 @@ import {
   AttachmentSignalsCard,
   type AttachmentFeatures,
 } from "../components-new/AttachmentSignalsCard";
+import {
+  ExtractedFieldsCard,
+  type ExtractedInvoice,
+} from "../components-new/ExtractedFieldsCard";
 
 interface EmailDetail {
   email_id: string;
@@ -30,6 +34,7 @@ interface EmailDetail {
   attachment_features: AttachmentFeatures | null;
   classification_method: string | null;
   intent_class: string | null;
+  extracted_fields: Record<string, ExtractedInvoice> | null;
   processing_time_ms: number;
   status: string;
   source: string;
@@ -164,6 +169,8 @@ export function EmailDetail() {
         features={data.attachment_features}
         classificationMethod={data.classification_method}
       />
+
+      <ExtractedFieldsCard extractedFields={data.extracted_fields} />
 
       {data.body && (
         <div className="mb-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">

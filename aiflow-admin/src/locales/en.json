@@ -164,6 +164,19 @@
         "pages": "pages",
         "yes": "yes",
         "no": "no"
+      },
+      "extractedFields": {
+        "title": "Extracted invoice fields",
+        "vendor": "Vendor",
+        "buyer": "Buyer",
+        "currency": "Currency",
+        "issueDate": "Issue date",
+        "dueDate": "Due date",
+        "lineItems": "Line items",
+        "netTotal": "Net total",
+        "vatTotal": "VAT total",
+        "grossTotal": "Gross total",
+        "showMore": "+%{count} more"
       }
     },
     "intentRules": {
