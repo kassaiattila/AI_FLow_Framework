@@ -23,6 +23,10 @@ export interface AttachmentFeatures {
   text_quality?: number;
   attachments_considered?: number;
   attachments_skipped?: number;
+  // FU-7 — per-attachment processing cost (docling=$0, Azure DI per-page,
+  // LLM vision per-image). Aggregated across all considered attachments.
+  total_cost_usd?: number;
+  total_pages_processed?: number;
 }
 
 interface AttachmentSignalsCardProps {
@@ -125,6 +129,23 @@ export function AttachmentSignalsCard({
           </dt>
           <dd className="tabular-nums text-gray-900 dark:text-gray-100">{qualityPct}</dd>
         </div>
+        {typeof features.total_cost_usd === "number" && features.total_cost_usd > 0 && (
+          <div data-testid="attachment-signals-cost">
+            <dt className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              {translate("aiflow.emails.attachmentSignals.costUsd")}
+            </dt>
+            <dd className="tabular-nums text-gray-900 dark:text-gray-100">
+              ${features.total_cost_usd.toFixed(4)}
+              {typeof features.total_pages_processed === "number" &&
+                features.total_pages_processed > 0 && (
+                  <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                    ({features.total_pages_processed}{" "}
+                    {translate("aiflow.emails.attachmentSignals.pages")})
+                  </span>
+                )}
+            </dd>
+          </div>
+        )}
       </dl>
 
       {topBuckets.length > 0 && (

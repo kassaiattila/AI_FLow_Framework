@@ -160,6 +160,8 @@
         "keywordBuckets": "Kulcsszavak",
         "consideredSkipped": "%{considered} feldolgozva, %{skipped} kihagyva",
         "boostedIndicator": "A csatolmany szabaly emelte a besorolast",
+        "costUsd": "Koltseg (USD)",
+        "pages": "oldal",
         "yes": "igen",
         "no": "nem"
       }
