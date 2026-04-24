@@ -1,0 +1,23 @@
+Subject: =?utf-8?b?S8OpcmTDqXMgYSBzemVyesWRZMOpc3LFkWw=?=
+From: sender@example.com
+To: intake@example.com
+Message-ID: <021_contract_inquiry_no_attach@sprint-o.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============4857266296882705446=="
+
+--===============4857266296882705446==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+U3plcmV0bsOpayDDqXJkZWtsxZFkbmksIGEgasO2dsWRIGjDs25hcGJhbiBrw7Z0aGV0xZEtZSDD
+umogc3plcnrFkWTDqXMgb25saW5lIGlzPwo=
+
+--===============4857266296882705446==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="note.txt"
+MIME-Version: 1.0
+
+Zml4dHVyZSBtYXJrZXIK
+
+--===============4857266296882705446==--

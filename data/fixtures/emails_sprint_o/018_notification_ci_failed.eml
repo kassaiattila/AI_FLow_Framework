@@ -1,0 +1,22 @@
+Subject: [AI_FLow_Framework] Run failed: Framework CI
+From: sender@example.com
+To: intake@example.com
+Message-ID: <018_notification_ci_failed@sprint-o.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============9097189879800900968=="
+
+--===============9097189879800900968==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+The run failed at step 'unit-tests'. See GitHub Actions for details.
+
+--===============9097189879800900968==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="note.txt"
+MIME-Version: 1.0
+
+Zml4dHVyZSBtYXJrZXIK
+
+--===============9097189879800900968==--

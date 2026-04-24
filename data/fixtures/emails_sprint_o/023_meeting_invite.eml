@@ -1,0 +1,22 @@
+Subject: Meeting: Sprint review =?utf-8?b?4oCU?= 2026-05-08 10:00 CET
+From: sender@example.com
+To: intake@example.com
+Message-ID: <023_meeting_invite@sprint-o.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============8528302677079910045=="
+
+--===============8528302677079910045==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Meghívás a sprint review-re. RSVP az Outlookban.
+
+--===============8528302677079910045==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="note.txt"
+MIME-Version: 1.0
+
+Zml4dHVyZSBtYXJrZXIK
+
+--===============8528302677079910045==--

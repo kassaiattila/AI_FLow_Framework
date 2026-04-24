@@ -149,7 +149,20 @@
       "noActiveConnector": "Nincs aktiv email connector — adj hozza egyet a Connectorok tabon",
       "scanSuccessful": "{count} email feldolgozva a(z) {connector} connectorbol",
       "scanStart": "Scan Inditas",
-      "scanRunning": "Pipeline fut..."
+      "scanRunning": "Pipeline fut...",
+      "attachmentSignals": {
+        "title": "Csatolmany jelek",
+        "invoiceNumberDetected": "Szamlaszam",
+        "totalValueDetected": "Vegosszeg",
+        "tableCount": "Tablak",
+        "textQuality": "Szovegminoseg",
+        "mimeProfile": "Tipus",
+        "keywordBuckets": "Kulcsszavak",
+        "consideredSkipped": "%{considered} feldolgozva, %{skipped} kihagyva",
+        "boostedIndicator": "A csatolmany szabaly emelte a besorolast",
+        "yes": "igen",
+        "no": "nem"
+      }
     },
     "intentRules": {
       "title": "Intent szabalyok",

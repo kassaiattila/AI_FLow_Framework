@@ -10,7 +10,13 @@ import structlog
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-__all__ = ["AIFlowSettings", "CostGuardrailSettings", "VaultSettings", "get_settings"]
+__all__ = [
+    "AIFlowSettings",
+    "CostGuardrailSettings",
+    "UC3AttachmentIntentSettings",
+    "VaultSettings",
+    "get_settings",
+]
 
 logger = structlog.get_logger(__name__)
 
@@ -81,6 +87,27 @@ class CostGuardrailSettings(BaseSettings):
     default_output_tokens: int = 1000
 
 
+class UC3AttachmentIntentSettings(BaseSettings):
+    """UC3 attachment-aware intent feature flag (Sprint O / S127).
+
+    When ``enabled`` is False (the default), the email-connector orchestrator
+    runs the Sprint K body-only classification path with zero new behaviour —
+    no ``AttachmentProcessor`` instantiation, no extractor calls, no new log
+    events. Flip ``enabled`` to True per-tenant or globally to thread
+    attachment features into ``workflow_runs.output_data`` for the classifier
+    (S128 will consume them).
+    """
+
+    model_config = SettingsConfigDict(env_prefix="AIFLOW_UC3_ATTACHMENT_INTENT__")
+    enabled: bool = False
+    max_attachment_mb: int = 10
+    total_budget_seconds: float = 5.0
+    # S128 — when True (and ``enabled`` is also True) the classifier appends
+    # an attachment-summary system message on the LLM path; default off so
+    # rule-boost can land without paying the LLM-context budget yet.
+    llm_context: bool = False
+
+
 class VaultSettings(BaseSettings):
     """HashiCorp Vault integration for production secret resolution.
 
@@ -126,6 +153,9 @@ class AIFlowSettings(BaseSettings):
     langfuse: LangfuseSettings = Field(default_factory=LangfuseSettings)
     budget: BudgetSettings = Field(default_factory=BudgetSettings)
     cost_guardrail: CostGuardrailSettings = Field(default_factory=CostGuardrailSettings)
+    uc3_attachment_intent: UC3AttachmentIntentSettings = Field(
+        default_factory=UC3AttachmentIntentSettings
+    )
     vault: VaultSettings = Field(default_factory=VaultSettings)
 
     @property

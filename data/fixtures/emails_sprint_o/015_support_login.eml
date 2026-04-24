@@ -1,0 +1,24 @@
+Subject: Nem tudok =?utf-8?q?bel=C3=A9pni?=
+From: sender@example.com
+To: intake@example.com
+Message-ID: <015_support_login@sprint-o.local>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============3069744552440092242=="
+
+--===============3069744552440092242==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+TmVtIHR1ZG9rIGJlamVsZW50a2V6bmkgYSBmacOza29tYmEsIGplbHN6w7MgaGVseXJlw6FsbMOt
+dMOhc2kgZS1tYWlsdCBzZW0ga2Fwb2suIEvDqXJlayBzw7xyZ8WRcyB0ZWNobmlrYWkgc2Vnw610
+c8OpZ2V0Lgo=
+
+--===============3069744552440092242==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="note.txt"
+MIME-Version: 1.0
+
+Zml4dHVyZSBtYXJrZXIK
+
+--===============3069744552440092242==--

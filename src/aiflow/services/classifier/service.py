@@ -30,7 +30,20 @@ __all__ = [
     "ClassificationResult",
     "ClassifierConfig",
     "ClassifierService",
+    "EXTRACT_INTENT_IDS",
 ]
+
+# Sprint O / S128 — Sprint K v1 schema labels considered "EXTRACT-class".
+# Source: data/fixtures/emails_sprint_o/manifest.yaml
+# (categories.EXTRACT.sprint_k_intents). Hard-coded for now because the
+# schema has no native ``intent_class`` field; revisit when the schema gains
+# one.
+EXTRACT_INTENT_IDS: frozenset[str] = frozenset({"invoice_received", "order"})
+
+# Confidence ceiling for the attachment-feature rule boost. Plan §4 LEPES 3.
+_RULE_BOOST_DELTA = 0.3
+_RULE_BOOST_CAP = 0.95
+_RULE_BOOST_BODY_THRESHOLD = 0.6
 
 logger = structlog.get_logger(__name__)
 
@@ -138,6 +151,7 @@ class ClassifierService(BaseService):
         subject: str = "",
         schema_labels: list[dict[str, Any]] | None = None,
         strategy: str | None = None,
+        context: dict[str, Any] | None = None,
     ) -> ClassificationResult:
         """Classify text using the configured (or overridden) strategy.
 
@@ -151,6 +165,19 @@ class ClassifierService(BaseService):
                 - keywords (list[str]): trigger keywords for fast matching
                 - examples (list[str]): example texts for LLM few-shot
             strategy: Override the default strategy for this call.
+            context: Optional structured context (Sprint O / S128). Recognised
+                keys:
+
+                - ``attachment_features`` — dict from
+                  :class:`AttachmentFeatures.model_dump`; triggers the rule
+                  boost when body confidence is below
+                  ``_RULE_BOOST_BODY_THRESHOLD``.
+                - ``attachment_text_preview`` — first ~500 chars of attachment
+                  text; appended to the LLM prompt when the caller opts into
+                  the LLM-context path.
+                - ``attachment_intent_llm_context`` — bool; when True the
+                  :meth:`_classify_llm` path injects the second system
+                  message. Defaults to False to preserve Sprint K cost.
 
         Returns:
             ClassificationResult with the winning label and metadata.
@@ -162,23 +189,23 @@ class ClassifierService(BaseService):
         full_text = f"{subject}\n\n{text}" if subject else text
 
         if active_strategy == ClassificationStrategy.SKLEARN_ONLY:
-            return await self._classify_keywords(full_text, labels)
+            base = await self._classify_keywords(full_text, labels)
+        elif active_strategy == ClassificationStrategy.LLM_ONLY:
+            base = await self._classify_llm(text, subject, labels, context=context)
+        elif active_strategy == ClassificationStrategy.SKLEARN_FIRST:
+            base = await self._keywords_first(text, subject, full_text, labels, context=context)
+        elif active_strategy == ClassificationStrategy.LLM_FIRST:
+            base = await self._llm_first(text, subject, full_text, labels, context=context)
+        elif active_strategy == ClassificationStrategy.ENSEMBLE:
+            base = await self._ensemble(text, subject, full_text, labels, context=context)
+        else:
+            self._logger.warning("unknown_strategy", strategy=active_strategy)
+            base = await self._keywords_first(text, subject, full_text, labels, context=context)
 
-        if active_strategy == ClassificationStrategy.LLM_ONLY:
-            return await self._classify_llm(text, subject, labels)
-
-        if active_strategy == ClassificationStrategy.SKLEARN_FIRST:
-            return await self._keywords_first(text, subject, full_text, labels)
-
-        if active_strategy == ClassificationStrategy.LLM_FIRST:
-            return await self._llm_first(text, subject, full_text, labels)
-
-        if active_strategy == ClassificationStrategy.ENSEMBLE:
-            return await self._ensemble(text, subject, full_text, labels)
-
-        # Fallback to keywords_first for unknown strategy values
-        self._logger.warning("unknown_strategy", strategy=active_strategy)
-        return await self._keywords_first(text, subject, full_text, labels)
+        # Sprint O / S128 — attachment-feature rule boost. Pure post-process,
+        # only fires when ``context["attachment_features"]`` carries one of
+        # the booleans and the body-derived confidence is below threshold.
+        return _apply_attachment_rule_boost(base, labels, context)
 
     # ------------------------------------------------------------------
     # Strategy orchestrators
@@ -190,6 +217,8 @@ class ClassifierService(BaseService):
         subject: str,
         full_text: str,
         schema_labels: list[dict[str, Any]],
+        *,
+        context: dict[str, Any] | None = None,
     ) -> ClassificationResult:
         """Keyword-based first, fallback to LLM if low confidence."""
         kw_result = await self._classify_keywords(full_text, schema_labels)
@@ -209,7 +238,7 @@ class ClassifierService(BaseService):
             kw_result.method = "keywords_only_no_llm"
             return kw_result
 
-        llm_result = await self._classify_llm(text, subject, schema_labels)
+        llm_result = await self._classify_llm(text, subject, schema_labels, context=context)
         return self._merge_results(kw_result, llm_result, prefer="llm")
 
     async def _llm_first(
@@ -218,12 +247,14 @@ class ClassifierService(BaseService):
         subject: str,
         full_text: str,
         schema_labels: list[dict[str, Any]],
+        *,
+        context: dict[str, Any] | None = None,
     ) -> ClassificationResult:
         """LLM first, fallback to keyword-based if low confidence."""
         if self._models_client is None:
             return await self._classify_keywords(full_text, schema_labels)
 
-        llm_result = await self._classify_llm(text, subject, schema_labels)
+        llm_result = await self._classify_llm(text, subject, schema_labels, context=context)
 
         if llm_result.confidence >= self._cls_config.confidence_threshold:
             llm_result.method = "llm"
@@ -238,6 +269,8 @@ class ClassifierService(BaseService):
         subject: str,
         full_text: str,
         schema_labels: list[dict[str, Any]],
+        *,
+        context: dict[str, Any] | None = None,
     ) -> ClassificationResult:
         """Run both classifiers and merge with weighted average."""
         kw_result = await self._classify_keywords(full_text, schema_labels)
@@ -246,7 +279,7 @@ class ClassifierService(BaseService):
             kw_result.method = "keywords_only_no_llm"
             return kw_result
 
-        llm_result = await self._classify_llm(text, subject, schema_labels)
+        llm_result = await self._classify_llm(text, subject, schema_labels, context=context)
 
         # If both agree, boost confidence
         if kw_result.label == llm_result.label:
@@ -367,6 +400,8 @@ class ClassifierService(BaseService):
         text: str,
         subject: str,
         schema_labels: list[dict[str, Any]],
+        *,
+        context: dict[str, Any] | None = None,
     ) -> ClassificationResult:
         """Classify text using LLM via models_client.generate().
 
@@ -409,12 +444,15 @@ class ClassifierService(BaseService):
         if subject:
             user_content = f"Subject: {subject}\n\n{text}"
 
+        messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
+        attachment_message = _build_attachment_context_message(context)
+        if attachment_message is not None:
+            messages.append({"role": "system", "content": attachment_message})
+        messages.append({"role": "user", "content": user_content[:4000]})
+
         try:
             result = await self._models_client.generate(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_content[:4000]},
-                ],
+                messages=messages,
                 model=self._cls_config.llm_model,
                 temperature=self._cls_config.llm_temperature,
                 max_tokens=self._cls_config.max_tokens,
@@ -491,3 +529,144 @@ class ClassifierService(BaseService):
             alternatives=primary.alternatives or secondary.alternatives,
             reasoning=llm_result.reasoning,
         )
+
+
+# ---------------------------------------------------------------------------
+# Sprint O / S128 — attachment-feature rule boost + LLM-context helpers
+# ---------------------------------------------------------------------------
+
+
+def _build_attachment_context_message(context: dict[str, Any] | None) -> str | None:
+    """Render the LLM-context system message, or ``None`` if the caller did
+    not opt in.
+
+    Activated only when ``context["attachment_intent_llm_context"]`` is True
+    (orchestrator threads this from
+    :class:`UC3AttachmentIntentSettings.llm_context`). Keeps the LLM cost
+    profile unchanged for Sprint K callers and the default Sprint O ON path.
+    """
+    if not context:
+        return None
+    if not context.get("attachment_intent_llm_context"):
+        return None
+    features = context.get("attachment_features") or {}
+    preview = (context.get("attachment_text_preview") or "")[:500]
+
+    lines: list[str] = ["Additional attachment context (Sprint O):"]
+    lines.append(
+        "- invoice_number_detected="
+        f"{bool(features.get('invoice_number_detected'))}"
+        f"; total_value_detected={bool(features.get('total_value_detected'))}"
+    )
+    lines.append(f"- mime_profile={features.get('mime_profile', 'none')!r}")
+    buckets = features.get("keyword_buckets") or {}
+    if buckets:
+        top = sorted(buckets.items(), key=lambda kv: kv[1], reverse=True)[:3]
+        bucket_str = ", ".join(f"{name}={count}" for name, count in top)
+        lines.append(f"- keyword_buckets (top 3): {bucket_str}")
+    if preview:
+        lines.append("- attachment_text_preview (truncated to 500 chars):")
+        lines.append(preview)
+    return "\n".join(lines)
+
+
+def _apply_attachment_rule_boost(
+    base: ClassificationResult,
+    schema_labels: list[dict[str, Any]],
+    context: dict[str, Any] | None,
+) -> ClassificationResult:
+    """Boost the closest EXTRACT-class label when attachment signals fire.
+
+    Plan §4 LEPES 3 (refined after S128 first-pass measurement):
+        body confidence < 0.6
+        AND body label is in {"unknown"} ∪ EXTRACT_INTENT_IDS  ← gate
+        AND attachment carries an EXTRACT signal
+        → boost the *signal-aligned* EXTRACT label by +0.3 (cap 0.95).
+
+    The body-label gate prevents the boost from clobbering correctly
+    identified non-EXTRACT intents (complaint, support, marketing,
+    inquiry, …) when a low-confidence keyword score happens to slip
+    under the 0.6 floor. Signal-aligned label selection avoids the
+    "always picks `order`" bug from naive alternatives-based selection.
+
+    Signal alignment:
+
+    - ``invoice_number_detected`` → ``invoice_received`` (HU/EN INV regex
+      is the strongest evidence for a delivered invoice).
+    - ``keyword_buckets["contract"] > 0`` and no invoice number →
+      ``order`` (Sprint K v1 schema groups contract intents under
+      ``order``).
+    - ``total_value_detected`` only → ``invoice_received`` (payment-due
+      lines are statistically much more often invoices than contracts in
+      our fixture corpus).
+    """
+    if not context:
+        return base
+    features = context.get("attachment_features")
+    if not features:
+        return base
+    if base.confidence >= _RULE_BOOST_BODY_THRESHOLD:
+        return base
+    if base.label not in EXTRACT_INTENT_IDS and base.label != "unknown":
+        return base
+
+    invoice_hit = bool(features.get("invoice_number_detected"))
+    total_hit = bool(features.get("total_value_detected"))
+    contract_hit = int((features.get("keyword_buckets") or {}).get("contract", 0)) > 0
+    if not (invoice_hit or total_hit or contract_hit):
+        return base
+
+    # Pick EXTRACT label aligned with the strongest signal.
+    if invoice_hit:
+        preferred_id = "invoice_received"
+    elif contract_hit:
+        preferred_id = "order"
+    else:  # total_hit only
+        preferred_id = "invoice_received"
+
+    chosen: dict[str, Any] | None = next(
+        (lbl for lbl in schema_labels if lbl.get("id") == preferred_id), None
+    )
+    if chosen is None:
+        # Fall back to the first EXTRACT label present in the schema.
+        chosen = next((lbl for lbl in schema_labels if lbl.get("id") in EXTRACT_INTENT_IDS), None)
+    if chosen is None:
+        return base
+
+    chosen_id = chosen.get("id", "")
+    alt_scores: dict[str, float] = {
+        alt.get("label", ""): float(alt.get("confidence", 0.0)) for alt in base.alternatives
+    }
+    base_confidence_for_chosen = alt_scores.get(
+        chosen_id, base.confidence if base.label == chosen_id else 0.0
+    )
+    boosted = min(
+        _RULE_BOOST_CAP, max(base_confidence_for_chosen, base.confidence) + _RULE_BOOST_DELTA
+    )
+
+    fired: list[str] = []
+    if invoice_hit:
+        fired.append("invoice_number_detected")
+    if total_hit:
+        fired.append("total_value_detected")
+    if contract_hit:
+        fired.append("contract_keyword_bucket")
+    fired_str = "+".join(fired)
+    reasoning_prefix = (
+        f"Attachment rule boost: {fired_str} → boosted '{chosen_id}' "
+        f"by +{_RULE_BOOST_DELTA} (cap {_RULE_BOOST_CAP}). "
+    )
+
+    return ClassificationResult(
+        label=chosen_id,
+        display_name=chosen.get("display_name", base.display_name),
+        confidence=round(boosted, 4),
+        method=f"{base.method}+attachment_rule" if base.method else "attachment_rule",
+        sub_label=base.sub_label,
+        alternatives=base.alternatives,
+        reasoning=reasoning_prefix + (base.reasoning or ""),
+        sklearn_label=base.sklearn_label,
+        sklearn_confidence=base.sklearn_confidence,
+        llm_label=base.llm_label,
+        llm_confidence=base.llm_confidence,
+    )

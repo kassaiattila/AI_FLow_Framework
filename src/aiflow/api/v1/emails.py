@@ -78,6 +78,13 @@ class EmailDetailResponse(BaseModel):
     priority: dict[str, Any] | None = None
     routing: dict[str, Any] | None = None
     attachment_summaries: list[dict[str, Any]] = Field(default_factory=list)
+    # Sprint O / S127 — attachment-aware intent feature payload (None when
+    # the AIFLOW_UC3_ATTACHMENT_INTENT__ENABLED flag was off for this run).
+    attachment_features: dict[str, Any] | None = None
+    # Sprint O / S128 — classifier method string. Carries
+    # "...+attachment_rule" suffix when the rule boost fired so the UI can
+    # surface that in the AttachmentSignalsCard.
+    classification_method: str | None = None
     processing_time_ms: float = 0.0
     status: str = "completed"
     source: str = "backend"
@@ -1453,6 +1460,8 @@ async def get_email(email_id: str) -> EmailDetailResponse:
                     priority=data.get("priority"),
                     routing=data.get("routing"),
                     attachment_summaries=data.get("attachment_summaries", []),
+                    attachment_features=data.get("attachment_features"),
+                    classification_method=data.get("method"),
                     processing_time_ms=row["total_duration_ms"] or 0.0,
                     status=row["status"],
                     source="backend",

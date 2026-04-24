@@ -149,7 +149,20 @@
       "noActiveConnector": "No active email connector — add one in the Connectors tab",
       "scanSuccessful": "{count} email processed from {connector}",
       "scanStart": "Start Scan",
-      "scanRunning": "Pipeline running..."
+      "scanRunning": "Pipeline running...",
+      "attachmentSignals": {
+        "title": "Attachment signals",
+        "invoiceNumberDetected": "Invoice number",
+        "totalValueDetected": "Total / amount",
+        "tableCount": "Tables",
+        "textQuality": "Text quality",
+        "mimeProfile": "Type",
+        "keywordBuckets": "Keywords",
+        "consideredSkipped": "%{considered} processed, %{skipped} skipped",
+        "boostedIndicator": "Classifier intent boosted by attachment rule",
+        "yes": "yes",
+        "no": "no"
+      }
     },
     "intentRules": {
       "title": "Intent rules",

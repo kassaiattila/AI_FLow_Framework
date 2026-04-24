@@ -11407,6 +11407,29 @@
             "type": "array",
             "title": "Attachment Summaries"
           },
+          "attachment_features": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachment Features"
+          },
+          "classification_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classification Method"
+          },
           "processing_time_ms": {
             "type": "number",
             "title": "Processing Time Ms",

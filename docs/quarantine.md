@@ -5,21 +5,33 @@ Each entry lists the test, quarantine date, owner, root-cause hypothesis, and fi
 
 ## Active quarantine
 
+_(none)_
+
+## Resolved quarantine
+
 ### `tests/unit/services/test_resilience_service.py::TestResilienceService::test_circuit_opens_on_failures`
 
 - **Quarantined:** 2026-04-25 (Session S104, Sprint J close)
 - **HEAD at quarantine:** `5ec83e2` (feature/v1.4.6-rag-chat)
-- **Owner:** resilience-service (unassigned; pick up in Sprint K)
-- **Fix deadline:** 2026-04-30 (5 days per policy)
-- **Marker:** `@pytest.mark.xfail(strict=False, reason="...")` — runs, reports XFAIL on flake, XPASS on success, never fails the suite.
-- **Symptom:** intermittent FAIL in full-suite runs; PASS in isolation. Loop uses 3 `fail_func` exhaustions to hit `circuit_failure_threshold=3` against a 50ms `circuit_recovery_timeout_seconds`; under heavy test-suite load the `utcnow()` tick drift occasionally opens a half-open window mid-loop and short-circuits the expected `ValueError` path with `CircuitBreakerOpenError`.
-- **Root-cause hypothesis:** time-sensitive circuit-breaker state machine keyed on wall-clock `datetime.utcnow()` with a 50ms recovery window — unfit for a unit-test timescale. Options:
-  1. Inject a `clock` seam (`time.monotonic` or a `Clock` protocol) into `ResilienceService` so the test can advance time deterministically.
-  2. Widen `circuit_recovery_timeout_seconds` to e.g. 500ms in the fixture (trades test speed for stability).
-  3. Move the scenario to `tests/integration/` with freeze-time control.
-- **Recommended fix:** option (1) — adds a Clock seam, deterministic, keeps unit-speed. Track as follow-up issue in Sprint J retro.
-- **Re-enable command:** remove the `@pytest.mark.xfail(...)` decorator once the root-cause fix lands.
-
-## Resolved quarantine
-
-_(none)_
+- **Resolved:** 2026-05-04 (Sprint O FU-5; deadline 2026-04-30 was 4 days past)
+- **Resolved by:** `Clock` seam injected via `ResilienceService(clock=...)` →
+  `_CircuitBreaker(rule, *, clock=None)`. Defaults to `time.monotonic`; tests
+  pin a constant clock to make the OPEN→HALF_OPEN recovery deterministic.
+- **Original symptom:** intermittent FAIL in full-suite runs; PASS in
+  isolation. Loop uses 3 `fail_func` exhaustions to hit
+  `circuit_failure_threshold=3` against a 50 ms
+  `circuit_recovery_timeout_seconds`; under heavy test-suite load the
+  `time.monotonic` tick drift occasionally elapsed the 50 ms recovery
+  window mid-loop and let the 4th call short-circuit through HALF_OPEN
+  instead of raising `CircuitBreakerOpenError`. (The original quarantine
+  note attributed this to `datetime.utcnow()` — actual call site was
+  already `time.monotonic`; the underlying time-sensitivity diagnosis
+  was correct, the API pointer wasn't.)
+- **Fix:** option (1) from the original options list — Clock seam.
+  `_CircuitBreaker.__init__(rule, *, clock=None)` accepts an injectable
+  clock; `ResilienceService.__init__(config, *, clock=None)` plumbs it
+  through to every breaker it spawns. Pre-existing call sites are
+  unchanged (default behaviour identical).
+- **Verification:** `pytest tests/unit/services/test_resilience_service.py -v`
+  → 5/5 PASS deterministic; the prior `@pytest.mark.xfail` decorator was
+  removed.
