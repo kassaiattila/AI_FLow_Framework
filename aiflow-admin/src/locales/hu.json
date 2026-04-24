@@ -164,6 +164,19 @@
         "pages": "oldal",
         "yes": "igen",
         "no": "nem"
+      },
+      "extractedFields": {
+        "title": "Kinyert szamla mezok",
+        "vendor": "Szallito",
+        "buyer": "Vevo",
+        "currency": "Penznem",
+        "issueDate": "Kiallitas datuma",
+        "dueDate": "Fizetesi hatarido",
+        "lineItems": "Tetelek",
+        "netTotal": "Netto osszeg",
+        "vatTotal": "AFA osszeg",
+        "grossTotal": "Brutto osszeg",
+        "showMore": "+%{count} tovabbi"
       }
     },
     "intentRules": {

@@ -136,6 +136,13 @@ class EmailDetailResponse(BaseModel):
     # field on each intent. UI renders this as a coarse-grained badge so new
     # intent_ids can slot into an existing class without UI changes.
     intent_class: str | None = None
+    # Sprint Q / S135 — per-attachment invoice extraction payload.
+    # Schema: {"<filename>": {"vendor": {...}, "buyer": {...}, "header": {...},
+    # "line_items": [...], "totals": {...}, "extraction_confidence": float,
+    # "extraction_time_ms": float, "cost_usd": float, "error": str?}}.
+    # Present only when AIFLOW_UC3_EXTRACTION__ENABLED=true and classifier
+    # landed on an EXTRACT intent class.
+    extracted_fields: dict[str, Any] | None = None
     processing_time_ms: float = 0.0
     status: str = "completed"
     source: str = "backend"
@@ -1516,6 +1523,7 @@ async def get_email(email_id: str) -> EmailDetailResponse:
                     intent_class=_resolve_intent_class(
                         (data.get("intent") or {}).get("intent_id") or data.get("label")
                     ),
+                    extracted_fields=data.get("extracted_fields"),
                     processing_time_ms=row["total_duration_ms"] or 0.0,
                     status=row["status"],
                     source="backend",
