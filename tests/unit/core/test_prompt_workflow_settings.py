@@ -39,3 +39,18 @@ def test_mounted_on_aiflow_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AIFLOW_PROMPT_WORKFLOWS__ENABLED", "true")
     parent = AIFlowSettings()
     assert parent.prompt_workflows.enabled is True
+
+
+def test_skills_csv_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(
+        "AIFLOW_PROMPT_WORKFLOWS__SKILLS_CSV",
+        "invoice_processor, email_intent_processor",
+    )
+    s = PromptWorkflowSettings()
+    assert s.skills == ["invoice_processor", "email_intent_processor"]
+
+
+def test_skills_csv_default_empty() -> None:
+    s = PromptWorkflowSettings()
+    assert s.skills == []
+    assert s.skills_csv == ""

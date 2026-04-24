@@ -1,0 +1,40 @@
+name: aszf_rag_chain
+version: "0.1.0"
+description: |
+  Sprint J UC2 RAG retrieval + answer chain (baseline persona only).
+  Skill consumer migration lands in S141-FU-3 — today
+  aszf_rag_chat.workflows.query invokes these prompts directly. The
+  expert/mentor persona variants pick a different system_prompt at
+  runtime; those would be separate workflows.
+
+default_label: prod
+tags:
+  - uc2
+  - rag
+  - aszf
+  - sprint-r-foundation
+
+steps:
+  - id: rewrite_query
+    prompt_name: aszf-rag/query_rewriter
+    description: Reformulate the user query for vector search.
+    output_key: rewritten_query
+
+  - id: system_baseline
+    prompt_name: aszf-rag/system_prompt_baseline
+    description: Baseline persona system message (Sprint J default).
+    depends_on: [rewrite_query]
+    output_key: system_prompt
+
+  - id: answer
+    prompt_name: aszf-rag/answer_generator
+    description: Generate the user-facing answer with retrieved citations.
+    depends_on: [system_baseline]
+    output_key: answer
+
+  - id: extract_citations
+    prompt_name: aszf-rag/citation_extractor
+    description: Extract verifiable citations from the generated answer.
+    required: false
+    depends_on: [answer]
+    output_key: citations
