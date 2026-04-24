@@ -3220,6 +3220,20 @@ components:
       - cache_size_after
       title: InvalidateResponse
       type: object
+    LangfuseSettings:
+      description: Langfuse sync and label settings.
+      properties:
+        labels:
+          items:
+            type: string
+          title: Labels
+          type: array
+        sync:
+          default: true
+          title: Sync
+          type: boolean
+      title: LangfuseSettings
+      type: object
     LiveResponse:
       description: Liveness probe response.
       properties:
@@ -3970,6 +3984,68 @@ components:
       - results
       title: ProcessResponse
       type: object
+    PromptConfig:
+      description: LLM configuration parameters.
+      properties:
+        max_tokens:
+          default: 2048
+          title: Max Tokens
+          type: integer
+        model:
+          default: gpt-4o
+          title: Model
+          type: string
+        response_format:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Response Format
+        temperature:
+          default: 0.7
+          title: Temperature
+          type: number
+      title: PromptConfig
+      type: object
+    PromptDefinition:
+      description: 'Full prompt definition matching the YAML source format.
+
+
+        Architecture: YAML source (Git) -> Langfuse (Cloud SSOT) -> Runtime cache.'
+      properties:
+        config:
+          $ref: '#/components/schemas/PromptConfig'
+        description:
+          default: ''
+          title: Description
+          type: string
+        examples:
+          items:
+            $ref: '#/components/schemas/PromptExample'
+          title: Examples
+          type: array
+        langfuse:
+          $ref: '#/components/schemas/LangfuseSettings'
+        metadata:
+          $ref: '#/components/schemas/PromptMetadata'
+        name:
+          title: Name
+          type: string
+        system:
+          default: ''
+          title: System
+          type: string
+        user:
+          default: ''
+          title: User
+          type: string
+        version:
+          default: '1.0'
+          title: Version
+          type: string
+      required:
+      - name
+      title: PromptDefinition
+      type: object
     PromptDetailResponse:
       description: Full prompt content for the editor.
       properties:
@@ -4007,6 +4083,24 @@ components:
       - updated_at
       - yaml_text
       title: PromptDetailResponse
+      type: object
+    PromptExample:
+      description: Few-shot example for a prompt.
+      properties:
+        explanation:
+          default: ''
+          title: Explanation
+          type: string
+        input:
+          title: Input
+          type: string
+        output:
+          title: Output
+          type: string
+      required:
+      - input
+      - output
+      title: PromptExample
       type: object
     PromptListItem:
       description: Read-only metadata for one prompt YAML file.
@@ -4057,6 +4151,20 @@ components:
       - total
       title: PromptListResponse
       type: object
+    PromptMetadata:
+      description: Prompt metadata for cataloguing.
+      properties:
+        language:
+          default: en
+          title: Language
+          type: string
+        tags:
+          items:
+            type: string
+          title: Tags
+          type: array
+      title: PromptMetadata
+      type: object
     PromptUpsertRequest:
       description: User-edited raw YAML — validated server-side before write.
       properties:
@@ -4066,6 +4174,96 @@ components:
       required:
       - yaml_text
       title: PromptUpsertRequest
+      type: object
+    PromptWorkflow:
+      additionalProperties: false
+      description: "A named, versioned, DAG-structured composition of prompt steps.\n\
+        \nValidation rejects:\n  * empty ``steps``\n  * duplicate step ids\n  * ``depends_on``\
+        \ referencing an unknown step\n  * cycles in the dependency graph (Kahn topological\
+        \ sort)"
+      properties:
+        default_label:
+          default: prod
+          title: Default Label
+          type: string
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        name:
+          minLength: 1
+          title: Name
+          type: string
+        steps:
+          items:
+            $ref: '#/components/schemas/PromptWorkflowStep'
+          title: Steps
+          type: array
+        tags:
+          items:
+            type: string
+          title: Tags
+          type: array
+        version:
+          minLength: 1
+          title: Version
+          type: string
+      required:
+      - name
+      - version
+      - steps
+      title: PromptWorkflow
+      type: object
+    PromptWorkflowStep:
+      additionalProperties: false
+      description: "One step inside a :class:`PromptWorkflow`.\n\nFields:\n    id:\
+        \ Stable identifier within the workflow (referenced by other\n        steps\
+        \ via ``depends_on``).\n    prompt_name: Name passed to ``PromptManager.get(...)``\
+        \ to fetch\n        the actual prompt definition.\n    description: Free-form\
+        \ human description.\n    required: When ``False`` the step may be skipped\
+        \ at execution\n        time (executor lands S141).\n    depends_on: Step\
+        \ ids that must complete before this one runs.\n    output_key: Hint for the\
+        \ executor on where to merge this step's\n        output in the final payload\
+        \ (e.g.,\n        ``\"extracted_fields.header\"``).\n    metadata: Arbitrary\
+        \ key-value bag for executor hints\n        (cost ceiling, gate condition,\
+        \ langfuse variant, ...)."
+      properties:
+        depends_on:
+          items:
+            type: string
+          title: Depends On
+          type: array
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        id:
+          minLength: 1
+          title: Id
+          type: string
+        metadata:
+          additionalProperties: true
+          title: Metadata
+          type: object
+        output_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Output Key
+        prompt_name:
+          minLength: 1
+          title: Prompt Name
+          type: string
+        required:
+          default: true
+          title: Required
+          type: boolean
+      required:
+      - id
+      - prompt_name
+      title: PromptWorkflowStep
       type: object
     QualityOverviewResponse:
       properties:
@@ -6204,6 +6402,75 @@ components:
       required:
       - detail
       title: WebhookErrorResponse
+      type: object
+    WorkflowDryRunResponse:
+      properties:
+        resolved_label:
+          title: Resolved Label
+          type: string
+        source:
+          default: backend
+          title: Source
+          type: string
+        steps:
+          additionalProperties:
+            $ref: '#/components/schemas/PromptDefinition'
+          title: Steps
+          type: object
+        workflow:
+          $ref: '#/components/schemas/PromptWorkflow'
+      required:
+      - workflow
+      - steps
+      - resolved_label
+      title: WorkflowDryRunResponse
+      type: object
+    WorkflowListItem:
+      description: One row in the listing response.
+      properties:
+        default_label:
+          title: Default Label
+          type: string
+        name:
+          title: Name
+          type: string
+        step_count:
+          title: Step Count
+          type: integer
+        tags:
+          items:
+            type: string
+          title: Tags
+          type: array
+        version:
+          title: Version
+          type: string
+      required:
+      - name
+      - version
+      - step_count
+      - tags
+      - default_label
+      title: WorkflowListItem
+      type: object
+    WorkflowListResponse:
+      properties:
+        source:
+          default: backend
+          title: Source
+          type: string
+        total:
+          title: Total
+          type: integer
+        workflows:
+          items:
+            $ref: '#/components/schemas/WorkflowListItem'
+          title: Workflows
+          type: array
+      required:
+      - workflows
+      - total
+      title: WorkflowListResponse
       type: object
     WriteSpecRequest:
       properties:
@@ -9659,6 +9926,97 @@ paths:
       summary: Reload All Prompts
       tags:
       - prompts
+  /api/v1/prompts/workflows:
+    get:
+      description: 'List all locally-discoverable workflows.
+
+
+        Flag-off → 503 ``FeatureDisabled``.
+
+        Langfuse-only workflows are not enumerated here (Langfuse v4 has no
+
+        cheap list-by-prefix call); that surfaces as a follow-up if needed.'
+      operationId: list_workflows_api_v1_prompts_workflows_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowListResponse'
+          description: Successful Response
+      summary: List Workflows
+      tags:
+      - prompts
+      - workflows
+  /api/v1/prompts/workflows/{name}:
+    get:
+      description: Return the full :class:`PromptWorkflow` descriptor (no nested resolution).
+      operationId: get_workflow_api_v1_prompts_workflows__name__get
+      parameters:
+      - in: path
+        name: name
+        required: true
+        schema:
+          title: Name
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptWorkflow'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Workflow
+      tags:
+      - prompts
+      - workflows
+  /api/v1/prompts/workflows/{name}/dry-run:
+    get:
+      description: 'Resolve the workflow + its nested step prompts.
+
+
+        No LLM call, no side effect. Use the optional ``label`` query param
+
+        to override the workflow''s ``default_label``.'
+      operationId: dry_run_workflow_api_v1_prompts_workflows__name__dry_run_get
+      parameters:
+      - in: path
+        name: name
+        required: true
+        schema:
+          title: Name
+          type: string
+      - in: query
+        name: label
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDryRunResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Dry Run Workflow
+      tags:
+      - prompts
+      - workflows
   /api/v1/prompts/{prompt_name}:
     get:
       description: Return the raw YAML + parsed metadata for a single prompt.

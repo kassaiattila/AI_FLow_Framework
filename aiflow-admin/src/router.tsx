@@ -34,6 +34,7 @@ import { Pipelines } from "./pages-new/Pipelines";
 import { PipelineDetail } from "./pages-new/PipelineDetail";
 import { Prompts } from "./pages-new/Prompts";
 import { PromptDetail } from "./pages-new/PromptDetail";
+import { PromptWorkflows } from "./pages-new/PromptWorkflows";
 import { Quality } from "./pages-new/Quality";
 import { Services } from "./pages-new/Services";
 // Cubix archived (Sprint C)
@@ -76,6 +77,8 @@ export const router = createHashRouter([
       { path: "documents/:id/verify", element: <Verification /> },
       { path: "packages/:id", element: <PackageDetail /> },
       { path: "prompts", element: <Prompts /> },
+      // Workflows route MUST come before the prompts/* catch-all.
+      { path: "prompts/workflows", element: <PromptWorkflows /> },
       { path: "prompts/*", element: <PromptDetail /> },
       { path: "document-upload", element: <Navigate to="/documents" replace /> },
       { path: "emails", element: <EmailsNew /> },

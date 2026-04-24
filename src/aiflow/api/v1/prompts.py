@@ -244,10 +244,41 @@ _prompt_manager: PromptManager | None = None
 
 
 def get_prompt_manager() -> PromptManager:
-    """Get or create the shared PromptManager instance."""
+    """Get or create the shared PromptManager instance.
+
+    Sprint R / S139+S140: when ``AIFLOW_PROMPT_WORKFLOWS__ENABLED=true``
+    the manager is built with the workflow loader pointed at
+    ``settings.prompt_workflows.workflows_dir`` so the new
+    ``get_workflow`` lookup path is functional. Flag-off behaviour is
+    unchanged from Sprint Q.
+    """
     global _prompt_manager  # noqa: PLW0603
     if _prompt_manager is None:
-        _prompt_manager = PromptManager()
+        from aiflow.core.config import get_settings
+        from aiflow.prompts.workflow_loader import PromptWorkflowLoader
+
+        settings = get_settings()
+        wf_settings = settings.prompt_workflows
+        loader: PromptWorkflowLoader | None = None
+        if wf_settings.enabled:
+            workflows_dir = Path(wf_settings.workflows_dir)
+            if not workflows_dir.is_absolute():
+                workflows_dir = Path(__file__).resolve().parents[4] / workflows_dir
+            loader = PromptWorkflowLoader(workflows_dir)
+            loader.register_dir()
+
+        _prompt_manager = PromptManager(
+            workflows_enabled=wf_settings.enabled,
+            workflow_loader=loader,
+        )
+
+        # Auto-discover the existing skill prompts so workflow lookups
+        # can resolve nested step prompts.
+        if wf_settings.enabled:
+            repo_root = Path(__file__).resolve().parents[4]
+            for skill_dir in (repo_root / "skills").glob("*/prompts"):
+                if skill_dir.is_dir():
+                    _prompt_manager.register_yaml_dir(skill_dir)
     return _prompt_manager
 
 
