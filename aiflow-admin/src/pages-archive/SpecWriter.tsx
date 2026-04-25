@@ -57,18 +57,23 @@ export function SpecWriter() {
   const [result, setResult] = useState<WriteSpecResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const { data, loading, error, refetch } = useApi<SpecListResponse>("/api/v1/specs");
+  const { data, loading, error, refetch } =
+    useApi<SpecListResponse>("/api/v1/specs");
 
   const handleWrite = async () => {
     if (!rawText.trim()) return;
     setBusy(true);
     setErr(null);
     try {
-      const resp = await fetchApi<WriteSpecResponse>("POST", "/api/v1/specs/write", {
-        raw_text: rawText,
-        spec_type: specType,
-        language,
-      });
+      const resp = await fetchApi<WriteSpecResponse>(
+        "POST",
+        "/api/v1/specs/write",
+        {
+          raw_text: rawText,
+          spec_type: specType,
+          language,
+        },
+      );
       setResult(resp);
       refetch();
     } catch (e) {
@@ -112,7 +117,9 @@ export function SpecWriter() {
       key: "language",
       label: translate("aiflow.specWriter.colLanguage"),
       render: (item) => (
-        <span className="text-xs text-gray-500">{String(item.language).toUpperCase()}</span>
+        <span className="text-xs text-gray-500">
+          {String(item.language).toUpperCase()}
+        </span>
       ),
     },
     {
@@ -123,7 +130,9 @@ export function SpecWriter() {
         const s = Number(item.score ?? 0);
         const ok = Boolean(item.is_acceptable);
         return (
-          <span className={`font-medium ${ok ? "text-green-600" : "text-amber-600"}`}>
+          <span
+            className={`font-medium ${ok ? "text-green-600" : "text-amber-600"}`}
+          >
             {s ? `${s.toFixed(1)}/10` : "—"}
           </span>
         );
@@ -133,7 +142,9 @@ export function SpecWriter() {
       key: "sections_count",
       label: translate("aiflow.specWriter.colSections"),
       render: (item) => (
-        <span className="text-xs text-gray-500">{String(item.sections_count ?? 0)}</span>
+        <span className="text-xs text-gray-500">
+          {String(item.sections_count ?? 0)}
+        </span>
       ),
     },
     {
@@ -199,7 +210,9 @@ export function SpecWriter() {
             disabled={busy || !rawText.trim()}
             className="mt-3 w-full rounded-lg bg-brand-500 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
           >
-            {busy ? translate("aiflow.common.loading") : translate("aiflow.specWriter.write")}
+            {busy
+              ? translate("aiflow.common.loading")
+              : translate("aiflow.specWriter.write")}
           </button>
           {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
         </div>
@@ -243,21 +256,24 @@ export function SpecWriter() {
                 <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed">
                   {result.markdown_content}
                 </pre>
-                {result.review?.suggestions && result.review.suggestions.length > 0 && (
-                  <div className="mt-3 border-t border-gray-200 pt-2 dark:border-gray-700">
-                    <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {translate("aiflow.specWriter.suggestions")}
-                    </p>
-                    <ul className="ml-4 list-disc text-xs">
-                      {result.review.suggestions.map((s, i) => (
-                        <li key={i}>{s}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {result.review?.suggestions &&
+                  result.review.suggestions.length > 0 && (
+                    <div className="mt-3 border-t border-gray-200 pt-2 dark:border-gray-700">
+                      <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {translate("aiflow.specWriter.suggestions")}
+                      </p>
+                      <ul className="ml-4 list-disc text-xs">
+                        {result.review.suggestions.map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
               </>
             ) : (
-              <span className="text-gray-400">{translate("aiflow.specWriter.outputPlaceholder")}</span>
+              <span className="text-gray-400">
+                {translate("aiflow.specWriter.outputPlaceholder")}
+              </span>
             )}
           </div>
         </div>

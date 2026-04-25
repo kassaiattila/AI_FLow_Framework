@@ -11,7 +11,11 @@ import { ErrorState } from "../../components-new/ErrorState";
 import { LoadingState } from "../../components-new/LoadingState";
 import { ApiClientError, fetchApi } from "../../lib/api-client";
 import { BudgetCard } from "./BudgetCard";
-import { BUDGET_PERIODS, type BudgetPeriod, type TenantBudgetGetResponse } from "./types";
+import {
+  BUDGET_PERIODS,
+  type BudgetPeriod,
+  type TenantBudgetGetResponse,
+} from "./types";
 
 const TENANT_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$/;
 
@@ -62,7 +66,9 @@ export function BudgetManagement() {
       setBudgets(mergeBudgets(Array.isArray(list) ? list : []));
     } catch (e) {
       if (e instanceof ApiClientError) {
-        setError(`${e.status}: ${typeof e.detail === "string" ? e.detail : JSON.stringify(e.detail)}`);
+        setError(
+          `${e.status}: ${typeof e.detail === "string" ? e.detail : JSON.stringify(e.detail)}`,
+        );
       } else {
         setError(e instanceof Error ? e.message : "Fetch failed");
       }
@@ -123,7 +129,8 @@ export function BudgetManagement() {
         </div>
         {tenantDraft && !draftValid && (
           <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-            Ervenytelen tenant_id: csak a-z A-Z 0-9 _ . - karaktereket tartalmazhat.
+            Ervenytelen tenant_id: csak a-z A-Z 0-9 _ . - karaktereket
+            tartalmazhat.
           </p>
         )}
       </div>
@@ -133,12 +140,15 @@ export function BudgetManagement() {
           data-testid="budget-hint"
           className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400"
         >
-          Valassz tenant-et a felul talalhato mezoben a koltsegvetes kezelesehez.
+          Valassz tenant-et a felul talalhato mezoben a koltsegvetes
+          kezelesehez.
         </div>
       )}
 
       {activeTenant && loading && <LoadingState />}
-      {activeTenant && error && <ErrorState error={error} onRetry={() => void refetch()} />}
+      {activeTenant && error && (
+        <ErrorState error={error} onRetry={() => void refetch()} />
+      )}
 
       {activeTenant && !loading && !error && (
         <div

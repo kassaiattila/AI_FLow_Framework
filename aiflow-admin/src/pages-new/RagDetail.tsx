@@ -13,7 +13,11 @@ import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
 import { ChatPanel } from "../components-new/ChatPanel";
-import { FileProgressRow, FileProgressBar, type FileProgress } from "../components-new/FileProgress";
+import {
+  FileProgressRow,
+  FileProgressBar,
+  type FileProgress,
+} from "../components-new/FileProgress";
 import { ChunkViewer } from "../components/rag/ChunkViewer";
 
 /* ------------------------------------------------------------------ */
@@ -54,16 +58,23 @@ interface CollectionDocsResponse {
   source: string;
 }
 
-function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSuccess: () => void }) {
+function IngestTab({
+  collectionId,
+  onSuccess,
+}: {
+  collectionId: string;
+  onSuccess: () => void;
+}) {
   const translate = useTranslate();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<IngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fileProgress, setFileProgress] = useState<FileProgress[]>([]);
-  const { data: docsData, refetch: refetchDocs } = useApi<CollectionDocsResponse>(
-    `/api/v1/rag/collections/${collectionId}/documents`,
-  );
+  const { data: docsData, refetch: refetchDocs } =
+    useApi<CollectionDocsResponse>(
+      `/api/v1/rag/collections/${collectionId}/documents`,
+    );
   const [selectedDocNames, setSelectedDocNames] = useState<string[]>([]);
   const [showDocBulkDelete, setShowDocBulkDelete] = useState(false);
   const [docBulkDeleting, setDocBulkDeleting] = useState(false);
@@ -71,23 +82,35 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
 
   const handleDocDelete = async (docName: string) => {
     try {
-      await fetchApi<void>("DELETE", `/api/v1/rag/collections/${collectionId}/documents/${encodeURIComponent(docName)}`);
+      await fetchApi<void>(
+        "DELETE",
+        `/api/v1/rag/collections/${collectionId}/documents/${encodeURIComponent(docName)}`,
+      );
       refetchDocs();
       onSuccess();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleDocBulkDelete = async () => {
     if (selectedDocNames.length === 0 || docBulkDeleting) return;
     setDocBulkDeleting(true);
     try {
-      await fetchApi<{ deleted: number }>("POST", `/api/v1/rag/collections/${collectionId}/documents/delete-bulk`, { document_names: selectedDocNames });
+      await fetchApi<{ deleted: number }>(
+        "POST",
+        `/api/v1/rag/collections/${collectionId}/documents/delete-bulk`,
+        { document_names: selectedDocNames },
+      );
       setShowDocBulkDelete(false);
-      setClearDocSel(c => c + 1);
+      setClearDocSel((c) => c + 1);
       refetchDocs();
       onSuccess();
-    } catch { /* keep dialog */ }
-    finally { setDocBulkDeleting(false); }
+    } catch {
+      /* keep dialog */
+    } finally {
+      setDocBulkDeleting(false);
+    }
   };
 
   const docColumns: Column<Record<string, unknown>>[] = [
@@ -95,9 +118,14 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
       key: "document_name",
       label: translate("aiflow.rag.chunkSource"),
       render: (item) => {
-        const name = String((item as unknown as CollectionDocItem).document_name);
+        const name = String(
+          (item as unknown as CollectionDocItem).document_name,
+        );
         return (
-          <span className="block max-w-[300px] truncate text-sm font-medium text-gray-900 dark:text-gray-100" title={name}>
+          <span
+            className="block max-w-[300px] truncate text-sm font-medium text-gray-900 dark:text-gray-100"
+            title={name}
+          >
             {name}
           </span>
         );
@@ -120,7 +148,11 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
       width: "110",
       render: (item) => {
         const d = (item as unknown as CollectionDocItem).first_ingested;
-        return <span className="whitespace-nowrap text-xs text-gray-500">{d ? new Date(d).toLocaleDateString() : "—"}</span>;
+        return (
+          <span className="whitespace-nowrap text-xs text-gray-500">
+            {d ? new Date(d).toLocaleDateString() : "—"}
+          </span>
+        );
       },
     },
     {
@@ -131,12 +163,25 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
         const name = (item as unknown as CollectionDocItem).document_name;
         return (
           <button
-            onClick={(e) => { e.stopPropagation(); void handleDocDelete(name); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleDocDelete(name);
+            }}
             className="inline-flex items-center rounded-lg border border-red-200 p-1 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
             title={translate("aiflow.common.delete")}
           >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
             </svg>
           </button>
         );
@@ -158,11 +203,14 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
     setFiles((prev) => [...prev, ...dropped]);
   }, []);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
-    }
-  }, []);
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+        setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+      }
+    },
+    [],
+  );
 
   const removeFile = useCallback((index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
@@ -175,11 +223,16 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
     setResult(null);
 
     const defaultSteps = ["upload", "parse", "chunk", "embed", "store"];
-    setFileProgress(files.map(f => ({
-      name: f.name,
-      status: "pending" as const,
-      steps: defaultSteps.map(s => ({ name: s, status: "pending" as const })),
-    })));
+    setFileProgress(
+      files.map((f) => ({
+        name: f.name,
+        status: "pending" as const,
+        steps: defaultSteps.map((s) => ({
+          name: s,
+          status: "pending" as const,
+        })),
+      })),
+    );
 
     try {
       const formData = new FormData();
@@ -187,11 +240,14 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
 
       // Try SSE stream first, fallback to regular upload
       const token = localStorage.getItem("aiflow_token");
-      const resp = await fetch(`/api/v1/rag/collections/${collectionId}/ingest-stream`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      });
+      const resp = await fetch(
+        `/api/v1/rag/collections/${collectionId}/ingest-stream`,
+        {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        },
+      );
 
       if (!resp.ok || !resp.body) {
         // Fallback: regular ingest (no streaming)
@@ -200,7 +256,13 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
           formData,
         );
         setResult(res);
-        setFileProgress(prev => prev.map(fp => ({ ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) })));
+        setFileProgress((prev) =>
+          prev.map((fp) => ({
+            ...fp,
+            status: "done" as const,
+            steps: fp.steps.map((s) => ({ ...s, status: "done" as const })),
+          })),
+        );
         if (res.errors.length === 0) {
           setFiles([]);
           onSuccess();
@@ -229,59 +291,107 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
             // Per-file events (new backend)
             if (msg.event === "init") {
               const stepNames: string[] = msg.steps ?? defaultSteps;
-              setFileProgress(files.map(f => ({
-                name: f.name,
-                status: "pending" as const,
-                steps: stepNames.map(s => ({ name: s, status: "pending" as const })),
-              })));
+              setFileProgress(
+                files.map((f) => ({
+                  name: f.name,
+                  status: "pending" as const,
+                  steps: stepNames.map((s) => ({
+                    name: s,
+                    status: "pending" as const,
+                  })),
+                })),
+              );
             }
             if (msg.event === "file_start" && msg.file_index !== undefined) {
-              setFileProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: "processing" } : fp
-              ));
+              setFileProgress((prev) =>
+                prev.map((fp, i) =>
+                  i === msg.file_index ? { ...fp, status: "processing" } : fp,
+                ),
+              );
             }
-            if (msg.event === "file_step" && msg.file_index !== undefined && msg.step_index !== undefined) {
-              setFileProgress(prev => prev.map((fp, i) => {
-                if (i !== msg.file_index) return fp;
-                return {
-                  ...fp,
-                  steps: fp.steps.map((s, si) => {
-                    if (si !== msg.step_index) return s;
-                    return { ...s, status: msg.status === "done" ? "done" as const : "running" as const, elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms };
-                  }),
-                };
-              }));
+            if (
+              msg.event === "file_step" &&
+              msg.file_index !== undefined &&
+              msg.step_index !== undefined
+            ) {
+              setFileProgress((prev) =>
+                prev.map((fp, i) => {
+                  if (i !== msg.file_index) return fp;
+                  return {
+                    ...fp,
+                    steps: fp.steps.map((s, si) => {
+                      if (si !== msg.step_index) return s;
+                      return {
+                        ...s,
+                        status:
+                          msg.status === "done"
+                            ? ("done" as const)
+                            : ("running" as const),
+                        elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms,
+                      };
+                    }),
+                  };
+                }),
+              );
             }
             if (msg.event === "file_error" && msg.file_index !== undefined) {
-              setFileProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: "error", error: msg.error } : fp
-              ));
+              setFileProgress((prev) =>
+                prev.map((fp, i) =>
+                  i === msg.file_index
+                    ? { ...fp, status: "error", error: msg.error }
+                    : fp,
+                ),
+              );
             }
             if (msg.event === "file_done" && msg.file_index !== undefined) {
-              setFileProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: msg.ok ? "done" as const : "error" as const } : fp
-              ));
+              setFileProgress((prev) =>
+                prev.map((fp, i) =>
+                  i === msg.file_index
+                    ? {
+                        ...fp,
+                        status: msg.ok ? ("done" as const) : ("error" as const),
+                      }
+                    : fp,
+                ),
+              );
             }
 
             // Legacy batch events (backward compat)
-            if (msg.event === "step_start" && msg.step !== undefined && msg.file_index === undefined) {
-              setFileProgress(prev => prev.map(fp => ({
-                ...fp,
-                status: "processing" as const,
-                steps: fp.steps.map((s, si) => ({
-                  ...s,
-                  status: si < msg.step ? "done" as const : si === msg.step ? "running" as const : s.status,
+            if (
+              msg.event === "step_start" &&
+              msg.step !== undefined &&
+              msg.file_index === undefined
+            ) {
+              setFileProgress((prev) =>
+                prev.map((fp) => ({
+                  ...fp,
+                  status: "processing" as const,
+                  steps: fp.steps.map((s, si) => ({
+                    ...s,
+                    status:
+                      si < msg.step
+                        ? ("done" as const)
+                        : si === msg.step
+                          ? ("running" as const)
+                          : s.status,
+                  })),
                 })),
-              })));
+              );
             }
-            if (msg.event === "step_done" && msg.step !== undefined && msg.file_index === undefined) {
-              setFileProgress(prev => prev.map(fp => ({
-                ...fp,
-                steps: fp.steps.map((s, si) => ({
-                  ...s,
-                  status: si <= msg.step ? "done" as const : s.status,
+            if (
+              msg.event === "step_done" &&
+              msg.step !== undefined &&
+              msg.file_index === undefined
+            ) {
+              setFileProgress((prev) =>
+                prev.map((fp) => ({
+                  ...fp,
+                  steps: fp.steps.map((s, si) => ({
+                    ...s,
+                    status: si <= msg.step ? ("done" as const) : s.status,
+                  })),
                 })),
-              })));
+              );
             }
 
             if (msg.event === "complete") {
@@ -292,16 +402,33 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
                 errors: msg.errors ?? [],
                 source: "backend",
               });
-              setFileProgress(prev => prev.map(fp => ({ ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) })));
+              setFileProgress((prev) =>
+                prev.map((fp) => ({
+                  ...fp,
+                  status: "done" as const,
+                  steps: fp.steps.map((s) => ({
+                    ...s,
+                    status: "done" as const,
+                  })),
+                })),
+              );
               setFiles([]);
               onSuccess();
               refetchDocs();
             }
             if (msg.event === "error") {
               setError(msg.error ?? "Ingest failed");
-              setFileProgress(prev => prev.map(fp => fp.status === "processing" ? { ...fp, status: "error" as const } : fp));
+              setFileProgress((prev) =>
+                prev.map((fp) =>
+                  fp.status === "processing"
+                    ? { ...fp, status: "error" as const }
+                    : fp,
+                ),
+              );
             }
-          } catch { /* skip non-json */ }
+          } catch {
+            /* skip non-json */
+          }
         }
       }
     } catch (e) {
@@ -335,7 +462,9 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {translate("aiflow.rag.ingestDropzone")}
         </p>
-        <p className="mt-1 text-xs text-gray-400">{translate("aiflow.rag.ingestFormats")}</p>
+        <p className="mt-1 text-xs text-gray-400">
+          {translate("aiflow.rag.ingestFormats")}
+        </p>
         <label className="mt-3 cursor-pointer rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
           {translate("aiflow.rag.ingestButton")}
           <input
@@ -384,7 +513,9 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
                     d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                   />
                 </svg>
-                <span className="text-gray-600 dark:text-gray-400">{f.name}</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  {f.name}
+                </span>
                 <span className="text-xs text-gray-400">
                   {(f.size / 1024).toFixed(0)} KB
                 </span>
@@ -394,8 +525,18 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
                 className="text-gray-400 hover:text-red-500"
                 aria-label="Remove file"
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -412,11 +553,15 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
             </p>
             {uploading && (
               <span className="text-xs text-brand-600 dark:text-brand-400">
-                {fileProgress.filter(fp => fp.status === "done").length}/{fileProgress.length}
+                {fileProgress.filter((fp) => fp.status === "done").length}/
+                {fileProgress.length}
               </span>
             )}
           </div>
-          <FileProgressBar done={fileProgress.filter(fp => fp.status === "done").length} total={fileProgress.length} />
+          <FileProgressBar
+            done={fileProgress.filter((fp) => fp.status === "done").length}
+            total={fileProgress.length}
+          />
           <div>
             {fileProgress.map((fp, i) => (
               <FileProgressRow key={i} fp={fp} />
@@ -432,8 +577,9 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
       {result && result.errors.length === 0 && (
         <div className="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
           <p className="text-sm font-medium text-green-700 dark:text-green-400">
-            {result.files_processed} {translate("aiflow.rag.ingestSuccess")} &mdash;{" "}
-            {result.chunks_created} {translate("aiflow.rag.chunksCreated")}
+            {result.files_processed} {translate("aiflow.rag.ingestSuccess")}{" "}
+            &mdash; {result.chunks_created}{" "}
+            {translate("aiflow.rag.chunksCreated")}
           </p>
           {result.duration_ms > 0 && (
             <p className="mt-1 text-xs text-green-600 dark:text-green-500">
@@ -452,7 +598,10 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
           </p>
           <ul className="space-y-1">
             {result.errors.map((err, i) => (
-              <li key={i} className="text-xs text-amber-600 dark:text-amber-400">
+              <li
+                key={i}
+                className="text-xs text-amber-600 dark:text-amber-400"
+              >
                 {err}
               </li>
             ))}
@@ -471,10 +620,16 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
               <span className="text-sm font-medium text-brand-700 dark:text-brand-300">
                 {selectedDocNames.length} {translate("aiflow.common.selected")}
               </span>
-              <button onClick={() => setShowDocBulkDelete(true)} className="rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700">
+              <button
+                onClick={() => setShowDocBulkDelete(true)}
+                className="rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700"
+              >
                 {translate("aiflow.common.bulkDelete")}
               </button>
-              <button onClick={() => setClearDocSel(c => c + 1)} className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600 dark:border-gray-600 dark:text-gray-400">
+              <button
+                onClick={() => setClearDocSel((c) => c + 1)}
+                className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600 dark:border-gray-600 dark:text-gray-400"
+              >
                 {translate("aiflow.common.cancel")}
               </button>
             </div>
@@ -483,7 +638,13 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
             data={docsData.documents as unknown as Record<string, unknown>[]}
             columns={docColumns}
             selectable
-            onSelectionChange={(items) => setSelectedDocNames(items.map(i => String((i as unknown as CollectionDocItem).document_name)))}
+            onSelectionChange={(items) =>
+              setSelectedDocNames(
+                items.map((i) =>
+                  String((i as unknown as CollectionDocItem).document_name),
+                ),
+              )
+            }
             clearSelection={clearDocSel}
             searchKeys={["document_name"]}
             pageSize={10}
@@ -499,14 +660,24 @@ function IngestTab({ collectionId, onSuccess }: { collectionId: string; onSucces
               {translate("aiflow.common.bulkDelete")}
             </h3>
             <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-              {translate("aiflow.common.bulkDeleteConfirm")} ({selectedDocNames.length})
+              {translate("aiflow.common.bulkDeleteConfirm")} (
+              {selectedDocNames.length})
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowDocBulkDelete(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300">
+              <button
+                onClick={() => setShowDocBulkDelete(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300"
+              >
                 {translate("common.action.cancel")}
               </button>
-              <button onClick={() => void handleDocBulkDelete()} disabled={docBulkDeleting} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
-                {docBulkDeleting ? translate("aiflow.common.loading") : translate("aiflow.common.bulkDelete")}
+              <button
+                onClick={() => void handleDocBulkDelete()}
+                disabled={docBulkDeleting}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {docBulkDeleting
+                  ? translate("aiflow.common.loading")
+                  : translate("aiflow.common.bulkDelete")}
               </button>
             </div>
           </div>
@@ -526,9 +697,12 @@ export function RagDetail() {
   const translate = useTranslate();
   const [tab, setTab] = useState<"ingest" | "chat" | "chunks">("ingest");
 
-  const { data: collection, loading, error, refetch } = useApi<CollectionDetail>(
-    id ? `/api/v1/rag/collections/${id}` : null,
-  );
+  const {
+    data: collection,
+    loading,
+    error,
+    refetch,
+  } = useApi<CollectionDetail>(id ? `/api/v1/rag/collections/${id}` : null);
 
   interface CollectionStats {
     total_queries: number;
@@ -564,7 +738,10 @@ export function RagDetail() {
   if (!collection || !id) {
     return (
       <PageLayout titleKey="aiflow.rag.title">
-        <ErrorState error="Collection not found" onRetry={() => navigate("/rag")} />
+        <ErrorState
+          error="Collection not found"
+          onRetry={() => navigate("/rag")}
+        />
       </PageLayout>
     );
   }
@@ -582,15 +759,27 @@ export function RagDetail() {
         onClick={() => navigate("/rag")}
         className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
       >
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15 19l-7-7 7-7"
+          />
         </svg>
         {translate("aiflow.rag.backToCollections")}
       </button>
 
       {/* Collection header */}
       <div className="mb-4">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{collection.name}</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+          {collection.name}
+        </h2>
         {collection.description && (
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
             {collection.description}
@@ -629,7 +818,9 @@ export function RagDetail() {
             {translate("aiflow.rag.statAvgTime")}
           </p>
           <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
-            {stats?.avg_response_time_ms ? `${(stats.avg_response_time_ms / 1000).toFixed(1)}s` : "—"}
+            {stats?.avg_response_time_ms
+              ? `${(stats.avg_response_time_ms / 1000).toFixed(1)}s`
+              : "—"}
           </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
@@ -637,9 +828,13 @@ export function RagDetail() {
             Feedback
           </p>
           <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
-            <span className="text-green-600">+{stats?.feedback_positive ?? 0}</span>
+            <span className="text-green-600">
+              +{stats?.feedback_positive ?? 0}
+            </span>
             {" / "}
-            <span className="text-red-500">-{stats?.feedback_negative ?? 0}</span>
+            <span className="text-red-500">
+              -{stats?.feedback_negative ?? 0}
+            </span>
           </p>
         </div>
       </div>

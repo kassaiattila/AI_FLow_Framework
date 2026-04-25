@@ -42,11 +42,15 @@ export function RunDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const translate = useTranslate();
-  const { data, loading, error, refetch } = useApi<RunItem>(`/api/v1/runs/${id}`);
-  const hasTrace = !!data?.trace_id;
-  const { data: trace, loading: traceLoading, error: traceError } = useApi<TraceData>(
-    hasTrace ? `/api/v1/runs/${id}/trace` : null,
+  const { data, loading, error, refetch } = useApi<RunItem>(
+    `/api/v1/runs/${id}`,
   );
+  const hasTrace = !!data?.trace_id;
+  const {
+    data: trace,
+    loading: traceLoading,
+    error: traceError,
+  } = useApi<TraceData>(hasTrace ? `/api/v1/runs/${id}/trace` : null);
   const [retryOpen, setRetryOpen] = useState(false);
   const [retrying, setRetrying] = useState(false);
 
@@ -54,7 +58,10 @@ export function RunDetail() {
     if (!data?.pipeline_id) return;
     setRetrying(true);
     try {
-      await fetchApi<unknown>("POST", `/api/v1/pipelines/${data.pipeline_id}/execute`);
+      await fetchApi<unknown>(
+        "POST",
+        `/api/v1/pipelines/${data.pipeline_id}/execute`,
+      );
       setRetryOpen(false);
       refetch();
     } catch {
@@ -66,7 +73,9 @@ export function RunDetail() {
 
   function handleExport() {
     if (!data) return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -75,35 +84,78 @@ export function RunDetail() {
     URL.revokeObjectURL(url);
   }
 
-  if (loading) return <PageLayout titleKey="aiflow.runDetail.title"><LoadingState /></PageLayout>;
-  if (error || !data) return <PageLayout titleKey="aiflow.runDetail.title"><ErrorState error={error ?? "Run not found"} onRetry={refetch} /></PageLayout>;
+  if (loading)
+    return (
+      <PageLayout titleKey="aiflow.runDetail.title">
+        <LoadingState />
+      </PageLayout>
+    );
+  if (error || !data)
+    return (
+      <PageLayout titleKey="aiflow.runDetail.title">
+        <ErrorState error={error ?? "Run not found"} onRetry={refetch} />
+      </PageLayout>
+    );
 
-  const statusColor = data.status === "completed" ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-    : data.status === "running" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-    : data.status === "failed" ? "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-    : "bg-gray-100 text-gray-600";
+  const statusColor =
+    data.status === "completed"
+      ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+      : data.status === "running"
+        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+        : data.status === "failed"
+          ? "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          : "bg-gray-100 text-gray-600";
 
   return (
     <PageLayout titleKey="aiflow.runDetail.title">
       {/* Header */}
       <div className="mb-4 flex items-center gap-3">
-        <button onClick={() => navigate("/runs")} className="text-xs text-gray-500 hover:text-brand-600">
+        <button
+          onClick={() => navigate("/runs")}
+          className="text-xs text-gray-500 hover:text-brand-600"
+        >
           {translate("aiflow.runDetail.backToRuns")} /
         </button>
         <span className="font-mono text-lg font-bold text-gray-900 dark:text-white">
           {data.run_id.substring(0, 8)}
         </span>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor}`}>
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor}`}
+        >
           {data.status}
         </span>
       </div>
 
       {/* KPI cards */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label={translate("aiflow.runDetail.pipeline")} value={data.skill_name ?? data.workflow_name} />
-        <KpiCard label={translate("aiflow.runs.duration")} value={data.total_duration_ms ? `${(data.total_duration_ms / 1000).toFixed(1)}s` : "\u2014"} />
-        <KpiCard label={translate("aiflow.runs.cost")} value={data.total_cost_usd > 0 ? `$${data.total_cost_usd.toFixed(3)}` : "\u2014"} />
-        <KpiCard label={translate("aiflow.runs.started")} value={data.started_at ? new Date(data.started_at).toLocaleString() : "\u2014"} />
+        <KpiCard
+          label={translate("aiflow.runDetail.pipeline")}
+          value={data.skill_name ?? data.workflow_name}
+        />
+        <KpiCard
+          label={translate("aiflow.runs.duration")}
+          value={
+            data.total_duration_ms
+              ? `${(data.total_duration_ms / 1000).toFixed(1)}s`
+              : "\u2014"
+          }
+        />
+        <KpiCard
+          label={translate("aiflow.runs.cost")}
+          value={
+            data.total_cost_usd > 0
+              ? `$${data.total_cost_usd.toFixed(3)}`
+              : "\u2014"
+          }
+        />
+        <KpiCard
+          label={translate("aiflow.runs.started")}
+          value={
+            data.started_at
+              ? new Date(data.started_at).toLocaleString()
+              : "\u2014"
+          }
+        />
       </div>
 
       {/* Step log */}
@@ -132,32 +184,71 @@ export function RunDetail() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left dark:border-gray-800">
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">#</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">{translate("aiflow.runDetail.stepName")}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">{translate("aiflow.runs.status")}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">{translate("aiflow.runs.duration")}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">{translate("aiflow.runDetail.model")}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">{translate("aiflow.runDetail.tokens")}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">{translate("aiflow.runs.cost")}</th>
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                #
+              </th>
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                {translate("aiflow.runDetail.stepName")}
+              </th>
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                {translate("aiflow.runs.status")}
+              </th>
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                {translate("aiflow.runs.duration")}
+              </th>
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                {translate("aiflow.runDetail.model")}
+              </th>
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                {translate("aiflow.runDetail.tokens")}
+              </th>
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                {translate("aiflow.runs.cost")}
+              </th>
             </tr>
           </thead>
           <tbody>
             {(data.steps ?? []).map((step, i) => {
-              const sc = step.status === "completed" ? "bg-green-50 text-green-700" : step.status === "running" ? "bg-blue-50 text-blue-700" : step.status === "failed" ? "bg-red-50 text-red-700" : "bg-gray-100 text-gray-600";
+              const sc =
+                step.status === "completed"
+                  ? "bg-green-50 text-green-700"
+                  : step.status === "running"
+                    ? "bg-blue-50 text-blue-700"
+                    : step.status === "failed"
+                      ? "bg-red-50 text-red-700"
+                      : "bg-gray-100 text-gray-600";
               return (
                 <Fragment key={step.step_name}>
                   <tr className="border-b border-gray-50 dark:border-gray-800">
                     <td className="px-4 py-3 text-gray-500">{i + 1}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{step.step_name}</td>
-                    <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${sc}`}>{step.status}</span></td>
-                    <td className="px-4 py-3 text-gray-500">{step.duration_ms != null ? `${(step.duration_ms / 1000).toFixed(1)}s` : "\u2014"}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{step.model_used ?? "\u2014"}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                      {step.step_name}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${sc}`}
+                      >
+                        {step.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {step.duration_ms != null
+                        ? `${(step.duration_ms / 1000).toFixed(1)}s`
+                        : "\u2014"}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500">
+                      {step.model_used ?? "\u2014"}
+                    </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
                       {step.input_tokens != null || step.output_tokens != null
                         ? `${step.input_tokens ?? 0} / ${step.output_tokens ?? 0}`
                         : "\u2014"}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{step.cost_usd != null && step.cost_usd > 0 ? `$${step.cost_usd.toFixed(3)}` : "\u2014"}</td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {step.cost_usd != null && step.cost_usd > 0
+                        ? `$${step.cost_usd.toFixed(3)}`
+                        : "\u2014"}
+                    </td>
                   </tr>
                   {step.error && (
                     <tr className="border-b border-gray-50 dark:border-gray-800">
@@ -189,7 +280,8 @@ export function RunDetail() {
           <LoadingState />
         ) : traceError ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-            {translate("aiflow.runDetail.traceError")}: <span className="font-mono text-xs">{traceError}</span>
+            {translate("aiflow.runDetail.traceError")}:{" "}
+            <span className="font-mono text-xs">{traceError}</span>
           </div>
         ) : trace ? (
           <TraceTree trace={trace} />
@@ -215,7 +307,9 @@ function KpiCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
       <p className="text-xs font-medium text-gray-500">{label}</p>
-      <p className="mt-1 text-lg font-bold text-gray-900 dark:text-gray-100">{value}</p>
+      <p className="mt-1 text-lg font-bold text-gray-900 dark:text-gray-100">
+        {value}
+      </p>
     </div>
   );
 }

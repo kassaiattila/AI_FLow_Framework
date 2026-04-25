@@ -16,12 +16,17 @@ interface ThresholdEditorProps {
 }
 
 function normalize(list: number[]): number[] {
-  return Array.from(new Set(list.filter((n) => Number.isInteger(n) && n >= 1 && n <= 100))).sort(
-    (a, b) => a - b,
-  );
+  return Array.from(
+    new Set(list.filter((n) => Number.isInteger(n) && n >= 1 && n <= 100)),
+  ).sort((a, b) => a - b);
 }
 
-export function ThresholdEditor({ value, onChange, disabled, testid = "threshold" }: ThresholdEditorProps) {
+export function ThresholdEditor({
+  value,
+  onChange,
+  disabled,
+  testid = "threshold",
+}: ThresholdEditorProps) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +61,11 @@ export function ThresholdEditor({ value, onChange, disabled, testid = "threshold
     if (event.key === "Enter" || event.key === ",") {
       event.preventDefault();
       commitDraft();
-    } else if (event.key === "Backspace" && draft.length === 0 && sorted.length > 0) {
+    } else if (
+      event.key === "Backspace" &&
+      draft.length === 0 &&
+      sorted.length > 0
+    ) {
       remove(sorted[sorted.length - 1]);
     }
   };
@@ -93,8 +102,17 @@ export function ThresholdEditor({ value, onChange, disabled, testid = "threshold
                 onClick={() => remove(pct)}
                 className="rounded-full p-0.5 text-brand-500 hover:bg-brand-100 hover:text-brand-700 dark:hover:bg-brand-800"
               >
-                <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                <svg
+                  className="h-3 w-3"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </button>
             )}
@@ -116,11 +134,18 @@ export function ThresholdEditor({ value, onChange, disabled, testid = "threshold
         />
       </div>
       {error ? (
-        <p id={errorId} role="alert" className="text-xs text-red-600 dark:text-red-400">
+        <p
+          id={errorId}
+          role="alert"
+          className="text-xs text-red-600 dark:text-red-400"
+        >
           {error}
         </p>
       ) : (
-        <p id={descriptionId} className="text-xs text-gray-500 dark:text-gray-400">
+        <p
+          id={descriptionId}
+          className="text-xs text-gray-500 dark:text-gray-400"
+        >
           Enter / vesszo = hozzaadas. Backspace = utolso torles.
         </p>
       )}

@@ -271,6 +271,7 @@
       "pipelineRuns": "Pipeline futasok",
       "costs": "Koltsegek",
       "budgets": "Tenant koltsegvetesek",
+      "ragCollectionsAdmin": "RAG kollekciok",
       "serviceHealth": "Szolgaltatas allapot",
       "llmQuality": "LLM minoseg",
       "auditLog": "Audit naplo",
@@ -678,6 +679,33 @@
     "budgets": {
       "title": "Tenant koltsegvetesek",
       "subtitle": "Per-tenant LLM koltseg guardrail limitek es alert kuszobok"
+    },
+    "ragCollections": {
+      "title": "RAG kollekciok",
+      "subtitle": "Multi-tenant vektor DB embedder profil kapcsolassal",
+      "filter": {
+        "tenant": "Tenant",
+        "apply": "Alkalmaz",
+        "clear": "Torles"
+      },
+      "column": {
+        "name": "Nev",
+        "tenant": "Tenant",
+        "embedderProfile": "Embedder profil",
+        "embeddingDim": "Dim",
+        "chunks": "Chunk-ok",
+        "updated": "Modositva"
+      },
+      "detail": {
+        "setProfile": "Embedder profil beallitasa",
+        "save": "Mentes",
+        "savedToast": "Embedder profil mentve.",
+        "dimMismatch": "A profil nem valtoztathato: a meglevo chunk-ok mas dimenzioju vektort hasznalnak.",
+        "dimGuardWarning": "A kollekcio mar tartalmaz {dim}-dim chunk-okat — csak azonos dimenzioju profil csatolhato.",
+        "embeddingModel": "Embedding modell",
+        "description": "Leiras"
+      },
+      "empty": "Meg nincs kollekcio — toltsd fel a RAG Engine API-n keresztul."
     },
     "costs": {
       "title": "Koltseg analitika",

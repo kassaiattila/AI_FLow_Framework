@@ -93,7 +93,8 @@ export function Cubix() {
 
               {course.total_duration_sec != null && (
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  {translate("aiflow.cubix.duration")}: {formatDuration(course.total_duration_sec)}
+                  {translate("aiflow.cubix.duration")}:{" "}
+                  {formatDuration(course.total_duration_sec)}
                 </p>
               )}
 
@@ -104,10 +105,16 @@ export function Cubix() {
                   </p>
                   <ul className="mt-1 space-y-0.5">
                     {course.sections.map((sec, i) => (
-                      <li key={i} className="ml-4 text-sm text-gray-700 dark:text-gray-300">
+                      <li
+                        key={i}
+                        className="ml-4 text-sm text-gray-700 dark:text-gray-300"
+                      >
                         {i + 1}. {sec.title}
                         {sec.duration_sec != null && (
-                          <span className="text-gray-400"> ({formatDuration(sec.duration_sec)})</span>
+                          <span className="text-gray-400">
+                            {" "}
+                            ({formatDuration(sec.duration_sec)})
+                          </span>
                         )}
                       </li>
                     ))}
@@ -115,23 +122,24 @@ export function Cubix() {
                 </div>
               )}
 
-              {course.transcript_files && course.transcript_files.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    {translate("aiflow.cubix.transcripts")}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {course.transcript_files.map((f, i) => (
-                      <span
-                        key={i}
-                        className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-600 dark:border-gray-600 dark:text-gray-400"
-                      >
-                        {f}
-                      </span>
-                    ))}
+              {course.transcript_files &&
+                course.transcript_files.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {translate("aiflow.cubix.transcripts")}
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {course.transcript_files.map((f, i) => (
+                        <span
+                          key={i}
+                          className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-600 dark:border-gray-600 dark:text-gray-400"
+                        >
+                          {f}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           ))}
         </div>

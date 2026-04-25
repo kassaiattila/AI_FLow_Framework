@@ -22,7 +22,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from aiflow.core.errors import AIFlowError
 from aiflow.services.base import BaseService, ServiceConfig
 
-__all__ = ["RAGEngineConfig", "RAGEngineService", "UnknownEmbedderProfile"]
+__all__ = [
+    "DimensionMismatch",
+    "RAGEngineConfig",
+    "RAGEngineService",
+    "UnknownEmbedderProfile",
+]
 
 
 class UnknownEmbedderProfile(AIFlowError):  # noqa: N818 — semantic name matches log/API surface
@@ -35,6 +40,21 @@ class UnknownEmbedderProfile(AIFlowError):  # noqa: N818 — semantic name match
 
     error_code = "UNKNOWN_EMBEDDER_PROFILE"
     http_status = 500
+    is_transient = False
+
+
+class DimensionMismatch(AIFlowError):  # noqa: N818 — semantic name matches log/API surface
+    """Raised when ``set_embedder_profile`` would change a collection to a
+    profile whose embedding dimensionality does not match the collection's
+    existing chunks.
+
+    Sprint S / S144 — visibility + profile-management UI guard. Configuration
+    error, not retryable (``is_transient=False``). Surfaces as HTTP 409 from
+    the ``/api/v1/rag/collections/{id}/embedder-profile`` PATCH endpoint.
+    """
+
+    error_code = "RAG_DIM_MISMATCH"
+    http_status = 409
     is_transient = False
 
 
@@ -429,6 +449,100 @@ class RAGEngineService(BaseService):
 
         self._logger.info("collection_deleted", id=collection_id, name=coll.name)
         return True
+
+    async def set_embedder_profile(
+        self,
+        collection_id: str,
+        embedder_profile_id: str | None,
+    ) -> CollectionInfo | None:
+        """Attach (or detach) an embedder profile on a collection.
+
+        Sprint S / S144. Returns ``None`` when the collection does not exist.
+        Raises:
+
+        * :class:`UnknownEmbedderProfile` — alias not in
+          ``{None, bge_m3, azure_openai, openai}``.
+        * :class:`DimensionMismatch` — the collection already has chunks and
+          the requested profile would produce vectors of a different
+          dimensionality (cannot mix dims inside a single pgvector collection).
+
+        Behaviour by ``chunk_count``:
+
+        * ``chunk_count == 0`` — accept any known profile and update
+          ``rag_collections.embedding_dim`` to the new provider's dim
+          (mirrors :meth:`_update_collection_embedding_dim` in the ingest
+          path). Detaching to NULL leaves ``embedding_dim`` untouched.
+        * ``chunk_count > 0`` — require the new profile's dim to equal the
+          collection's current ``embedding_dim``; detaching to NULL is only
+          allowed when ``embedding_dim == 1536`` because the legacy
+          ``self._embedder`` is fixed at OpenAI 1536-dim.
+        """
+        coll = await self.get_collection(collection_id)
+        if coll is None:
+            return None
+
+        known_aliases = {"bge_m3", "azure_openai", "openai"}
+        if embedder_profile_id is not None and embedder_profile_id not in known_aliases:
+            raise UnknownEmbedderProfile(
+                f"embedder_profile_id='{embedder_profile_id}' is not registered. "
+                f"Known profiles: {sorted(known_aliases)}"
+            )
+
+        new_dim: int | None = None
+        if embedder_profile_id is not None:
+            from aiflow.providers.embedder import (
+                AzureOpenAIEmbedder,
+                BGEM3Embedder,
+                OpenAIEmbedder,
+            )
+
+            provider_classes: dict[str, type[Any]] = {
+                BGEM3Embedder.PROVIDER_NAME: BGEM3Embedder,
+                AzureOpenAIEmbedder.PROVIDER_NAME: AzureOpenAIEmbedder,
+                OpenAIEmbedder.PROVIDER_NAME: OpenAIEmbedder,
+            }
+            provider_cls = provider_classes[embedder_profile_id]
+            try:
+                provider = provider_cls()
+            except Exception as exc:
+                raise DimensionMismatch(
+                    f"Cannot probe embedder '{embedder_profile_id}': {exc}"
+                ) from exc
+            new_dim = int(provider.embedding_dim)
+
+        if coll.chunk_count > 0:
+            target_dim = new_dim if new_dim is not None else 1536
+            if target_dim != coll.embedding_dim:
+                raise DimensionMismatch(
+                    f"Cannot attach embedder_profile_id='{embedder_profile_id}' to "
+                    f"collection {coll.id}: existing chunks use embedding_dim="
+                    f"{coll.embedding_dim} but the requested profile produces "
+                    f"embedding_dim={target_dim}."
+                )
+
+        async with self._session_factory() as session:
+            await session.execute(
+                text(
+                    "UPDATE rag_collections "
+                    "SET embedder_profile_id = :p, updated_at = NOW() "
+                    "WHERE id = :id"
+                ),
+                {"p": embedder_profile_id, "id": collection_id},
+            )
+            if coll.chunk_count == 0 and new_dim is not None and new_dim != coll.embedding_dim:
+                await session.execute(
+                    text("UPDATE rag_collections SET embedding_dim = :dim WHERE id = :id"),
+                    {"dim": new_dim, "id": collection_id},
+                )
+            await session.commit()
+
+        self._logger.info(
+            "collection_embedder_profile_set",
+            id=collection_id,
+            embedder_profile_id=embedder_profile_id,
+            embedding_dim=new_dim if new_dim is not None else coll.embedding_dim,
+        )
+        return await self.get_collection(collection_id)
 
     # -----------------------------------------------------------------------
     # Ingestion

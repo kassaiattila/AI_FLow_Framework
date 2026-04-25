@@ -51,7 +51,8 @@ export function Pipelines() {
   const translate = useTranslate();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("pipelines");
-  const { data, loading, error, refetch } = useApi<PipelineListResponse>("/api/v1/pipelines");
+  const { data, loading, error, refetch } =
+    useApi<PipelineListResponse>("/api/v1/pipelines");
   const {
     data: templatesData,
     loading: templatesLoading,
@@ -76,31 +77,105 @@ export function Pipelines() {
         </button>
       ),
     },
-    { key: "version", label: translate("pipelines.version"), render: (item) => <span className="text-gray-500">{String(item.version)}</span> },
-    { key: "step_count", label: translate("pipelines.steps"), getValue: (item) => item.step_count as number, render: (item) => <span className="text-gray-500">{String(item.step_count)}</span> },
-    { key: "trigger_type", label: translate("pipelines.trigger"), render: (item) => <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-700 dark:text-gray-300">{String(item.trigger_type)}</span> },
+    {
+      key: "version",
+      label: translate("pipelines.version"),
+      render: (item) => (
+        <span className="text-gray-500">{String(item.version)}</span>
+      ),
+    },
+    {
+      key: "step_count",
+      label: translate("pipelines.steps"),
+      getValue: (item) => item.step_count as number,
+      render: (item) => (
+        <span className="text-gray-500">{String(item.step_count)}</span>
+      ),
+    },
+    {
+      key: "trigger_type",
+      label: translate("pipelines.trigger"),
+      render: (item) => (
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-700 dark:text-gray-300">
+          {String(item.trigger_type)}
+        </span>
+      ),
+    },
     {
       key: "enabled",
       label: translate("pipelines.status"),
       render: (item) => {
         const enabled = item.enabled as boolean;
-        const cls = enabled ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
-        return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{enabled ? translate("pipelines.enabled") : translate("pipelines.disabled")}</span>;
+        const cls = enabled
+          ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+          : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
+        return (
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}
+          >
+            {enabled
+              ? translate("pipelines.enabled")
+              : translate("pipelines.disabled")}
+          </span>
+        );
       },
     },
     {
       key: "created_at",
       label: translate("pipelines.created"),
-      render: (item) => <span className="text-xs text-gray-500">{item.created_at ? new Date(String(item.created_at)).toLocaleDateString() : "—"}</span>,
+      render: (item) => (
+        <span className="text-xs text-gray-500">
+          {item.created_at
+            ? new Date(String(item.created_at)).toLocaleDateString()
+            : "—"}
+        </span>
+      ),
     },
   ];
 
   const templateColumns: Column<Record<string, unknown>>[] = [
-    { key: "name", label: translate("pipelines.templateName"), render: (item) => <span className="font-medium text-gray-900 dark:text-white">{String(item.name)}</span> },
-    { key: "version", label: translate("pipelines.templateVersion"), render: (item) => <span className="text-gray-500">{String(item.version)}</span> },
-    { key: "category", label: translate("pipelines.templateCategory"), render: (item) => <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{String(item.category || "—")}</span> },
-    { key: "step_count", label: translate("pipelines.templateSteps"), getValue: (item) => item.step_count as number, render: (item) => <span className="text-gray-500">{String(item.step_count)}</span> },
-    { key: "description", label: translate("pipelines.templateDescription"), render: (item) => <span className="text-sm text-gray-500 truncate max-w-xs block">{String(item.description || "—")}</span> },
+    {
+      key: "name",
+      label: translate("pipelines.templateName"),
+      render: (item) => (
+        <span className="font-medium text-gray-900 dark:text-white">
+          {String(item.name)}
+        </span>
+      ),
+    },
+    {
+      key: "version",
+      label: translate("pipelines.templateVersion"),
+      render: (item) => (
+        <span className="text-gray-500">{String(item.version)}</span>
+      ),
+    },
+    {
+      key: "category",
+      label: translate("pipelines.templateCategory"),
+      render: (item) => (
+        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+          {String(item.category || "—")}
+        </span>
+      ),
+    },
+    {
+      key: "step_count",
+      label: translate("pipelines.templateSteps"),
+      getValue: (item) => item.step_count as number,
+      render: (item) => (
+        <span className="text-gray-500">{String(item.step_count)}</span>
+      ),
+    },
+    {
+      key: "description",
+      label: translate("pipelines.templateDescription"),
+      render: (item) => (
+        <span className="text-sm text-gray-500 truncate max-w-xs block">
+          {String(item.description || "—")}
+        </span>
+      ),
+    },
     {
       key: "_deploy",
       label: "",
@@ -110,7 +185,10 @@ export function Pipelines() {
           onClick={async (e) => {
             e.stopPropagation();
             try {
-              await fetchApi("POST", `/api/v1/pipelines/templates/${item.name}/deploy`);
+              await fetchApi(
+                "POST",
+                `/api/v1/pipelines/templates/${item.name}/deploy`,
+              );
               setTab("pipelines");
               refetch();
             } catch (err) {
@@ -163,10 +241,16 @@ export function Pipelines() {
     >
       {/* Tab bar */}
       <div className="mb-4 flex border-b border-gray-200 dark:border-gray-700">
-        <button className={tabCls("pipelines")} onClick={() => setTab("pipelines")}>
+        <button
+          className={tabCls("pipelines")}
+          onClick={() => setTab("pipelines")}
+        >
           {translate("pipelines.tabPipelines")}
         </button>
-        <button className={tabCls("templates")} onClick={() => setTab("templates")}>
+        <button
+          className={tabCls("templates")}
+          onClick={() => setTab("templates")}
+        >
           {translate("pipelines.tabTemplates")}
         </button>
       </div>
@@ -201,7 +285,9 @@ export function Pipelines() {
             <EmptyState messageKey="pipelines.templatesEmpty" />
           ) : (
             <DataTable
-              data={templatesData.templates as unknown as Record<string, unknown>[]}
+              data={
+                templatesData.templates as unknown as Record<string, unknown>[]
+              }
               columns={templateColumns}
               searchKeys={["name", "category", "description"]}
             />
@@ -213,16 +299,26 @@ export function Pipelines() {
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">{translate("pipelines.new")}</h2>
+            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+              {translate("pipelines.new")}
+            </h2>
             <textarea
               className="w-full h-64 rounded-lg border border-gray-300 bg-gray-50 p-3 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
               placeholder="name: my_pipeline&#10;steps:&#10;  - name: step1&#10;    service: email_connector&#10;    method: fetch_emails"
               value={yaml}
               onChange={(e) => setYaml(e.target.value)}
             />
-            {createError && <p className="mt-2 text-sm text-red-600">{createError}</p>}
+            {createError && (
+              <p className="mt-2 text-sm text-red-600">{createError}</p>
+            )}
             <div className="mt-4 flex justify-end gap-3">
-              <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm dark:border-gray-600 dark:text-gray-300" onClick={() => { setShowCreate(false); setCreateError(""); }}>
+              <button
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm dark:border-gray-600 dark:text-gray-300"
+                onClick={() => {
+                  setShowCreate(false);
+                  setCreateError("");
+                }}
+              >
                 {translate("pipelines.cancel")}
               </button>
               <button

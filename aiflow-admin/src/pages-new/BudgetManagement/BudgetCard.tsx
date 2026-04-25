@@ -10,7 +10,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { ApiClientError, fetchApi } from "../../lib/api-client";
 import { ThresholdEditor } from "./ThresholdEditor";
-import type { BudgetPeriod, TenantBudgetGetResponse, TenantBudgetUpsertRequest } from "./types";
+import type {
+  BudgetPeriod,
+  TenantBudgetGetResponse,
+  TenantBudgetUpsertRequest,
+} from "./types";
 
 interface BudgetCardProps {
   tenantId: string;
@@ -61,7 +65,12 @@ function formatDate(iso?: string | null): string {
   }
 }
 
-export function BudgetCard({ tenantId, period, initial, onSaved }: BudgetCardProps) {
+export function BudgetCard({
+  tenantId,
+  period,
+  initial,
+  onSaved,
+}: BudgetCardProps) {
   const [form, setForm] = useState<TenantBudgetUpsertRequest>(() =>
     initial ? fromServer(initial) : defaultPayload(),
   );
@@ -83,7 +92,10 @@ export function BudgetCard({ tenantId, period, initial, onSaved }: BudgetCardPro
   const dirty =
     form.limit_usd !== baselinePayload.limit_usd ||
     form.enabled !== baselinePayload.enabled ||
-    !thresholdsEqual(form.alert_threshold_pct, baselinePayload.alert_threshold_pct);
+    !thresholdsEqual(
+      form.alert_threshold_pct,
+      baselinePayload.alert_threshold_pct,
+    );
 
   const view = initial?.view;
   const usagePct = view?.usage_pct ?? 0;
@@ -114,7 +126,8 @@ export function BudgetCard({ tenantId, period, initial, onSaved }: BudgetCardPro
       setTimeout(() => setSaveOk(false), 2000);
     } catch (e) {
       if (e instanceof ApiClientError) {
-        const detail = typeof e.detail === "string" ? e.detail : JSON.stringify(e.detail);
+        const detail =
+          typeof e.detail === "string" ? e.detail : JSON.stringify(e.detail);
         setSaveError(`${e.status}: ${detail}`);
       } else {
         setSaveError(e instanceof Error ? e.message : "Save failed");
@@ -146,7 +159,9 @@ export function BudgetCard({ tenantId, period, initial, onSaved }: BudgetCardPro
           <input
             type="checkbox"
             checked={form.enabled}
-            onChange={(event) => setForm({ ...form, enabled: event.target.checked })}
+            onChange={(event) =>
+              setForm({ ...form, enabled: event.target.checked })
+            }
             data-testid={`budget-enabled-${period}`}
             className="h-4 w-4 accent-brand-500"
           />
@@ -201,7 +216,9 @@ export function BudgetCard({ tenantId, period, initial, onSaved }: BudgetCardPro
               data-testid={`budget-over-${period}`}
               className="flex flex-wrap items-center gap-1.5 text-xs"
             >
-              <span className="text-gray-500 dark:text-gray-400">Kuszobok:</span>
+              <span className="text-gray-500 dark:text-gray-400">
+                Kuszobok:
+              </span>
               {view.alert_threshold_pct.map((pct) => {
                 const isOver = over.includes(pct);
                 return (
@@ -227,7 +244,8 @@ export function BudgetCard({ tenantId, period, initial, onSaved }: BudgetCardPro
           data-testid={`budget-empty-${period}`}
           className="mb-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 text-xs text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400"
         >
-          Meg nincs {periodLabel.toLowerCase()} kuszob ennek a tenant-nek. Allitsd be a limitet es mentsd.
+          Meg nincs {periodLabel.toLowerCase()} kuszob ennek a tenant-nek.
+          Allitsd be a limitet es mentsd.
         </div>
       )}
 

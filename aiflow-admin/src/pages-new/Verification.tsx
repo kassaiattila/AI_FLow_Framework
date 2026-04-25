@@ -12,10 +12,23 @@ import { LoadingState } from "../components-new/LoadingState";
 import { ErrorState } from "../components-new/ErrorState";
 import { StatusBadge } from "../components-new/StatusBadge";
 import { useVerificationState } from "../verification/use-verification-state";
-import { getAllFields, fieldToBBox, resolvePath, PAGE } from "../verification/document-layout";
+import {
+  getAllFields,
+  fieldToBBox,
+  resolvePath,
+  PAGE,
+} from "../verification/document-layout";
 import { MockDocumentSvg } from "../verification/MockDocumentSvg";
-import type { DataPoint, DataPointCategory, DocumentVerificationData } from "../verification/types";
-import { getConfidenceLevel, CATEGORY_ORDER, validateField } from "../verification/types";
+import type {
+  DataPoint,
+  DataPointCategory,
+  DocumentVerificationData,
+} from "../verification/types";
+import {
+  getConfidenceLevel,
+  CATEGORY_ORDER,
+  validateField,
+} from "../verification/types";
 
 // --- Tailwind color mappings ---
 
@@ -56,17 +69,29 @@ function generateVerificationData(
   const fields = getAllFields(lineItems.length);
 
   // Backend may provide per-field confidence and bounding boxes
-  const fieldConfidences = (invoice.field_confidences as Record<string, number>) || {};
-  const fieldBBoxes = (invoice.field_bounding_boxes as Record<string, { x: number; y: number; width: number; height: number; page: number }>) || {};
+  const fieldConfidences =
+    (invoice.field_confidences as Record<string, number>) || {};
+  const fieldBBoxes =
+    (invoice.field_bounding_boxes as Record<
+      string,
+      { x: number; y: number; width: number; height: number; page: number }
+    >) || {};
   const globalConf = (invoice.extraction_confidence as number) || 0.8;
 
   const dataPoints: DataPoint[] = fields.map((f) => {
     const value = resolvePath(invoice, f.fieldPath);
-    const confidence = fieldConfidences[f.fieldPath] ?? fieldConfidences[f.id] ?? globalConf;
+    const confidence =
+      fieldConfidences[f.fieldPath] ?? fieldConfidences[f.id] ?? globalConf;
     // Use backend bbox if available, otherwise fall back to layout-based estimate
     const backendBBox = fieldBBoxes[f.fieldPath] ?? fieldBBoxes[f.id];
     const bbox = backendBBox
-      ? { x: backendBBox.x, y: backendBBox.y, width: backendBBox.width, height: backendBBox.height, page: backendBBox.page ?? 0 }
+      ? {
+          x: backendBBox.x,
+          y: backendBBox.y,
+          width: backendBBox.width,
+          height: backendBBox.height,
+          page: backendBBox.page ?? 0,
+        }
       : fieldToBBox(f);
     return {
       id: f.id,
@@ -87,8 +112,16 @@ function generateVerificationData(
     document_index: index,
     source_file: (invoice.source_file as string) || "",
     document_meta: {
-      document_type: (invoice.document_type as "invoice" | "receipt" | "contract" | "credit_note" | "proforma" | "unknown") || "invoice",
-      document_type_confidence: (invoice.document_type_confidence as number) ?? 0.97,
+      document_type:
+        (invoice.document_type as
+          | "invoice"
+          | "receipt"
+          | "contract"
+          | "credit_note"
+          | "proforma"
+          | "unknown") || "invoice",
+      document_type_confidence:
+        (invoice.document_type_confidence as number) ?? 0.97,
       direction: (invoice.direction as "incoming" | "outgoing") || "incoming",
       direction_confidence: (invoice.direction_confidence as number) ?? 0.94,
       language: (invoice.language as string) || "hu",
@@ -153,7 +186,9 @@ function DocumentCanvas({
         setViewMode("mock");
       });
 
-    return () => { revoked = true; };
+    return () => {
+      revoked = true;
+    };
   }, [fileName]);
 
   // Filter overlay points based on mode (works on both real and mock views)
@@ -167,13 +202,27 @@ function DocumentCanvas({
   const w = PAGE.w * (zoom / 100);
   const h = PAGE.h * (zoom / 100);
 
-  const overlayModes: { mode: OverlayMode; key: string; icon: React.ReactNode }[] = [
+  const overlayModes: {
+    mode: OverlayMode;
+    key: string;
+    icon: React.ReactNode;
+  }[] = [
     {
       mode: "all",
       key: "aiflow.verification.overlayAll",
       icon: (
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+          />
         </svg>
       ),
     },
@@ -181,8 +230,18 @@ function DocumentCanvas({
       mode: "low",
       key: "aiflow.verification.overlayLow",
       icon: (
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
         </svg>
       ),
     },
@@ -190,8 +249,18 @@ function DocumentCanvas({
       mode: "off",
       key: "aiflow.verification.overlayOff",
       icon: (
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+          />
         </svg>
       ),
     },
@@ -203,48 +272,87 @@ function DocumentCanvas({
       <div className="flex items-center gap-2 border-b border-gray-200 px-3 py-1.5 dark:border-gray-700">
         {/* View mode toggle switch (Real ↔ Mock) */}
         {hasRealImage && (
-          <label className="flex cursor-pointer items-center gap-1.5" title={viewMode === "real" ? translate("aiflow.verification.realImage") : translate("aiflow.verification.mockImage")}>
-            <svg className={`h-4 w-4 ${viewMode === "real" ? "text-brand-500" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <label
+            className="flex cursor-pointer items-center gap-1.5"
+            title={
+              viewMode === "real"
+                ? translate("aiflow.verification.realImage")
+                : translate("aiflow.verification.mockImage")
+            }
+          >
+            <svg
+              className={`h-4 w-4 ${viewMode === "real" ? "text-brand-500" : "text-gray-400"}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
             <div className="relative">
               <input
                 type="checkbox"
                 checked={viewMode === "mock"}
-                onChange={() => setViewMode(viewMode === "real" ? "mock" : "real")}
+                onChange={() =>
+                  setViewMode(viewMode === "real" ? "mock" : "real")
+                }
                 className="peer sr-only"
               />
               <div className="h-5 w-9 rounded-full bg-brand-500 transition-colors peer-checked:bg-gray-400 dark:bg-brand-600 dark:peer-checked:bg-gray-600" />
               <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
             </div>
-            <svg className={`h-4 w-4 ${viewMode === "mock" ? "text-brand-500" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            <svg
+              className={`h-4 w-4 ${viewMode === "mock" ? "text-brand-500" : "text-gray-400"}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+              />
             </svg>
           </label>
         )}
 
         {/* Overlay mode toggle */}
         <div className="flex rounded-lg border border-gray-200 dark:border-gray-700">
-            {overlayModes.map(({ mode, key, icon }) => (
-              <button
-                key={mode}
-                onClick={() => setOverlayMode(mode)}
-                title={translate(key)}
-                className={`px-2 py-1 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md ${
-                  overlayMode === mode
-                    ? "bg-brand-500 text-white"
-                    : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
-                }`}
-              >
-                {icon}
-              </button>
-            ))}
-          </div>
+          {overlayModes.map(({ mode, key, icon }) => (
+            <button
+              key={mode}
+              onClick={() => setOverlayMode(mode)}
+              title={translate(key)}
+              className={`px-2 py-1 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md ${
+                overlayMode === mode
+                  ? "bg-brand-500 text-white"
+                  : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+              }`}
+            >
+              {icon}
+            </button>
+          ))}
+        </div>
 
         {/* Zoom slider */}
         <div className="flex flex-1 items-center gap-2 px-2">
-          <svg className="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+          <svg
+            className="h-4 w-4 shrink-0 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+            />
           </svg>
           <input
             type="range"
@@ -255,7 +363,9 @@ function DocumentCanvas({
             onChange={(e) => setZoom(Number(e.target.value))}
             className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-gray-200 accent-brand-500 dark:bg-gray-700"
           />
-          <span className="min-w-[32px] text-right text-xs text-gray-400">{zoom}%</span>
+          <span className="min-w-[32px] text-right text-xs text-gray-400">
+            {zoom}%
+          </span>
         </div>
       </div>
 
@@ -286,7 +396,8 @@ function DocumentCanvas({
                 const bb = dp.bounding_box!;
                 const level = getConfidenceLevel(dp.confidence);
                 const colors = CONFIDENCE_COLORS[level];
-                const isHl = dp.id === hoveredPointId || dp.id === selectedPointId;
+                const isHl =
+                  dp.id === hoveredPointId || dp.id === selectedPointId;
                 return (
                   <rect
                     key={dp.id}
@@ -359,7 +470,10 @@ function DataPointEditor({
   // Scroll to selected point
   useEffect(() => {
     if (selectedPointId && selectedRef.current) {
-      selectedRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      selectedRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
     }
   }, [selectedPointId]);
 
@@ -391,15 +505,26 @@ function DataPointEditor({
           break;
       }
     },
-    [editingPointId, selectedPointId, onNextPoint, onPrevPoint, onConfirmPoint, onStartEdit, onCancelEdit],
+    [
+      editingPointId,
+      selectedPointId,
+      onNextPoint,
+      onPrevPoint,
+      onConfirmPoint,
+      onStartEdit,
+      onCancelEdit,
+    ],
   );
 
   // Group by category
-  const grouped = CATEGORY_ORDER.reduce<Record<string, DataPoint[]>>((acc, cat) => {
-    const pts = dataPoints.filter((dp) => dp.category === cat);
-    if (pts.length > 0) acc[cat] = pts;
-    return acc;
-  }, {});
+  const grouped = CATEGORY_ORDER.reduce<Record<string, DataPoint[]>>(
+    (acc, cat) => {
+      const pts = dataPoints.filter((dp) => dp.category === cat);
+      if (pts.length > 0) acc[cat] = pts;
+      return acc;
+    },
+    {},
+  );
 
   const toggleSection = (cat: string) => {
     setCollapsed((prev) => ({ ...prev, [cat]: !prev[cat] }));
@@ -414,11 +539,24 @@ function DataPointEditor({
     >
       {/* Keyboard hint */}
       <div className="flex items-center gap-1.5 border-b border-gray-200 bg-gray-50 px-3 py-1 dark:border-gray-700 dark:bg-gray-800/50">
-        <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+        <svg
+          className="h-3.5 w-3.5 text-gray-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+          />
         </svg>
         <span className="text-[11px] text-gray-400">
-          Tab: {translate("aiflow.verification.kbNav")} · Enter: {translate("aiflow.verification.kbConfirm")} · E: {translate("aiflow.verification.kbEdit")} · Esc: {translate("aiflow.verification.kbCancel")}
+          Tab: {translate("aiflow.verification.kbNav")} · Enter:{" "}
+          {translate("aiflow.verification.kbConfirm")} · E:{" "}
+          {translate("aiflow.verification.kbEdit")} · Esc:{" "}
+          {translate("aiflow.verification.kbCancel")}
         </span>
       </div>
 
@@ -438,7 +576,9 @@ function DataPointEditor({
                 {locale === "en" ? catLabel.en : catLabel.hu}
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-gray-400">{points.length}</span>
+                <span className="text-[10px] text-gray-400">
+                  {points.length}
+                </span>
                 <svg
                   className={`h-3.5 w-3.5 text-gray-400 transition-transform ${isCollapsed ? "" : "rotate-180"}`}
                   fill="none"
@@ -446,7 +586,11 @@ function DataPointEditor({
                   stroke="currentColor"
                   strokeWidth={2}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </button>
@@ -515,39 +659,48 @@ function DataPointEditor({
                   >
                     {/* Label */}
                     <span className="min-w-[100px] text-xs font-medium text-gray-700 dark:text-gray-300">
-                      {dp.line_item_index != null ? `#${dp.line_item_index + 1} ` : ""}
+                      {dp.line_item_index != null
+                        ? `#${dp.line_item_index + 1} `
+                        : ""}
                       {locale === "en" ? dp.labelEn : dp.label}
                     </span>
 
                     {/* Value or edit input + diff */}
                     <div className="min-w-0 flex-1">
-                      {isEditing ? (() => {
-                        const vr = validateField(dp.field_name, editBuffer);
-                        return (
-                          <div>
-                            <input
-                              type="text"
-                              value={editBuffer}
-                              onChange={(e) => onEditChange(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" && vr.valid) onCommitEdit();
-                                if (e.key === "Escape") onCancelEdit();
-                                e.stopPropagation();
-                              }}
-                              onBlur={() => { if (vr.valid) onCommitEdit(); }}
-                              autoFocus
-                              className={`w-full rounded border px-2 py-0.5 text-xs text-gray-900 outline-none dark:bg-gray-800 dark:text-gray-100 ${
-                                vr.valid
-                                  ? "border-brand-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                                  : "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                              }`}
-                            />
-                            {!vr.valid && (
-                              <span className="block text-[10px] text-red-500">{vr.error}</span>
-                            )}
-                          </div>
-                        );
-                      })() : (
+                      {isEditing ? (
+                        (() => {
+                          const vr = validateField(dp.field_name, editBuffer);
+                          return (
+                            <div>
+                              <input
+                                type="text"
+                                value={editBuffer}
+                                onChange={(e) => onEditChange(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && vr.valid)
+                                    onCommitEdit();
+                                  if (e.key === "Escape") onCancelEdit();
+                                  e.stopPropagation();
+                                }}
+                                onBlur={() => {
+                                  if (vr.valid) onCommitEdit();
+                                }}
+                                autoFocus
+                                className={`w-full rounded border px-2 py-0.5 text-xs text-gray-900 outline-none dark:bg-gray-800 dark:text-gray-100 ${
+                                  vr.valid
+                                    ? "border-brand-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                                    : "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                                }`}
+                              />
+                              {!vr.valid && (
+                                <span className="block text-[10px] text-red-500">
+                                  {vr.error}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()
+                      ) : (
                         <div onDoubleClick={() => onStartEdit(dp.id)}>
                           <span
                             className={`block truncate text-xs ${dp.current_value ? "text-gray-900 dark:text-gray-100" : "text-gray-400"}`}
@@ -555,11 +708,16 @@ function DataPointEditor({
                             {dp.current_value || "\u2014"}
                           </span>
                           {/* Diff line: show original when field was corrected */}
-                          {dp.status === "corrected" && originalValues[dp.id] && originalValues[dp.id] !== dp.current_value && (
-                            <span className="block truncate text-[10px] text-gray-400 line-through" title={originalValues[dp.id]}>
-                              {originalValues[dp.id]}
-                            </span>
-                          )}
+                          {dp.status === "corrected" &&
+                            originalValues[dp.id] &&
+                            originalValues[dp.id] !== dp.current_value && (
+                              <span
+                                className="block truncate text-[10px] text-gray-400 line-through"
+                                title={originalValues[dp.id]}
+                              >
+                                {originalValues[dp.id]}
+                              </span>
+                            )}
                         </div>
                       )}
                     </div>
@@ -575,7 +733,9 @@ function DataPointEditor({
                           style={{ width: `${dp.confidence * 100}%` }}
                         />
                       </div>
-                      <span className={`text-[10px] font-medium ${confTextClass}`}>
+                      <span
+                        className={`text-[10px] font-medium ${confTextClass}`}
+                      >
                         {(dp.confidence * 100).toFixed(0)}%
                       </span>
                     </div>
@@ -598,8 +758,18 @@ function DataPointEditor({
                           className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                           title={translate("aiflow.common.edit")}
                         >
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          <svg
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
                           </svg>
                         </button>
                         {dp.status !== "confirmed" && (
@@ -610,8 +780,18 @@ function DataPointEditor({
                             }}
                             className="rounded p-0.5 text-green-500 hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/20"
                           >
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            <svg
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 13l4 4L19 7"
+                              />
                             </svg>
                           </button>
                         )}
@@ -657,7 +837,9 @@ export function Verification() {
   const [invoice, setInvoice] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error" | "approved" | "rejected">("idle");
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saved" | "error" | "approved" | "rejected"
+  >("idle");
   const [source, setSource] = useState<string | null>(null);
   const [docIds, setDocIds] = useState<string[]>([]);
   const [pendingReview, setPendingReview] = useState(false);
@@ -670,13 +852,16 @@ export function Verification() {
   // Helper: ensure doc list is loaded (cached in ref)
   const ensureDocList = useCallback(async () => {
     if (docListRef.current.length > 0) return docListRef.current;
-    const listData = await fetchApi<DocumentListResponse>("GET", `/api/v1/documents?limit=500`);
+    const listData = await fetchApi<DocumentListResponse>(
+      "GET",
+      `/api/v1/documents?limit=500`,
+    );
     const allDocs = listData.documents || [];
     docListRef.current = allDocs;
     setDocIds(allDocs.filter((d) => d.id).map((d) => d.id!));
     setSource(listData.source ?? "backend");
     return allDocs;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load current document + ensure list is available
   useEffect(() => {
@@ -685,7 +870,10 @@ export function Verification() {
       return;
     }
     setLoading(true);
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        id,
+      );
 
     const loadDoc = async () => {
       try {
@@ -694,7 +882,10 @@ export function Verification() {
         if (isUuid) {
           found = allDocs.find((d) => d.id === id);
           if (!found) {
-            found = await fetchApi<DocumentResponse>("GET", `/api/v1/documents/by-id/${id}`);
+            found = await fetchApi<DocumentResponse>(
+              "GET",
+              `/api/v1/documents/by-id/${id}`,
+            );
           }
         } else {
           found = allDocs.find((d) => d.source_file === id);
@@ -703,19 +894,32 @@ export function Verification() {
         if (found) {
           setInvoice(found as Record<string, unknown>);
           const idx = allDocs.indexOf(found);
-          vs.loadData(generateVerificationData(found as Record<string, unknown>, idx >= 0 ? idx : 0));
+          vs.loadData(
+            generateVerificationData(
+              found as Record<string, unknown>,
+              idx >= 0 ? idx : 0,
+            ),
+          );
           // Check if document has a pending review
           if (found.id) {
-            fetchApi<{ reviews: unknown[]; total: number }>("GET", `/api/v1/reviews/pending?limit=100`)
+            fetchApi<{ reviews: unknown[]; total: number }>(
+              "GET",
+              `/api/v1/reviews/pending?limit=100`,
+            )
               .then((res) => {
-                const hasPending = (res.reviews as Array<{ entity_id?: string }>).some((r) => r.entity_id === found!.id);
+                const hasPending = (
+                  res.reviews as Array<{ entity_id?: string }>
+                ).some((r) => r.entity_id === found!.id);
                 setPendingReview(hasPending);
               })
               .catch(() => setPendingReview(false));
           }
         }
-      } catch { /* not found */ }
-      finally { setLoading(false); }
+      } catch {
+        /* not found */
+      } finally {
+        setLoading(false);
+      }
     };
     loadDoc();
   }, [id, ensureDocList]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -723,10 +927,14 @@ export function Verification() {
   // Prev/Next document navigation
   const currentIdx = docIds.indexOf(id ?? "");
   const prevDocId = currentIdx > 0 ? docIds[currentIdx - 1] : null;
-  const nextDocId = currentIdx >= 0 && currentIdx < docIds.length - 1 ? docIds[currentIdx + 1] : null;
+  const nextDocId =
+    currentIdx >= 0 && currentIdx < docIds.length - 1
+      ? docIds[currentIdx + 1]
+      : null;
 
   const goToDoc = useCallback(
-    (docId: string) => navigate(`/documents/${encodeURIComponent(docId)}/verify`),
+    (docId: string) =>
+      navigate(`/documents/${encodeURIComponent(docId)}/verify`),
     [navigate],
   );
 
@@ -743,7 +951,9 @@ export function Verification() {
       }));
   }, [vs.dataPoints, vs.originalValues]);
 
-  const invoiceId = (invoice as Record<string, unknown>)?.id as string | undefined;
+  const invoiceId = (invoice as Record<string, unknown>)?.id as
+    | string
+    | undefined;
 
   // Save Draft — persist edits to backend + localStorage
   const handleSaveDraft = useCallback(async () => {
@@ -752,7 +962,9 @@ export function Verification() {
     try {
       const edits = buildEdits();
       if (invoiceId && edits.length > 0) {
-        await fetchApi("POST", `/api/v1/documents/${invoiceId}/verifications`, { edits });
+        await fetchApi("POST", `/api/v1/documents/${invoiceId}/verifications`, {
+          edits,
+        });
       }
       // Also backup to old verify endpoint for backward compat
       if (invoiceId) {
@@ -788,11 +1000,19 @@ export function Verification() {
       const edits = buildEdits();
       if (invoiceId) {
         if (edits.length > 0) {
-          await fetchApi("POST", `/api/v1/documents/${invoiceId}/verifications`, { edits });
+          await fetchApi(
+            "POST",
+            `/api/v1/documents/${invoiceId}/verifications`,
+            { edits },
+          );
         }
-        await fetchApi("PATCH", `/api/v1/documents/${invoiceId}/verifications/approve`, {
-          reviewer_id: "user",
-        });
+        await fetchApi(
+          "PATCH",
+          `/api/v1/documents/${invoiceId}/verifications/approve`,
+          {
+            reviewer_id: "user",
+          },
+        );
       }
       setSaveStatus("approved");
       setTimeout(() => navigate("/documents"), 1500);
@@ -810,10 +1030,14 @@ export function Verification() {
     setSaveStatus("idle");
     try {
       if (invoiceId) {
-        await fetchApi("PATCH", `/api/v1/documents/${invoiceId}/verifications/reject`, {
-          reviewer_id: "user",
-          comment: rejectComment,
-        });
+        await fetchApi(
+          "PATCH",
+          `/api/v1/documents/${invoiceId}/verifications/reject`,
+          {
+            reviewer_id: "user",
+            comment: rejectComment,
+          },
+        );
       }
       setRejectModal(false);
       setRejectComment("");
@@ -845,7 +1069,9 @@ export function Verification() {
   }
 
   const progress =
-    vs.stats.total > 0 ? ((vs.stats.confirmed + vs.stats.corrected) / vs.stats.total) * 100 : 0;
+    vs.stats.total > 0
+      ? ((vs.stats.confirmed + vs.stats.corrected) / vs.stats.total) * 100
+      : 0;
 
   return (
     <div className="mx-auto flex h-[calc(100vh-64px)] max-w-[1400px] flex-col px-2 py-2">
@@ -855,8 +1081,18 @@ export function Verification() {
           onClick={() => navigate("/documents")}
           className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
           {translate("common.action.back")}
         </button>
@@ -877,8 +1113,18 @@ export function Verification() {
               className="rounded-md border border-gray-300 p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
               title={translate("common.navigation.previous")}
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
             <button
@@ -887,8 +1133,18 @@ export function Verification() {
               className="rounded-md border border-gray-300 p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
               title={translate("common.navigation.next")}
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </button>
           </div>
@@ -938,8 +1194,18 @@ export function Verification() {
       {/* Pending review banner */}
       {pendingReview && (
         <div className="mb-2 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 dark:border-amber-700 dark:bg-amber-900/20">
-          <svg className="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          <svg
+            className="h-4 w-4 text-amber-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
           </svg>
           <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
             {translate("aiflow.verification.pendingReview")}
@@ -1017,8 +1283,18 @@ export function Verification() {
             {saving ? (
               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-400/30 border-t-gray-400" />
             ) : (
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                />
               </svg>
             )}
             {translate("aiflow.verification.saveDraft")}
@@ -1030,8 +1306,18 @@ export function Verification() {
             disabled={saving}
             className="flex items-center gap-1 rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
           >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
             {translate("aiflow.verification.reject")}
           </button>
@@ -1045,8 +1331,18 @@ export function Verification() {
             {saving ? (
               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             ) : (
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             )}
             {translate("aiflow.verification.approveAll")}
@@ -1070,11 +1366,16 @@ export function Verification() {
               rows={3}
               autoFocus
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              placeholder={translate("aiflow.verification.rejectReasonRequired")}
+              placeholder={translate(
+                "aiflow.verification.rejectReasonRequired",
+              )}
             />
             <div className="mt-4 flex justify-end gap-2">
               <button
-                onClick={() => { setRejectModal(false); setRejectComment(""); }}
+                onClick={() => {
+                  setRejectModal(false);
+                  setRejectComment("");
+                }}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
               >
                 {translate("aiflow.common.cancel")}

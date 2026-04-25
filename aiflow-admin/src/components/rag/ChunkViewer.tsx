@@ -148,7 +148,9 @@ export function ChunkViewer({ collectionId, pageSize = 25 }: ChunkViewerProps) {
   }
 
   const docOptions = [
-    ...new Set((data?.chunks ?? []).map((c) => c.document_name).filter(Boolean)),
+    ...new Set(
+      (data?.chunks ?? []).map((c) => c.document_name).filter(Boolean),
+    ),
   ] as string[];
 
   return (
@@ -251,7 +253,8 @@ export function ChunkViewer({ collectionId, pageSize = 25 }: ChunkViewerProps) {
                 )}
                 {selected.token_count != null && (
                   <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 font-mono text-[11px] text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                    {selected.token_count} {translate("aiflow.rag.chunkTokens").toLowerCase()}
+                    {selected.token_count}{" "}
+                    {translate("aiflow.rag.chunkTokens").toLowerCase()}
                   </span>
                 )}
                 {selected.created_at && (

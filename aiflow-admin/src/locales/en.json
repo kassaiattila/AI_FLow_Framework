@@ -271,6 +271,7 @@
       "pipelineRuns": "Pipeline Runs",
       "costs": "Costs",
       "budgets": "Tenant Budgets",
+      "ragCollectionsAdmin": "RAG Collections",
       "serviceHealth": "Service Health",
       "llmQuality": "LLM Quality",
       "auditLog": "Audit Log",
@@ -678,6 +679,33 @@
     "budgets": {
       "title": "Tenant Budgets",
       "subtitle": "Per-tenant LLM cost guardrail limits and alert thresholds"
+    },
+    "ragCollections": {
+      "title": "RAG Collections",
+      "subtitle": "Multi-tenant vector DB with embedder-profile attachment",
+      "filter": {
+        "tenant": "Tenant",
+        "apply": "Apply",
+        "clear": "Clear"
+      },
+      "column": {
+        "name": "Name",
+        "tenant": "Tenant",
+        "embedderProfile": "Embedder Profile",
+        "embeddingDim": "Dim",
+        "chunks": "Chunks",
+        "updated": "Updated"
+      },
+      "detail": {
+        "setProfile": "Set Embedder Profile",
+        "save": "Save",
+        "savedToast": "Embedder profile updated.",
+        "dimMismatch": "Cannot change profile: existing chunks use a different vector dimension.",
+        "dimGuardWarning": "This collection already has chunks at {dim}-dim — only profiles with the same dim can be attached.",
+        "embeddingModel": "Embedding Model",
+        "description": "Description"
+      },
+      "empty": "No collections yet — ingest documents via the RAG Engine API."
     },
     "costs": {
       "title": "Cost Analytics",

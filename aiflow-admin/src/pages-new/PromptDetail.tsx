@@ -33,7 +33,9 @@ export function PromptDetail() {
   const promptName = splat ?? "";
   const translate = useTranslate();
   const navigate = useNavigate();
-  const apiPath = promptName ? `/api/v1/prompts/${encodeURI(promptName)}` : null;
+  const apiPath = promptName
+    ? `/api/v1/prompts/${encodeURI(promptName)}`
+    : null;
   const { data, loading, error, refetch } = useApi<PromptDetail>(apiPath);
   const [yamlText, setYamlText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -45,7 +47,8 @@ export function PromptDetail() {
   }, [data]);
 
   if (loading) return <LoadingState />;
-  if (error || !data) return <ErrorState error={error || "Not found"} onRetry={refetch} />;
+  if (error || !data)
+    return <ErrorState error={error || "Not found"} onRetry={refetch} />;
 
   const handleSave = async () => {
     setSaving(true);
@@ -62,9 +65,10 @@ export function PromptDetail() {
       setTimeout(() => setSaveOk(false), 2000);
     } catch (e) {
       if (e instanceof ApiClientError) {
-        const detail = typeof e.detail === "string"
-          ? e.detail
-          : JSON.stringify(e.detail, null, 2);
+        const detail =
+          typeof e.detail === "string"
+            ? e.detail
+            : JSON.stringify(e.detail, null, 2);
         setSaveError(`${e.status}: ${detail}`);
       } else {
         setSaveError(e instanceof Error ? e.message : "Save failed");
@@ -94,8 +98,11 @@ export function PromptDetail() {
             v{data.version}
           </span>
         )}
-        {data.tags.map(t => (
-          <span key={t} className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+        {data.tags.map((t) => (
+          <span
+            key={t}
+            className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+          >
             {t}
           </span>
         ))}
@@ -108,14 +115,14 @@ export function PromptDetail() {
         </h3>
         <textarea
           value={yamlText}
-          onChange={e => setYamlText(e.target.value)}
+          onChange={(e) => setYamlText(e.target.value)}
           spellCheck={false}
           className="h-[500px] w-full rounded-lg border border-gray-300 bg-gray-50 p-3 font-mono text-xs text-gray-800 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
         />
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          A <code>name</code> mezot nem szabad megvaltoztatni (URL-lel egyeznie kell).
-          A mentes utan a PromptManager cache invalidalodik, a kovetkezo hivas mar
-          az uj verziot hasznalja.
+          A <code>name</code> mezot nem szabad megvaltoztatni (URL-lel egyeznie
+          kell). A mentes utan a PromptManager cache invalidalodik, a kovetkezo
+          hivas mar az uj verziot hasznalja.
         </p>
       </div>
 
@@ -125,7 +132,9 @@ export function PromptDetail() {
           disabled={saving || !dirty}
           className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
         >
-          {saving ? translate("aiflow.common.loading") : translate("common.action.save")}
+          {saving
+            ? translate("aiflow.common.loading")
+            : translate("common.action.save")}
         </button>
         {dirty && !saving && (
           <span className="text-xs text-amber-600 dark:text-amber-400">

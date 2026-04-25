@@ -22,7 +22,9 @@ function loadMessages(collectionId: string): ChatMessage[] {
 }
 
 export function useChatHistory(collectionId: string) {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadMessages(collectionId));
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    loadMessages(collectionId),
+  );
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Reload when collection changes
@@ -37,13 +39,17 @@ export function useChatHistory(collectionId: string) {
       try {
         const trimmed = messages.slice(-MAX_MESSAGES);
         localStorage.setItem(storageKey(collectionId), JSON.stringify(trimmed));
-      } catch { /* quota exceeded — ignore */ }
+      } catch {
+        /* quota exceeded — ignore */
+      }
     }, DEBOUNCE_MS);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [messages, collectionId]);
 
   const addMessage = useCallback((msg: ChatMessage) => {
-    setMessages(prev => [...prev, msg].slice(-MAX_MESSAGES));
+    setMessages((prev) => [...prev, msg].slice(-MAX_MESSAGES));
   }, []);
 
   const clearHistory = useCallback(() => {

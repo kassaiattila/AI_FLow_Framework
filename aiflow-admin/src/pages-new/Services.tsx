@@ -32,12 +32,17 @@ export function Services() {
   const [source, setSource] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterAdapter, setFilterAdapter] = useState<"all" | "yes" | "no">("all");
+  const [filterAdapter, setFilterAdapter] = useState<"all" | "yes" | "no">(
+    "all",
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetchApi<ServicesResponse>("GET", "/api/v1/services/manager");
+      const res = await fetchApi<ServicesResponse>(
+        "GET",
+        "/api/v1/services/manager",
+      );
       setServices(res.services);
       setSource(res.source);
     } catch {
@@ -47,10 +52,13 @@ export function Services() {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const filtered = services.filter((s) => {
-    if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !s.name.toLowerCase().includes(search.toLowerCase()))
+      return false;
     if (filterAdapter === "yes" && !s.has_adapter) return false;
     if (filterAdapter === "no" && s.has_adapter) return false;
     return true;
@@ -58,7 +66,10 @@ export function Services() {
 
   if (loading) {
     return (
-      <PageLayout titleKey="aiflow.services.catalogTitle" subtitleKey="aiflow.services.catalogSubtitle">
+      <PageLayout
+        titleKey="aiflow.services.catalogTitle"
+        subtitleKey="aiflow.services.catalogSubtitle"
+      >
         <div className="flex h-64 items-center justify-center">
           <span className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-brand-500" />
         </div>
@@ -67,7 +78,11 @@ export function Services() {
   }
 
   return (
-    <PageLayout titleKey="aiflow.services.catalogTitle" subtitleKey="aiflow.services.catalogSubtitle" source={source}>
+    <PageLayout
+      titleKey="aiflow.services.catalogTitle"
+      subtitleKey="aiflow.services.catalogSubtitle"
+      source={source}
+    >
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
@@ -79,12 +94,20 @@ export function Services() {
         />
         <select
           value={filterAdapter}
-          onChange={(e) => setFilterAdapter(e.target.value as "all" | "yes" | "no")}
+          onChange={(e) =>
+            setFilterAdapter(e.target.value as "all" | "yes" | "no")
+          }
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
-          <option value="all">{translate("aiflow.services.allServices")}</option>
-          <option value="yes">{translate("aiflow.services.withAdapter")}</option>
-          <option value="no">{translate("aiflow.services.withoutAdapter")}</option>
+          <option value="all">
+            {translate("aiflow.services.allServices")}
+          </option>
+          <option value="yes">
+            {translate("aiflow.services.withAdapter")}
+          </option>
+          <option value="no">
+            {translate("aiflow.services.withoutAdapter")}
+          </option>
         </select>
         <span className="text-sm text-gray-500 dark:text-gray-400">
           {filtered.length} / {services.length}
@@ -102,11 +125,13 @@ export function Services() {
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                 {formatName(svc.name)}
               </h3>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                svc.status === "available"
-                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                  : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
-              }`}>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                  svc.status === "available"
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                }`}
+              >
                 {svc.status}
               </span>
             </div>

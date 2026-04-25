@@ -32,7 +32,9 @@ export function Rag() {
   const translate = useTranslate();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"collections" | "chat">("collections");
-  const { data, loading, error, refetch } = useApi<CollectionsResponse>("/api/v1/rag/collections");
+  const { data, loading, error, refetch } = useApi<CollectionsResponse>(
+    "/api/v1/rag/collections",
+  );
 
   /* --- New Collection dialog state --- */
   const [showCreate, setShowCreate] = useState(false);
@@ -42,7 +44,9 @@ export function Rag() {
   const [creating, setCreating] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [selectedCols, setSelectedCols] = useState<Record<string, unknown>[]>([]);
+  const [selectedCols, setSelectedCols] = useState<Record<string, unknown>[]>(
+    [],
+  );
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [clearSel, setClearSel] = useState(0);
@@ -51,13 +55,20 @@ export function Rag() {
     if (selectedCols.length === 0 || bulkDeleting) return;
     setBulkDeleting(true);
     try {
-      const ids = selectedCols.map(c => String(c.id)).filter(Boolean);
-      await fetchApi<{ deleted: number }>("POST", "/api/v1/rag/collections/delete-bulk", { ids });
+      const ids = selectedCols.map((c) => String(c.id)).filter(Boolean);
+      await fetchApi<{ deleted: number }>(
+        "POST",
+        "/api/v1/rag/collections/delete-bulk",
+        { ids },
+      );
       setShowBulkDelete(false);
-      setClearSel(c => c + 1);
+      setClearSel((c) => c + 1);
       refetch();
-    } catch { /* keep dialog */ }
-    finally { setBulkDeleting(false); }
+    } catch {
+      /* keep dialog */
+    } finally {
+      setBulkDeleting(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -78,11 +89,15 @@ export function Rag() {
     if (!newName.trim() || creating) return;
     setCreating(true);
     try {
-      const res = await fetchApi<{ id: string }>("POST", "/api/v1/rag/collections", {
-        name: newName.trim(),
-        description: newDesc.trim() || null,
-        language: newLang,
-      });
+      const res = await fetchApi<{ id: string }>(
+        "POST",
+        "/api/v1/rag/collections",
+        {
+          name: newName.trim(),
+          description: newDesc.trim() || null,
+          language: newLang,
+        },
+      );
       setShowCreate(false);
       setNewName("");
       setNewDesc("");
@@ -97,31 +112,89 @@ export function Rag() {
   };
 
   const columns: Column<Record<string, unknown>>[] = [
-    { key: "name", label: translate("aiflow.rag.colName"), render: (item) => <span className="font-medium text-gray-900 dark:text-gray-100">{String(item.name)}</span> },
-    { key: "description", label: translate("aiflow.rag.colDescription"), render: (item) => <span className="text-gray-500 dark:text-gray-400 text-xs">{String(item.description ?? "\u2014")}</span> },
-    { key: "document_count", label: translate("aiflow.rag.colDocs"), getValue: (item) => item.document_count as number },
-    { key: "chunk_count", label: translate("aiflow.rag.colChunks"), getValue: (item) => item.chunk_count as number },
-    { key: "created_at", label: translate("aiflow.rag.colCreated"), render: (item) => <span className="text-xs text-gray-500">{item.created_at ? new Date(String(item.created_at)).toLocaleDateString() : "\u2014"}</span> },
-    { key: "actions", label: translate("aiflow.rag.colActions"), sortable: false, render: (item) => (
-      <div className="flex items-center gap-1">
-        <button onClick={() => navigate(`/rag/${item.id}`)} className="rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-400">
-          Open
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); setDeleteId(String(item.id)); }}
-          className="inline-flex items-center rounded-md border border-red-200 p-1 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
-          title={translate("aiflow.rag.deleteTitle")}
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
-      </div>
-    )},
+    {
+      key: "name",
+      label: translate("aiflow.rag.colName"),
+      render: (item) => (
+        <span className="font-medium text-gray-900 dark:text-gray-100">
+          {String(item.name)}
+        </span>
+      ),
+    },
+    {
+      key: "description",
+      label: translate("aiflow.rag.colDescription"),
+      render: (item) => (
+        <span className="text-gray-500 dark:text-gray-400 text-xs">
+          {String(item.description ?? "\u2014")}
+        </span>
+      ),
+    },
+    {
+      key: "document_count",
+      label: translate("aiflow.rag.colDocs"),
+      getValue: (item) => item.document_count as number,
+    },
+    {
+      key: "chunk_count",
+      label: translate("aiflow.rag.colChunks"),
+      getValue: (item) => item.chunk_count as number,
+    },
+    {
+      key: "created_at",
+      label: translate("aiflow.rag.colCreated"),
+      render: (item) => (
+        <span className="text-xs text-gray-500">
+          {item.created_at
+            ? new Date(String(item.created_at)).toLocaleDateString()
+            : "\u2014"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: translate("aiflow.rag.colActions"),
+      sortable: false,
+      render: (item) => (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => navigate(`/rag/${item.id}`)}
+            className="rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-400"
+          >
+            Open
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteId(String(item.id));
+            }}
+            className="inline-flex items-center rounded-md border border-red-200 p-1 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+            title={translate("aiflow.rag.deleteTitle")}
+          >
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
-    <PageLayout titleKey="aiflow.rag.title" subtitleKey="aiflow.rag.subtitle" source={data?.source ?? "demo"}
+    <PageLayout
+      titleKey="aiflow.rag.title"
+      subtitleKey="aiflow.rag.subtitle"
+      source={data?.source ?? "demo"}
       actions={
         <button
           data-testid="rag-new-collection"
@@ -135,31 +208,59 @@ export function Rag() {
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex gap-6">
           {["collections", "chat"].map((t) => (
-            <button key={t} onClick={() => setTab(t as "collections" | "chat")}
+            <button
+              key={t}
+              onClick={() => setTab(t as "collections" | "chat")}
               className={`border-b-2 pb-2 text-sm font-medium ${tab === t ? "border-brand-500 text-brand-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
-            >{t === "collections" ? translate("aiflow.ragChat.collection") : "Chat"}</button>
+            >
+              {t === "collections"
+                ? translate("aiflow.ragChat.collection")
+                : "Chat"}
+            </button>
           ))}
         </div>
       </div>
 
       {tab === "collections" ? (
-        error ? <ErrorState error={error} onRetry={refetch} /> :
-        <>
-          {selectedCols.length > 0 && (
-            <div className="mb-3 flex items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 p-3 dark:border-brand-800 dark:bg-brand-900/20">
-              <span className="text-sm font-medium text-brand-700 dark:text-brand-300">
-                {selectedCols.length} {translate("aiflow.common.selected")}
-              </span>
-              <button onClick={() => setShowBulkDelete(true)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
-                {translate("aiflow.common.bulkDelete")}
-              </button>
-              <button onClick={() => setClearSel(c => c + 1)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400">
-                {translate("aiflow.common.cancel")}
-              </button>
-            </div>
-          )}
-          <DataTable data={(data?.collections ?? []) as unknown as Record<string, unknown>[]} columns={columns} loading={loading} searchKeys={["name", "description"]} selectable onSelectionChange={setSelectedCols} clearSelection={clearSel} />
-        </>
+        error ? (
+          <ErrorState error={error} onRetry={refetch} />
+        ) : (
+          <>
+            {selectedCols.length > 0 && (
+              <div className="mb-3 flex items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 p-3 dark:border-brand-800 dark:bg-brand-900/20">
+                <span className="text-sm font-medium text-brand-700 dark:text-brand-300">
+                  {selectedCols.length} {translate("aiflow.common.selected")}
+                </span>
+                <button
+                  onClick={() => setShowBulkDelete(true)}
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+                >
+                  {translate("aiflow.common.bulkDelete")}
+                </button>
+                <button
+                  onClick={() => setClearSel((c) => c + 1)}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
+                >
+                  {translate("aiflow.common.cancel")}
+                </button>
+              </div>
+            )}
+            <DataTable
+              data={
+                (data?.collections ?? []) as unknown as Record<
+                  string,
+                  unknown
+                >[]
+              }
+              columns={columns}
+              loading={loading}
+              searchKeys={["name", "description"]}
+              selectable
+              onSelectionChange={setSelectedCols}
+              clearSelection={clearSel}
+            />
+          </>
+        )
       ) : (
         <ChatPanel collections={data?.collections ?? []} />
       )}
@@ -211,7 +312,12 @@ export function Rag() {
             {/* Buttons */}
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => { setShowCreate(false); setNewName(""); setNewDesc(""); setNewLang("hu"); }}
+                onClick={() => {
+                  setShowCreate(false);
+                  setNewName("");
+                  setNewDesc("");
+                  setNewLang("hu");
+                }}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 {translate("common.action.cancel")}
@@ -221,7 +327,9 @@ export function Rag() {
                 disabled={!newName.trim() || creating}
                 className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
               >
-                {creating ? translate("aiflow.common.loading") : translate("common.action.create")}
+                {creating
+                  ? translate("aiflow.common.loading")
+                  : translate("common.action.create")}
               </button>
             </div>
           </div>
@@ -235,14 +343,24 @@ export function Rag() {
               {translate("aiflow.common.bulkDelete")}
             </h3>
             <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-              {translate("aiflow.common.bulkDeleteConfirm")} ({selectedCols.length})
+              {translate("aiflow.common.bulkDeleteConfirm")} (
+              {selectedCols.length})
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowBulkDelete(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+              <button
+                onClick={() => setShowBulkDelete(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
                 {translate("common.action.cancel")}
               </button>
-              <button onClick={() => void handleBulkDelete()} disabled={bulkDeleting} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
-                {bulkDeleting ? translate("aiflow.common.loading") : translate("aiflow.common.bulkDelete")}
+              <button
+                onClick={() => void handleBulkDelete()}
+                disabled={bulkDeleting}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {bulkDeleting
+                  ? translate("aiflow.common.loading")
+                  : translate("aiflow.common.bulkDelete")}
               </button>
             </div>
           </div>
@@ -270,7 +388,9 @@ export function Rag() {
                 disabled={deleting}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
-                {deleting ? translate("aiflow.common.loading") : translate("aiflow.rag.deleteTitle")}
+                {deleting
+                  ? translate("aiflow.common.loading")
+                  : translate("aiflow.rag.deleteTitle")}
               </button>
             </div>
           </div>

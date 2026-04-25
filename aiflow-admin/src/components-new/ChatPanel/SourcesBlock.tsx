@@ -48,7 +48,9 @@ export function SourcesBlock({
                     {Math.round(src.score * 100)}%
                   </span>
                 </div>
-                <p className="mt-0.5 line-clamp-3 text-gray-500 dark:text-gray-400">{src.text}</p>
+                <p className="mt-0.5 line-clamp-3 text-gray-500 dark:text-gray-400">
+                  {src.text}
+                </p>
               </div>
             </div>
           ))}

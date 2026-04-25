@@ -14,28 +14,76 @@ interface BreadcrumbSegment {
 /** Maps route paths to [group, page] breadcrumb segments using i18n keys */
 const BREADCRUMB_MAP: Record<string, { groupKey: string; pageKey: string }> = {
   // Document Processing
-  "/documents": { groupKey: "aiflow.menu.documentProcessing", pageKey: "aiflow.menu.documents" },
-  "/emails": { groupKey: "aiflow.menu.documentProcessing", pageKey: "aiflow.menu.emailScan" },
-  "/reviews": { groupKey: "aiflow.menu.documentProcessing", pageKey: "aiflow.menu.verification" },
+  "/documents": {
+    groupKey: "aiflow.menu.documentProcessing",
+    pageKey: "aiflow.menu.documents",
+  },
+  "/emails": {
+    groupKey: "aiflow.menu.documentProcessing",
+    pageKey: "aiflow.menu.emailScan",
+  },
+  "/reviews": {
+    groupKey: "aiflow.menu.documentProcessing",
+    pageKey: "aiflow.menu.verification",
+  },
   // Knowledge Base
-  "/rag": { groupKey: "aiflow.menu.knowledgeBase", pageKey: "aiflow.menu.collections" },
+  "/rag": {
+    groupKey: "aiflow.menu.knowledgeBase",
+    pageKey: "aiflow.menu.collections",
+  },
   // Generation
-  "/process-docs": { groupKey: "aiflow.menu.generation", pageKey: "aiflow.menu.diagrams" },
-  "/spec-writer": { groupKey: "aiflow.menu.generation", pageKey: "aiflow.menu.specWriter" },
-  "/media": { groupKey: "aiflow.menu.generation", pageKey: "aiflow.menu.mediaProcessing" },
+  "/process-docs": {
+    groupKey: "aiflow.menu.generation",
+    pageKey: "aiflow.menu.diagrams",
+  },
+  "/spec-writer": {
+    groupKey: "aiflow.menu.generation",
+    pageKey: "aiflow.menu.specWriter",
+  },
+  "/media": {
+    groupKey: "aiflow.menu.generation",
+    pageKey: "aiflow.menu.mediaProcessing",
+  },
   // Monitoring
-  "/runs": { groupKey: "aiflow.menu.monitoring", pageKey: "aiflow.menu.pipelineRuns" },
-  "/costs": { groupKey: "aiflow.menu.monitoring", pageKey: "aiflow.menu.costs" },
-  "/monitoring": { groupKey: "aiflow.menu.monitoring", pageKey: "aiflow.menu.serviceHealth" },
-  "/quality": { groupKey: "aiflow.menu.monitoring", pageKey: "aiflow.menu.llmQuality" },
-  "/audit": { groupKey: "aiflow.menu.monitoring", pageKey: "aiflow.menu.auditLog" },
+  "/runs": {
+    groupKey: "aiflow.menu.monitoring",
+    pageKey: "aiflow.menu.pipelineRuns",
+  },
+  "/costs": {
+    groupKey: "aiflow.menu.monitoring",
+    pageKey: "aiflow.menu.costs",
+  },
+  "/monitoring": {
+    groupKey: "aiflow.menu.monitoring",
+    pageKey: "aiflow.menu.serviceHealth",
+  },
+  "/quality": {
+    groupKey: "aiflow.menu.monitoring",
+    pageKey: "aiflow.menu.llmQuality",
+  },
+  "/audit": {
+    groupKey: "aiflow.menu.monitoring",
+    pageKey: "aiflow.menu.auditLog",
+  },
   // Settings
-  "/admin": { groupKey: "aiflow.menu.settings", pageKey: "aiflow.menu.usersApi" },
-  "/pipelines": { groupKey: "aiflow.menu.settings", pageKey: "aiflow.menu.pipelineTemplates" },
-  "/services": { groupKey: "aiflow.menu.settings", pageKey: "aiflow.menu.serviceCatalog" },
+  "/admin": {
+    groupKey: "aiflow.menu.settings",
+    pageKey: "aiflow.menu.usersApi",
+  },
+  "/pipelines": {
+    groupKey: "aiflow.menu.settings",
+    pageKey: "aiflow.menu.pipelineTemplates",
+  },
+  "/services": {
+    groupKey: "aiflow.menu.settings",
+    pageKey: "aiflow.menu.serviceCatalog",
+  },
   // More
   "/rpa": { groupKey: "aiflow.menu.more", pageKey: "aiflow.menu.rpaBrowser" },
-  "/cubix": { groupKey: "aiflow.menu.more", pageKey: "aiflow.menu.cubixCourse" },
+  "/cubix": {
+    groupKey: "aiflow.menu.more",
+    pageKey: "aiflow.menu.cubixCourse",
+  },
 };
 
 /** Group label → first route in that group (for clickable breadcrumb) */
@@ -56,9 +104,7 @@ export function Breadcrumb() {
   // Dashboard root — no breadcrumb needed
   if (pathname === "/" || pathname === "") return null;
 
-  const segments: BreadcrumbSegment[] = [
-    { label: "Dashboard", path: "/" },
-  ];
+  const segments: BreadcrumbSegment[] = [{ label: "Dashboard", path: "/" }];
 
   // Find matching route — try exact match first, then prefix match for detail routes
   const basePath = Object.keys(BREADCRUMB_MAP).find(
@@ -100,7 +146,10 @@ export function Breadcrumb() {
   if (segments.length <= 1) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1 text-xs">
+    <nav
+      aria-label="Breadcrumb"
+      className="mb-4 flex items-center gap-1 text-xs"
+    >
       {segments.map((seg, i) => {
         const isLast = i === segments.length - 1;
         return (
@@ -109,7 +158,9 @@ export function Breadcrumb() {
               <span className="text-gray-400 dark:text-gray-500">/</span>
             )}
             {isLast || !seg.path ? (
-              <span className="text-gray-500 dark:text-gray-400">{seg.label}</span>
+              <span className="text-gray-500 dark:text-gray-400">
+                {seg.label}
+              </span>
             ) : (
               <Link
                 to={seg.path}

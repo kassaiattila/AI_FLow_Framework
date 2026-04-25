@@ -11,7 +11,11 @@ import { fetchApi } from "../lib/api-client";
 import { PageLayout } from "../layout/PageLayout";
 import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
-import { FileProgressRow, FileProgressBar, type FileProgress } from "../components-new/FileProgress";
+import {
+  FileProgressRow,
+  FileProgressBar,
+  type FileProgress,
+} from "../components-new/FileProgress";
 
 // Observed averages from hybrid_llm runs (gpt-4o-mini, ~3700 input tokens).
 // Used for cost/ETA preview only — actual numbers vary per email length.
@@ -39,32 +43,49 @@ function formatCost(usd: number): string {
 // intent_id + display_name (case-insensitive). First match wins.
 const INTENT_COLOR_MAP: Array<{ match: RegExp; cls: string }> = [
   // Finance / transactional
-  { match: /invoice|billing|payment|szamla|fizetes|refund|tranzakci/i,
-    cls: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  {
+    match: /invoice|billing|payment|szamla|fizetes|refund|tranzakci/i,
+    cls: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  },
   // Support / inquiry — customer-requested information
-  { match: /inquiry|support|informacio|kerdes|panasz|complaint/i,
-    cls: "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
+  {
+    match: /inquiry|support|informacio|kerdes|panasz|complaint/i,
+    cls: "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
+  },
   // Internal / colleague
-  { match: /internal|belso|kolleg|colleague/i,
-    cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  {
+    match: /internal|belso|kolleg|colleague/i,
+    cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  },
   // Marketing / promotional / newsletter
-  { match: /marketing|hirlevel|newsletter|promo|unsubscribe/i,
-    cls: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
+  {
+    match: /marketing|hirlevel|newsletter|promo|unsubscribe/i,
+    cls: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+  },
   // Spam / junk
-  { match: /spam|junk|phish/i,
-    cls: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" },
+  {
+    match: /spam|junk|phish/i,
+    cls: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+  },
   // Legal / urgent
-  { match: /legal|jogi|urgent|surgos|escalation/i,
-    cls: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+  {
+    match: /legal|jogi|urgent|surgos|escalation/i,
+    cls: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
+  },
   // Feedback
-  { match: /feedback|visszajelzes|review/i,
-    cls: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+  {
+    match: /feedback|visszajelzes|review/i,
+    cls: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  },
 ];
 
 const INTENT_COLOR_DEFAULT =
   "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
 
-export function intentColorClass(intentId: string | null, displayName: string | null): string {
+export function intentColorClass(
+  intentId: string | null,
+  displayName: string | null,
+): string {
   const haystack = `${intentId ?? ""} ${displayName ?? ""}`;
   for (const rule of INTENT_COLOR_MAP) {
     if (rule.match.test(haystack)) return rule.cls;
@@ -119,16 +140,24 @@ interface ConnectorItem {
 function InboxTab({ refreshKey }: { refreshKey: number }) {
   const translate = useTranslate();
   const navigate = useNavigate();
-  const { data, loading, error, refetch } = useApi<EmailsResponse>("/api/v1/emails");
+  const { data, loading, error, refetch } =
+    useApi<EmailsResponse>("/api/v1/emails");
 
   // Re-fetch when other tabs trigger a refresh
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey, refetch]);
+  useEffect(() => {
+    if (refreshKey > 0) refetch();
+  }, [refreshKey, refetch]);
   const emails = data?.emails ?? [];
   const [processing, setProcessing] = useState<string | null>(null);
   const [processProgress, setProcessProgress] = useState<FileProgress[]>([]);
-  const [selectedEmails, setSelectedEmails] = useState<Record<string, unknown>[]>([]);
+  const [selectedEmails, setSelectedEmails] = useState<
+    Record<string, unknown>[]
+  >([]);
   const [clearSel, setClearSel] = useState(0);
-  const [confirmBatch, setConfirmBatch] = useState<{ ids: string[]; label: string } | null>(null);
+  const [confirmBatch, setConfirmBatch] = useState<{
+    ids: string[];
+    label: string;
+  } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [processStartTs, setProcessStartTs] = useState<number | null>(null);
   const [doneCount, setDoneCount] = useState(0);
@@ -143,7 +172,8 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
     low: "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
   };
 
-  const isUnprocessed = (item: Record<string, unknown>) => !item.intent_display_name || item.intent_display_name === "Not processed";
+  const isUnprocessed = (item: Record<string, unknown>) =>
+    !item.intent_display_name || item.intent_display_name === "Not processed";
 
   // Process unprocessed emails via SSE (per-email pipeline).
   // Splits into BATCH_CAP-sized chunks; AbortController stops mid-stream.
@@ -154,22 +184,33 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
     setDoneCount(0);
     setProcessIds(emailIds);
     const defaultSteps = ["parse", "classify", "extract", "priority", "route"];
-    setProcessProgress(emailIds.map((id) => ({
-      name: id.substring(0, 50),
-      status: "pending" as const,
-      steps: defaultSteps.map(s => ({ name: s, status: "pending" as const })),
-    })));
+    setProcessProgress(
+      emailIds.map((id) => ({
+        name: id.substring(0, 50),
+        status: "pending" as const,
+        steps: defaultSteps.map((s) => ({
+          name: s,
+          status: "pending" as const,
+        })),
+      })),
+    );
 
     const ac = new AbortController();
     abortRef.current = ac;
     let globalOffset = 0;
 
-    const runOneBatch = async (batchIds: string[], offset: number): Promise<boolean> => {
+    const runOneBatch = async (
+      batchIds: string[],
+      offset: number,
+    ): Promise<boolean> => {
       if (ac.signal.aborted) return false;
       const token = localStorage.getItem("aiflow_token");
       const resp = await fetch("/api/v1/emails/process-batch-stream", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ email_ids: batchIds }),
         signal: ac.signal,
       });
@@ -192,32 +233,78 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
             if (!line.startsWith("data: ")) continue;
             try {
               const msg = JSON.parse(line.slice(6));
-              const globalIdx = msg.file_index !== undefined ? offset + msg.file_index : undefined;
+              const globalIdx =
+                msg.file_index !== undefined
+                  ? offset + msg.file_index
+                  : undefined;
 
               if (msg.event === "file_start" && globalIdx !== undefined) {
-                setProcessProgress(prev => prev.map((fp, i) =>
-                  i === globalIdx ? { ...fp, name: msg.file || fp.name, status: "processing" } : fp
-                ));
+                setProcessProgress((prev) =>
+                  prev.map((fp, i) =>
+                    i === globalIdx
+                      ? {
+                          ...fp,
+                          name: msg.file || fp.name,
+                          status: "processing",
+                        }
+                      : fp,
+                  ),
+                );
               }
-              if (msg.event === "file_step" && globalIdx !== undefined && msg.step_index !== undefined) {
-                setProcessProgress(prev => prev.map((fp, i) => {
-                  if (i !== globalIdx) return fp;
-                  return { ...fp, steps: fp.steps.map((s, si) => si !== msg.step_index ? s : { ...s, status: msg.status === "done" ? "done" as const : "running" as const, elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms }) };
-                }));
+              if (
+                msg.event === "file_step" &&
+                globalIdx !== undefined &&
+                msg.step_index !== undefined
+              ) {
+                setProcessProgress((prev) =>
+                  prev.map((fp, i) => {
+                    if (i !== globalIdx) return fp;
+                    return {
+                      ...fp,
+                      steps: fp.steps.map((s, si) =>
+                        si !== msg.step_index
+                          ? s
+                          : {
+                              ...s,
+                              status:
+                                msg.status === "done"
+                                  ? ("done" as const)
+                                  : ("running" as const),
+                              elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms,
+                            },
+                      ),
+                    };
+                  }),
+                );
               }
               if (msg.event === "file_error" && globalIdx !== undefined) {
-                setProcessProgress(prev => prev.map((fp, i) =>
-                  i === globalIdx ? { ...fp, status: "error", error: msg.error } : fp
-                ));
+                setProcessProgress((prev) =>
+                  prev.map((fp, i) =>
+                    i === globalIdx
+                      ? { ...fp, status: "error", error: msg.error }
+                      : fp,
+                  ),
+                );
               }
               if (msg.event === "file_done" && globalIdx !== undefined) {
-                setProcessProgress(prev => prev.map((fp, i) =>
-                  i === globalIdx ? { ...fp, status: msg.ok ? "done" as const : "error" as const } : fp
-                ));
-                setDoneCount(c => c + 1);
+                setProcessProgress((prev) =>
+                  prev.map((fp, i) =>
+                    i === globalIdx
+                      ? {
+                          ...fp,
+                          status: msg.ok
+                            ? ("done" as const)
+                            : ("error" as const),
+                        }
+                      : fp,
+                  ),
+                );
+                setDoneCount((c) => c + 1);
                 if (msg.ok) refetch();
               }
-            } catch { /* skip */ }
+            } catch {
+              /* skip */
+            }
           }
         }
       } catch (e) {
@@ -238,15 +325,17 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
 
       // Mark any still-pending rows as canceled when user aborted mid-flight.
       if (ac.signal.aborted) {
-        setProcessProgress(prev => prev.map(fp =>
-          fp.status === "pending" || fp.status === "processing"
-            ? { ...fp, status: "error" as const, error: "Megszakitva" }
-            : fp,
-        ));
+        setProcessProgress((prev) =>
+          prev.map((fp) =>
+            fp.status === "pending" || fp.status === "processing"
+              ? { ...fp, status: "error" as const, error: "Megszakitva" }
+              : fp,
+          ),
+        );
       }
 
       refetch();
-      setClearSel(c => c + 1);
+      setClearSel((c) => c + 1);
     } finally {
       setProcessing(null);
       abortRef.current = null;
@@ -268,36 +357,61 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
 
   const handleExportCsv = async () => {
     try {
-      const res = await fetchApi<Response>("GET", "/api/v1/emails/export/csv", undefined, { rawResponse: true });
+      const res = await fetchApi<Response>(
+        "GET",
+        "/api/v1/emails/export/csv",
+        undefined,
+        { rawResponse: true },
+      );
       const blob = await (res as unknown as Response).blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = "aiflow_emails.csv"; a.click();
+      a.href = url;
+      a.download = "aiflow_emails.csv";
+      a.click();
       URL.revokeObjectURL(url);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
-  const unprocessedCount = emails.filter(e => !e.intent_display_name || e.intent_display_name === "Not processed").length;
-  const processedCount = emails.filter(e => e.intent_display_name && e.intent_display_name !== "Not processed").length;
+  const unprocessedCount = emails.filter(
+    (e) => !e.intent_display_name || e.intent_display_name === "Not processed",
+  ).length;
+  const processedCount = emails.filter(
+    (e) => e.intent_display_name && e.intent_display_name !== "Not processed",
+  ).length;
 
   return (
     <>
       {/* KPIs */}
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-xs font-medium text-gray-500">{translate("aiflow.emails.title")}</p>
-          <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{data?.total ?? 0}</p>
+          <p className="text-xs font-medium text-gray-500">
+            {translate("aiflow.emails.title")}
+          </p>
+          <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {data?.total ?? 0}
+          </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-xs font-medium text-gray-500">{translate("aiflow.emails.intentSection")}</p>
-          <p className="mt-1 text-2xl font-bold text-green-600">{processedCount}</p>
+          <p className="text-xs font-medium text-gray-500">
+            {translate("aiflow.emails.intentSection")}
+          </p>
+          <p className="mt-1 text-2xl font-bold text-green-600">
+            {processedCount}
+          </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
           <p className="text-xs font-medium text-gray-500">Unprocessed</p>
-          <p className="mt-1 text-2xl font-bold text-amber-600">{unprocessedCount}</p>
+          <p className="mt-1 text-2xl font-bold text-amber-600">
+            {unprocessedCount}
+          </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-xs font-medium text-gray-500">{translate("aiflow.emails.attachments")}</p>
+          <p className="text-xs font-medium text-gray-500">
+            {translate("aiflow.emails.attachments")}
+          </p>
           <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
             {emails.reduce((s, e) => s + (e.attachment_count || 0), 0)}
           </p>
@@ -309,19 +423,26 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
         {unprocessedCount > 0 && (
           <button
             onClick={() => {
-              const ids = emails.filter(isUnprocessed).map(e => e.email_id);
-              setConfirmBatch({ ids, label: `osszes feldolgozatlan (${ids.length})` });
+              const ids = emails.filter(isUnprocessed).map((e) => e.email_id);
+              setConfirmBatch({
+                ids,
+                label: `osszes feldolgozatlan (${ids.length})`,
+              });
             }}
             disabled={!!processing}
             className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
           >
-            {processing ? translate("aiflow.common.loading") : `Process All (${unprocessedCount})`}
+            {processing
+              ? translate("aiflow.common.loading")
+              : `Process All (${unprocessedCount})`}
           </button>
         )}
         {selectedEmails.length > 0 && selectedEmails.some(isUnprocessed) && (
           <button
             onClick={() => {
-              const ids = selectedEmails.filter(isUnprocessed).map(e => String((e as unknown as EmailItem).email_id));
+              const ids = selectedEmails
+                .filter(isUnprocessed)
+                .map((e) => String((e as unknown as EmailItem).email_id));
               setConfirmBatch({ ids, label: `kivalasztott (${ids.length})` });
             }}
             disabled={!!processing}
@@ -331,14 +452,21 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
           </button>
         )}
         <div className="flex-1" />
-        <button onClick={handleExportCsv} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400">
+        <button
+          onClick={handleExportCsv}
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
+        >
           CSV Export
         </button>
       </div>
 
       {/* Confirm batch modal */}
       {confirmBatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               {confirmBatch.ids.length} email feldolgozasa
@@ -348,15 +476,23 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
             </p>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-                <dt className="text-xs font-medium text-gray-500">Becsult koltseg</dt>
+                <dt className="text-xs font-medium text-gray-500">
+                  Becsult koltseg
+                </dt>
                 <dd className="mt-1 font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
-                  ~{formatCost(confirmBatch.ids.length * AVG_COST_PER_EMAIL_USD)}
+                  ~
+                  {formatCost(confirmBatch.ids.length * AVG_COST_PER_EMAIL_USD)}
                 </dd>
               </div>
               <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-                <dt className="text-xs font-medium text-gray-500">Becsult ido</dt>
+                <dt className="text-xs font-medium text-gray-500">
+                  Becsult ido
+                </dt>
                 <dd className="mt-1 font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
-                  ~{formatDuration(confirmBatch.ids.length * AVG_TIME_PER_EMAIL_SEC)}
+                  ~
+                  {formatDuration(
+                    confirmBatch.ids.length * AVG_TIME_PER_EMAIL_SEC,
+                  )}
                 </dd>
               </div>
             </dl>
@@ -389,55 +525,66 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
       )}
 
       {/* Process progress */}
-      {processProgress.length > 0 && (() => {
-        const done = processProgress.filter(fp => fp.status === "done").length;
-        const errorCount = processProgress.filter(fp => fp.status === "error").length;
-        const remaining = processProgress.length - done - errorCount;
-        let etaText = "";
-        if (processing && processStartTs && doneCount > 0 && remaining > 0) {
-          const elapsedSec = (Date.now() - processStartTs) / 1000;
-          const avgSec = elapsedSec / doneCount;
-          etaText = ` · ETA ~${formatDuration(remaining * avgSec)}`;
-        } else if (processing && remaining > 0) {
-          etaText = ` · ETA ~${formatDuration(remaining * AVG_TIME_PER_EMAIL_SEC)}`;
-        }
-        return (
-          <div className="mb-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-            <div className="mb-2 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{translate("aiflow.pipeline.title")}</p>
-                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  {done}/{processProgress.length} kesz
-                  {errorCount > 0 && <span className="text-red-500"> · {errorCount} hiba</span>}
-                  {etaText}
-                </p>
+      {processProgress.length > 0 &&
+        (() => {
+          const done = processProgress.filter(
+            (fp) => fp.status === "done",
+          ).length;
+          const errorCount = processProgress.filter(
+            (fp) => fp.status === "error",
+          ).length;
+          const remaining = processProgress.length - done - errorCount;
+          let etaText = "";
+          if (processing && processStartTs && doneCount > 0 && remaining > 0) {
+            const elapsedSec = (Date.now() - processStartTs) / 1000;
+            const avgSec = elapsedSec / doneCount;
+            etaText = ` · ETA ~${formatDuration(remaining * avgSec)}`;
+          } else if (processing && remaining > 0) {
+            etaText = ` · ETA ~${formatDuration(remaining * AVG_TIME_PER_EMAIL_SEC)}`;
+          }
+          return (
+            <div className="mb-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+              <div className="mb-2 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {translate("aiflow.pipeline.title")}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {done}/{processProgress.length} kesz
+                    {errorCount > 0 && (
+                      <span className="text-red-500"> · {errorCount} hiba</span>
+                    )}
+                    {etaText}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!processing && errorCount > 0 && (
+                    <button
+                      onClick={handleRetryFailed}
+                      className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40"
+                    >
+                      Ujra a hibasokat ({errorCount})
+                    </button>
+                  )}
+                  {processing && (
+                    <button
+                      onClick={handleCancelProcessing}
+                      className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                    >
+                      Megszakitas
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {!processing && errorCount > 0 && (
-                  <button
-                    onClick={handleRetryFailed}
-                    className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40"
-                  >
-                    Ujra a hibasokat ({errorCount})
-                  </button>
-                )}
-                {processing && (
-                  <button
-                    onClick={handleCancelProcessing}
-                    className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
-                  >
-                    Megszakitas
-                  </button>
-                )}
+              <FileProgressBar done={done} total={processProgress.length} />
+              <div className="max-h-48 overflow-y-auto">
+                {processProgress.map((fp, i) => (
+                  <FileProgressRow key={i} fp={fp} />
+                ))}
               </div>
             </div>
-            <FileProgressBar done={done} total={processProgress.length} />
-            <div className="max-h-48 overflow-y-auto">
-              {processProgress.map((fp, i) => <FileProgressRow key={i} fp={fp} />)}
-            </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* Table */}
       {error ? (
@@ -460,55 +607,141 @@ function InboxTab({ refreshKey }: { refreshKey: number }) {
             if (id) navigate(`/emails/${encodeURIComponent(id)}`);
           }}
           columns={[
-            { key: "sender", label: translate("aiflow.emails.sender"), render: (item) => <span className="block max-w-[180px] truncate font-medium text-gray-900 dark:text-gray-100" title={String(item.sender ?? "")}>{String(item.sender ?? "")}</span> },
-            { key: "subject", label: translate("aiflow.emails.subject"), render: (item) => <span className="block max-w-[250px] truncate text-gray-600 dark:text-gray-400" title={String(item.subject ?? "")}>{String(item.subject ?? "")}</span> },
-            { key: "intent_display_name", label: translate("aiflow.emails.intent"), render: (item) => {
-              const intent = String(item.intent_display_name ?? "");
-              const id = String((item as unknown as EmailItem).email_id);
-              // If this specific row is in a currently-running batch and not
-              // yet done, show a live "Processing..." pill with spinner dot.
-              if (processing && processIds.includes(id)) {
-                const idx = processIds.indexOf(id);
-                const fp = processProgress[idx];
-                if (fp && fp.status !== "done" && fp.status !== "error") {
+            {
+              key: "sender",
+              label: translate("aiflow.emails.sender"),
+              render: (item) => (
+                <span
+                  className="block max-w-[180px] truncate font-medium text-gray-900 dark:text-gray-100"
+                  title={String(item.sender ?? "")}
+                >
+                  {String(item.sender ?? "")}
+                </span>
+              ),
+            },
+            {
+              key: "subject",
+              label: translate("aiflow.emails.subject"),
+              render: (item) => (
+                <span
+                  className="block max-w-[250px] truncate text-gray-600 dark:text-gray-400"
+                  title={String(item.subject ?? "")}
+                >
+                  {String(item.subject ?? "")}
+                </span>
+              ),
+            },
+            {
+              key: "intent_display_name",
+              label: translate("aiflow.emails.intent"),
+              render: (item) => {
+                const intent = String(item.intent_display_name ?? "");
+                const id = String((item as unknown as EmailItem).email_id);
+                // If this specific row is in a currently-running batch and not
+                // yet done, show a live "Processing..." pill with spinner dot.
+                if (processing && processIds.includes(id)) {
+                  const idx = processIds.indexOf(id);
+                  const fp = processProgress[idx];
+                  if (fp && fp.status !== "done" && fp.status !== "error") {
+                    return (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                        <span
+                          className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500"
+                          aria-hidden
+                        />
+                        Processing...
+                      </span>
+                    );
+                  }
+                }
+                if (!intent || intent === "Not processed")
                   return (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" aria-hidden />
-                      Processing...
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                      Not processed
                     </span>
                   );
-                }
-              }
-              if (!intent || intent === "Not processed") return <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">Not processed</span>;
-              const cls = intentColorClass(
-                (item.intent_id ?? null) as string | null,
-                (item.intent_display_name ?? null) as string | null,
-              );
-              return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{intent}</span>;
-            }},
-            { key: "priority_level", label: translate("aiflow.emails.priority"), render: (item) => {
-              const p = item.priority_level as number | null;
-              if (!p) return <span className="text-gray-400">—</span>;
-              const pName = p <= 2 ? "critical" : p === 3 ? "high" : p === 4 ? "normal" : "low";
-              return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor[pName] ?? priorityColor.normal}`}>P{p}</span>;
-            }},
-            { key: "intent_confidence", label: "%", getValue: (item) => (item.intent_confidence as number) ?? 0, render: (item) => {
-              const c = item.intent_confidence as number;
-              return <span className="text-xs text-gray-600 dark:text-gray-400">{c ? `${Math.round(c * 100)}%` : "—"}</span>;
-            }},
-            { key: "received_date", label: translate("aiflow.emails.received"), render: (item) => <span className="whitespace-nowrap text-xs text-gray-500">{item.received_date ? new Date(String(item.received_date)).toLocaleDateString() : "—"}</span> },
-            { key: "actions", label: "", sortable: false, render: (item) => {
-              if (!isUnprocessed(item)) return null;
-              return (
-                <button
-                  onClick={(e) => { e.stopPropagation(); void handleProcessEmails([String((item as unknown as EmailItem).email_id)]); }}
-                  disabled={!!processing}
-                  className="rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100 disabled:opacity-50 dark:bg-brand-900/30 dark:text-brand-400"
-                >
-                  Process
-                </button>
-              );
-            }},
+                const cls = intentColorClass(
+                  (item.intent_id ?? null) as string | null,
+                  (item.intent_display_name ?? null) as string | null,
+                );
+                return (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}
+                  >
+                    {intent}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "priority_level",
+              label: translate("aiflow.emails.priority"),
+              render: (item) => {
+                const p = item.priority_level as number | null;
+                if (!p) return <span className="text-gray-400">—</span>;
+                const pName =
+                  p <= 2
+                    ? "critical"
+                    : p === 3
+                      ? "high"
+                      : p === 4
+                        ? "normal"
+                        : "low";
+                return (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor[pName] ?? priorityColor.normal}`}
+                  >
+                    P{p}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "intent_confidence",
+              label: "%",
+              getValue: (item) => (item.intent_confidence as number) ?? 0,
+              render: (item) => {
+                const c = item.intent_confidence as number;
+                return (
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    {c ? `${Math.round(c * 100)}%` : "—"}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "received_date",
+              label: translate("aiflow.emails.received"),
+              render: (item) => (
+                <span className="whitespace-nowrap text-xs text-gray-500">
+                  {item.received_date
+                    ? new Date(String(item.received_date)).toLocaleDateString()
+                    : "—"}
+                </span>
+              ),
+            },
+            {
+              key: "actions",
+              label: "",
+              sortable: false,
+              render: (item) => {
+                if (!isUnprocessed(item)) return null;
+                return (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleProcessEmails([
+                        String((item as unknown as EmailItem).email_id),
+                      ]);
+                    }}
+                    disabled={!!processing}
+                    className="rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100 disabled:opacity-50 dark:bg-brand-900/30 dark:text-brand-400"
+                  >
+                    Process
+                  </button>
+                );
+              },
+            },
           ]}
         />
       )}
@@ -528,15 +761,19 @@ export function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    const dropped = Array.from(e.dataTransfer.files).filter(
-      f => /\.(eml|msg|txt)$/i.test(f.name),
+    const dropped = Array.from(e.dataTransfer.files).filter((f) =>
+      /\.(eml|msg|txt)$/i.test(f.name),
     );
-    setFiles(prev => [...prev, ...dropped]);
+    setFiles((prev) => [...prev, ...dropped]);
   }, []);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setFiles(prev => [...prev, ...Array.from(e.target.files!)]);
-  }, []);
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files)
+        setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+    },
+    [],
+  );
 
   const handleUpload = async () => {
     if (files.length === 0) return;
@@ -544,17 +781,29 @@ export function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
     setError(null);
     setResult(null);
 
-    const defaultSteps = ["upload", "parse", "classify", "extract", "priority", "route"];
-    setFileProgress(files.map(f => ({
-      name: f.name,
-      status: "pending" as const,
-      steps: defaultSteps.map(s => ({ name: s, status: "pending" as const })),
-    })));
+    const defaultSteps = [
+      "upload",
+      "parse",
+      "classify",
+      "extract",
+      "priority",
+      "route",
+    ];
+    setFileProgress(
+      files.map((f) => ({
+        name: f.name,
+        status: "pending" as const,
+        steps: defaultSteps.map((s) => ({
+          name: s,
+          status: "pending" as const,
+        })),
+      })),
+    );
 
     try {
       const token = localStorage.getItem("aiflow_token");
       const formData = new FormData();
-      files.forEach(f => formData.append("files", f));
+      files.forEach((f) => formData.append("files", f));
 
       const resp = await fetch("/api/v1/emails/upload-and-process-stream", {
         method: "POST",
@@ -586,44 +835,96 @@ export function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
 
             if (msg.event === "init") {
               const stepNames: string[] = msg.steps ?? defaultSteps;
-              setFileProgress(files.map(f => ({
-                name: f.name,
-                status: "pending" as const,
-                steps: stepNames.map(s => ({ name: s, status: "pending" as const })),
-              })));
+              setFileProgress(
+                files.map((f) => ({
+                  name: f.name,
+                  status: "pending" as const,
+                  steps: stepNames.map((s) => ({
+                    name: s,
+                    status: "pending" as const,
+                  })),
+                })),
+              );
             }
             if (msg.event === "file_start" && msg.file_index !== undefined) {
-              setFileProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: "processing" } : fp
-              ));
+              setFileProgress((prev) =>
+                prev.map((fp, i) =>
+                  i === msg.file_index ? { ...fp, status: "processing" } : fp,
+                ),
+              );
             }
-            if (msg.event === "file_step" && msg.file_index !== undefined && msg.step_index !== undefined) {
-              setFileProgress(prev => prev.map((fp, i) => {
-                if (i !== msg.file_index) return fp;
-                return { ...fp, steps: fp.steps.map((s, si) => si !== msg.step_index ? s : { ...s, status: msg.status === "done" ? "done" as const : "running" as const, elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms }) };
-              }));
+            if (
+              msg.event === "file_step" &&
+              msg.file_index !== undefined &&
+              msg.step_index !== undefined
+            ) {
+              setFileProgress((prev) =>
+                prev.map((fp, i) => {
+                  if (i !== msg.file_index) return fp;
+                  return {
+                    ...fp,
+                    steps: fp.steps.map((s, si) =>
+                      si !== msg.step_index
+                        ? s
+                        : {
+                            ...s,
+                            status:
+                              msg.status === "done"
+                                ? ("done" as const)
+                                : ("running" as const),
+                            elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms,
+                          },
+                    ),
+                  };
+                }),
+              );
             }
             if (msg.event === "file_error" && msg.file_index !== undefined) {
-              setFileProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: "error", error: msg.error } : fp
-              ));
+              setFileProgress((prev) =>
+                prev.map((fp, i) =>
+                  i === msg.file_index
+                    ? { ...fp, status: "error", error: msg.error }
+                    : fp,
+                ),
+              );
             }
             if (msg.event === "file_done" && msg.file_index !== undefined) {
-              setFileProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: msg.ok ? "done" as const : "error" as const } : fp
-              ));
+              setFileProgress((prev) =>
+                prev.map((fp, i) =>
+                  i === msg.file_index
+                    ? {
+                        ...fp,
+                        status: msg.ok ? ("done" as const) : ("error" as const),
+                      }
+                    : fp,
+                ),
+              );
             }
             if (msg.event === "complete") {
               const total = msg.total_processed ?? 0;
               setResult(`${total}/${files.length} email(s) processed`);
-              setFileProgress(prev => prev.map(fp => fp.status === "pending" || fp.status === "processing"
-                ? { ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) } : fp));
+              setFileProgress((prev) =>
+                prev.map((fp) =>
+                  fp.status === "pending" || fp.status === "processing"
+                    ? {
+                        ...fp,
+                        status: "done" as const,
+                        steps: fp.steps.map((s) => ({
+                          ...s,
+                          status: "done" as const,
+                        })),
+                      }
+                    : fp,
+                ),
+              );
               onProcessed?.();
             }
             if (msg.event === "error") {
               setError(msg.error ?? "Processing failed");
             }
-          } catch { /* skip non-json */ }
+          } catch {
+            /* skip non-json */
+          }
         }
       }
     } catch (e) {
@@ -633,19 +934,34 @@ export function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
     }
   };
 
-  const handleReset = () => { setFiles([]); setFileProgress([]); setResult(null); setError(null); };
-  const doneCount = fileProgress.filter(fp => fp.status === "done").length;
+  const handleReset = () => {
+    setFiles([]);
+    setFileProgress([]);
+    setResult(null);
+    setError(null);
+  };
+  const doneCount = fileProgress.filter((fp) => fp.status === "done").length;
 
   return (
     <div className="space-y-4">
       {/* Dropzone */}
       <div
-        onDragOver={e => e.preventDefault()}
+        onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
         className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white p-8 text-center transition-colors hover:border-brand-400 dark:border-gray-600 dark:bg-gray-900 dark:hover:border-brand-500"
       >
-        <svg className="mb-3 h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+        <svg
+          className="mb-3 h-10 w-10 text-gray-300 dark:text-gray-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={1.5}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+          />
         </svg>
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {translate("aiflow.emailUpload.dropzone")}
@@ -653,7 +969,13 @@ export function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
         <p className="mt-1 text-xs text-gray-400">.eml, .msg, .txt</p>
         <label className="mt-3 cursor-pointer rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
           {translate("aiflow.emailUpload.uploaded")}
-          <input type="file" accept=".eml,.msg,.txt" multiple className="hidden" onChange={handleFileSelect} />
+          <input
+            type="file"
+            accept=".eml,.msg,.txt"
+            multiple
+            className="hidden"
+            onChange={handleFileSelect}
+          />
         </label>
       </div>
 
@@ -661,20 +983,36 @@ export function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
       {files.length > 0 && fileProgress.length === 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{files.length} file(s)</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {files.length} file(s)
+            </span>
             <div className="flex gap-2">
-              <button onClick={handleReset} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400">
+              <button
+                onClick={handleReset}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
+              >
                 {translate("aiflow.common.cancel")}
               </button>
-              <button onClick={handleUpload} disabled={uploading} className="rounded-lg bg-brand-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50">
-                {uploading ? translate("aiflow.common.loading") : translate("aiflow.emailUpload.process")}
+              <button
+                onClick={handleUpload}
+                disabled={uploading}
+                className="rounded-lg bg-brand-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
+              >
+                {uploading
+                  ? translate("aiflow.common.loading")
+                  : translate("aiflow.emailUpload.process")}
               </button>
             </div>
           </div>
           {files.map((f, i) => (
-            <div key={i} className="flex items-center gap-2 border-t border-gray-100 py-2 text-sm dark:border-gray-800">
+            <div
+              key={i}
+              className="flex items-center gap-2 border-t border-gray-100 py-2 text-sm dark:border-gray-800"
+            >
               <span className="text-gray-600 dark:text-gray-400">{f.name}</span>
-              <span className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</span>
+              <span className="text-xs text-gray-400">
+                {(f.size / 1024).toFixed(0)} KB
+              </span>
             </div>
           ))}
         </div>
@@ -684,13 +1022,24 @@ export function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
       {fileProgress.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{translate("aiflow.pipeline.title")}</p>
-            {uploading && <span className="text-xs text-brand-600 dark:text-brand-400">{doneCount}/{fileProgress.length}</span>}
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {translate("aiflow.pipeline.title")}
+            </p>
+            {uploading && (
+              <span className="text-xs text-brand-600 dark:text-brand-400">
+                {doneCount}/{fileProgress.length}
+              </span>
+            )}
           </div>
           <FileProgressBar done={doneCount} total={fileProgress.length} />
-          {fileProgress.map((fp, i) => <FileProgressRow key={i} fp={fp} />)}
+          {fileProgress.map((fp, i) => (
+            <FileProgressRow key={i} fp={fp} />
+          ))}
           {!uploading && (
-            <button onClick={handleReset} className="mt-3 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400">
+            <button
+              onClick={handleReset}
+              className="mt-3 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
+            >
               {translate("aiflow.documentUpload.newBatch")}
             </button>
           )}
@@ -701,8 +1050,13 @@ export function UploadTab({ onProcessed }: { onProcessed?: () => void }) {
       {result && (
         <div className="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-green-700 dark:text-green-400">{result}</span>
-            <button onClick={handleReset} className="rounded-lg border border-green-300 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-400">
+            <span className="text-sm font-medium text-green-700 dark:text-green-400">
+              {result}
+            </span>
+            <button
+              onClick={handleReset}
+              className="rounded-lg border border-green-300 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-400"
+            >
               {translate("aiflow.documentUpload.newBatch")}
             </button>
           </div>
@@ -721,9 +1075,25 @@ const PROVIDERS = [
   { value: "gmail", label: "Gmail" },
 ];
 
-const EMPTY_FORM = { name: "", provider: "outlook_com", host: "", port: 993, use_ssl: true, mailbox: "", credentials_encrypted: "", polling_interval_minutes: 15, max_emails_per_fetch: 50, is_active: true };
+const EMPTY_FORM = {
+  name: "",
+  provider: "outlook_com",
+  host: "",
+  port: 993,
+  use_ssl: true,
+  mailbox: "",
+  credentials_encrypted: "",
+  polling_interval_minutes: 15,
+  max_emails_per_fetch: 50,
+  is_active: true,
+};
 
-function ConnectorFormDialog({ initial, onSave, onClose, translate }: {
+function ConnectorFormDialog({
+  initial,
+  onSave,
+  onClose,
+  translate,
+}: {
   initial: typeof EMPTY_FORM & { id?: string };
   onSave: () => void;
   onClose: () => void;
@@ -752,33 +1122,58 @@ function ConnectorFormDialog({ initial, onSave, onClose, translate }: {
   };
 
   const handleDelete = async () => {
-    if (!isEdit || !window.confirm(translate("aiflow.connectors.confirmDelete"))) return;
+    if (
+      !isEdit ||
+      !window.confirm(translate("aiflow.connectors.confirmDelete"))
+    )
+      return;
     try {
       await fetchApi("DELETE", `/api/v1/emails/connectors/${initial.id}`);
       onSave();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
-  const set = (k: string, v: string | number | boolean) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k: string, v: string | number | boolean) =>
+    setForm((f) => ({ ...f, [k]: v }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900">
         <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {isEdit ? translate("aiflow.connectors.edit") : translate("aiflow.connectors.create")}
+          {isEdit
+            ? translate("aiflow.connectors.edit")
+            : translate("aiflow.connectors.create")}
         </h3>
 
         <div className="space-y-3">
           {/* Name + Provider */}
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{translate("aiflow.connectors.name")}</span>
-              <input value={form.name} onChange={e => set("name", e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                {translate("aiflow.connectors.name")}
+              </span>
+              <input
+                value={form.name}
+                onChange={(e) => set("name", e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{translate("aiflow.connectors.provider")}</span>
-              <select value={form.provider} onChange={e => set("provider", e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
-                {PROVIDERS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                {translate("aiflow.connectors.provider")}
+              </span>
+              <select
+                value={form.provider}
+                onChange={(e) => set("provider", e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              >
+                {PROVIDERS.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -787,12 +1182,26 @@ function ConnectorFormDialog({ initial, onSave, onClose, translate }: {
           {form.provider !== "outlook_com" && (
             <div className="grid grid-cols-3 gap-3">
               <label className="col-span-2 block">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{translate("aiflow.connectors.host")}</span>
-                <input value={form.host} onChange={e => set("host", e.target.value)} placeholder="mail.example.com" className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {translate("aiflow.connectors.host")}
+                </span>
+                <input
+                  value={form.host}
+                  onChange={(e) => set("host", e.target.value)}
+                  placeholder="mail.example.com"
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                />
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Port</span>
-                <input type="number" value={form.port} onChange={e => set("port", Number(e.target.value))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Port
+                </span>
+                <input
+                  type="number"
+                  value={form.port}
+                  onChange={(e) => set("port", Number(e.target.value))}
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                />
               </label>
             </div>
           )}
@@ -800,42 +1209,86 @@ function ConnectorFormDialog({ initial, onSave, onClose, translate }: {
           {/* Mailbox / Account filter */}
           <label className="block">
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-              {form.provider === "outlook_com" ? "Account filter (e.g. bestix, aam, field)" : translate("aiflow.connectors.mailbox")}
+              {form.provider === "outlook_com"
+                ? "Account filter (e.g. bestix, aam, field)"
+                : translate("aiflow.connectors.mailbox")}
             </span>
-            <input value={form.mailbox} onChange={e => set("mailbox", e.target.value)} placeholder={form.provider === "outlook_com" ? "bestix" : "INBOX"} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+            <input
+              value={form.mailbox}
+              onChange={(e) => set("mailbox", e.target.value)}
+              placeholder={form.provider === "outlook_com" ? "bestix" : "INBOX"}
+              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            />
           </label>
 
           {/* Credentials (hidden for outlook_com) */}
           {form.provider !== "outlook_com" && (
             <label className="block">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{translate("aiflow.connectors.credentials")}</span>
-              <input value={form.credentials_encrypted} onChange={e => set("credentials_encrypted", e.target.value)}
-                placeholder={form.provider === "o365_graph" ? "tenant_id:client_id:client_secret:user@email" : "user:password"}
-                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-mono dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                {translate("aiflow.connectors.credentials")}
+              </span>
+              <input
+                value={form.credentials_encrypted}
+                onChange={(e) => set("credentials_encrypted", e.target.value)}
+                placeholder={
+                  form.provider === "o365_graph"
+                    ? "tenant_id:client_id:client_secret:user@email"
+                    : "user:password"
+                }
+                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-mono dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              />
             </label>
           )}
 
           {/* Polling + Max + SSL + Active */}
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{translate("aiflow.connectors.pollingInterval")}</span>
-              <input type="number" value={form.polling_interval_minutes} onChange={e => set("polling_interval_minutes", Number(e.target.value))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                {translate("aiflow.connectors.pollingInterval")}
+              </span>
+              <input
+                type="number"
+                value={form.polling_interval_minutes}
+                onChange={(e) =>
+                  set("polling_interval_minutes", Number(e.target.value))
+                }
+                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{translate("aiflow.connectors.maxEmails")}</span>
-              <input type="number" value={form.max_emails_per_fetch} onChange={e => set("max_emails_per_fetch", Number(e.target.value))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                {translate("aiflow.connectors.maxEmails")}
+              </span>
+              <input
+                type="number"
+                value={form.max_emails_per_fetch}
+                onChange={(e) =>
+                  set("max_emails_per_fetch", Number(e.target.value))
+                }
+                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              />
             </label>
           </div>
 
           <div className="flex items-center gap-4">
             {form.provider !== "outlook_com" && (
               <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <input type="checkbox" checked={form.use_ssl} onChange={e => set("use_ssl", e.target.checked)} className="rounded border-gray-300 text-brand-600" />
+                <input
+                  type="checkbox"
+                  checked={form.use_ssl}
+                  onChange={(e) => set("use_ssl", e.target.checked)}
+                  className="rounded border-gray-300 text-brand-600"
+                />
                 {translate("aiflow.connectors.ssl")}
               </label>
             )}
             <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-              <input type="checkbox" checked={form.is_active} onChange={e => set("is_active", e.target.checked)} className="rounded border-gray-300 text-brand-600" />
+              <input
+                type="checkbox"
+                checked={form.is_active}
+                onChange={(e) => set("is_active", e.target.checked)}
+                className="rounded border-gray-300 text-brand-600"
+              />
               {translate("aiflow.connectors.active")}
             </label>
           </div>
@@ -846,17 +1299,31 @@ function ConnectorFormDialog({ initial, onSave, onClose, translate }: {
         <div className="mt-5 flex items-center justify-between">
           <div>
             {isEdit && (
-              <button onClick={handleDelete} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400">
+              <button
+                onClick={handleDelete}
+                className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400"
+              >
                 {translate("aiflow.connectors.delete")}
               </button>
             )}
           </div>
           <div className="flex gap-2">
-            <button onClick={onClose} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300">
+            <button
+              onClick={onClose}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300"
+            >
               {translate("common.action.cancel")}
             </button>
-            <button onClick={handleSubmit} disabled={saving || !form.name.trim()} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50">
-              {saving ? translate("aiflow.common.loading") : isEdit ? translate("common.action.save") : translate("aiflow.connectors.create")}
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !form.name.trim()}
+              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
+            >
+              {saving
+                ? translate("aiflow.common.loading")
+                : isEdit
+                  ? translate("common.action.save")
+                  : translate("aiflow.connectors.create")}
             </button>
           </div>
         </div>
@@ -867,25 +1334,50 @@ function ConnectorFormDialog({ initial, onSave, onClose, translate }: {
 
 export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
   const translate = useTranslate();
-  const { data, loading, error, refetch } = useApi<ConnectorItem[]>("/api/v1/emails/connectors");
+  const { data, loading, error, refetch } = useApi<ConnectorItem[]>(
+    "/api/v1/emails/connectors",
+  );
   const connectors = Array.isArray(data) ? data : [];
   const [testing, setTesting] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
+  const [testResult, setTestResult] = useState<{
+    id: string;
+    ok: boolean;
+    msg: string;
+  } | null>(null);
   const [fetching, setFetching] = useState<string | null>(null);
   const [fetchDays, setFetchDays] = useState(7);
-  const [fetchResult, setFetchResult] = useState<{ id: string; count: number; processed: number } | null>(null);
+  const [fetchResult, setFetchResult] = useState<{
+    id: string;
+    count: number;
+    processed: number;
+  } | null>(null);
   const [fetchProgress, setFetchProgress] = useState<FileProgress[]>([]);
   const [autoProcess, setAutoProcess] = useState(true);
-  const [editConnector, setEditConnector] = useState<(typeof EMPTY_FORM & { id?: string }) | null>(null);
+  const [editConnector, setEditConnector] = useState<
+    (typeof EMPTY_FORM & { id?: string }) | null
+  >(null);
 
   const handleTest = async (id: string) => {
     setTesting(id);
     setTestResult(null);
     try {
-      const res = await fetchApi<{ success: boolean; message: string }>("POST", `/api/v1/emails/connectors/${id}/test`);
-      setTestResult({ id, ok: res.success, msg: res.success ? translate("aiflow.connectors.testSuccess") : res.message });
+      const res = await fetchApi<{ success: boolean; message: string }>(
+        "POST",
+        `/api/v1/emails/connectors/${id}/test`,
+      );
+      setTestResult({
+        id,
+        ok: res.success,
+        msg: res.success
+          ? translate("aiflow.connectors.testSuccess")
+          : res.message,
+      });
     } catch {
-      setTestResult({ id, ok: false, msg: translate("aiflow.connectors.testFailed") });
+      setTestResult({
+        id,
+        ok: false,
+        msg: translate("aiflow.connectors.testFailed"),
+      });
     } finally {
       setTesting(null);
     }
@@ -899,8 +1391,16 @@ export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
     try {
       // No auto-process: simple fetch only
       if (!autoProcess) {
-        const res = await fetchApi<{ total_count: number; new_count: number }>("POST", "/api/v1/emails/fetch", { config_id: id, since_days: fetchDays, limit: 100 });
-        setFetchResult({ id, count: res.new_count ?? res.total_count, processed: 0 });
+        const res = await fetchApi<{ total_count: number; new_count: number }>(
+          "POST",
+          "/api/v1/emails/fetch",
+          { config_id: id, since_days: fetchDays, limit: 100 },
+        );
+        setFetchResult({
+          id,
+          count: res.new_count ?? res.total_count,
+          processed: 0,
+        });
         refetch();
         setFetching(null);
         return;
@@ -910,13 +1410,28 @@ export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
       const token = localStorage.getItem("aiflow_token");
       const resp = await fetch("/api/v1/emails/fetch-and-process-stream", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ config_id: id, since_days: fetchDays, limit: 100 }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          config_id: id,
+          since_days: fetchDays,
+          limit: 100,
+        }),
       });
 
       if (!resp.ok || !resp.body) {
-        const res = await fetchApi<{ total_count: number; new_count: number }>("POST", "/api/v1/emails/fetch", { config_id: id, since_days: fetchDays, limit: 100 });
-        setFetchResult({ id, count: res.new_count ?? res.total_count, processed: 0 });
+        const res = await fetchApi<{ total_count: number; new_count: number }>(
+          "POST",
+          "/api/v1/emails/fetch",
+          { config_id: id, since_days: fetchDays, limit: 100 },
+        );
+        setFetchResult({
+          id,
+          count: res.new_count ?? res.total_count,
+          processed: 0,
+        });
         refetch();
         return;
       }
@@ -924,7 +1439,14 @@ export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      const defaultSteps = ["fetch", "parse", "classify", "extract", "priority", "route"];
+      const defaultSteps = [
+        "fetch",
+        "parse",
+        "classify",
+        "extract",
+        "priority",
+        "route",
+      ];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -940,59 +1462,132 @@ export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
 
             if (msg.event === "init") {
               const steps: string[] = msg.steps ?? defaultSteps;
-              const items: FileProgress[] = Array.from({ length: msg.total_files }, (_, i) => ({
-                name: `Email ${i + 1}`,
-                status: "pending" as const,
-                steps: steps.map(s => ({ name: s, status: "pending" as const })),
-              }));
+              const items: FileProgress[] = Array.from(
+                { length: msg.total_files },
+                (_, i) => ({
+                  name: `Email ${i + 1}`,
+                  status: "pending" as const,
+                  steps: steps.map((s) => ({
+                    name: s,
+                    status: "pending" as const,
+                  })),
+                }),
+              );
               setFetchProgress(items);
             }
             if (msg.event === "file_start" && msg.file_index !== undefined) {
-              setFetchProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, name: msg.file || fp.name, status: "processing" } : fp
-              ));
+              setFetchProgress((prev) =>
+                prev.map((fp, i) =>
+                  i === msg.file_index
+                    ? { ...fp, name: msg.file || fp.name, status: "processing" }
+                    : fp,
+                ),
+              );
             }
-            if (msg.event === "file_step" && msg.file_index !== undefined && msg.step_index !== undefined) {
-              setFetchProgress(prev => prev.map((fp, i) => {
-                if (i !== msg.file_index) return fp;
-                return { ...fp, steps: fp.steps.map((s, si) => si !== msg.step_index ? s : { ...s, status: msg.status === "done" ? "done" as const : "running" as const, elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms }) };
-              }));
+            if (
+              msg.event === "file_step" &&
+              msg.file_index !== undefined &&
+              msg.step_index !== undefined
+            ) {
+              setFetchProgress((prev) =>
+                prev.map((fp, i) => {
+                  if (i !== msg.file_index) return fp;
+                  return {
+                    ...fp,
+                    steps: fp.steps.map((s, si) =>
+                      si !== msg.step_index
+                        ? s
+                        : {
+                            ...s,
+                            status:
+                              msg.status === "done"
+                                ? ("done" as const)
+                                : ("running" as const),
+                            elapsed_ms: msg.elapsed_ms ?? s.elapsed_ms,
+                          },
+                    ),
+                  };
+                }),
+              );
             }
             if (msg.event === "file_error" && msg.file_index !== undefined) {
-              setFetchProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: "error", error: msg.error } : fp
-              ));
+              setFetchProgress((prev) =>
+                prev.map((fp, i) =>
+                  i === msg.file_index
+                    ? { ...fp, status: "error", error: msg.error }
+                    : fp,
+                ),
+              );
             }
             if (msg.event === "file_done" && msg.file_index !== undefined) {
-              setFetchProgress(prev => prev.map((fp, i) =>
-                i === msg.file_index ? { ...fp, status: msg.ok ? "done" as const : "error" as const } : fp
-              ));
+              setFetchProgress((prev) =>
+                prev.map((fp, i) =>
+                  i === msg.file_index
+                    ? {
+                        ...fp,
+                        status: msg.ok ? ("done" as const) : ("error" as const),
+                      }
+                    : fp,
+                ),
+              );
             }
             if (msg.event === "complete") {
-              setFetchResult({ id, count: msg.total_fetched ?? 0, processed: msg.total_processed ?? 0 });
-              setFetchProgress(prev => prev.map(fp => fp.status === "pending" || fp.status === "processing"
-                ? { ...fp, status: "done" as const, steps: fp.steps.map(s => ({ ...s, status: "done" as const })) } : fp));
+              setFetchResult({
+                id,
+                count: msg.total_fetched ?? 0,
+                processed: msg.total_processed ?? 0,
+              });
+              setFetchProgress((prev) =>
+                prev.map((fp) =>
+                  fp.status === "pending" || fp.status === "processing"
+                    ? {
+                        ...fp,
+                        status: "done" as const,
+                        steps: fp.steps.map((s) => ({
+                          ...s,
+                          status: "done" as const,
+                        })),
+                      }
+                    : fp,
+                ),
+              );
               refetch();
               onProcessed?.();
             }
             if (msg.event === "error") {
-              setTestResult({ id, ok: false, msg: msg.error ?? "Fetch failed" });
+              setTestResult({
+                id,
+                ok: false,
+                msg: msg.error ?? "Fetch failed",
+              });
             }
-          } catch { /* skip */ }
+          } catch {
+            /* skip */
+          }
         }
       }
-    } catch { /* ignore */ }
-    finally { setFetching(null); }
+    } catch {
+      /* ignore */
+    } finally {
+      setFetching(null);
+    }
   };
 
   const openCreate = () => setEditConnector({ ...EMPTY_FORM });
   const openEdit = (item: Record<string, unknown>) => {
     const c = item as unknown as ConnectorItem;
     setEditConnector({
-      id: c.id, name: c.name, provider: c.provider, host: c.host ?? "", port: c.port ?? 993,
-      use_ssl: c.use_ssl ?? true, mailbox: c.mailbox ?? "", credentials_encrypted: "",
+      id: c.id,
+      name: c.name,
+      provider: c.provider,
+      host: c.host ?? "",
+      port: c.port ?? 993,
+      use_ssl: c.use_ssl ?? true,
+      mailbox: c.mailbox ?? "",
+      credentials_encrypted: "",
       polling_interval_minutes: c.polling_interval_minutes ?? 15,
-      max_emails_per_fetch: c.max_emails_per_fetch ?? 50, is_active: c.is_active ?? true,
+      max_emails_per_fetch: c.max_emails_per_fetch ?? 50,
+      is_active: c.is_active ?? true,
     });
   };
 
@@ -1000,16 +1595,23 @@ export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-500">{connectors.length} connector(s)</span>
-        <button onClick={openCreate} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+        <span className="text-sm text-gray-500">
+          {connectors.length} connector(s)
+        </span>
+        <button
+          onClick={openCreate}
+          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+        >
           + {translate("aiflow.connectors.create")}
         </button>
       </div>
 
       {/* Date range + auto-process toggle */}
       <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{translate("aiflow.connectors.fetchPeriod")}</span>
-        {[1, 3, 7, 14, 30, 90].map(d => (
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+          {translate("aiflow.connectors.fetchPeriod")}
+        </span>
+        {[1, 3, 7, 14, 30, 90].map((d) => (
           <button
             key={d}
             onClick={() => setFetchDays(d)}
@@ -1025,7 +1627,12 @@ export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
         <div className="mx-2 h-4 w-px bg-gray-300 dark:bg-gray-600" />
         <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-400">
           <div className="relative">
-            <input type="checkbox" checked={autoProcess} onChange={e => setAutoProcess(e.target.checked)} className="peer sr-only" />
+            <input
+              type="checkbox"
+              checked={autoProcess}
+              onChange={(e) => setAutoProcess(e.target.checked)}
+              className="peer sr-only"
+            />
             <div className="h-5 w-9 rounded-full bg-gray-300 transition-colors peer-checked:bg-brand-500 dark:bg-gray-600 dark:peer-checked:bg-brand-600" />
             <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
           </div>
@@ -1034,14 +1641,17 @@ export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
       </div>
 
       {testResult && (
-        <div className={`rounded-xl p-3 text-sm ${testResult.ok ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"}`}>
+        <div
+          className={`rounded-xl p-3 text-sm ${testResult.ok ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"}`}
+        >
           {testResult.msg}
         </div>
       )}
 
       {fetchResult && (
         <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
-          {fetchResult.count} email(s) fetched, {fetchResult.processed} processed
+          {fetchResult.count} email(s) fetched, {fetchResult.processed}{" "}
+          processed
         </div>
       )}
 
@@ -1049,16 +1659,24 @@ export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
       {fetchProgress.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{translate("aiflow.pipeline.title")}</p>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {translate("aiflow.pipeline.title")}
+            </p>
             {fetching && (
               <span className="text-xs text-brand-600 dark:text-brand-400">
-                {fetchProgress.filter(fp => fp.status === "done").length}/{fetchProgress.length}
+                {fetchProgress.filter((fp) => fp.status === "done").length}/
+                {fetchProgress.length}
               </span>
             )}
           </div>
-          <FileProgressBar done={fetchProgress.filter(fp => fp.status === "done").length} total={fetchProgress.length} />
+          <FileProgressBar
+            done={fetchProgress.filter((fp) => fp.status === "done").length}
+            total={fetchProgress.length}
+          />
           <div className="max-h-64 overflow-y-auto">
-            {fetchProgress.map((fp, i) => <FileProgressRow key={i} fp={fp} />)}
+            {fetchProgress.map((fp, i) => (
+              <FileProgressRow key={i} fp={fp} />
+            ))}
           </div>
         </div>
       )}
@@ -1074,27 +1692,110 @@ export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
           emptyMessageKey="aiflow.connectors.noConnectors"
           onRowClick={openEdit}
           columns={[
-            { key: "name", label: translate("aiflow.connectors.name"), render: (item) => <span className="font-medium text-gray-900 dark:text-gray-100">{String(item.name)}</span> },
-            { key: "provider", label: translate("aiflow.connectors.provider"), render: (item) => <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">{String(item.provider).toUpperCase()}</span> },
-            { key: "host", label: translate("aiflow.connectors.host"), render: (item) => {
-              const p = String(item.provider);
-              if (p === "outlook_com") return <span className="text-gray-500 dark:text-gray-400 italic">local</span>;
-              return <span className="text-gray-600 dark:text-gray-400">{String(item.host)}:{String(item.port)}</span>;
-            }},
-            { key: "mailbox", label: translate("aiflow.connectors.mailbox"), render: (item) => <span className="text-gray-600 dark:text-gray-400">{String(item.mailbox)}</span> },
-            { key: "polling_interval_minutes", label: translate("aiflow.connectors.pollingInterval"), render: (item) => <span className="text-gray-600 dark:text-gray-400">{String(item.polling_interval_minutes)} min</span> },
-            { key: "is_active", label: translate("aiflow.connectors.status"), render: (item) => {
-              const active = item.is_active as boolean;
-              return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${active ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-500"}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-green-500" : "bg-gray-400"}`} />{active ? translate("aiflow.connectors.active") : "Paused"}
-              </span>;
-            }},
-            { key: "actions", label: "Actions", sortable: false, render: (item) => (
-              <div className="flex gap-1">
-                <button onClick={(e) => { e.stopPropagation(); handleTest(String(item.id)); }} disabled={testing === String(item.id)} className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400">{testing === String(item.id) ? "..." : translate("aiflow.connectors.testConnection")}</button>
-                <button onClick={(e) => { e.stopPropagation(); handleFetch(String(item.id)); }} disabled={fetching === String(item.id)} className="rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100 disabled:opacity-50 dark:bg-brand-900/30 dark:text-brand-400">{fetching === String(item.id) ? `${fetchDays}d...` : `${translate("aiflow.connectors.fetchNow")} (${fetchDays}d)`}</button>
-              </div>
-            )},
+            {
+              key: "name",
+              label: translate("aiflow.connectors.name"),
+              render: (item) => (
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                  {String(item.name)}
+                </span>
+              ),
+            },
+            {
+              key: "provider",
+              label: translate("aiflow.connectors.provider"),
+              render: (item) => (
+                <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
+                  {String(item.provider).toUpperCase()}
+                </span>
+              ),
+            },
+            {
+              key: "host",
+              label: translate("aiflow.connectors.host"),
+              render: (item) => {
+                const p = String(item.provider);
+                if (p === "outlook_com")
+                  return (
+                    <span className="text-gray-500 dark:text-gray-400 italic">
+                      local
+                    </span>
+                  );
+                return (
+                  <span className="text-gray-600 dark:text-gray-400">
+                    {String(item.host)}:{String(item.port)}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "mailbox",
+              label: translate("aiflow.connectors.mailbox"),
+              render: (item) => (
+                <span className="text-gray-600 dark:text-gray-400">
+                  {String(item.mailbox)}
+                </span>
+              ),
+            },
+            {
+              key: "polling_interval_minutes",
+              label: translate("aiflow.connectors.pollingInterval"),
+              render: (item) => (
+                <span className="text-gray-600 dark:text-gray-400">
+                  {String(item.polling_interval_minutes)} min
+                </span>
+              ),
+            },
+            {
+              key: "is_active",
+              label: translate("aiflow.connectors.status"),
+              render: (item) => {
+                const active = item.is_active as boolean;
+                return (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${active ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-500"}`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${active ? "bg-green-500" : "bg-gray-400"}`}
+                    />
+                    {active ? translate("aiflow.connectors.active") : "Paused"}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              sortable: false,
+              render: (item) => (
+                <div className="flex gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTest(String(item.id));
+                    }}
+                    disabled={testing === String(item.id)}
+                    className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400"
+                  >
+                    {testing === String(item.id)
+                      ? "..."
+                      : translate("aiflow.connectors.testConnection")}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFetch(String(item.id));
+                    }}
+                    disabled={fetching === String(item.id)}
+                    className="rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100 disabled:opacity-50 dark:bg-brand-900/30 dark:text-brand-400"
+                  >
+                    {fetching === String(item.id)
+                      ? `${fetchDays}d...`
+                      : `${translate("aiflow.connectors.fetchNow")} (${fetchDays}d)`}
+                  </button>
+                </div>
+              ),
+            },
           ]}
         />
       )}
@@ -1103,7 +1804,10 @@ export function ConnectorsTab({ onProcessed }: { onProcessed?: () => void }) {
       {editConnector && (
         <ConnectorFormDialog
           initial={editConnector}
-          onSave={() => { setEditConnector(null); refetch(); }}
+          onSave={() => {
+            setEditConnector(null);
+            refetch();
+          }}
           onClose={() => setEditConnector(null)}
           translate={translate}
         />
@@ -1142,12 +1846,15 @@ export function Emails() {
   const translate = useTranslate();
   const navigate = useNavigate();
   const [refreshKey, setRefreshKey] = useState(0);
-  const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
+  const triggerRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
   const [uploadOpen, setUploadOpen] = useState(false);
 
   // Scan Mailbox state
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<{ status: string; runId: string } | null>(null);
+  const [scanResult, setScanResult] = useState<{
+    status: string;
+    runId: string;
+  } | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
 
   const handleScanMailbox = async () => {
@@ -1158,8 +1865,11 @@ export function Emails() {
       // S106/S107 scan_and_classify endpoint: fetch new emails from the
       // configured IMAP inbox, classify intent with the sklearn+LLM hybrid,
       // optionally route via IntentRoutingPolicy (server-side config).
-      const connectors = await fetchApi<ConnectorItem[]>("GET", "/api/v1/emails/connectors");
-      const active = connectors.filter(c => c.is_active);
+      const connectors = await fetchApi<ConnectorItem[]>(
+        "GET",
+        "/api/v1/emails/connectors",
+      );
+      const active = connectors.filter((c) => c.is_active);
       if (active.length === 0) {
         setScanError(translate("aiflow.emails.noActiveConnector"));
         return;
@@ -1186,7 +1896,10 @@ export function Emails() {
   };
 
   return (
-    <PageLayout titleKey="aiflow.emails.title" subtitleKey="aiflow.emails.detail">
+    <PageLayout
+      titleKey="aiflow.emails.title"
+      subtitleKey="aiflow.emails.detail"
+    >
       {/* Action bar — Scan Mailbox + Upload modal trigger + link to Connectors */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <button
@@ -1194,7 +1907,9 @@ export function Emails() {
           disabled={scanning}
           className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 disabled:opacity-50"
         >
-          {scanning ? translate("aiflow.emails.scanning") : translate("aiflow.emails.scanMailbox")}
+          {scanning
+            ? translate("aiflow.emails.scanning")
+            : translate("aiflow.emails.scanMailbox")}
         </button>
         <button
           onClick={() => setUploadOpen(true)}
@@ -1229,7 +1944,9 @@ export function Emails() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           role="dialog"
           aria-modal="true"
-          onClick={(e) => { if (e.target === e.currentTarget) setUploadOpen(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setUploadOpen(false);
+          }}
         >
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
             <div className="mb-4 flex items-center justify-between">
@@ -1243,7 +1960,11 @@ export function Emails() {
                 {translate("common.action.close") || "Bezaras"}
               </button>
             </div>
-            <UploadTab onProcessed={() => { triggerRefresh(); }} />
+            <UploadTab
+              onProcessed={() => {
+                triggerRefresh();
+              }}
+            />
           </div>
         </div>
       )}
