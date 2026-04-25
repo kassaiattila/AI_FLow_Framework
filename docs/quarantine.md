@@ -35,3 +35,24 @@ _(none)_
 - **Verification:** `pytest tests/unit/services/test_resilience_service.py -v`
   → 5/5 PASS deterministic; the prior `@pytest.mark.xfail` decorator was
   removed.
+
+## Conditional skips (intentional, not flake)
+
+These tests skip themselves unless an environment is provisioned. They
+are NOT flake-quarantine entries — the skip is a feature, not a regression.
+
+### `tests/unit/providers/embedder/test_azure_openai.py::test_azure_openai_embed_real_api`
+
+- **Skip condition:** `AIFLOW_AZURE_OPENAI__ENDPOINT` AND
+  `AIFLOW_AZURE_OPENAI__API_KEY` env vars unset.
+- **Why:** Profile B (Azure OpenAI) live round-trip against the real
+  Azure endpoint. Provisioning + billable Azure credit is operator-level;
+  the test runs only when the operator explicitly enables it.
+- **Tracker ID:** `SS-SKIP-2` (Sprint S retro carry-forward; lifts when
+  Azure credit lands).
+- **Local effect:** `pytest tests/unit/` reports `2379 passed, 1 skipped`
+  on developer workstations + CI without Azure creds. This is the
+  expected steady state, not a regression.
+- **Audit history:** S147 LEPES 1b inventoried this skip on 2026-04-25
+  to reconcile the CLAUDE.md "1 skipped" count with the absent flake
+  registry.
