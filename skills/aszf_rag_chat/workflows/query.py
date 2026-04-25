@@ -18,14 +18,27 @@ import asyncpg
 import structlog
 from skills.aszf_rag_chat.models import Citation, RoleType
 
+from aiflow.core.config import get_settings
 from aiflow.engine.step import step
 from aiflow.engine.workflow import WorkflowBuilder, workflow
 from aiflow.models.backends.litellm_backend import LiteLLMBackend
 from aiflow.models.client import ModelClient
 from aiflow.prompts.manager import PromptManager
+from aiflow.prompts.schema import PromptDefinition
+from aiflow.prompts.workflow import PromptWorkflow
+from aiflow.prompts.workflow_executor import PromptWorkflowExecutor
+from aiflow.prompts.workflow_loader import PromptWorkflowLoader
 from aiflow.vectorstore.embedder import Embedder
 from aiflow.vectorstore.pgvector_store import PgVectorStore
 from aiflow.vectorstore.search import HybridSearchEngine, SearchConfig
+
+# Sprint T / S150 (S141-FU-3): the workflow descriptor name + skill key the
+# executor uses for opt-in resolution. Module-level constants so tests can
+# reference them without recreating the executor.
+WORKFLOW_NAME = "aszf_rag_chain"
+SKILL_NAME = "aszf_rag_chat"
+BASELINE_PERSONA = "baseline"
+
 
 __all__ = [
     "rewrite_query",
@@ -46,8 +59,56 @@ logger = structlog.get_logger(__name__)
 
 _backend = LiteLLMBackend(default_model="openai/gpt-4o-mini")
 _model_client = ModelClient(generation_backend=_backend, embedding_backend=_backend)
-_prompt_manager = PromptManager()
+
+# Sprint T / S150 (S141-FU-3): when AIFLOW_PROMPT_WORKFLOWS__ENABLED=true the
+# local _prompt_manager is built workflow-aware so PromptWorkflowExecutor
+# can resolve aszf_rag_chain. Flag-off keeps the manager in legacy mode and
+# every existing call site is byte-stable.
+_wf_settings = get_settings().prompt_workflows
+_workflow_loader: PromptWorkflowLoader | None = None
+if _wf_settings.enabled:
+    _wf_dir = Path(_wf_settings.workflows_dir)
+    if not _wf_dir.is_absolute():
+        # Repo root = four parents up from this file
+        # (skills/<name>/workflows/query.py).
+        _wf_dir = Path(__file__).resolve().parents[3] / _wf_dir
+    _workflow_loader = PromptWorkflowLoader(_wf_dir)
+    _workflow_loader.register_dir()
+
+_prompt_manager = PromptManager(
+    workflows_enabled=_wf_settings.enabled,
+    workflow_loader=_workflow_loader,
+)
 _prompt_manager.register_yaml_dir(Path(__file__).parent.parent / "prompts")
+
+# Sprint T / S150 — PromptWorkflow opt-in shim. Resolution-only; flag-off
+# default returns ``None`` and the legacy single-prompt path runs unchanged.
+prompt_workflow_executor = PromptWorkflowExecutor(
+    manager=_prompt_manager,
+    settings=_wf_settings,
+)
+
+
+def _resolve_workflow_for_persona(
+    role: str,
+) -> tuple[PromptWorkflow, dict[str, PromptDefinition]] | None:
+    """Resolve ``aszf_rag_chain`` for the baseline persona only.
+
+    Expert / mentor personas keep the legacy single-prompt path on every
+    flag state (out of scope per Sprint T plan §6 R3). Returns ``None``
+    when:
+
+    * ``role`` is not ``BASELINE_PERSONA``;
+    * the workflow shim is off for this skill (flag-off or skill not in CSV);
+    * the descriptor / nested prompts cannot be resolved.
+
+    Callers fall back to the legacy ``_prompt_manager.get(...)`` path on
+    a ``None`` return.
+    """
+    if role != BASELINE_PERSONA:
+        return None
+    return prompt_workflow_executor.resolve_for_skill(SKILL_NAME, WORKFLOW_NAME)
+
 
 import os as _os
 
@@ -104,11 +165,20 @@ async def rewrite_query(data: dict) -> dict:
     """
     question = data.get("question", "")
     language = data.get("language", "hu")
+    role = data.get("role", RoleType.BASELINE)
 
     if not question.strip():
         raise ValueError("Question cannot be empty")
 
-    prompt = _prompt_manager.get("aszf-rag/query_rewriter")
+    # Sprint T / S150 — baseline persona resolves rewrite_query through the
+    # aszf_rag_chain workflow when the shim is on; every other persona keeps
+    # the legacy lookup path byte-stable.
+    resolved = _resolve_workflow_for_persona(role)
+    if resolved is not None:
+        _, prompt_map = resolved
+        prompt = prompt_map.get("rewrite_query") or _prompt_manager.get("aszf-rag/query_rewriter")
+    else:
+        prompt = _prompt_manager.get("aszf-rag/query_rewriter")
     messages = prompt.compile(
         variables={
             "question": question,
@@ -309,10 +379,17 @@ async def generate_answer(data: dict) -> dict:
     role = data.get("role", RoleType.BASELINE)
     conversation_history = data.get("conversation_history", [])
 
-    # Load role-specific system prompt
+    # Load role-specific system prompt. Sprint T / S150 — baseline persona
+    # may resolve system_baseline through the aszf_rag_chain workflow when
+    # the shim is on; expert/mentor stay on the legacy single-prompt path.
     prompt_name = _ROLE_PROMPT_MAP.get(role, _ROLE_PROMPT_MAP[RoleType.BASELINE])
     try:
-        system_prompt = _prompt_manager.get(prompt_name)
+        resolved = _resolve_workflow_for_persona(role)
+        if resolved is not None:
+            _, prompt_map = resolved
+            system_prompt = prompt_map.get("system_baseline") or _prompt_manager.get(prompt_name)
+        else:
+            system_prompt = _prompt_manager.get(prompt_name)
         system_messages = system_prompt.compile(
             variables={
                 "context": context,
@@ -422,8 +499,19 @@ async def extract_citations(data: dict) -> dict:
     context = data.get("context", "")
     sources = data.get("sources", [])
     search_results = data.get("search_results", [])
+    role = data.get("role", RoleType.BASELINE)
 
-    prompt = _prompt_manager.get("aszf-rag/citation_extractor")
+    # Sprint T / S150 — baseline persona resolves extract_citations through
+    # the aszf_rag_chain workflow when the shim is on; expert/mentor stay on
+    # the legacy lookup path.
+    resolved = _resolve_workflow_for_persona(role)
+    if resolved is not None:
+        _, prompt_map = resolved
+        prompt = prompt_map.get("extract_citations") or _prompt_manager.get(
+            "aszf-rag/citation_extractor"
+        )
+    else:
+        prompt = _prompt_manager.get("aszf-rag/citation_extractor")
     messages = prompt.compile(
         variables={
             "answer": answer,
