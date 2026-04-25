@@ -84,6 +84,20 @@ jobs:
         env:
           AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
 
+      # Sprint S / S145 (SS-SKIP-1): cache BAAI/bge-m3 weights so the
+      # 1024-dim integration tests un-skip. Cache key is content-hashed
+      # against the bootstrap script — bumping the script forces a refetch.
+      - name: Cache BGE-M3 weights
+        id: bge-m3-cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/models/bge-m3
+          key: bge-m3-${{ runner.os }}-${{ hashFiles('scripts/bootstrap_bge_m3.py') }}
+
+      - name: Bootstrap BGE-M3 weights (on cache miss)
+        if: steps.bge-m3-cache.outputs.cache-hit != 'true'
+        run: .venv/bin/python scripts/bootstrap_bge_m3.py --cache-dir .cache/models/bge-m3
+
       - name: Run integration tests
         run: |
           .venv/bin/pytest tests/integration/ -v \
@@ -91,6 +105,7 @@ jobs:
         env:
           AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
           AIFLOW_REDIS__URL: redis://localhost:6379/1
+          AIFLOW_BGE_M3__CACHE_FOLDER: .cache/models/bge-m3
 
       - name: Upload results
         if: always()

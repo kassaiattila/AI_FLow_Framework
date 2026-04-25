@@ -9,11 +9,17 @@ the script exits immediately without re-downloading.
 
 Usage:
     uv run python scripts/bootstrap_bge_m3.py
+    uv run python scripts/bootstrap_bge_m3.py --cache-dir /custom/path
     AIFLOW_BGE_M3__CACHE_FOLDER=/custom/path uv run python scripts/bootstrap_bge_m3.py
+
+Argv `--cache-dir` wins over the env var. Sprint S / S145 (SS-SKIP-1)
+added the argv to give CI a clean way to point at `actions/cache@v4`
+restores without polluting the test process env.
 """
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import time
@@ -30,10 +36,24 @@ def _cache_has_model(cache_dir: Path) -> bool:
     return any("bge-m3" in str(h).lower() or "BAAI" in str(h) for h in hits)
 
 
-def main() -> int:
-    model_name = os.getenv("AIFLOW_BGE_M3__MODEL_NAME", DEFAULT_MODEL_NAME)
+def _resolve_cache_dir(argv_cache_dir: str | None) -> Path:
+    if argv_cache_dir:
+        return Path(argv_cache_dir)
     cache_env = os.getenv("AIFLOW_BGE_M3__CACHE_FOLDER")
-    cache_dir = Path(cache_env) if cache_env else DEFAULT_CACHE
+    return Path(cache_env) if cache_env else DEFAULT_CACHE
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Bootstrap BAAI/bge-m3 weight cache.")
+    parser.add_argument(
+        "--cache-dir",
+        default=None,
+        help="Override the cache directory. Wins over AIFLOW_BGE_M3__CACHE_FOLDER env.",
+    )
+    args = parser.parse_args(argv)
+
+    model_name = os.getenv("AIFLOW_BGE_M3__MODEL_NAME", DEFAULT_MODEL_NAME)
+    cache_dir = _resolve_cache_dir(args.cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     if _cache_has_model(cache_dir):

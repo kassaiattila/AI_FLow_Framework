@@ -1,0 +1,88 @@
+{
+  "version": "s145.1",
+  "description": "Sprint S / S145 (SS-FU-3) — UC2 RAG nightly MRR@5 query set. HU questions sourced from the existing aszf_rag_chat operator collection. expected_doc_titles match RAGEngineService.query() QueryResult.sources[i].document_title.",
+  "language": "hu",
+  "target_collection": "aszf_rag_chat",
+  "queries": [
+    {
+      "question": "Milyen szerzodes felmondasi szabalyok vonatkoznak a B2B ASZF-re?",
+      "expected_doc_titles": ["ASZF B2B - Felmondas", "ASZF B2B - Szerzodes megszunes"]
+    },
+    {
+      "question": "Mennyi a kesedelmi kamat merteke fizetesi kesedelm eseten?",
+      "expected_doc_titles": ["ASZF Fizetesi feltetelek", "Kesedelem es kamat"]
+    },
+    {
+      "question": "Hogyan kell kezelni a vis maior helyzetet a szerzodes alapjan?",
+      "expected_doc_titles": ["ASZF Vis maior", "Felelosseg korlatozasa"]
+    },
+    {
+      "question": "Mik a szavatossagi es jotallasi felteteleink?",
+      "expected_doc_titles": ["ASZF Szavatossag", "Jotallasi feltetelek"]
+    },
+    {
+      "question": "Mi a szemelyes adatok kezelesenek jogalapja?",
+      "expected_doc_titles": ["Adatkezelesi tajekoztato", "GDPR megfeleles"]
+    },
+    {
+      "question": "Hogyan ervenyesithetek a panaszomat fogyasztokent?",
+      "expected_doc_titles": ["Panaszkezelesi szabalyzat", "Fogyasztoi jogervenyesites"]
+    },
+    {
+      "question": "Mikor allnak el a vasarlasi jogom 14 napjan belul?",
+      "expected_doc_titles": ["Elallasi jog", "Fogyasztoi jogervenyesites"]
+    },
+    {
+      "question": "Milyen titoktartasi kotelezettsegek vonatkoznak a felekre?",
+      "expected_doc_titles": ["ASZF Titoktartas", "Bizalmas informaciok kezelesenek szabalyai"]
+    },
+    {
+      "question": "Hogyan modosithato a szerzodes a szerzodes idotartama alatt?",
+      "expected_doc_titles": ["ASZF Szerzodes modositas", "Szerzodes feltetelek"]
+    },
+    {
+      "question": "Milyen biztositekokat kerunk a Megrendelotol nagy ertek eseten?",
+      "expected_doc_titles": ["ASZF Biztositek nyujtas", "Penzugyi feltetelek"]
+    },
+    {
+      "question": "Mi a szallitasi hatarido es a kesese eseten alkalmazott kotbér?",
+      "expected_doc_titles": ["Szallitasi feltetelek", "Kotber szabalyzat"]
+    },
+    {
+      "question": "Hogyan rendelheto meg uj szolgaltatas online?",
+      "expected_doc_titles": ["Megrendelesi folyamat", "Webshop hasznalata"]
+    },
+    {
+      "question": "Mi tortenik szellemi termek megsertese eseten?",
+      "expected_doc_titles": ["Szellemi alkotasok joga", "ASZF Iparjogvedelem"]
+    },
+    {
+      "question": "Mi a teljesitesi igazolas elfogadasanak menete?",
+      "expected_doc_titles": ["Teljesitesi igazolas", "Atadas-atvetel folyamata"]
+    },
+    {
+      "question": "Hogyan szamlazunk havidijas elofizetes eseten?",
+      "expected_doc_titles": ["Szamlazasi rend", "Havi elszamolas szabalyai"]
+    },
+    {
+      "question": "Mi a SLA garantalt rendelkezesre allas?",
+      "expected_doc_titles": ["SLA megallapodas", "Rendelkezesre allasi szint"]
+    },
+    {
+      "question": "Mit tartalmaz az adatfeldolgozasi szerzodesunk?",
+      "expected_doc_titles": ["Adatfeldolgozoi szerzodes", "GDPR megfeleles"]
+    },
+    {
+      "question": "Hogyan tudom torolni a fiokomat?",
+      "expected_doc_titles": ["Fiok torles", "Adatkezelesi tajekoztato"]
+    },
+    {
+      "question": "Mik a hozzaferest szabalyozo authentikacios kovetelmenyek?",
+      "expected_doc_titles": ["Hozzaferes szabalyzata", "IT biztonsagi politika"]
+    },
+    {
+      "question": "Milyen export korlatozasok vonatkoznak a megoldasra?",
+      "expected_doc_titles": ["Export szabalyok", "Nemzetkozi szallitas"]
+    }
+  ]
+}
