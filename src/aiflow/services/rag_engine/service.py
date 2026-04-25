@@ -19,9 +19,54 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from aiflow.core.errors import AIFlowError
 from aiflow.services.base import BaseService, ServiceConfig
 
-__all__ = ["RAGEngineConfig", "RAGEngineService"]
+__all__ = ["RAGEngineConfig", "RAGEngineService", "UnknownEmbedderProfile"]
+
+
+class UnknownEmbedderProfile(AIFlowError):  # noqa: N818 — semantic name matches log/API surface
+    """Raised when a collection references an ``embedder_profile_id`` that
+    no EmbedderProvider class is registered for.
+
+    Sprint S / S143 — query-path ProviderRegistry resolver. Configuration
+    error, not retryable (``is_transient=False``).
+    """
+
+    error_code = "UNKNOWN_EMBEDDER_PROFILE"
+    http_status = 500
+    is_transient = False
+
+
+class _QueryEmbedderAdapter:
+    """Adapts an EmbedderProvider instance to the ``embed_query`` surface
+    expected by ``RAGEngineService.query()``.
+
+    The legacy ``Embedder`` on ``self._embedder`` already exposes
+    ``async embed_query(text) -> list[float]``. New provider-registry
+    embedders only expose ``async embed(list[str]) -> list[list[float]]``.
+    This adapter picks the first vector from a single-element batch so
+    the caller can treat both code paths uniformly.
+    """
+
+    __slots__ = ("_provider",)
+
+    def __init__(self, provider: Any) -> None:
+        self._provider = provider
+
+    @property
+    def embedding_dim(self) -> int:
+        return int(self._provider.embedding_dim)
+
+    @property
+    def model_name(self) -> str:
+        return str(self._provider.model_name)
+
+    async def embed_query(self, query: str, *, model: str | None = None) -> list[float]:
+        # ``model`` is ignored — the provider is pinned to its configured model.
+        vectors = await self._provider.embed([query])
+        return list(vectors[0]) if vectors else []
+
 
 logger = structlog.get_logger(__name__)
 
@@ -64,6 +109,8 @@ class CollectionInfo(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
     created_at: str | None = None
     updated_at: str | None = None
+    tenant_id: str = "default"
+    embedder_profile_id: str | None = None
 
 
 class IngestionResult(BaseModel):
@@ -277,7 +324,7 @@ class RAGEngineService(BaseService):
                 text("""
                     SELECT id, name, description, language, embedding_model,
                            document_count, chunk_count, config, created_at, updated_at,
-                           embedding_dim
+                           embedding_dim, tenant_id, embedder_profile_id
                     FROM rag_collections
                     ORDER BY created_at DESC
                 """),
@@ -297,6 +344,8 @@ class RAGEngineService(BaseService):
                 created_at=r[8].isoformat() if r[8] else None,
                 updated_at=r[9].isoformat() if r[9] else None,
                 embedding_dim=r[10] if r[10] is not None else 1536,
+                tenant_id=(r[11] if len(r) > 11 and r[11] else "default"),
+                embedder_profile_id=(r[12] if len(r) > 12 else None),
             )
             for r in rows
         ]
@@ -308,7 +357,7 @@ class RAGEngineService(BaseService):
                 text("""
                     SELECT id, name, description, language, embedding_model,
                            document_count, chunk_count, config, created_at, updated_at,
-                           embedding_dim
+                           embedding_dim, tenant_id, embedder_profile_id
                     FROM rag_collections WHERE id = :id
                 """),
                 {"id": collection_id},
@@ -329,6 +378,8 @@ class RAGEngineService(BaseService):
             created_at=r[8].isoformat() if r[8] else None,
             updated_at=r[9].isoformat() if r[9] else None,
             embedding_dim=r[10] if r[10] is not None else 1536,
+            tenant_id=(r[11] if len(r) > 11 and r[11] else "default"),
+            embedder_profile_id=(r[12] if len(r) > 12 else None),
         )
 
     async def update_collection(
@@ -776,6 +827,48 @@ class RAGEngineService(BaseService):
     # Query
     # -----------------------------------------------------------------------
 
+    def _resolve_query_embedder(self, coll: CollectionInfo) -> Any:
+        """Pick the embedder to use at query time for ``coll``.
+
+        Sprint S / S143 — closes Sprint J FU-1. Decision tree:
+
+        * ``coll.embedder_profile_id`` is NULL → return ``self._embedder``
+          (legacy ``Embedder`` instance from the constructor). Every
+          pre-existing 1536-dim collection lands here, so behaviour is
+          byte-for-byte identical to the pre-S143 code path.
+        * Set to a known provider alias (``bge_m3``, ``azure_openai``,
+          ``openai``) → instantiate that provider class and wrap it in
+          ``_QueryEmbedderAdapter`` to expose the ``embed_query`` surface.
+        * Set to anything else → raise ``UnknownEmbedderProfile``. The
+          caller converts that into a user-facing ``QueryResult`` instead
+          of propagating; tests assert the error is raised from the
+          resolver.
+        """
+        if coll.embedder_profile_id is None:
+            return self._embedder
+
+        from aiflow.providers.embedder import (
+            AzureOpenAIEmbedder,
+            BGEM3Embedder,
+            OpenAIEmbedder,
+        )
+
+        aliases: dict[str, type[Any]] = {
+            BGEM3Embedder.PROVIDER_NAME: BGEM3Embedder,
+            AzureOpenAIEmbedder.PROVIDER_NAME: AzureOpenAIEmbedder,
+            OpenAIEmbedder.PROVIDER_NAME: OpenAIEmbedder,
+        }
+
+        provider_cls = aliases.get(coll.embedder_profile_id)
+        if provider_cls is None:
+            raise UnknownEmbedderProfile(
+                f"embedder_profile_id='{coll.embedder_profile_id}' is not registered. "
+                f"Known profiles: {sorted(aliases.keys())}"
+            )
+
+        provider = provider_cls()
+        return _QueryEmbedderAdapter(provider)
+
     async def query(
         self,
         collection_id: str,
@@ -814,8 +907,28 @@ class RAGEngineService(BaseService):
                 response_time_ms=elapsed,
             )
 
+        # Sprint S / S143 — resolve the embedder via ProviderRegistry when the
+        # collection pins an ``embedder_profile_id``. NULL → legacy self._embedder
+        # so every pre-existing 1536-dim collection keeps its exact behaviour.
+        try:
+            query_embedder = self._resolve_query_embedder(coll)
+        except UnknownEmbedderProfile as exc:
+            elapsed = (time.time() - start) * 1000
+            logger.error(
+                "query_failed_unknown_embedder_profile",
+                collection_id=collection_id,
+                embedder_profile_id=coll.embedder_profile_id,
+                error=str(exc),
+            )
+            return QueryResult(
+                query_id=query_id,
+                question=question,
+                answer=f"Unknown embedder profile '{coll.embedder_profile_id}'. Configure it via ProviderRegistry or clear the collection's embedder_profile_id.",
+                response_time_ms=elapsed,
+            )
+
         # Embed query
-        query_embedding = await self._embedder.embed_query(question)
+        query_embedding = await query_embedder.embed_query(question)
 
         # Hybrid search
         results = await self._search_engine.search(
