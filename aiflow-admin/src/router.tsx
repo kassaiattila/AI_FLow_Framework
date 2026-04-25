@@ -17,6 +17,7 @@ import { EmailDetail } from "./pages-new/EmailDetail";
 import { EmailConnectors } from "./pages-new/EmailConnectors";
 import { IntentRules } from "./pages-new/IntentRules";
 import { Rag as RagNew } from "./pages-new/Rag";
+import { RagCollections } from "./pages-new/RagCollections";
 import { RagDetail } from "./pages-new/RagDetail";
 // J4 archived pages — redirected to dashboard (Sprint C)
 import { Reviews as ReviewsNew } from "./pages-new/Reviews";
@@ -80,7 +81,10 @@ export const router = createHashRouter([
       // Workflows route MUST come before the prompts/* catch-all.
       { path: "prompts/workflows", element: <PromptWorkflows /> },
       { path: "prompts/*", element: <PromptDetail /> },
-      { path: "document-upload", element: <Navigate to="/documents" replace /> },
+      {
+        path: "document-upload",
+        element: <Navigate to="/documents" replace />,
+      },
       { path: "emails", element: <EmailsNew /> },
       { path: "emails/connectors", element: <EmailConnectors /> },
       { path: "emails/intent-rules", element: <IntentRules /> },
@@ -91,7 +95,7 @@ export const router = createHashRouter([
 
       // AI Services
       { path: "rag", element: <RagNew /> },
-      { path: "rag/collections", element: <Navigate to="/rag" replace /> },
+      { path: "rag/collections", element: <RagCollections /> },
       { path: "rag/collections/:id", element: <RagDetail /> },
       { path: "rag/:id", element: <RagDetail /> },
       { path: "rag-chat", element: <Navigate to="/rag" replace /> },

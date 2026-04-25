@@ -1,175 +1,287 @@
-# AIFlow — Session 143 Prompt (Sprint S S143 — Sprint S kickoff + RagEngineService.query() refactor to ProviderRegistry + rag_collections additive migration)
+# AIFlow — Session 144 Prompt (Sprint S S144 — admin UI `/rag/collections` + per-tenant collection list + set-profile mutation)
 
-> **Datum:** 2026-05-15
-> **Branch:** `feature/s-s143-rag-query-registry` (cut from `main` @ `ffd7618` = Sprint R S142 squash).
-> **HEAD (parent):** Sprint R close (PR #33, tag `v1.5.1`).
+> **Datum:** 2026-04-25
+> **Branch:** `feature/s-s144-rag-collections-admin-ui` (cut from `main` @ `95ec89e` = Sprint S S143 squash, PR #34).
+> **HEAD (parent):** S143 squash-merge on `main` (PR #34, 2026-04-25 03:43 UTC).
 > **Port:** API 8102 | UI 5173
-> **Elozo session:** S142 — Sprint R close. PromptWorkflow foundation shipped (model + loader + admin UI + executor scaffold + 3 descriptors), flag-off, 0 skill migrations (deferred to S141-FU-1/2/3).
-> **Terv:** `01_PLAN/114_CAPABILITY_ROADMAP_Q_R_S.md` §4 Sprint S — Functional vector DB teljes kör.
-> **Session tipus:** Sprint kickoff — plan doc + Alembic 046 + query-path ProviderRegistry refactor + integration test a 1024-dim BGE-M3 queryability-re.
+> **Elozo session:** S143 — `RAGEngineService.query()` ProviderRegistry refactor + Alembic 046 `rag_collections.tenant_id` + `embedder_profile_id`. Sprint J FU-1 zarva (1024-dim BGE-M3 queryable real PG-n + real BGE-M3 weights-szel). 2347 → 2361 unit (+14), 4 uj integration zold, 0 skill kod modositas, NULL-fallback backward-compat — flag-mentes.
+> **Terv:** `01_PLAN/116_SPRINT_S_FUNCTIONAL_VECTOR_DB_PLAN.md` §2 S144 + `01_PLAN/114_CAPABILITY_ROADMAP_Q_R_S.md` §4.
+> **Session tipus:** UI + API. **7 HARD GATE** kotelezo (`aiflow-ui-pipeline` skill): `ui-journey → ui-api-endpoint → ui-design → ui-page → component reuse check → live-test → CI`.
 
 ---
 
 ## 1. MISSION
 
-Zárd le a Sprint J legrégebbi carry-forwardját (FU-1 query-path provider registry). A `RagEngineService.query()` ma hardcoded `self._embedder`-t használ → **1024-dim BGE-M3 kollekciók nem queryable-ek** (csak ingest működik). Sprint S S143 célja:
+Tedd lathatova az S143-ban bevezetett `tenant_id` + `embedder_profile_id` osztott vector DB modellet az admin UI-ban. A mai `rag_collections` tabla nem queryelheto a UI-bol szervezett listaval, igy egy operator nem latja, hogy melyik kollekcio melyik tenant-hoz tartozik, sem azt, hogy melyik embedder profil-t hasznalja query-koz. S144 ezt megoldja:
 
-1. **Alembic 046** — `rag_collections` additív bővítés: `tenant_id TEXT` (default `'default'`) + `embedder_profile_id TEXT NULL`.
-2. **`RagEngineService.query()` refactor** — kollekcióra regisztrált `embedder_profile_id` → `ProviderRegistry.get_embedder(profile_id)` → `embed_query`. Backward-compat: ha `embedder_profile_id IS NULL` → fallback a jelenlegi `self._embedder`-re (nulla változás a meglévő 1536-dim kollekciókra).
-3. **Integration test real Postgres + real BGE-M3 Profile A** — create 1024-dim collection → ingest 3 chunk → `query()` → top-k visszatér.
-4. **Plan doc** `01_PLAN/116_SPRINT_S_FUNCTIONAL_VECTOR_DB_PLAN.md` — Sprint S teljes session-terv (S143 → S146), success metrics, STOP conditions, rollback.
+1. **3 endpoint** a `/api/v1/rag/collections` router alatt:
+   - `GET /api/v1/rag/collections?tenant_id=<x>` — lapozhato lista (tenant-szurt vagy osszes), tartalmazza: `id`, `name`, `tenant_id`, `embedder_profile_id`, `embedding_dim`, `chunk_count`, `document_count`, `updated_at`.
+   - `GET /api/v1/rag/collections/{id}` — egyetlen kollekcio reszletes nezete (mint a lista row, plusz `description`, `language`, `embedding_model`, `created_at`, `config`).
+   - `PATCH /api/v1/rag/collections/{id}/embedder-profile` — body: `{"embedder_profile_id": "bge_m3" | "azure_openai" | "openai" | null}`. Validalas: ha a kollekcio `chunk_count > 0` ES `embedder_profile_id` valtozasa **dim-mismatch**-et okozna (pl. 1536 → bge_m3 1024) → HTTP 409 `DimensionMismatch` (nincs DB modositas). A jelenlegi `RAGEngineService` nem ad ehhez metodust → vegy hozza `set_embedder_profile()` szervizmetodust.
+2. **Admin UI** `/rag/collections` page (`aiflow-admin/src/pages/rag-collections/`):
+   - Tabla: oszlopok `Name`, `Tenant`, `Embedder Profile` (badge: `bge_m3` zold, `azure_openai` kek, `openai` szurke, `NULL` = "Default" sarga), `Embedding Dim`, `Chunks`, `Updated`.
+   - Per-tenant filter (chip dropdown) + `?tenant=` deep-link (Sprint N S123 budget page mintajara).
+   - Detail pane (modal vagy oldal-panel): tartalmazza a "Set embedder profile" select dropdown-ot + `Save` gomb a `PATCH` endpoint-tal. Sikeres save → toast + lista refresh.
+   - Empty state: "No collections yet — ingest documents via the RAG Engine API."
+   - EN + HU locale (`aiflow-admin/src/locales/{en,hu}/rag-collections.json`).
+3. **1 Playwright E2E live-stack-en** (no route mock — Sprint Q S136 / Sprint N S123 mintaja): seedel 2 kollekciot (kulonbozo `tenant_id`-vel + kulonbozo `embedder_profile_id`-vel), a UI lista mindketto sort latja, a tenant filter szuri, a detail "Set profile" actiot tegezi, a backend valtozas megjelenik a listaban hard-reload utan.
+4. **+8 unit + +3 router integration teszt**.
 
-S143 **nem** érinti az admin UI-t (S144) és a nightly MRR mérést (S145). S143 **nem** törli a hardcoded fallback path-t — az marad addig, amíg minden meglévő kollekcióra be nem regisztráltunk egy profilt (migrációs adat, későbbi sprint).
+S144 **nem** modositja az S143-ban szallitott `RAGEngineService.query()` resolver-t. **Nem ad** uj Alembic migraciot (S143 046 head marad). **Nem migral** mas skill-t a ProviderRegistry profile-ra (az S141-FU-1/2/3 path).
 
 ---
 
 ## 2. KONTEXTUS
 
-### Sprint J carry-forward ami ma záródik
+### S143 mit hagyott S144-nek
 
-Sprint J (v1.4.5) bevezette a `ProviderRegistry` 5-slot-os ABC-t: parser, classifier, extractor, **embedder (S100)**, **chunker (S101)**. Az **ingest path** (`RagEngineService.ingest()`) használja a registry-t + `PolicyEngine.pick_embedder()`-t. A **query path** (`RagEngineService.query()`, `service.py:779`) viszont közvetlenül a konstruktorban injektált `self._embedder`-re hív → egyetlen globális embedder-dim van a query oldalon.
+S143 PR #34 (`95ec89e`) ezeket szallitotta:
+- `rag_collections.tenant_id` (NOT NULL, default `'default'`) + `embedder_profile_id` (nullable) oszlop.
+- `CollectionInfo.tenant_id` + `embedder_profile_id` Pydantic mezo.
+- `list_collections` + `get_collection` SELECT olvas tenant + profile-t.
+- `_resolve_query_embedder` adapter NULL-fallback-kel.
 
-Sprint J retro (`docs/sprint_j_retro.md`) explicit carry: *"query() refactor to provider registry (1024-dim collections not queryable yet — Sprint K S105)"* — eddig egyik sprint sem vette fel, mert az intent + extraction + cost guardrail + vault + budget + PromptWorkflow mind prioritásosabbak voltak. Most nyitva van az ablak.
+**Hianyzik az operator-felulet**: nem lathato sehol a UI-bol, hogy melyik kollekcio mit hasznal query-kor. S144 ezt zarja le.
 
-### Miért additív migráció
+### Miert csak GET + PATCH (nincs CREATE / DELETE)
 
-`rag_collections` tábla létezik (013 alap + 018 F3 bővítés + 042 `embedding_dim`). A 046 két nullable oszlopot ad (`tenant_id` server default `'default'`, `embedder_profile_id` NULL). Unique constraint **nem változik** — `(tenant_id, name)` unique-ot S144 (admin UI) fogja felvenni, amikor tényleges multi-tenant kollekció-lista készül. S143 pusztán a **query-path unblock**.
+- `create_collection` ma a `RAGEngineService.create_collection(name, customer, ...)` szervizmetodus + a `customer` mezo NOT NULL — refactor (SS-FU-5) kulon kerdes. **S144 hatokoren kivul**.
+- `delete_collection` szinten szervizmetodus de operator-felulet kockazatos (pgvector chunk drop). **Sprint S vegere ha indokolt, S145+ FU**.
+- Admin UI csak az **olvasas + profile-attach** muveletet adja (a fo S144 deliverable: visibility + profile-management). Egyeb CRUD kesobbi sprintbe.
 
-### Per-skill code változás
+### Carry forward
 
-`aszf_rag_chat` skill `workflows/query.py`-je változatlanul hívja a `RagEngineService.query()`-t. Ha a skill által használt kollekcióhoz nincs `embedder_profile_id` regisztrálva → fallback a régi viselkedésre → Sprint J UC2 MRR@5 gate (≥ 0.55) **nem regresszál**.
+| ID | Eredet | Itt zarjuk-e |
+|---|---|---|
+| SS-FU-1 (`create_collection` tenant-aware arg) | S143 PR | **NEM** — kulon refactor, `customer` deprecation szukseges |
+| SS-FU-2 (`/rag/collections` admin UI) | S143 PR | **IGEN** — ez S144 fo deliverable |
+| SS-FU-3 (nightly MRR@5) | S143 PR | **NEM** — S145 |
+| SS-FU-4 (`(tenant_id, name)` unique) | S143 PR | **OPCIONALIS** — ha PATCH endpoint mukodik tenant-multiplicitassal, akkor most landol egy **additiv** Alembic 047. Ha PATCH csak `embedder_profile_id`-t bantja (nev marad), akkor halaszthato. **Default: halasztas S145-re**, `set_embedder_profile()` ne valtozzon nev / tenant. |
+| SS-FU-5 (`customer` deprecation) | S143 PR | **NEM** — kulon |
+| SS-SKIP-1 (BGE-M3 weight CI preload) | S143 plan §8 | **NEM** — S145 |
+| SS-SKIP-2 (Profile B Azure live MRR) | S143 plan §8 | **NEM** — S145 |
 
 ---
 
 ## 3. ELOFELTETELEK
 
 ```bash
-git checkout -b feature/s-s143-rag-query-registry ffd7618
-git branch --show-current                       # feature/s-s143-rag-query-registry
-git log --oneline -3                            # ffd7618 Sprint R S142 tip
-PYTHONPATH="src;." .venv/Scripts/python.exe -m pytest tests/unit/ -q --no-cov 2>&1 | tail -1   # 2347 pass baseline
-docker compose ps                               # postgres + redis healthy (5433 / 6379)
-alembic current                                 # head: 045 (tenant_budgets)
+git checkout main
+git pull --ff-only origin main                     # 95ec89e Sprint S S143 tip
+git checkout -b feature/s-s144-rag-collections-admin-ui
+git log --oneline -3                                # 95ec89e tip
+PYTHONPATH="src;." .venv/Scripts/python.exe -m pytest tests/unit/ -q --no-cov 2>&1 | tail -1   # 2361 baseline
+docker compose ps                                   # postgres 5433 + redis 6379 healthy
+PYTHONPATH="src;." .venv/Scripts/python.exe -m alembic current   # head: 046
+cd aiflow-admin && npx tsc --noEmit && cd ..       # FE TS clean baseline
 ```
 
 Stop, ha:
-- Az unit baseline ≠ 2347 — először záródjon le a másik branch.
-- `alembic current` ≠ 045 — más migráció van queue-ban.
+- Unit baseline ≠ 2361 — masik branch nyitva.
+- Alembic current ≠ 046 — S143 nem alkalmazva.
+- `aiflow-admin` TS dirty — meglevo regresszio elobb.
 
 ---
 
 ## 4. FELADATOK
 
-### LEPES 1 — Plan doc
-
-Írd meg `01_PLAN/116_SPRINT_S_FUNCTIONAL_VECTOR_DB_PLAN.md`-t az előzményt követve (115 Sprint Q mintájára). Tartalma:
-
-- **Scope**: Sprint S = UC2 RAG záró sprint. 4 session (S143 query-registry + 046, S144 admin UI `/rag/collections` + per-tenant lista, S145 nightly MRR@5 scheduled job + dashboard, S146 close + tag `v1.5.2`).
-- **Success metrics**:
-  - 1024-dim BGE-M3 Profile A kollekció end-to-end queryable (integration test).
-  - MRR@5 Profile A ≥ 0.55 **változatlan** (Sprint J retrieval baseline).
-  - MRR@5 Profile B (Azure OpenAI, ha credit elérhető) ≥ 0.55 (mérés, nem gate).
-  - 0 UC2 golden-path regresszió (`aszf_rag_chat` workflow zöld).
-  - +3 integration teszt (query-path registry / 1024-dim queryable / fallback viselkedés).
-  - +8..12 unit teszt (query-registry dispatch + NULL fallback + unknown profile error).
-- **STOP conditions** (HARD): UC2 MRR@5 regresszió < 0.55 → halt és rollback. ProviderRegistry embedder slot instabilitás → halt.
-- **Rollback**: 046 additív — `alembic downgrade -1` elég; `query()` refactor flag-nélküli, de NULL fallback garantálja a visszafelé kompatibilitást → revert egyetlen commit.
-
-### LEPES 2 — Alembic 046
-
-`alembic/versions/046_rag_collections_tenant_embedder_profile.py`:
-
-- `op.add_column("rag_collections", sa.Column("tenant_id", sa.Text(), nullable=False, server_default=sa.text("'default'")))`
-- `op.add_column("rag_collections", sa.Column("embedder_profile_id", sa.Text(), nullable=True))`
-- `op.create_index("ix_rag_collections_tenant_id", "rag_collections", ["tenant_id"])`
-- Downgrade: drop index + 2 column.
-
-Futtatás: `alembic upgrade head` → 046. Rollback-ellenőrzés: `alembic downgrade -1` → vissza 045-re → `alembic upgrade head` → újra 046. 2 integration teszt `tests/integration/alembic/test_046_rag_collections.py`: (a) fresh upgrade + columns present, (b) downgrade + columns absent.
-
-### LEPES 3 — Query-path ProviderRegistry refactor
+### LEPES 1 — Service mutation method
 
 `src/aiflow/services/rag_engine/service.py`:
 
-1. A `Collection` model + `get_collection()` read-path vegye fel az `embedder_profile_id`-t és a `tenant_id`-t.
-2. A `query()` elején:
-   ```python
-   embedder = await self._resolve_query_embedder(coll)
+- Add `async def set_embedder_profile(self, collection_id: str, embedder_profile_id: str | None) -> CollectionInfo | None`:
+  - Validalas:
+    - `coll = await self.get_collection(collection_id)` — None → return None.
+    - Ha `embedder_profile_id` not in `{None, "bge_m3", "azure_openai", "openai"}` → raise `UnknownEmbedderProfile` (S143 errorklass reuse).
+    - **Dim-mismatch guard**: ha `coll.chunk_count > 0`:
+      - NULL → uj profile esete: csak akkor engedj, ha az uj provider `embedding_dim == coll.embedding_dim`. Bejarhato csak instantialassal — wrap try/except, error → raise `DimensionMismatch` (uj `AIFlowError` subclass, `is_transient=False`, HTTP 409).
+      - profile → NULL: tilos ha `coll.embedding_dim != 1536` (a legacy `self._embedder` mindig 1536-dim). Ugyanaz a `DimensionMismatch`.
+      - profile → masik profile: hasonlo ellenorzes az uj provider dim-jen.
+    - Ha `chunk_count == 0` → engedj barmelyiket (ures kollekciora barmilyen profile attach-elhetetlen-mentes). `coll.embedding_dim` is frissuljon az uj provider dim-jere (mintaja: `_update_collection_embedding_dim`).
+  - SQL: `UPDATE rag_collections SET embedder_profile_id = :p, updated_at = NOW() WHERE id = :id`.
+  - Visszateres: `await self.get_collection(collection_id)` (frissitett snapshot).
+- Add `DimensionMismatch(AIFlowError)` `# noqa: N818` mintajara `UnknownEmbedderProfile` mintaval. `error_code = "RAG_DIM_MISMATCH"`, `http_status = 409`.
+
+Unit teszt `tests/unit/services/test_rag_engine_set_embedder_profile.py` (8 db):
+- collection_id ismeretlen → None.
+- ismeretlen profile → `UnknownEmbedderProfile`.
+- chunk_count == 0 + uj profile → `embedding_dim` frissul + visszater a frissitett `CollectionInfo`.
+- chunk_count > 0 + dim-equal profile → siker.
+- chunk_count > 0 + dim-mismatch (1536 → bge_m3 1024) → `DimensionMismatch`.
+- chunk_count > 0 + profile → NULL ahol embedding_dim != 1536 → `DimensionMismatch`.
+- chunk_count > 0 + profile → NULL ahol embedding_dim == 1536 → siker.
+- profile → masik profile dim-equal → siker.
+
+Mockold a `BGEM3Embedder` / `OpenAIEmbedder` classt monkeypatchel mint S143 unit tesztben (ne tolts BGE-M3 weight-et).
+
+### LEPES 2 — Router
+
+`src/aiflow/api/v1/routers/rag_collections.py`:
+
+```python
+router = APIRouter(prefix="/api/v1/rag/collections", tags=["rag-collections"])
+```
+
+3 route:
+- `GET /` — `tenant_id: Annotated[str | None, Query()] = None` filter, `limit / offset` paging (default 50). Visszateres: `RagCollectionListResponse` Pydantic (`items: list[RagCollectionListItem], total: int`).
+- `GET /{collection_id}` — `RagCollectionDetailResponse` Pydantic. 404 ha None.
+- `PATCH /{collection_id}/embedder-profile` — body `RagCollectionEmbedderProfileUpdate(embedder_profile_id: str | None)`. Hivja `service.set_embedder_profile(...)`. 404, 409, 200.
+
+Auth: `auth_required` dependency (mas RAG router mintajara).
+
+Mount: `src/aiflow/api/v1/__init__.py` — figyelni, hogy a meglevo `prompts` router mintajara **a catch-all elott** mountolj (S143-ban nem volt prompts-shadow gond, de elovigyazatossagbol).
+
+OpenAPI snapshot regeneralas (Sprint O FU-1 mintajara): `python -m scripts.export_openapi` vagy a meglevo `tests/api/openapi/snapshot.json` regenerator.
+
+Router unit teszt `tests/unit/api/v1/routers/test_rag_collections_router.py` (3 db):
+- `GET /` lefedi a tenant filter parametert (mock `service.list_collections`).
+- `GET /{id}` 404.
+- `PATCH /{id}/embedder-profile` 409 ha `DimensionMismatch` jon.
+
+Router integration teszt `tests/integration/api/v1/test_rag_collections_router.py` (3 db, real PG):
+- Seed 2 collection (kulonbozo tenant) → `GET /?tenant_id=t1` csak az egyiket adja vissza.
+- `PATCH /{id}/embedder-profile` ures kollekcion → ujra `GET` mutatja az uj profile-t.
+- `PATCH /{id}/embedder-profile` chunk_count > 0 + dim-mismatch → 409 + DB nem valtozott.
+
+### LEPES 3 — Admin UI page
+
+7 GATE szerint (`.claude/skills/aiflow-ui-pipeline`):
+
+1. **Journey** — `tests/ui-live/rag-collections.md` user journey doc (operator: lat-tab, szur tenant-re, set-profile, lat refresh).
+2. **API endpoint** — fent (LEPES 2).
+3. **Design** — Untitled UI table + chip filter + side drawer pattern. `aiflow-admin/src/pages/rag-collections/RagCollectionsPage.tsx` skeleton.
+4. **Page** — implement.
+5. **Component reuse check** — hasznald a meglevo `Table`, `Badge`, `ChipFilter`, `SideDrawer` komponenseket az `aiflow-admin/src/components-new/` aloli (Sprint Q `ExtractedFieldsCard`, Sprint N `BudgetCard` mintajara).
+6. **Live-test** — `/live-test rag-collections` (Playwright MCP, real dev stack).
+7. **CI** — Playwright spec `tests/ui/specs/rag_collections.spec.ts` 1 teszttel.
+
+Files:
+- `aiflow-admin/src/pages/rag-collections/RagCollectionsPage.tsx`
+- `aiflow-admin/src/pages/rag-collections/RagCollectionDetailDrawer.tsx`
+- `aiflow-admin/src/pages/rag-collections/types.ts`
+- `aiflow-admin/src/locales/en/rag-collections.json`
+- `aiflow-admin/src/locales/hu/rag-collections.json`
+- `aiflow-admin/src/router/routes.ts` — uj `/rag/collections` + sidebar `aiflow.menu.rag.collections`.
+- `aiflow-admin/src/api/ragCollections.ts` — fetch wrapper.
+
+EN locale kulcsok:
+- `rag-collections.title` = "RAG Collections"
+- `rag-collections.filter.tenant` = "Tenant"
+- `rag-collections.column.name` = "Name"
+- `rag-collections.column.tenant` = "Tenant"
+- `rag-collections.column.embedderProfile` = "Embedder Profile"
+- `rag-collections.column.embeddingDim` = "Dim"
+- `rag-collections.column.chunks` = "Chunks"
+- `rag-collections.column.updated` = "Updated"
+- `rag-collections.detail.setProfile` = "Set Embedder Profile"
+- `rag-collections.detail.save` = "Save"
+- `rag-collections.detail.dimMismatch` = "Cannot change profile: existing chunks use a different dimension."
+- `rag-collections.empty` = "No collections yet — ingest documents via the RAG Engine API."
+
+HU locale ekvivalens.
+
+### LEPES 4 — Live-test report
+
+Futtasd a `/live-test rag-collections` skill-t:
+1. `make api` futassa az API-t.
+2. `cd aiflow-admin && npm run dev` futassa a UI-t.
+3. Seed 2 kollekciot direkt SQL-lel:
+   ```sql
+   INSERT INTO rag_collections (id, name, customer, skill_name, embedder_profile_id, tenant_id, embedding_dim)
+   VALUES (gen_random_uuid(), 's144-uc2-hu', 'bestix', 'rag_engine', NULL, 'bestix', 1536),
+          (gen_random_uuid(), 's144-bge-m3-test', 'doha', 'rag_engine', 'bge_m3', 'doha', 1024);
    ```
-   ahol `_resolve_query_embedder`:
-   - Ha `coll.embedder_profile_id` NULL → `return self._embedder` (backward-compat).
-   - Ha nem NULL → `ProviderRegistry.get_embedder(coll.embedder_profile_id)` (a Sprint J S100-ban bevezetett pattern). Ha a profil nem regisztrált → `UnknownEmbedderProfile` (új `AIFlowError` subclass, `is_transient=False`) → `QueryResult` hibaüzenettel (nem dobás, a meglévő try/except mintára).
-3. A `_search_engine.search()` hívásnál továbbra is `embedding_dim`-scoped query megy (042 óta), úgyhogy a több-dim coexistence már megvan — csak az embedder dispatch hiányzik.
-4. **Ne töröld** a `self._embedder`-t a konstruktorból — az a fallback.
+4. Playwright MCP-vel: `/rag/collections` page → assert mindketto latszik → tenant filter `bestix` → csak az egyik → click row → drawer → set profile `openai` ures kollekcion → save → reload → assert `openai` badge.
+5. Report `tests/ui-live/rag-collections.md`.
 
-Unit tesztek `tests/unit/services/rag_engine/test_query_embedder_resolver.py` (~8-12 db):
-- NULL profile → `self._embedder`.
-- Regisztrált profile → registry-ből jön vissza a helyes példány.
-- Unknown profile → `UnknownEmbedderProfile` → `QueryResult.answer` tartalmazza a hibát, response_time_ms kitöltve.
-- Mock `ProviderRegistry`, ne hívjon valós LLM-et.
+### LEPES 5 — Playwright E2E spec
 
-### LEPES 4 — Integration test (valós Postgres + valós BGE-M3)
+`tests/ui/specs/rag_collections.spec.ts` (1 teszt, no route mock — Sprint N S123 / Sprint Q S136 mintajara):
+- DB seed via API helper vagy direct SQL fixture.
+- Playwright navigate + assert + interakt + assert.
+- Cleanup teardown.
 
-`tests/integration/services/rag_engine/test_query_1024_dim.py` (1 db, `@pytest.mark.integration`):
-
-1. Fresh `rag_collections` row `embedder_profile_id='bge-m3-profile-a'`, `embedding_dim=1024`.
-2. Ingest 3 kézi chunk (sync függvény, ne a teljes doc pipeline — kellő a pgvector INSERT).
-3. `service.query(collection_id=..., question="...")` → `len(result.sources) > 0`.
-4. Cleanup fixture-ben.
-
-**SOHA ne mockolj embedder-t itt** — ez a Sprint S **funkcionális bizonyítéka**. Real PG (5433), real BGE-M3 weight (hf_cache-ben Sprint J S103 után elérhető), real pgvector hybrid search. Ha BGE-M3 weight nincs local cache-ben → `pytest.skip` üzenettel, hogy CI-ben futtasd akkor, amikor a weight preload lépés (Sprint J FU — BGE-M3 weight cache as CI artifact) landol.
-
-### LEPES 5 — Regression + commit + PR
+### LEPES 6 — Regression + commit + PR
 
 ```bash
-/regression                             # unit: 2347 → 2355-2360 (kb +8-12); integration: +3
-/lint-check                             # ruff + ruff format + tsc clean
+PYTHONPATH="src;." .venv/Scripts/python.exe -m pytest tests/unit/ --no-cov -q                  # 2361 → 2369 (+8)
+PYTHONPATH="src;." .venv/Scripts/python.exe -m pytest tests/integration/api/v1/test_rag_collections_router.py --no-cov -q   # 3 zold
+PYTHONPATH="src;." .venv/Scripts/python.exe -m pytest tests/unit/api/v1/routers/test_rag_collections_router.py --no-cov -q  # 3 zold
+cd aiflow-admin && npx tsc --noEmit && npm run lint && cd ..
+.venv/Scripts/python.exe -m ruff check src/ tests/ && .venv/Scripts/python.exe -m ruff format --check src/ tests/
 ```
 
-Commit message:
+Commit:
 ```
-feat(sprint-s): S143 — RagEngineService.query() ProviderRegistry refactor + Alembic 046 rag_collections tenant/embedder_profile
+feat(sprint-s): S144 — admin UI /rag/collections + per-tenant list + set-profile mutation
 
-- Alembic 046: rag_collections.tenant_id (default 'default') + embedder_profile_id (nullable)
-- RagEngineService.query() resolves embedder via ProviderRegistry when embedder_profile_id set, falls back to self._embedder otherwise
-- Integration test: 1024-dim BGE-M3 Profile A collection is now queryable end-to-end (Sprint J FU-1 closed)
-- 0 UC2 golden-path regression, 0 breaking changes to existing 1536-dim collections
+- 3 endpoint (GET list w/ tenant filter, GET detail, PATCH embedder-profile)
+- RAGEngineService.set_embedder_profile() w/ dim-mismatch guard (DimensionMismatch HTTP 409)
+- Admin UI page + drawer + EN/HU locale + sidebar nav
+- 8 unit (set_embedder_profile dim guards) + 3 router unit + 3 router integration (real PG)
+- 1 Playwright E2E live-stack (no route mock)
+- 0 Alembic, 0 skill code change, NULL-fallback unchanged
 ```
 
 PR cut:
 ```bash
 gh pr create \
-  --title "Sprint S S143: RagEngineService.query() ProviderRegistry refactor + Alembic 046 (flag-free, backward-compat)" \
-  --body-file docs/sprint_s_s143_pr_description.md \
+  --title "Sprint S S144: admin UI /rag/collections + per-tenant list + set-profile (flag-free)" \
+  --body-file docs/sprint_s_s144_pr_description.md \
   --base main
 ```
 
-### LEPES 6 — Frissítsd a CLAUDE.md banner-t
+### LEPES 7 — CLAUDE.md numbers update
 
-- Banner: `v1.5.1 Sprint R CLOSE 2026-05-14` → add hozzá `+ Sprint S S143 IN-PROGRESS 2026-05-15` (vagy session-close-ban egy sprintkezdő bekezdés).
-- Alembic head: `045 → 046`.
-- Unit tests: `2347 → <új szám>`.
-- Integration tests: `~103 → ~106` (+3).
+- API endpoints: `193 → 196` (+3)
+- API routers: `30 → 31` (+1)
+- Unit tests: `2361 → ~2369` (+8)
+- Integration tests: `~107 → ~110` (+3)
+- E2E tests: `429 → 430` (+1 Playwright Sprint S S144 rag-collections)
+- UI pages: `25 → 26`
+- Banner: `Sprint S S143 IN-PROGRESS` → `Sprint S S144 IN-PROGRESS` (vagy bovites `S143 + S144`).
 
 ---
 
 ## 5. STOP FELTETELEK
 
 **HARD:**
-1. UC2 MRR@5 Profile A < 0.55 a live `aszf_rag_chat` smoke-on → halt + rollback commit.
-2. `alembic upgrade head` vagy `downgrade -1` failel 046-on → halt.
-3. Sprint K UC3 golden-path 4/4 regresszió (BGE-M3 share-elés miatt) → halt.
-4. `gh pr create` credentials hiány → halt + felhasználói beavatkozás.
+1. UC2 `aszf_rag_chat` golden-path regresszio (NULL-fallback path elromlik) → halt + revert.
+2. `rag_collections` row INSERT vagy SELECT regresszio S143 utan (defensive row-length checks regresszionak elnezni keptelennek) → halt.
+3. `gh pr create` credentials hiany autonomous loop-ban → halt + user beavatkozas.
+4. Playwright E2E live stackre nem sikerul felhozni → SOFT fail dokumentalva, **halt csak akkor**, ha a CI-spec is fail-el.
 
 **SOFT:**
-- BGE-M3 weight nincs local cache-ben → integration test `skip`, dokumentálni a PR description-ben, hogy CI-ben (weight preload lépéssel) kell lefuttatni.
-- Profile B (Azure OpenAI) credit hiány → csak Profile A mérünk, nem gate.
+- `(tenant_id, name)` unique constraint felhozasa (SS-FU-4) ha a PATCH-endpoint igenyelne — opcionalis, **halaszthato S145-re** ha a hatokor szuk marad.
+- `customer` oszlop deprecation (SS-FU-5) — kulon refactor sprintbe, **NE keverd S144-be**.
 
 ---
 
 ## 6. SESSION VEGEN
 
 ```
-/session-close S143
+/session-close S144
 ```
 
-A `/session-close` generál `docs/sprint_s_s143_pr_description.md`-t, frissíti a CLAUDE.md számokat, bumpolja az Alembic head-et a key numbers tábláján, és generálja a következő `NEXT.md`-t (S144 — admin UI `/rag/collections` + per-tenant collection list, `ui-journey → ui-api-endpoint → ui-design → ui-page` gate-ekkel).
+A `/session-close` generalja:
+- `docs/sprint_s_s144_pr_description.md`
+- CLAUDE.md numbers update.
+- Skipped-items append (ha PG-S145-be tolt valami).
+- Kovetkezo `NEXT.md` (S145 — nightly MRR@5 scheduled job + Grafana panel).
+
+---
+
+## 7. SKIPPED-ITEMS TRACKER (folytatas, ne legyen elveszve)
+
+S143-bol orokolt nyitott items:
+
+| ID | Hely | Mi | Unskip feltetel |
+|---|---|---|---|
+| SS-SKIP-1 | `tests/integration/services/rag_engine/test_query_1024_dim.py` | BGE-M3 weight skip-guard | S145 CI weight preload |
+| SS-SKIP-2 | `01_PLAN/116_*` §8 | Profile B (Azure OpenAI) MRR@5 | Azure credit |
+| SS-FU-1 | PR #34 body | `create_collection` tenant-aware arg + `customer` deprecation | Kulon refactor sprint |
+| SS-FU-3 | PR #34 body | Nightly MRR@5 + Grafana | S145 |
+| SS-FU-4 | PR #34 body | `(tenant_id, name)` unique constraint | S145 (vagy S144 ha kicsiben jol megfer) |
+| SS-FU-5 | PR #34 body | `rag_collections.customer` deprecation | Kulon refactor |
+
+S144 ezek kozul **csak SS-FU-2-t** zarja le. A tobbi felmeretvenyezve marad a kovetkezo session prompt-ben.
