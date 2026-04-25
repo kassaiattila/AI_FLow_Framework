@@ -75,7 +75,7 @@ Integration breakdown:
 
 ```
 27 service | 196 endpoint (31 routers) | 50 DB table | 47 Alembic (head: 047)
-2379 unit PASS / 1 skipped (xfail-quarantined: resilience 50ms timing flake)
+2379 unit PASS / 1 skipped (Conditional skip — see docs/quarantine.md "Conditional skips"; **NOT** the Sprint J resilience flake, which was resolved by Sprint O FU-5 and is no longer xfail-quarantined)
 ~113 integration PASS (Sprint S +10)
 430 E2E collected (Sprint S +1, S144 rag-collections Playwright)
 26 UI pages (Sprint S +1, S144 RagCollections)
@@ -128,7 +128,7 @@ Flag defaults on merge: NULL-fallback unchanged, no new feature flags
 | SR-FU-4 | Live-stack Playwright for `/prompts/workflows` | Sprint T |
 | SR-FU-5 | `vite build` pre-commit hook | Sprint T |
 | SR-FU-6 | Langfuse workflow listing | Sprint T |
-| Sprint J Clock seam | Resilience timing flake fix | **DEADLINE 2026-04-30 — overdue at S146 close, must triage in S147** |
+| ~~Sprint J Clock seam~~ | ~~Resilience timing flake fix~~ | **CLOSED by Sprint O FU-5** — `ResilienceService(clock=...)` seam deterministic, 5/5 PASS, no xfail decorator. S147 LEPES 1a reconciled this carry-forward (was stale in CLAUDE.md + S146 retro). See `docs/quarantine.md` "Resolved quarantine" §1. |
 
 ## Lessons learned
 
@@ -150,4 +150,4 @@ LLM-cost numbers will be filled in from Langfuse traces once the operator confir
 
 ## Carried (Sprint R / Q / P / O / N / M / J — unchanged)
 
-Sprint R `S141-FU-1/2/3` per-skill PromptWorkflow migrations + `SR-FU-4..6` (live-stack Playwright, vite-build pre-commit, Langfuse workflow listing) all carry to Sprint T. Sprint Q `SQ-FU-1..4` (issue_date extraction, docling warmup at boot, corpus extension, `_parse_date` ISO roundtrip) unchanged. Sprint P `SP-FU-1..3` unchanged. Sprint N/M/J residuals unchanged. The Sprint J resilience `Clock` seam deadline (2026-04-30) is now overdue — Sprint T (S147) must triage on its first session.
+Sprint R `S141-FU-1/2/3` per-skill PromptWorkflow migrations + `SR-FU-4..6` (live-stack Playwright, vite-build pre-commit, Langfuse workflow listing) all carry to Sprint T. Sprint Q `SQ-FU-1..4` (issue_date extraction, docling warmup at boot, corpus extension, `_parse_date` ISO roundtrip) unchanged. Sprint P `SP-FU-1..3` unchanged. Sprint N/M residuals unchanged. The Sprint J resilience `Clock` seam carry-forward was **stale**: Sprint O FU-5 already fixed it (`ResilienceService(clock=...)` seam, 5/5 PASS deterministic, no xfail decorator). S147 LEPES 1a reconciled this — see `docs/quarantine.md` "Resolved quarantine" §1.
