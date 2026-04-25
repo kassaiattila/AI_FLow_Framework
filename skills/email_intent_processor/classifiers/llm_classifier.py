@@ -4,6 +4,7 @@ Classifies email text using an LLM with the intent schema (intents.json)
 as context. The LLM sees all available intent categories, their descriptions,
 and examples from the schema, enabling zero-shot and few-shot classification.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -13,6 +14,7 @@ from skills.email_intent_processor.models import IntentResult
 
 from aiflow.models.client import ModelClient
 from aiflow.prompts.manager import PromptManager
+from aiflow.prompts.schema import PromptDefinition
 
 __all__ = ["LLMClassifier"]
 
@@ -52,6 +54,8 @@ class LLMClassifier:
         text: str,
         subject: str = "",
         schema_intents: list[dict] | None = None,
+        *,
+        prompt_definition: PromptDefinition | None = None,
     ) -> IntentResult:
         """Classify email text into one of the defined intents.
 
@@ -59,11 +63,17 @@ class LLMClassifier:
             text: Email body text.
             subject: Email subject line.
             schema_intents: List of intent definitions from intents.json.
+            prompt_definition: Sprint T / S148 — optional pre-resolved
+                prompt (e.g. supplied by ``PromptWorkflowExecutor`` when
+                the workflow shim is on for this skill). When provided
+                the manager lookup is skipped and this definition is
+                used directly. ``None`` keeps the legacy single-prompt
+                resolution path.
         """
         # Build intent catalog for the prompt
         intent_catalog = self._build_intent_catalog(schema_intents or [])
 
-        prompt = self.prompt_manager.get(self.prompt_name)
+        prompt = prompt_definition or self.prompt_manager.get(self.prompt_name)
         messages = prompt.compile(
             variables={
                 "subject": subject,

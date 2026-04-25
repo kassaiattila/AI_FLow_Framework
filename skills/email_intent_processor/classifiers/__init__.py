@@ -5,12 +5,15 @@ Strategy:
 2. If confidence < threshold, also run LLM classifier
 3. Combine results with configurable strategy (sklearn_first, llm_first, ensemble)
 """
+
 from __future__ import annotations
 
 from typing import Any
 
 import structlog
 from skills.email_intent_processor.models import IntentResult
+
+from aiflow.prompts.schema import PromptDefinition
 
 __all__ = ["HybridClassifier"]
 
@@ -49,23 +52,59 @@ class HybridClassifier:
         text: str,
         subject: str = "",
         schema_intents: list[dict] | None = None,
+        *,
+        llm_prompt_definition: PromptDefinition | None = None,
     ) -> IntentResult:
-        """Classify text using the configured strategy."""
+        """Classify text using the configured strategy.
+
+        Args:
+            llm_prompt_definition: Sprint T / S148 — optional pre-resolved
+                LLM prompt forwarded to the underlying ``LLMClassifier``.
+                Set by the workflow shim when the
+                ``email_intent_processor`` skill is opted into
+                ``email_intent_chain``. Sklearn paths ignore it.
+        """
         full_text = f"{subject}\n\n{text}" if subject else text
 
         if self.strategy == "sklearn_only":
             return await self._classify_sklearn(full_text, schema_intents)
         elif self.strategy == "llm_only":
-            return await self._classify_llm(text, subject, schema_intents)
+            return await self._classify_llm(
+                text, subject, schema_intents, llm_prompt_definition=llm_prompt_definition
+            )
         elif self.strategy == "sklearn_first":
-            return await self._sklearn_first(text, subject, full_text, schema_intents)
+            return await self._sklearn_first(
+                text,
+                subject,
+                full_text,
+                schema_intents,
+                llm_prompt_definition=llm_prompt_definition,
+            )
         elif self.strategy == "llm_first":
-            return await self._llm_first(text, subject, full_text, schema_intents)
+            return await self._llm_first(
+                text,
+                subject,
+                full_text,
+                schema_intents,
+                llm_prompt_definition=llm_prompt_definition,
+            )
         elif self.strategy == "ensemble":
-            return await self._ensemble(text, subject, full_text, schema_intents)
+            return await self._ensemble(
+                text,
+                subject,
+                full_text,
+                schema_intents,
+                llm_prompt_definition=llm_prompt_definition,
+            )
         else:
             logger.warning("unknown_strategy", strategy=self.strategy)
-            return await self._sklearn_first(text, subject, full_text, schema_intents)
+            return await self._sklearn_first(
+                text,
+                subject,
+                full_text,
+                schema_intents,
+                llm_prompt_definition=llm_prompt_definition,
+            )
 
     async def _sklearn_first(
         self,
@@ -73,6 +112,8 @@ class HybridClassifier:
         subject: str,
         full_text: str,
         schema_intents: list[dict] | None,
+        *,
+        llm_prompt_definition: PromptDefinition | None = None,
     ) -> IntentResult:
         """Use sklearn first, fallback to LLM if low confidence."""
         sklearn_result = await self._classify_sklearn(full_text, schema_intents)
@@ -92,7 +133,9 @@ class HybridClassifier:
             sklearn_result.method = "sklearn_only_no_llm"
             return sklearn_result
 
-        llm_result = await self._classify_llm(text, subject, schema_intents)
+        llm_result = await self._classify_llm(
+            text, subject, schema_intents, llm_prompt_definition=llm_prompt_definition
+        )
         return self._merge_results(sklearn_result, llm_result, prefer="llm")
 
     async def _llm_first(
@@ -101,12 +144,16 @@ class HybridClassifier:
         subject: str,
         full_text: str,
         schema_intents: list[dict] | None,
+        *,
+        llm_prompt_definition: PromptDefinition | None = None,
     ) -> IntentResult:
         """Use LLM first, fallback to sklearn if low confidence."""
         if self.llm_classifier is None:
             return await self._classify_sklearn(full_text, schema_intents)
 
-        llm_result = await self._classify_llm(text, subject, schema_intents)
+        llm_result = await self._classify_llm(
+            text, subject, schema_intents, llm_prompt_definition=llm_prompt_definition
+        )
 
         if llm_result.confidence >= self.confidence_threshold:
             llm_result.method = "llm"
@@ -121,6 +168,8 @@ class HybridClassifier:
         subject: str,
         full_text: str,
         schema_intents: list[dict] | None,
+        *,
+        llm_prompt_definition: PromptDefinition | None = None,
     ) -> IntentResult:
         """Run both classifiers and merge with weighted average."""
         sklearn_result = await self._classify_sklearn(full_text, schema_intents)
@@ -129,7 +178,9 @@ class HybridClassifier:
             sklearn_result.method = "sklearn_only_no_llm"
             return sklearn_result
 
-        llm_result = await self._classify_llm(text, subject, schema_intents)
+        llm_result = await self._classify_llm(
+            text, subject, schema_intents, llm_prompt_definition=llm_prompt_definition
+        )
 
         # If both agree, boost confidence
         if sklearn_result.intent_id == llm_result.intent_id:
@@ -141,7 +192,8 @@ class HybridClassifier:
             )
             return IntentResult(
                 intent_id=sklearn_result.intent_id,
-                intent_display_name=llm_result.intent_display_name or sklearn_result.intent_display_name,
+                intent_display_name=llm_result.intent_display_name
+                or sklearn_result.intent_display_name,
                 confidence=round(combined_confidence, 4),
                 sub_intent=llm_result.sub_intent,
                 method="ensemble_agree",
@@ -194,6 +246,8 @@ class HybridClassifier:
         text: str,
         subject: str,
         schema_intents: list[dict] | None,
+        *,
+        llm_prompt_definition: PromptDefinition | None = None,
     ) -> IntentResult:
         """Run LLM classifier."""
         if self.llm_classifier is None:
@@ -204,7 +258,12 @@ class HybridClassifier:
             )
 
         try:
-            return await self.llm_classifier.classify(text, subject, schema_intents)
+            return await self.llm_classifier.classify(
+                text,
+                subject,
+                schema_intents,
+                prompt_definition=llm_prompt_definition,
+            )
         except Exception as e:
             logger.error("llm_classify_failed", error=str(e))
             return IntentResult(

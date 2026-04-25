@@ -12,6 +12,7 @@ Pipeline:
 Module-level singletons: ModelClient, PromptManager, SchemaRegistry,
 HybridClassifier, EmailParser, AttachmentProcessor.
 """
+
 from __future__ import annotations
 
 import json
@@ -34,11 +35,19 @@ from skills.email_intent_processor.models import (
     RoutingDecision,
 )
 
+from aiflow.core.config import get_settings
 from aiflow.engine.step import step
 from aiflow.engine.workflow import WorkflowBuilder, workflow
+from aiflow.prompts.workflow_executor import PromptWorkflowExecutor
 from aiflow.tools.attachment_processor import AttachmentConfig, AttachmentProcessor
 from aiflow.tools.email_parser import EmailParser
 from aiflow.tools.schema_registry import SchemaRegistry
+
+# Sprint T / S148 (S141-FU-1): the workflow descriptor name + skill key
+# the executor uses for opt-in resolution. Kept as module-level constants
+# so tests can reference them without recreating the executor.
+WORKFLOW_NAME = "email_intent_chain"
+SKILL_NAME = "email_intent_processor"
 
 __all__ = [
     "parse_email",
@@ -81,8 +90,16 @@ hybrid_classifier = HybridClassifier(
     confidence_threshold=0.6,
 )
 
+# Sprint T / S148 — PromptWorkflow opt-in shim. Resolution-only; flag-off
+# default returns ``None`` and the legacy single-prompt path runs unchanged.
+prompt_workflow_executor = PromptWorkflowExecutor(
+    manager=prompt_manager,
+    settings=get_settings().prompt_workflows,
+)
+
 
 # --- Step 1: Parse Email ---
+
 
 @step(name="parse_email", description="Parse raw email into structured fields")
 async def parse_email(data: dict) -> dict:
@@ -101,12 +118,14 @@ async def parse_email(data: dict) -> dict:
 
     attachments_raw = []
     for att in parsed.attachments:
-        attachments_raw.append({
-            "filename": att.filename,
-            "mime_type": att.mime_type,
-            "size_bytes": att.size_bytes,
-            "content_b64": "",  # Content stays in memory, not serialized
-        })
+        attachments_raw.append(
+            {
+                "filename": att.filename,
+                "mime_type": att.mime_type,
+                "size_bytes": att.size_bytes,
+                "content_b64": "",  # Content stays in memory, not serialized
+            }
+        )
 
     duration = (time.monotonic() - start) * 1000
     logger.info(
@@ -134,13 +153,12 @@ async def parse_email(data: dict) -> dict:
 
 # --- Step 2: Process Attachments ---
 
+
 @step(name="process_attachments", description="Extract text and fields from attachments")
 async def process_attachments(data: dict) -> dict:
     """Process email attachments through docling/Azure DI/LLM vision."""
     raw_attachments = data.get("_parsed_attachments", [])
-    doc_types_schema = schema_registry.load_schema(
-        "email_intent_processor", "document_types"
-    )
+    doc_types_schema = schema_registry.load_schema("email_intent_processor", "document_types")
     doc_types = doc_types_schema.get("document_types", [])
 
     attachment_summaries: list[dict] = []
@@ -186,6 +204,7 @@ async def process_attachments(data: dict) -> dict:
 
 # --- Step 3: Classify Intent ---
 
+
 @step(name="classify_intent", description="Classify email intent using hybrid sklearn+LLM")
 async def classify_intent(data: dict) -> dict:
     """Classify email intent using full context (subject + body + attachments)."""
@@ -199,15 +218,29 @@ async def classify_intent(data: dict) -> dict:
         full_text += f"\n\n--- Csatolt dokumentumok ---\n{attachment_text}"
 
     # Load intent schema
-    intents_schema = schema_registry.load_schema(
-        "email_intent_processor", "intents"
-    )
+    intents_schema = schema_registry.load_schema("email_intent_processor", "intents")
     schema_intents = intents_schema.get("intents", [])
+
+    # Sprint T / S148 — opt into the email_intent_chain workflow when
+    # the flag is on and this skill is in ``skills_csv``. Flag-off path
+    # returns ``None`` and the legacy single-prompt resolution inside
+    # ``LLMClassifier.classify`` runs unchanged.
+    llm_prompt_definition = None
+    resolved = prompt_workflow_executor.resolve_for_skill(SKILL_NAME, WORKFLOW_NAME)
+    if resolved is not None:
+        workflow_descriptor, prompt_map = resolved
+        llm_prompt_definition = prompt_map.get("classify")
+        logger.info(
+            "classify_intent.workflow_resolved",
+            workflow=workflow_descriptor.name,
+            steps=list(prompt_map.keys()),
+        )
 
     intent_result = await hybrid_classifier.classify(
         text=full_text,
         subject=subject,
         schema_intents=schema_intents,
+        llm_prompt_definition=llm_prompt_definition,
     )
 
     # Enrich with display name from schema
@@ -232,6 +265,7 @@ async def classify_intent(data: dict) -> dict:
 
 # --- Step 4: Extract Entities ---
 
+
 @step(name="extract_entities", description="Extract named entities from email content")
 async def extract_entities(data: dict) -> dict:
     """Extract entities using regex + LLM based on entities.json schema."""
@@ -239,9 +273,7 @@ async def extract_entities(data: dict) -> dict:
     body = data.get("body", "")
     attachment_text = data.get("attachment_text", "")
 
-    entities_schema = schema_registry.load_schema(
-        "email_intent_processor", "entities"
-    )
+    entities_schema = schema_registry.load_schema("email_intent_processor", "entities")
     entity_types = entities_schema.get("entity_types", [])
 
     all_entities: list[Entity] = []
@@ -276,14 +308,10 @@ async def extract_entities(data: dict) -> dict:
                         logger.warning("regex_error", entity_type=etype["id"], pattern=pattern)
 
     # Phase 2: LLM extraction for entity types that need it
-    llm_entity_types = [
-        et for et in entity_types if "llm" in et.get("extraction_methods", [])
-    ]
+    llm_entity_types = [et for et in entity_types if "llm" in et.get("extraction_methods", [])]
     if llm_entity_types:
         try:
-            llm_entities = await _extract_entities_llm(
-                subject, body, llm_entity_types
-            )
+            llm_entities = await _extract_entities_llm(subject, body, llm_entity_types)
             all_entities.extend(llm_entities)
             if llm_entities:
                 methods_used.add("llm")
@@ -388,6 +416,7 @@ def _deduplicate_entities(entities: list[Entity]) -> list[Entity]:
 
 # --- Step 5: Score Priority ---
 
+
 @step(name="score_priority", description="Score email priority using rules matrix")
 async def score_priority(data: dict) -> dict:
     """Score priority using priorities.json rules and entity/intent context."""
@@ -400,14 +429,10 @@ async def score_priority(data: dict) -> dict:
     entity_list = entities_data.get("entities", [])
     entity_types_present = {e["entity_type"] for e in entity_list if isinstance(e, dict)}
 
-    priorities_schema = schema_registry.load_schema(
-        "email_intent_processor", "priorities"
-    )
+    priorities_schema = schema_registry.load_schema("email_intent_processor", "priorities")
     rules = priorities_schema.get("rules", [])
     boost_rules = priorities_schema.get("boost_rules", [])
-    priority_levels = {
-        p["level"]: p for p in priorities_schema.get("priority_levels", [])
-    }
+    priority_levels = {p["level"]: p for p in priorities_schema.get("priority_levels", [])}
     default_priority = priorities_schema.get("default_priority", 4)
 
     # Find matching rule
@@ -485,6 +510,7 @@ async def score_priority(data: dict) -> dict:
 
 # --- Step 6: Decide Routing ---
 
+
 @step(name="decide_routing", description="Decide routing queue and department")
 async def decide_routing(data: dict) -> dict:
     """Route email based on intent + priority using routing_rules.json."""
@@ -496,9 +522,7 @@ async def decide_routing(data: dict) -> dict:
     sub_intent = intent_data.get("sub_intent", "")
     priority_level = priority_data.get("priority_level", 4)
 
-    routing_schema = schema_registry.load_schema(
-        "email_intent_processor", "routing_rules"
-    )
+    routing_schema = schema_registry.load_schema("email_intent_processor", "routing_rules")
     routing_rules = routing_schema.get("routing_rules", [])
     escalation_rules = routing_schema.get("escalation_rules", [])
     departments = {d["id"]: d for d in routing_schema.get("departments", [])}
@@ -581,6 +605,7 @@ async def decide_routing(data: dict) -> dict:
 
 # --- Step 7: Log Result ---
 
+
 @step(name="log_result", description="Assemble and log final processing result")
 async def log_result(data: dict) -> dict:
     """Assemble the final EmailProcessingResult."""
@@ -600,9 +625,7 @@ async def log_result(data: dict) -> dict:
         entities=EntityResult(**entities_data) if entities_data else None,
         priority=PriorityResult(**priority_data) if priority_data else None,
         routing=RoutingDecision(**routing_data) if routing_data else None,
-        attachment_summaries=[
-            AttachmentInfo(**a) for a in data.get("attachment_summaries", [])
-        ],
+        attachment_summaries=[AttachmentInfo(**a) for a in data.get("attachment_summaries", [])],
         pipeline_version="1.0.0",
     )
 
@@ -620,9 +643,8 @@ async def log_result(data: dict) -> dict:
 
 # --- Helper ---
 
-def _match_document_type(
-    filename: str, mime_type: str, doc_types: list[dict]
-) -> str:
+
+def _match_document_type(filename: str, mime_type: str, doc_types: list[dict]) -> str:
     """Match an attachment to a document type from the schema."""
     ext = Path(filename).suffix.lower() if filename else ""
     for dt in doc_types:
@@ -634,6 +656,7 @@ def _match_document_type(
 
 
 # --- Workflow Registration ---
+
 
 @workflow(
     name="email-intent-processing",
