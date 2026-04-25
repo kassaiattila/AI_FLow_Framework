@@ -1,9 +1,9 @@
 # Self-hosted Langfuse overlay — Sprint M (v1.4.9) S118
 #
 # Usage (dev):
-#   cp .env.langfuse.example .env.langfuse   # persist NEXTAUTH_SECRET + SALT
-#   docker compose -f docker-compose.langfuse.yml --env-file .env.langfuse up -d langfuse-postgres langfuse-web
-#   docker compose -f docker-compose.langfuse.yml --env-file .env.langfuse --profile bootstrap run --rm langfuse-init
+#   # Set NEXTAUTH_SECRET + LANGFUSE_SALT in .env (consolidated — see .env.example).
+#   docker compose -f docker-compose.langfuse.yml up -d langfuse-postgres langfuse-web
+#   docker compose -f docker-compose.langfuse.yml --profile bootstrap run --rm langfuse-init
 #
 # Air-gapped workflow: see docs/airgapped_deployment.md (docker save/load for the
 # 3 required images — hashicorp/vault:1.15, langfuse/langfuse:3, postgres:16-alpine).
@@ -14,7 +14,7 @@
 #
 # Persistent secrets (NEXTAUTH_SECRET, SALT) MUST be stable across restarts; if
 # rotated, every existing Langfuse user session + API key breaks. Keep them in
-# .env.langfuse (gitignored by .env.*).
+# .env (gitignored).
 
 services:
   langfuse-postgres:
@@ -45,8 +45,8 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:langfuse_dev_password@langfuse-postgres:5432/postgres
       NEXTAUTH_URL: http://localhost:3000
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?set NEXTAUTH_SECRET in .env.langfuse}
-      SALT: ${LANGFUSE_SALT:?set LANGFUSE_SALT in .env.langfuse}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?set NEXTAUTH_SECRET in .env}
+      SALT: ${LANGFUSE_SALT:?set LANGFUSE_SALT in .env}
       TELEMETRY_ENABLED: "false"
       LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
       # Dev-friendly bootstrap: pre-provision org + project + API keys on first boot.

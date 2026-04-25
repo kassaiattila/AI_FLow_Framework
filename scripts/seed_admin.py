@@ -8,6 +8,7 @@ Usage:
     # Interactive (prompts for email/password):
     python scripts/seed_admin.py
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -16,8 +17,12 @@ import os
 import sys
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 
 import bcrypt
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 async def seed_admin() -> None:
