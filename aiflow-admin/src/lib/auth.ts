@@ -41,7 +41,11 @@ interface RefreshResponse {
 
 /** Login with email/password, store JWT token */
 export async function login(credentials: LoginCredentials): Promise<AuthUser> {
-  const data = await fetchApi<LoginResponse>("POST", "/api/v1/auth/login", credentials);
+  const data = await fetchApi<LoginResponse>(
+    "POST",
+    "/api/v1/auth/login",
+    credentials,
+  );
   localStorage.setItem(TOKEN_KEY, data.token);
 
   // Fetch user info
@@ -90,9 +94,13 @@ export async function refreshToken(): Promise<boolean> {
   if (!currentToken) return false;
 
   try {
-    const data = await fetchApi<RefreshResponse>("POST", "/api/v1/auth/refresh", {
-      token: currentToken,
-    });
+    const data = await fetchApi<RefreshResponse>(
+      "POST",
+      "/api/v1/auth/refresh",
+      {
+        token: currentToken,
+      },
+    );
     localStorage.setItem(TOKEN_KEY, data.token);
     return true;
   } catch (error) {
@@ -141,7 +149,10 @@ export type SessionCallback = () => void;
  * - onWarning: called when token expires within 5 minutes
  * - onExpired: called when token has expired (auto-logout triggered)
  */
-export function startSessionMonitor(onWarning: SessionCallback, onExpired: SessionCallback): void {
+export function startSessionMonitor(
+  onWarning: SessionCallback,
+  onExpired: SessionCallback,
+): void {
   stopSessionMonitor();
   _sessionCheckInterval = setInterval(() => {
     const exp = getTokenExpiry();

@@ -163,7 +163,11 @@ export function PackageDetail() {
           stroke="currentColor"
           strokeWidth={2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15 19l-7-7 7-7"
+          />
         </svg>
         Back
       </button>
@@ -275,7 +279,8 @@ function ExtractionTab({ extractions }: { extractions: ExtractionView[] }) {
   if (extractions.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/40">
-        No persisted extractions yet. Extraction persistence is queued for S97.5.
+        No persisted extractions yet. Extraction persistence is queued for
+        S97.5.
       </div>
     );
   }

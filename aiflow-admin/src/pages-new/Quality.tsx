@@ -56,9 +56,14 @@ export function Quality() {
       setRubrics(rb.rubrics);
       // Fetch Langfuse URL from health endpoint
       try {
-        const health = await fetchApi<{ services?: { langfuse?: { host?: string } } }>("GET", "/api/v1/health");
-        if (health.services?.langfuse?.host) setLangfuseUrl(health.services.langfuse.host);
-      } catch { /* keep default */ }
+        const health = await fetchApi<{
+          services?: { langfuse?: { host?: string } };
+        }>("GET", "/api/v1/health");
+        if (health.services?.langfuse?.host)
+          setLangfuseUrl(health.services.langfuse.host);
+      } catch {
+        /* keep default */
+      }
       if (!selectedRubric && Object.keys(rb.rubrics).length > 0) {
         setSelectedRubric(Object.keys(rb.rubrics)[0]);
       }
@@ -69,21 +74,32 @@ export function Quality() {
     }
   }, [selectedRubric]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleEvaluate = async () => {
     if (!actualOutput.trim() || !selectedRubric) return;
     setEvalLoading(true);
     setEvalResult(null);
     try {
-      const res = await fetchApi<EvalResult>("POST", "/api/v1/quality/evaluate", {
-        actual: actualOutput,
-        rubric: selectedRubric,
-        expected: expectedOutput || undefined,
-      });
+      const res = await fetchApi<EvalResult>(
+        "POST",
+        "/api/v1/quality/evaluate",
+        {
+          actual: actualOutput,
+          rubric: selectedRubric,
+          expected: expectedOutput || undefined,
+        },
+      );
       setEvalResult(res);
     } catch {
-      setEvalResult({ score: 0, pass: false, reasoning: "Evaluation failed", source: "error" });
+      setEvalResult({
+        score: 0,
+        pass: false,
+        reasoning: "Evaluation failed",
+        source: "error",
+      });
     } finally {
       setEvalLoading(false);
     }
@@ -91,7 +107,10 @@ export function Quality() {
 
   if (loading) {
     return (
-      <PageLayout titleKey="aiflow.quality.title" subtitleKey="aiflow.quality.subtitle">
+      <PageLayout
+        titleKey="aiflow.quality.title"
+        subtitleKey="aiflow.quality.subtitle"
+      >
         <div className="flex h-64 items-center justify-center">
           <span className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-brand-500" />
         </div>
@@ -101,10 +120,16 @@ export function Quality() {
 
   if (error) {
     return (
-      <PageLayout titleKey="aiflow.quality.title" subtitleKey="aiflow.quality.subtitle">
+      <PageLayout
+        titleKey="aiflow.quality.title"
+        subtitleKey="aiflow.quality.subtitle"
+      >
         <div className="flex h-64 flex-col items-center justify-center gap-3">
           <p className="text-sm text-red-500">{error}</p>
-          <button onClick={fetchData} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
+          <button
+            onClick={fetchData}
+            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+          >
             {translate("ra.action.retry")}
           </button>
         </div>
@@ -113,11 +138,27 @@ export function Quality() {
   }
 
   const kpis = [
-    { label: translate("aiflow.quality.totalEvals"), value: String(overview?.total_evaluations ?? 0) },
-    { label: translate("aiflow.quality.avgScore"), value: `${((overview?.avg_score ?? 0) * 100).toFixed(1)}%` },
-    { label: translate("aiflow.quality.passRate"), value: `${((overview?.pass_rate ?? 0) * 100).toFixed(1)}%`, green: true },
-    { label: translate("aiflow.quality.costToday"), value: `$${(overview?.cost_today ?? 0).toFixed(2)}` },
-    { label: translate("aiflow.quality.costMonth"), value: `$${(overview?.cost_month ?? 0).toFixed(2)}` },
+    {
+      label: translate("aiflow.quality.totalEvals"),
+      value: String(overview?.total_evaluations ?? 0),
+    },
+    {
+      label: translate("aiflow.quality.avgScore"),
+      value: `${((overview?.avg_score ?? 0) * 100).toFixed(1)}%`,
+    },
+    {
+      label: translate("aiflow.quality.passRate"),
+      value: `${((overview?.pass_rate ?? 0) * 100).toFixed(1)}%`,
+      green: true,
+    },
+    {
+      label: translate("aiflow.quality.costToday"),
+      value: `$${(overview?.cost_today ?? 0).toFixed(2)}`,
+    },
+    {
+      label: translate("aiflow.quality.costMonth"),
+      value: `$${(overview?.cost_month ?? 0).toFixed(2)}`,
+    },
   ];
 
   const rubricEntries = Object.entries(rubrics);
@@ -131,9 +172,16 @@ export function Quality() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.label}</p>
-            <p className={`mt-1 text-2xl font-bold ${kpi.green ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-gray-100"}`}>
+          <div
+            key={kpi.label}
+            className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+          >
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {kpi.label}
+            </p>
+            <p
+              className={`mt-1 text-2xl font-bold ${kpi.green ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-gray-100"}`}
+            >
               {kpi.value}
             </p>
           </div>
@@ -170,8 +218,12 @@ export function Quality() {
                         : "bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
                     }`}
                   >
-                    <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-gray-100">{name}</td>
-                    <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{desc}</td>
+                    <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-gray-100">
+                      {name}
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">
+                      {desc}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -196,7 +248,9 @@ export function Quality() {
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
               >
                 {rubricEntries.map(([name]) => (
-                  <option key={name} value={name}>{name}</option>
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -240,7 +294,9 @@ export function Quality() {
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   {translate("aiflow.quality.evaluate")}...
                 </span>
-              ) : translate("aiflow.quality.evaluate")}
+              ) : (
+                translate("aiflow.quality.evaluate")
+              )}
             </button>
 
             {/* Result */}
@@ -250,15 +306,21 @@ export function Quality() {
                   <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                     {(evalResult.score * 100).toFixed(0)}%
                   </span>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    evalResult.pass
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                  }`}>
-                    {evalResult.pass ? translate("aiflow.quality.pass") : translate("aiflow.quality.fail")}
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      evalResult.pass
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    }`}
+                  >
+                    {evalResult.pass
+                      ? translate("aiflow.quality.pass")
+                      : translate("aiflow.quality.fail")}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{evalResult.reasoning}</p>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  {evalResult.reasoning}
+                </p>
               </div>
             )}
           </div>
@@ -278,8 +340,18 @@ export function Quality() {
             className="group flex items-start gap-4 rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-brand-300 hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-brand-600 dark:hover:bg-gray-750"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
             <div className="min-w-0">
@@ -289,10 +361,22 @@ export function Quality() {
               <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                 {translate("aiflow.quality.promptfooDesc")}
               </p>
-              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">localhost:15500</p>
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                localhost:15500
+              </p>
             </div>
-            <svg className="ml-auto h-5 w-5 shrink-0 text-gray-400 group-hover:text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            <svg
+              className="ml-auto h-5 w-5 shrink-0 text-gray-400 group-hover:text-brand-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
             </svg>
           </a>
 
@@ -303,9 +387,23 @@ export function Quality() {
             className="group flex items-start gap-4 rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-brand-300 hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-brand-600 dark:hover:bg-gray-750"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                />
               </svg>
             </div>
             <div className="min-w-0">
@@ -315,10 +413,22 @@ export function Quality() {
               <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                 {translate("aiflow.quality.langfuseDesc")}
               </p>
-              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{langfuseUrl}</p>
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                {langfuseUrl}
+              </p>
             </div>
-            <svg className="ml-auto h-5 w-5 shrink-0 text-gray-400 group-hover:text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            <svg
+              className="ml-auto h-5 w-5 shrink-0 text-gray-400 group-hover:text-brand-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
             </svg>
           </a>
         </div>

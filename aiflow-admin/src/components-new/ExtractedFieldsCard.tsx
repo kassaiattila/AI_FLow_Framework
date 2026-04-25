@@ -189,11 +189,15 @@ function InvoiceBlock({
       {items.length > 0 && (
         <div className="mb-4">
           <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            {translate("aiflow.emails.extractedFields.lineItems")} ({items.length})
+            {translate("aiflow.emails.extractedFields.lineItems")} (
+            {items.length})
           </div>
           <ul className="divide-y divide-gray-100 text-sm dark:divide-gray-700">
             {items.slice(0, 3).map((li, idx) => (
-              <li key={idx} className="flex items-baseline justify-between gap-3 py-1">
+              <li
+                key={idx}
+                className="flex items-baseline justify-between gap-3 py-1"
+              >
                 <span className="flex-1 truncate">{li.description ?? "—"}</span>
                 <span className="font-mono tabular-nums text-gray-900 dark:text-gray-100">
                   {fmt(li.total)}
@@ -213,7 +217,9 @@ function InvoiceBlock({
                       key={idx + 3}
                       className="flex items-baseline justify-between gap-3 py-1"
                     >
-                      <span className="flex-1 truncate">{li.description ?? "—"}</span>
+                      <span className="flex-1 truncate">
+                        {li.description ?? "—"}
+                      </span>
                       <span className="font-mono tabular-nums text-gray-900 dark:text-gray-100">
                         {fmt(li.total)}
                       </span>
@@ -260,7 +266,9 @@ function InvoiceBlock({
   );
 }
 
-export function ExtractedFieldsCard({ extractedFields }: ExtractedFieldsCardProps) {
+export function ExtractedFieldsCard({
+  extractedFields,
+}: ExtractedFieldsCardProps) {
   const translate = useTranslate();
 
   if (!extractedFields) return null;

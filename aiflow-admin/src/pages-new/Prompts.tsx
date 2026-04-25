@@ -64,7 +64,9 @@ export function Prompts() {
           </h3>
         </div>
         {data.prompts.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-gray-500">No prompt YAMLs found.</p>
+          <p className="px-4 py-3 text-sm text-gray-500">
+            No prompt YAMLs found.
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="prompt-list">

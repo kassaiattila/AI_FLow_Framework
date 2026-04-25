@@ -3,7 +3,13 @@
  * Simple useTranslate() hook with HU/EN JSON file support.
  */
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+} from "react";
 import hu from "../locales/hu.json";
 import en from "../locales/en.json";
 
@@ -18,7 +24,10 @@ interface I18nContextType {
 const translations: Record<Locale, Record<string, unknown>> = { hu, en };
 
 /** Resolve a dot-separated key like "aiflow.dashboard.title" from a nested object */
-function resolveKey(obj: Record<string, unknown>, key: string): string | undefined {
+function resolveKey(
+  obj: Record<string, unknown>,
+  key: string,
+): string | undefined {
   const parts = key.split(".");
   let current: unknown = obj;
   for (const part of parts) {
@@ -29,9 +38,14 @@ function resolveKey(obj: Record<string, unknown>, key: string): string | undefin
 }
 
 /** Replace %{param} placeholders */
-function interpolate(text: string, params?: Record<string, string | number>): string {
+function interpolate(
+  text: string,
+  params?: Record<string, string | number>,
+): string {
   if (!params) return text;
-  return text.replace(/%\{(\w+)\}/g, (_, key) => String(params[key] ?? `%{${key}}`));
+  return text.replace(/%\{(\w+)\}/g, (_, key) =>
+    String(params[key] ?? `%{${key}}`),
+  );
 }
 
 const LOCALE_KEY = "aiflow_locale";
@@ -54,7 +68,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const translate = useCallback(
     (key: string, params?: Record<string, string | number>): string => {
-      const text = resolveKey(translations[locale] as Record<string, unknown>, key);
+      const text = resolveKey(
+        translations[locale] as Record<string, unknown>,
+        key,
+      );
       if (text) return interpolate(text, params);
       // Fallback: try other locale
       const fallback = resolveKey(

@@ -11,8 +11,8 @@ export function usePromptHistory() {
   const addToHistory = useCallback((text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    setHistory(prev => {
-      const next = prev.filter(h => h !== trimmed);
+    setHistory((prev) => {
+      const next = prev.filter((h) => h !== trimmed);
       next.push(trimmed);
       return next.slice(-MAX_HISTORY);
     });
@@ -21,7 +21,10 @@ export function usePromptHistory() {
 
   const navigateUp = useCallback((): string | null => {
     if (history.length === 0) return null;
-    const next = indexRef.current === -1 ? history.length - 1 : Math.max(0, indexRef.current - 1);
+    const next =
+      indexRef.current === -1
+        ? history.length - 1
+        : Math.max(0, indexRef.current - 1);
     indexRef.current = next;
     return history[next] ?? null;
   }, [history]);

@@ -52,7 +52,9 @@ export function useApi<T>(
 
 /** Backend connection status hook */
 export function useBackendStatus(): "checking" | "connected" | "offline" {
-  const [status, setStatus] = useState<"checking" | "connected" | "offline">("checking");
+  const [status, setStatus] = useState<"checking" | "connected" | "offline">(
+    "checking",
+  );
 
   useEffect(() => {
     fetch("/health")

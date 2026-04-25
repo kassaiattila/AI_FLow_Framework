@@ -7,19 +7,59 @@ import { PageLayout } from "../layout/PageLayout";
 import { ErrorState } from "../components-new/ErrorState";
 import { DataTable, type Column } from "../components-new/DataTable";
 
-interface SkillCost { skill_name: string; run_count: number; total_cost_usd: number; avg_cost_usd: number; }
-interface DailyCost { date: string; total_cost_usd: number; run_count: number; }
-interface CostsSummary { total_cost_usd: number; total_runs: number; per_skill: SkillCost[]; daily: DailyCost[]; source?: string; }
-interface ModelCostItem { model: string; provider: string; request_count: number; total_input_tokens: number; total_output_tokens: number; total_cost_usd: number; }
-interface CostBreakdown { per_model: ModelCostItem[]; total_records: number; total_tokens: number; total_cost_usd: number; source: string; }
-interface CostCapStatus { tenant_id: string; cap_usd: number | null; window_h: number; current_usd: number; utilization_pct: number; breached: boolean; alert_level: "ok" | "warning" | "critical" | "exceeded"; source: string; }
+interface SkillCost {
+  skill_name: string;
+  run_count: number;
+  total_cost_usd: number;
+  avg_cost_usd: number;
+}
+interface DailyCost {
+  date: string;
+  total_cost_usd: number;
+  run_count: number;
+}
+interface CostsSummary {
+  total_cost_usd: number;
+  total_runs: number;
+  per_skill: SkillCost[];
+  daily: DailyCost[];
+  source?: string;
+}
+interface ModelCostItem {
+  model: string;
+  provider: string;
+  request_count: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost_usd: number;
+}
+interface CostBreakdown {
+  per_model: ModelCostItem[];
+  total_records: number;
+  total_tokens: number;
+  total_cost_usd: number;
+  source: string;
+}
+interface CostCapStatus {
+  tenant_id: string;
+  cap_usd: number | null;
+  window_h: number;
+  current_usd: number;
+  utilization_pct: number;
+  breached: boolean;
+  alert_level: "ok" | "warning" | "critical" | "exceeded";
+  source: string;
+}
 
 const CAP_TENANT = "default";
 const CAP_BANNER_CLASSES: Record<CostCapStatus["alert_level"], string> = {
   ok: "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300",
-  warning: "border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200",
-  critical: "border-orange-400 bg-orange-50 text-orange-900 dark:border-orange-600 dark:bg-orange-900/30 dark:text-orange-200",
-  exceeded: "border-red-500 bg-red-50 text-red-900 dark:border-red-600 dark:bg-red-900/30 dark:text-red-200",
+  warning:
+    "border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200",
+  critical:
+    "border-orange-400 bg-orange-50 text-orange-900 dark:border-orange-600 dark:bg-orange-900/30 dark:text-orange-200",
+  exceeded:
+    "border-red-500 bg-red-50 text-red-900 dark:border-red-600 dark:bg-red-900/30 dark:text-red-200",
 };
 
 function formatTokens(n: number): string {
@@ -30,24 +70,103 @@ function formatTokens(n: number): string {
 
 export function Costs() {
   const translate = useTranslate();
-  const { data, loading, error, refetch } = useApi<CostsSummary>("/api/v1/costs/summary");
+  const { data, loading, error, refetch } = useApi<CostsSummary>(
+    "/api/v1/costs/summary",
+  );
   const { data: breakdown } = useApi<CostBreakdown>("/api/v1/costs/breakdown");
-  const { data: capStatus } = useApi<CostCapStatus>(`/api/v1/costs/cap-status?tenant_id=${encodeURIComponent(CAP_TENANT)}`);
+  const { data: capStatus } = useApi<CostCapStatus>(
+    `/api/v1/costs/cap-status?tenant_id=${encodeURIComponent(CAP_TENANT)}`,
+  );
 
   const skillColumns: Column<Record<string, unknown>>[] = [
-    { key: "skill_name", label: "Skill", render: (item) => <span className="font-medium text-gray-900 dark:text-gray-100">{String(item.skill_name)}</span> },
-    { key: "run_count", label: translate("aiflow.costs.runs"), getValue: (item) => item.run_count as number },
-    { key: "total_cost_usd", label: translate("aiflow.costs.totalCostCol"), getValue: (item) => item.total_cost_usd as number, render: (item) => <span className="text-gray-600 dark:text-gray-400">${((item.total_cost_usd as number) ?? 0).toFixed(3)}</span> },
-    { key: "avg_cost_usd", label: translate("aiflow.costs.avgCost"), getValue: (item) => item.avg_cost_usd as number, render: (item) => <span className="text-gray-500 dark:text-gray-400">${((item.avg_cost_usd as number) ?? 0).toFixed(4)}</span> },
+    {
+      key: "skill_name",
+      label: "Skill",
+      render: (item) => (
+        <span className="font-medium text-gray-900 dark:text-gray-100">
+          {String(item.skill_name)}
+        </span>
+      ),
+    },
+    {
+      key: "run_count",
+      label: translate("aiflow.costs.runs"),
+      getValue: (item) => item.run_count as number,
+    },
+    {
+      key: "total_cost_usd",
+      label: translate("aiflow.costs.totalCostCol"),
+      getValue: (item) => item.total_cost_usd as number,
+      render: (item) => (
+        <span className="text-gray-600 dark:text-gray-400">
+          ${((item.total_cost_usd as number) ?? 0).toFixed(3)}
+        </span>
+      ),
+    },
+    {
+      key: "avg_cost_usd",
+      label: translate("aiflow.costs.avgCost"),
+      getValue: (item) => item.avg_cost_usd as number,
+      render: (item) => (
+        <span className="text-gray-500 dark:text-gray-400">
+          ${((item.avg_cost_usd as number) ?? 0).toFixed(4)}
+        </span>
+      ),
+    },
   ];
 
   const modelColumns: Column<Record<string, unknown>>[] = [
-    { key: "model", label: "Model", render: (item) => <span className="font-medium text-gray-900 dark:text-gray-100">{String(item.model)}</span> },
-    { key: "provider", label: "Provider", render: (item) => <span className="text-xs text-gray-500">{String(item.provider)}</span> },
-    { key: "request_count", label: "Requests", getValue: (item) => item.request_count as number },
-    { key: "total_input_tokens", label: "Input Tokens", getValue: (item) => item.total_input_tokens as number, render: (item) => <span className="text-gray-600 dark:text-gray-400">{formatTokens((item.total_input_tokens as number) ?? 0)}</span> },
-    { key: "total_output_tokens", label: "Output Tokens", getValue: (item) => item.total_output_tokens as number, render: (item) => <span className="text-gray-600 dark:text-gray-400">{formatTokens((item.total_output_tokens as number) ?? 0)}</span> },
-    { key: "total_cost_usd", label: "Cost", getValue: (item) => item.total_cost_usd as number, render: (item) => <span className="font-medium text-green-600 dark:text-green-400">${((item.total_cost_usd as number) ?? 0).toFixed(4)}</span> },
+    {
+      key: "model",
+      label: "Model",
+      render: (item) => (
+        <span className="font-medium text-gray-900 dark:text-gray-100">
+          {String(item.model)}
+        </span>
+      ),
+    },
+    {
+      key: "provider",
+      label: "Provider",
+      render: (item) => (
+        <span className="text-xs text-gray-500">{String(item.provider)}</span>
+      ),
+    },
+    {
+      key: "request_count",
+      label: "Requests",
+      getValue: (item) => item.request_count as number,
+    },
+    {
+      key: "total_input_tokens",
+      label: "Input Tokens",
+      getValue: (item) => item.total_input_tokens as number,
+      render: (item) => (
+        <span className="text-gray-600 dark:text-gray-400">
+          {formatTokens((item.total_input_tokens as number) ?? 0)}
+        </span>
+      ),
+    },
+    {
+      key: "total_output_tokens",
+      label: "Output Tokens",
+      getValue: (item) => item.total_output_tokens as number,
+      render: (item) => (
+        <span className="text-gray-600 dark:text-gray-400">
+          {formatTokens((item.total_output_tokens as number) ?? 0)}
+        </span>
+      ),
+    },
+    {
+      key: "total_cost_usd",
+      label: "Cost",
+      getValue: (item) => item.total_cost_usd as number,
+      render: (item) => (
+        <span className="font-medium text-green-600 dark:text-green-400">
+          ${((item.total_cost_usd as number) ?? 0).toFixed(4)}
+        </span>
+      ),
+    },
   ];
 
   return (
@@ -62,11 +181,14 @@ export function Costs() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="font-semibold">
-                {capStatus.breached ? "Cost cap breached" : "Cost cap status"} — tenant <code className="font-mono">{capStatus.tenant_id}</code>
+                {capStatus.breached ? "Cost cap breached" : "Cost cap status"} —
+                tenant <code className="font-mono">{capStatus.tenant_id}</code>
               </p>
               <p className="mt-1 text-xs">
-                ${capStatus.current_usd.toFixed(4)} / ${capStatus.cap_usd.toFixed(4)} over last {capStatus.window_h}h
-                {capStatus.breached && " — new provider calls return HTTP 429 until the window rolls forward."}
+                ${capStatus.current_usd.toFixed(4)} / $
+                {capStatus.cap_usd.toFixed(4)} over last {capStatus.window_h}h
+                {capStatus.breached &&
+                  " — new provider calls return HTTP 429 until the window rolls forward."}
               </p>
             </div>
             <span className="rounded-full bg-white/60 px-2 py-0.5 font-mono text-xs dark:bg-black/20">
@@ -79,37 +201,64 @@ export function Costs() {
       {/* KPIs */}
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-xs font-medium text-gray-500">{translate("aiflow.costs.totalCost")}</p>
-          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">${(data?.total_cost_usd ?? 0).toFixed(2)}</p>
+          <p className="text-xs font-medium text-gray-500">
+            {translate("aiflow.costs.totalCost")}
+          </p>
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
+            ${(data?.total_cost_usd ?? 0).toFixed(2)}
+          </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-xs font-medium text-gray-500">{translate("aiflow.costs.totalRuns")}</p>
-          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">{data?.total_runs ?? 0}</p>
+          <p className="text-xs font-medium text-gray-500">
+            {translate("aiflow.costs.totalRuns")}
+          </p>
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
+            {data?.total_runs ?? 0}
+          </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
           <p className="text-xs font-medium text-gray-500">Total Tokens</p>
-          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">{formatTokens(breakdown?.total_tokens ?? 0)}</p>
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
+            {formatTokens(breakdown?.total_tokens ?? 0)}
+          </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
           <p className="text-xs font-medium text-gray-500">API Calls</p>
-          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">{breakdown?.total_records ?? 0}</p>
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
+            {breakdown?.total_records ?? 0}
+          </p>
         </div>
       </div>
 
       {/* Daily cost mini-chart (simple bar) */}
       {data && data.daily.length > 0 && (
         <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Daily Cost (last 30 days)</h3>
+          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Daily Cost (last 30 days)
+          </h3>
           <div className="flex items-end gap-1" style={{ height: 80 }}>
-            {data.daily.slice(0, 30).reverse().map((d, i) => {
-              const maxCost = Math.max(...data.daily.map(x => x.total_cost_usd), 0.001);
-              const h = Math.max(4, (d.total_cost_usd / maxCost) * 72);
-              return (
-                <div key={i} className="flex flex-1 flex-col items-center gap-1" title={`${d.date}: $${d.total_cost_usd.toFixed(4)} (${d.run_count} runs)`}>
-                  <div className="w-full rounded-t bg-brand-500" style={{ height: h }} />
-                </div>
-              );
-            })}
+            {data.daily
+              .slice(0, 30)
+              .reverse()
+              .map((d, i) => {
+                const maxCost = Math.max(
+                  ...data.daily.map((x) => x.total_cost_usd),
+                  0.001,
+                );
+                const h = Math.max(4, (d.total_cost_usd / maxCost) * 72);
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-1 flex-col items-center gap-1"
+                    title={`${d.date}: $${d.total_cost_usd.toFixed(4)} (${d.run_count} runs)`}
+                  >
+                    <div
+                      className="w-full rounded-t bg-brand-500"
+                      style={{ height: h }}
+                    />
+                  </div>
+                );
+              })}
           </div>
           <div className="mt-1 flex justify-between text-[10px] text-gray-400">
             <span>{data.daily[data.daily.length - 1]?.date}</span>
@@ -119,16 +268,31 @@ export function Costs() {
       )}
 
       {/* By Skill */}
-      <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">{translate("aiflow.costs.bySkill")}</h3>
-      {error ? <ErrorState error={error} onRetry={refetch} /> :
-        <DataTable data={(data?.per_skill ?? []) as unknown as Record<string, unknown>[]} columns={skillColumns} loading={loading} searchKeys={["skill_name"]} />
-      }
+      <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+        {translate("aiflow.costs.bySkill")}
+      </h3>
+      {error ? (
+        <ErrorState error={error} onRetry={refetch} />
+      ) : (
+        <DataTable
+          data={(data?.per_skill ?? []) as unknown as Record<string, unknown>[]}
+          columns={skillColumns}
+          loading={loading}
+          searchKeys={["skill_name"]}
+        />
+      )}
 
       {/* By Model (from cost_records) */}
       {breakdown && breakdown.per_model.length > 0 && (
         <div className="mt-4">
-          <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">By Model (Token Breakdown)</h3>
-          <DataTable data={breakdown.per_model as unknown as Record<string, unknown>[]} columns={modelColumns} searchKeys={["model", "provider"]} />
+          <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            By Model (Token Breakdown)
+          </h3>
+          <DataTable
+            data={breakdown.per_model as unknown as Record<string, unknown>[]}
+            columns={modelColumns}
+            searchKeys={["model", "provider"]}
+          />
         </div>
       )}
     </PageLayout>

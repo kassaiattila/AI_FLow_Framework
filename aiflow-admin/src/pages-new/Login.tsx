@@ -59,7 +59,10 @@ export function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="email"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 {translate("aiflow.login.email")}
               </label>
               <input
@@ -75,7 +78,10 @@ export function Login() {
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="password"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 {translate("aiflow.login.password")}
               </label>
               <input
@@ -94,7 +100,9 @@ export function Login() {
               disabled={loading}
               className="w-full rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? translate("aiflow.common.loading") : translate("aiflow.login.submit")}
+              {loading
+                ? translate("aiflow.common.loading")
+                : translate("aiflow.login.submit")}
             </button>
           </form>
         </div>

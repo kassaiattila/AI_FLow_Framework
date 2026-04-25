@@ -128,7 +128,11 @@ export async function uploadFile<T>(
 
   if (!response.ok) {
     const detail = await response.json().catch(() => response.text());
-    throw new ApiClientError(response.status, `Upload error ${response.status}`, detail);
+    throw new ApiClientError(
+      response.status,
+      `Upload error ${response.status}`,
+      detail,
+    );
   }
 
   return response.json() as Promise<T>;

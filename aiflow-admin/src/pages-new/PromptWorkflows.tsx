@@ -28,9 +28,8 @@ const LIST_PATH = "/api/v1/prompts/workflows";
 
 export function PromptWorkflows() {
   const t = useTranslate();
-  const { data, loading, error, refetch } = useApi<PromptWorkflowListResponse>(
-    LIST_PATH,
-  );
+  const { data, loading, error, refetch } =
+    useApi<PromptWorkflowListResponse>(LIST_PATH);
   const [selected, setSelected] = useState<string | null>(null);
 
   if (loading) {
@@ -47,9 +46,7 @@ export function PromptWorkflows() {
       <PageLayout titleKey="aiflow.prompts.workflows.title">
         <ErrorState
           error={
-            isFlagDisabled
-              ? t("aiflow.prompts.workflows.flagDisabled")
-              : error
+            isFlagDisabled ? t("aiflow.prompts.workflows.flagDisabled") : error
           }
           onRetry={refetch}
         />
@@ -94,9 +91,7 @@ export function PromptWorkflows() {
                     <tr
                       key={wf.name}
                       className={`cursor-pointer border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800 ${
-                        isSelected
-                          ? "bg-blue-50 dark:bg-blue-900/20"
-                          : ""
+                        isSelected ? "bg-blue-50 dark:bg-blue-900/20" : ""
                       }`}
                       onClick={() => setSelected(wf.name)}
                       data-testid={`prompt-workflow-row-${wf.name}`}
@@ -229,11 +224,14 @@ function WorkflowDetailPanel({ name }: WorkflowDetailPanelProps) {
                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {step.id}
                 </span>
-                <span className="text-xs text-gray-500">→ {step.prompt_name}</span>
+                <span className="text-xs text-gray-500">
+                  → {step.prompt_name}
+                </span>
               </div>
               {step.depends_on.length > 0 && (
                 <div className="mt-1 text-xs text-gray-500">
-                  {t("aiflow.prompts.workflows.dependsOn")}: {step.depends_on.join(", ")}
+                  {t("aiflow.prompts.workflows.dependsOn")}:{" "}
+                  {step.depends_on.join(", ")}
                 </div>
               )}
               {Object.keys(step.metadata).length > 0 && (

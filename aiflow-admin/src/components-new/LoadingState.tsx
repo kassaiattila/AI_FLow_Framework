@@ -10,7 +10,10 @@ interface LoadingStateProps {
   rows?: number;
 }
 
-export function LoadingState({ fullPage = false, rows = 3 }: LoadingStateProps) {
+export function LoadingState({
+  fullPage = false,
+  rows = 3,
+}: LoadingStateProps) {
   if (fullPage) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -23,7 +26,10 @@ export function LoadingState({ fullPage = false, rows = 3 }: LoadingStateProps) 
     <div className="space-y-3">
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="animate-pulse">
-          <div className="h-4 rounded bg-gray-200 dark:bg-gray-700" style={{ width: `${85 - i * 15}%` }} />
+          <div
+            className="h-4 rounded bg-gray-200 dark:bg-gray-700"
+            style={{ width: `${85 - i * 15}%` }}
+          />
         </div>
       ))}
     </div>

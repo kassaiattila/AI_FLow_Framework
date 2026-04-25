@@ -26,7 +26,9 @@ export function TopBar() {
       {/* Left: Logo */}
       <div className="flex items-center gap-2">
         <span className="text-lg font-bold text-brand-500">AI</span>
-        <span className="text-lg font-semibold text-gray-800 dark:text-gray-200">Flow</span>
+        <span className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+          Flow
+        </span>
       </div>
 
       {/* Right: Status + Locale + Theme + User */}
@@ -81,12 +83,32 @@ export function TopBar() {
           aria-label={theme === "dark" ? "Light mode" : "Dark mode"}
         >
           {theme === "dark" ? (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+              />
             </svg>
           ) : (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+              />
             </svg>
           )}
         </button>
@@ -94,7 +116,9 @@ export function TopBar() {
         {/* User menu */}
         {user && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-600 dark:text-gray-400">{user.email}</span>
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              {user.email}
+            </span>
             <button
               onClick={handleLogout}
               className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"

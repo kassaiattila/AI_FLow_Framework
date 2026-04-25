@@ -32,7 +32,13 @@ export interface DataPoint {
   line_item_index?: number;
 }
 
-export type DetectedDocumentType = "invoice" | "receipt" | "contract" | "credit_note" | "proforma" | "unknown";
+export type DetectedDocumentType =
+  | "invoice"
+  | "receipt"
+  | "contract"
+  | "credit_note"
+  | "proforma"
+  | "unknown";
 export type DetectedDirection = "incoming" | "outgoing" | "unknown";
 
 export interface DocumentMeta {
@@ -54,14 +60,21 @@ export interface DocumentVerificationData {
 
 export const CONFIDENCE_THRESHOLDS = { HIGH: 0.9, MEDIUM: 0.7 } as const;
 
-export function getConfidenceLevel(confidence: number): "high" | "medium" | "low" {
+export function getConfidenceLevel(
+  confidence: number,
+): "high" | "medium" | "low" {
   if (confidence >= CONFIDENCE_THRESHOLDS.HIGH) return "high";
   if (confidence >= CONFIDENCE_THRESHOLDS.MEDIUM) return "medium";
   return "low";
 }
 
 export const CATEGORY_ORDER: DataPointCategory[] = [
-  "document_meta", "vendor", "buyer", "header", "line_item", "totals",
+  "document_meta",
+  "vendor",
+  "buyer",
+  "header",
+  "line_item",
+  "totals",
 ];
 
 // --- Field-type validators ---
@@ -72,7 +85,8 @@ export interface ValidationResult {
 }
 
 const numericPattern = /^[\d\s.,+-]+$/;
-const datePattern = /^(\d{4}[-./]\d{2}[-./]\d{2}\.?|\d{2}[-./]\d{2}[-./]\d{4})$/;
+const datePattern =
+  /^(\d{4}[-./]\d{2}[-./]\d{2}\.?|\d{2}[-./]\d{2}[-./]\d{4})$/;
 const taxNumberPattern = /^\d{8}(-\d{1,2}-\d{2})?$/;
 
 function validateNumeric(value: string): ValidationResult {
@@ -93,7 +107,10 @@ function validateTaxNumber(value: string): ValidationResult {
   if (!value) return { valid: true };
   return taxNumberPattern.test(value.trim())
     ? { valid: true }
-    : { valid: false, error: "Adoszam: 8 vagy 11 jegy (12345678 vagy 12345678-1-23)" };
+    : {
+        valid: false,
+        error: "Adoszam: 8 vagy 11 jegy (12345678 vagy 12345678-1-23)",
+      };
 }
 
 const FIELD_VALIDATORS: Record<string, (v: string) => ValidationResult> = {
@@ -115,7 +132,10 @@ for (let i = 0; i < 10; i++) {
   FIELD_VALIDATORS[`line_items.${i}.vat_rate`] = validateNumeric;
 }
 
-export function validateField(fieldName: string, value: string): ValidationResult {
+export function validateField(
+  fieldName: string,
+  value: string,
+): ValidationResult {
   const validator = FIELD_VALIDATORS[fieldName];
   if (!validator) return { valid: true };
   return validator(value);

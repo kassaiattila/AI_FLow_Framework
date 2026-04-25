@@ -30,7 +30,11 @@ function parseMarkdown(raw: string): Block[] {
         codeLines.push(lines[i]);
         i++;
       }
-      blocks.push({ type: "code", language: lang, content: codeLines.join("\n") });
+      blocks.push({
+        type: "code",
+        language: lang,
+        content: codeLines.join("\n"),
+      });
       i++; // skip closing ```
       continue;
     }
@@ -104,7 +108,8 @@ type Block =
 function renderInline(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   // Pattern: **bold**, *italic*, `code`, [text](url)
-  const pattern = /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\))/g;
+  const pattern =
+    /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\))/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   let key = 0;
@@ -120,14 +125,14 @@ function renderInline(text: string): React.ReactNode[] {
       nodes.push(
         <strong key={key++} className="font-semibold">
           {match[2]}
-        </strong>
+        </strong>,
       );
     } else if (match[3]) {
       // Italic
       nodes.push(
         <em key={key++} className="italic">
           {match[3]}
-        </em>
+        </em>,
       );
     } else if (match[4]) {
       // Inline code
@@ -137,7 +142,7 @@ function renderInline(text: string): React.ReactNode[] {
           className="rounded bg-gray-100 px-1 py-0.5 text-sm font-mono dark:bg-gray-800"
         >
           {match[4]}
-        </code>
+        </code>,
       );
     } else if (match[5] && match[6]) {
       // Link
@@ -150,7 +155,7 @@ function renderInline(text: string): React.ReactNode[] {
           className="text-indigo-600 underline hover:text-indigo-800 dark:text-indigo-400"
         >
           {match[5]}
-        </a>
+        </a>,
       );
     }
 
@@ -179,7 +184,13 @@ export function ChatMarkdown({ content }: ChatMarkdownProps) {
       {blocks.map((block, idx) => {
         switch (block.type) {
           case "code":
-            return <CodeBlock key={idx} code={block.content} language={block.language} />;
+            return (
+              <CodeBlock
+                key={idx}
+                code={block.content}
+                language={block.language}
+              />
+            );
 
           case "header":
             return (
@@ -207,9 +218,7 @@ export function ChatMarkdown({ content }: ChatMarkdownProps) {
             );
 
           case "paragraph":
-            return (
-              <p key={idx}>{renderInline(block.content)}</p>
-            );
+            return <p key={idx}>{renderInline(block.content)}</p>;
 
           default:
             return null;

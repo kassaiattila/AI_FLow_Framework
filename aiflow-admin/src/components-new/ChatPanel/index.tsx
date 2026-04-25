@@ -21,9 +21,11 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
   const translate = useTranslate();
   const locale = useLocale();
 
-  const [selectedCol, setSelectedCol] = useState(collectionId ?? collections[0]?.id ?? "");
-  const [selectedModel, setSelectedModel] = useState<string>(() =>
-    localStorage.getItem("aiflow_chat_model") || "openai/gpt-4o",
+  const [selectedCol, setSelectedCol] = useState(
+    collectionId ?? collections[0]?.id ?? "",
+  );
+  const [selectedModel, setSelectedModel] = useState<string>(
+    () => localStorage.getItem("aiflow_chat_model") || "openai/gpt-4o",
   );
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,7 +44,8 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
 
   // Hooks
   const { messages, addMessage, clearHistory } = useChatHistory(selectedCol);
-  const { addToHistory, navigateUp, navigateDown, resetNavigation } = usePromptHistory();
+  const { addToHistory, navigateUp, navigateDown, resetNavigation } =
+    usePromptHistory();
 
   // Virtual scroll & scroll management
   const containerRef = useRef<HTMLDivElement>(null);
@@ -60,7 +63,10 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
 
   const scrollToBottom = useCallback(() => {
     if (itemCount > 0) {
-      virtualizer.scrollToIndex(itemCount - 1, { align: "end", behavior: "smooth" });
+      virtualizer.scrollToIndex(itemCount - 1, {
+        align: "end",
+        behavior: "smooth",
+      });
     }
   }, [virtualizer, itemCount]);
 
@@ -135,7 +141,16 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
     } finally {
       setLoading(false);
     }
-  }, [input, selectedCol, selectedModel, loading, translate, addMessage, addToHistory, resetNavigation]);
+  }, [
+    input,
+    selectedCol,
+    selectedModel,
+    loading,
+    translate,
+    addMessage,
+    addToHistory,
+    resetNavigation,
+  ]);
 
   return (
     <div
@@ -190,8 +205,18 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
                   {isLoadingItem ? (
                     <div className="flex items-start gap-3 px-1 py-2">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                        <svg className="h-4 w-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                        <svg
+                          className="h-4 w-4 text-gray-600 dark:text-gray-300"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+                          />
                         </svg>
                       </div>
                       <div className="rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
@@ -203,7 +228,11 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
                       </div>
                     </div>
                   ) : (
-                    <MessageBubble message={messages[idx]} locale={locale} translate={translate} />
+                    <MessageBubble
+                      message={messages[idx]}
+                      locale={locale}
+                      translate={translate}
+                    />
                   )}
                 </div>
               );
@@ -213,13 +242,19 @@ export function ChatPanel({ collections, collectionId }: ChatPanelProps) {
       </div>
 
       {/* Scroll to bottom button */}
-      <ScrollToBottom visible={!isAtBottom && messages.length > 3} onClick={scrollToBottom} />
+      <ScrollToBottom
+        visible={!isAtBottom && messages.length > 3}
+        onClick={scrollToBottom}
+      />
 
       {/* Input — sticky on mobile */}
       <div className="max-md:sticky max-md:bottom-0 max-md:bg-white max-md:dark:bg-gray-900">
         <ChatInput
           value={input}
-          onChange={v => { setInput(v); resetNavigation(); }}
+          onChange={(v) => {
+            setInput(v);
+            resetNavigation();
+          }}
           onSend={() => void handleSend()}
           onNavigateUp={navigateUp}
           onNavigateDown={navigateDown}

@@ -50,7 +50,8 @@ interface DataTableProps<T> {
 
 function getNestedValue(obj: unknown, path: string): unknown {
   return path.split(".").reduce((curr: unknown, key: string) => {
-    if (curr && typeof curr === "object") return (curr as Record<string, unknown>)[key];
+    if (curr && typeof curr === "object")
+      return (curr as Record<string, unknown>)[key];
     return undefined;
   }, obj);
 }
@@ -73,7 +74,9 @@ function IndeterminateCheckbox({
       type="checkbox"
       checked={checked}
       onChange={onChange}
-      ref={(el) => { if (el) el.indeterminate = !!indeterminate; }}
+      ref={(el) => {
+        if (el) el.indeterminate = !!indeterminate;
+      }}
       aria-label={ariaLabel}
       className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
     />
@@ -115,8 +118,12 @@ export function DataTable<T extends Record<string, unknown>>({
 
   useEffect(() => {
     if (!onSelectionChangeRef.current || !selectable) return;
-    const selectedIndices = Object.keys(rowSelection).filter((k) => rowSelection[k]);
-    const selectedItems = selectedIndices.map((idx) => dataRef.current[parseInt(idx)]).filter(Boolean);
+    const selectedIndices = Object.keys(rowSelection).filter(
+      (k) => rowSelection[k],
+    );
+    const selectedItems = selectedIndices
+      .map((idx) => dataRef.current[parseInt(idx)])
+      .filter(Boolean);
     onSelectionChangeRef.current(selectedItems);
   }, [rowSelection, selectable]);
 
@@ -177,7 +184,9 @@ export function DataTable<T extends Record<string, unknown>>({
       const q = filterValue.toLowerCase();
       return effectiveSearchKeys.some((key) => {
         const col = columns.find((c) => c.key === key);
-        const val = col?.getValue ? col.getValue(row.original) : getNestedValue(row.original, key);
+        const val = col?.getValue
+          ? col.getValue(row.original)
+          : getNestedValue(row.original, key);
         if (val == null) return false;
         return String(val).toLowerCase().includes(q);
       });
@@ -209,7 +218,10 @@ export function DataTable<T extends Record<string, unknown>>({
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
         {[1, 2, 3].map((i) => (
           <div key={i} className="mb-3 animate-pulse">
-            <div className="h-4 rounded bg-gray-200 dark:bg-gray-700" style={{ width: `${90 - i * 15}%` }} />
+            <div
+              className="h-4 rounded bg-gray-200 dark:bg-gray-700"
+              style={{ width: `${90 - i * 15}%` }}
+            />
           </div>
         ))}
       </div>
@@ -229,8 +241,18 @@ export function DataTable<T extends Record<string, unknown>>({
               : `${table.getFilteredRowModel().rows.length} / ${data.length}`}
           </span>
           <div className="relative">
-            <svg className="absolute left-2.5 top-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg
+              className="absolute left-2.5 top-2 h-4 w-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
             <input
               type="text"
@@ -246,34 +268,69 @@ export function DataTable<T extends Record<string, unknown>>({
       {/* Table */}
       {rows.length === 0 ? (
         <div className="flex flex-col items-center py-12 text-center">
-          <svg className="mb-3 h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          <svg
+            className="mb-3 h-10 w-10 text-gray-300 dark:text-gray-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+            />
           </svg>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{translate(emptyMessageKey)}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {translate(emptyMessageKey)}
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="border-b border-gray-100 text-left dark:border-gray-800">
+                <tr
+                  key={headerGroup.id}
+                  className="border-b border-gray-100 text-left dark:border-gray-800"
+                >
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                      onClick={
+                        header.column.getCanSort()
+                          ? header.column.getToggleSortingHandler()
+                          : undefined
+                      }
                       className={`px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 ${
-                        header.column.getCanSort() ? "cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" : ""
+                        header.column.getCanSort()
+                          ? "cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200"
+                          : ""
                       }`}
-                      style={header.column.id === "_select" ? { width: 40 } : header.getSize() ? { width: header.getSize() } : undefined}
+                      style={
+                        header.column.id === "_select"
+                          ? { width: 40 }
+                          : header.getSize()
+                            ? { width: header.getSize() }
+                            : undefined
+                      }
                     >
                       {header.column.id === "_select" ? (
-                        flexRender(header.column.columnDef.header, header.getContext())
+                        flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )
                       ) : (
                         <span className="inline-flex items-center gap-1">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
                           {header.column.getCanSort() && (
                             <span className="text-brand-500">
-                              {{ asc: "↑", desc: "↓" }[header.column.getIsSorted() as string] ?? "↕"}
+                              {{ asc: "↑", desc: "↓" }[
+                                header.column.getIsSorted() as string
+                              ] ?? "↕"}
                             </span>
                           )}
                         </span>
@@ -287,14 +344,29 @@ export function DataTable<T extends Record<string, unknown>>({
               {rows.map((row) => (
                 <tr
                   key={row.id}
-                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  onClick={
+                    onRowClick ? () => onRowClick(row.original) : undefined
+                  }
                   className={`border-b border-gray-50 dark:border-gray-800 ${
-                    row.getIsSelected() ? "bg-brand-50/50 dark:bg-brand-900/10" : ""
+                    row.getIsSelected()
+                      ? "bg-brand-50/50 dark:bg-brand-900/10"
+                      : ""
                   } ${onRowClick ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50" : ""}`}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3" onClick={cell.column.id === "_select" ? (e) => e.stopPropagation() : undefined}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    <td
+                      key={cell.id}
+                      className="px-4 py-3"
+                      onClick={
+                        cell.column.id === "_select"
+                          ? (e) => e.stopPropagation()
+                          : undefined
+                      }
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </td>
                   ))}
                 </tr>
@@ -315,7 +387,8 @@ export function DataTable<T extends Record<string, unknown>>({
             Previous
           </button>
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            {table.getPageCount()}
           </span>
           <button
             onClick={() => table.nextPage()}

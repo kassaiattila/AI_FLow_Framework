@@ -14,7 +14,10 @@ export function EmailConnectors() {
   const translate = useTranslate();
 
   return (
-    <PageLayout titleKey="aiflow.connectors.menuLabel" subtitleKey="aiflow.emails.connectorsSubtitle">
+    <PageLayout
+      titleKey="aiflow.connectors.menuLabel"
+      subtitleKey="aiflow.emails.connectorsSubtitle"
+    >
       <div className="mb-4 flex items-center gap-3">
         <button
           onClick={() => navigate("/emails")}

@@ -15,7 +15,13 @@ interface PageLayoutProps {
   children: ReactNode;
 }
 
-export function PageLayout({ titleKey, subtitleKey, source, actions, children }: PageLayoutProps) {
+export function PageLayout({
+  titleKey,
+  subtitleKey,
+  source,
+  actions,
+  children,
+}: PageLayoutProps) {
   const translate = useTranslate();
 
   return (

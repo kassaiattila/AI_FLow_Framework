@@ -68,7 +68,11 @@ rules:
 
 export function IntentRules() {
   const { tenantId } = useParams<{ tenantId?: string }>();
-  return tenantId ? <IntentRulesEditor tenantId={tenantId} /> : <IntentRulesList />;
+  return tenantId ? (
+    <IntentRulesEditor tenantId={tenantId} />
+  ) : (
+    <IntentRulesList />
+  );
 }
 
 function IntentRulesList() {
@@ -108,7 +112,7 @@ function IntentRulesList() {
           <input
             type="text"
             value={newTenantId}
-            onChange={e => setNewTenantId(e.target.value)}
+            onChange={(e) => setNewTenantId(e.target.value)}
             placeholder="tenant_id (pl: default, acme, partner1)"
             className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
@@ -122,7 +126,8 @@ function IntentRulesList() {
         </div>
         {newTenantId && !validate(newTenantId) && (
           <p className="mt-2 text-xs text-red-600">
-            Ervenytelen tenant_id: csak a-z A-Z 0-9 _ . - karaktereket tartalmazhat.
+            Ervenytelen tenant_id: csak a-z A-Z 0-9 _ . - karaktereket
+            tartalmazhat.
           </p>
         )}
       </div>
@@ -133,7 +138,8 @@ function IntentRulesList() {
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
           {data && data.rules.length === 0 ? (
             <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
-              {translate("aiflow.intentRules.empty") || "Meg nincs intent szabaly. Hozz letre egyet fent."}
+              {translate("aiflow.intentRules.empty") ||
+                "Meg nincs intent szabaly. Hozz letre egyet fent."}
             </div>
           ) : (
             <table className="w-full">
@@ -147,17 +153,31 @@ function IntentRulesList() {
                 </tr>
               </thead>
               <tbody>
-                {data?.rules.map(r => (
+                {data?.rules.map((r) => (
                   <tr
                     key={r.tenant_id}
-                    onClick={() => navigate(`/emails/intent-rules/${encodeURIComponent(r.tenant_id)}`)}
+                    onClick={() =>
+                      navigate(
+                        `/emails/intent-rules/${encodeURIComponent(r.tenant_id)}`,
+                      )
+                    }
                     className="cursor-pointer border-t border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
                   >
-                    <td className="px-4 py-3 font-mono text-sm text-gray-900 dark:text-gray-100">{r.tenant_id}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{r.rule_count}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{r.default_action}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{r.default_target || "—"}</td>
-                    <td className="px-4 py-3 text-right text-sm text-brand-600 dark:text-brand-400">Szerkesztes →</td>
+                    <td className="px-4 py-3 font-mono text-sm text-gray-900 dark:text-gray-100">
+                      {r.tenant_id}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      {r.rule_count}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      {r.default_action}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      {r.default_target || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm text-brand-600 dark:text-brand-400">
+                      Szerkesztes →
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -190,7 +210,9 @@ function IntentRulesEditor({ tenantId }: { tenantId: string }) {
     if (data?.yaml_text) setYamlText(data.yaml_text);
     else if (is404 && !yamlText) {
       // new tenant — seed template with the path-provided tenant_id
-      setYamlText(YAML_TEMPLATE.replace("tenant_id: default", `tenant_id: ${tenantId}`));
+      setYamlText(
+        YAML_TEMPLATE.replace("tenant_id: default", `tenant_id: ${tenantId}`),
+      );
     }
   }, [data, is404, tenantId]); // yamlText intentionally omitted — only seed once
 
@@ -208,9 +230,10 @@ function IntentRulesEditor({ tenantId }: { tenantId: string }) {
       setTimeout(() => setSaveOk(false), 2000);
     } catch (e) {
       if (e instanceof ApiClientError) {
-        const detail = typeof e.detail === "string"
-          ? e.detail
-          : JSON.stringify(e.detail, null, 2);
+        const detail =
+          typeof e.detail === "string"
+            ? e.detail
+            : JSON.stringify(e.detail, null, 2);
         setSaveError(`${e.status}: ${detail}`);
       } else {
         setSaveError(e instanceof Error ? e.message : "Save failed");
@@ -265,7 +288,7 @@ function IntentRulesEditor({ tenantId }: { tenantId: string }) {
           </h3>
           <textarea
             value={yamlText}
-            onChange={e => setYamlText(e.target.value)}
+            onChange={(e) => setYamlText(e.target.value)}
             spellCheck={false}
             className="h-[400px] w-full rounded-lg border border-gray-300 bg-gray-50 p-3 font-mono text-xs text-gray-800 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
           />
@@ -275,16 +298,52 @@ function IntentRulesEditor({ tenantId }: { tenantId: string }) {
             Schema cheatsheet
           </h3>
           <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-            <li><code className="rounded bg-gray-100 px-1 dark:bg-gray-800">tenant_id</code>: string (URL-lel egyeznie kell)</li>
-            <li><code className="rounded bg-gray-100 px-1 dark:bg-gray-800">default_action</code>: extract | notify_dept | archive | manual_review | reply_auto</li>
-            <li><code className="rounded bg-gray-100 px-1 dark:bg-gray-800">default_target</code>: string (opcionalis)</li>
-            <li><code className="rounded bg-gray-100 px-1 dark:bg-gray-800">rules[].intent_label</code>: string (intent_id)</li>
-            <li><code className="rounded bg-gray-100 px-1 dark:bg-gray-800">rules[].action</code>: same enum as default_action</li>
-            <li><code className="rounded bg-gray-100 px-1 dark:bg-gray-800">rules[].target</code>: string (queue / department / template id)</li>
-            <li><code className="rounded bg-gray-100 px-1 dark:bg-gray-800">rules[].min_confidence</code>: 0.0 — 1.0</li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+                tenant_id
+              </code>
+              : string (URL-lel egyeznie kell)
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+                default_action
+              </code>
+              : extract | notify_dept | archive | manual_review | reply_auto
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+                default_target
+              </code>
+              : string (opcionalis)
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+                rules[].intent_label
+              </code>
+              : string (intent_id)
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+                rules[].action
+              </code>
+              : same enum as default_action
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+                rules[].target
+              </code>
+              : string (queue / department / template id)
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+                rules[].min_confidence
+              </code>
+              : 0.0 — 1.0
+            </li>
           </ul>
           <p className="mt-3 text-xs text-gray-500">
-            Ertekeles: <em>first-match-wins</em>. Ha egy szabaly sem passzol, a <code>default_action</code> aktivalodik.
+            Ertekeles: <em>first-match-wins</em>. Ha egy szabaly sem passzol, a{" "}
+            <code>default_action</code> aktivalodik.
           </p>
         </div>
       </div>
@@ -295,7 +354,9 @@ function IntentRulesEditor({ tenantId }: { tenantId: string }) {
           disabled={saving || !yamlText.trim()}
           className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
         >
-          {saving ? translate("aiflow.common.loading") : (translate("common.action.save") || "Mentes")}
+          {saving
+            ? translate("aiflow.common.loading")
+            : translate("common.action.save") || "Mentes"}
         </button>
         {!is404 && (
           <button
@@ -319,14 +380,18 @@ function IntentRulesEditor({ tenantId }: { tenantId: string }) {
       </div>
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Szabaly torlese: {tenantId}?
             </h3>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Ez torli a <code>{data?.path}</code> fajlt. A folyamatban levo scan-ek
-              visszaesnek a default policy-re.
+              Ez torli a <code>{data?.path}</code> fajlt. A folyamatban levo
+              scan-ek visszaesnek a default policy-re.
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button

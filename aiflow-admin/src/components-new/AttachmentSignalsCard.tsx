@@ -98,11 +98,15 @@ export function AttachmentSignalsCard({
       <div className="flex flex-wrap items-center gap-2">
         <Badge
           on={Boolean(features.invoice_number_detected)}
-          label={translate("aiflow.emails.attachmentSignals.invoiceNumberDetected")}
+          label={translate(
+            "aiflow.emails.attachmentSignals.invoiceNumberDetected",
+          )}
         />
         <Badge
           on={Boolean(features.total_value_detected)}
-          label={translate("aiflow.emails.attachmentSignals.totalValueDetected")}
+          label={translate(
+            "aiflow.emails.attachmentSignals.totalValueDetected",
+          )}
         />
       </div>
 
@@ -127,25 +131,28 @@ export function AttachmentSignalsCard({
           <dt className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
             {translate("aiflow.emails.attachmentSignals.textQuality")}
           </dt>
-          <dd className="tabular-nums text-gray-900 dark:text-gray-100">{qualityPct}</dd>
+          <dd className="tabular-nums text-gray-900 dark:text-gray-100">
+            {qualityPct}
+          </dd>
         </div>
-        {typeof features.total_cost_usd === "number" && features.total_cost_usd > 0 && (
-          <div data-testid="attachment-signals-cost">
-            <dt className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              {translate("aiflow.emails.attachmentSignals.costUsd")}
-            </dt>
-            <dd className="tabular-nums text-gray-900 dark:text-gray-100">
-              ${features.total_cost_usd.toFixed(4)}
-              {typeof features.total_pages_processed === "number" &&
-                features.total_pages_processed > 0 && (
-                  <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
-                    ({features.total_pages_processed}{" "}
-                    {translate("aiflow.emails.attachmentSignals.pages")})
-                  </span>
-                )}
-            </dd>
-          </div>
-        )}
+        {typeof features.total_cost_usd === "number" &&
+          features.total_cost_usd > 0 && (
+            <div data-testid="attachment-signals-cost">
+              <dt className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                {translate("aiflow.emails.attachmentSignals.costUsd")}
+              </dt>
+              <dd className="tabular-nums text-gray-900 dark:text-gray-100">
+                ${features.total_cost_usd.toFixed(4)}
+                {typeof features.total_pages_processed === "number" &&
+                  features.total_pages_processed > 0 && (
+                    <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                      ({features.total_pages_processed}{" "}
+                      {translate("aiflow.emails.attachmentSignals.pages")})
+                    </span>
+                  )}
+              </dd>
+            </div>
+          )}
       </dl>
 
       {topBuckets.length > 0 && (
