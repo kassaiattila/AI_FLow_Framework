@@ -3,6 +3,7 @@
 Pipeline: parse_invoice -> classify_invoice -> extract_invoice_data
        -> validate_invoice -> store_invoice -> export_invoice
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -26,7 +27,18 @@ from skills.invoice_processor.models import (
     VatSummaryLine,
 )
 
+from aiflow.core.config import get_settings
+from aiflow.core.errors import CostGuardrailRefused
 from aiflow.engine.step import step
+from aiflow.guardrails.cost_estimator import CostEstimator
+from aiflow.prompts.schema import PromptDefinition
+from aiflow.prompts.workflow_executor import PromptWorkflowExecutor
+
+# Sprint T / S149 (S141-FU-2): the workflow descriptor name + skill key
+# the executor uses for opt-in resolution. Module-level constants so tests
+# can reference them without recreating the executor.
+WORKFLOW_NAME = "invoice_extraction_chain"
+SKILL_NAME = "invoice_processor"
 
 __all__ = [
     "parse_invoice",
@@ -39,12 +51,86 @@ __all__ = [
 
 logger = structlog.get_logger(__name__)
 
+# Sprint T / S149 — PromptWorkflow opt-in shim. Resolution-only; flag-off
+# default returns ``None`` and the legacy single-prompt path runs unchanged.
+prompt_workflow_executor = PromptWorkflowExecutor(
+    manager=prompt_manager,
+    settings=get_settings().prompt_workflows,
+)
+
+# Reused for per-step cost-ceiling enforcement (R2 mitigation).
+_cost_estimator = CostEstimator()
+
+
+def _resolve_workflow_step(step_id: str) -> tuple[PromptDefinition | None, float | None]:
+    """Resolve a single ``invoice_extraction_chain`` step.
+
+    Returns ``(prompt_definition, cost_ceiling_usd)`` when the workflow
+    shim is on for this skill and the descriptor is loadable; otherwise
+    ``(None, None)`` so the caller falls back to the legacy single-prompt
+    path. ``cost_ceiling_usd`` is read from the descriptor step's
+    ``metadata`` and is advisory: only the flag-on path enforces it.
+    """
+    resolved = prompt_workflow_executor.resolve_for_skill(SKILL_NAME, WORKFLOW_NAME)
+    if resolved is None:
+        return None, None
+    workflow, prompt_map = resolved
+    prompt_definition = prompt_map.get(step_id)
+    ceiling: float | None = None
+    try:
+        descriptor_step = workflow.get_step(step_id)
+        raw_ceiling = descriptor_step.metadata.get("cost_ceiling_usd")
+        if raw_ceiling is not None:
+            ceiling = float(raw_ceiling)
+    except KeyError:
+        pass
+    return prompt_definition, ceiling
+
+
+def _enforce_step_cost_ceiling(
+    prompt: PromptDefinition,
+    raw_input_text: str,
+    ceiling_usd: float,
+    step_id: str,
+) -> None:
+    """Raise :class:`CostGuardrailRefused` when projected cost exceeds the ceiling.
+
+    Uses :class:`CostEstimator` for the projection. Token count is a
+    rough char→token approximation (~4 chars/token) plus a constant for
+    the system prompt; this matches the precision the descriptor's
+    ``cost_ceiling_usd`` metadata is set against.
+    """
+    input_tokens = max(256, len(raw_input_text) // 4 + 256)
+    projected = _cost_estimator.estimate(
+        model=prompt.config.model,
+        input_tokens=input_tokens,
+        max_output_tokens=prompt.config.max_tokens,
+    )
+    if projected > ceiling_usd:
+        logger.warning(
+            "invoice_processor.step_cost_ceiling_exceeded",
+            step=step_id,
+            workflow=WORKFLOW_NAME,
+            projected_usd=round(projected, 6),
+            ceiling_usd=ceiling_usd,
+            model=prompt.config.model,
+        )
+        raise CostGuardrailRefused(
+            tenant_id="default",
+            projected_usd=projected,
+            remaining_usd=ceiling_usd,
+            period="per_step",
+            reason="step_cost_ceiling_exceeded",
+        )
+
+
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".xlsx", ".png", ".jpg", ".jpeg", ".tiff"}
 
 
 # ---------------------------------------------------------------------------
 # Step 1: Parse PDF
 # ---------------------------------------------------------------------------
+
 
 @step(name="parse_invoice", description="Parse PDF invoices into raw text")
 async def parse_invoice(data: dict) -> dict:
@@ -68,10 +154,7 @@ async def parse_invoice(data: dict) -> dict:
     if source.is_file():
         pdf_files = [source]
     else:
-        pdf_files = sorted(
-            f for f in source.rglob("*")
-            if f.suffix.lower() in SUPPORTED_EXTENSIONS
-        )
+        pdf_files = sorted(f for f in source.rglob("*") if f.suffix.lower() in SUPPORTED_EXTENSIONS)
 
     if not pdf_files:
         raise ValueError(f"No supported files found in {source}")
@@ -84,15 +167,17 @@ async def parse_invoice(data: dict) -> dict:
             parsed_files.append(parsed)
         except Exception as exc:
             logger.warning("parse_invoice.file_error", file=str(pdf_path), error=str(exc))
-            parsed_files.append({
-                "path": str(pdf_path),
-                "filename": pdf_path.name,
-                "raw_text": "",
-                "raw_markdown": "",
-                "tables": [],
-                "parser_used": "failed",
-                "error": str(exc),
-            })
+            parsed_files.append(
+                {
+                    "path": str(pdf_path),
+                    "filename": pdf_path.name,
+                    "raw_text": "",
+                    "raw_markdown": "",
+                    "tables": [],
+                    "parser_used": "failed",
+                    "error": str(exc),
+                }
+            )
 
     logger.info("parse_invoice.done", total=len(pdf_files), parsed=len(parsed_files))
 
@@ -111,7 +196,9 @@ def _parse_single_pdf_sync(pdf_path: Path) -> dict[str, Any]:
         from aiflow.ingestion.parsers.docling_parser import DoclingParser
 
         parser = DoclingParser()
-        logger.info("docling_parse_start", file=pdf_path.name, size_kb=round(pdf_path.stat().st_size / 1024))
+        logger.info(
+            "docling_parse_start", file=pdf_path.name, size_kb=round(pdf_path.stat().st_size / 1024)
+        )
         result = parser.parse(str(pdf_path))
         return {
             "path": str(pdf_path),
@@ -144,7 +231,9 @@ def _parse_single_pdf_sync(pdf_path: Path) -> dict[str, Any]:
             "file_size_kb": pdf_path.stat().st_size / 1024,
         }
     except Exception as pdfium_err:
-        raise RuntimeError(f"All parsers failed for {pdf_path.name}: docling={docling_error}, pypdfium2={pdfium_err}") from pdfium_err
+        raise RuntimeError(
+            f"All parsers failed for {pdf_path.name}: docling={docling_error}, pypdfium2={pdfium_err}"
+        ) from pdfium_err
 
 
 async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:
@@ -155,6 +244,7 @@ async def _parse_single_pdf(pdf_path: Path) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Step 2: Classify (incoming vs outgoing)
 # ---------------------------------------------------------------------------
+
 
 @step(name="classify_invoice", description="Classify invoices as incoming or outgoing")
 async def classify_invoice(data: dict) -> dict:
@@ -202,7 +292,11 @@ async def classify_invoice(data: dict) -> dict:
                 continue
 
         # LLM fallback
-        f["direction"] = await _classify_with_llm(f.get("raw_text", ""))
+        classify_prompt, _ = _resolve_workflow_step("classify")
+        f["direction"] = await _classify_with_llm(
+            f.get("raw_text", ""),
+            prompt_definition=classify_prompt,
+        )
         f["classify_method"] = "llm"
 
     logger.info(
@@ -213,10 +307,19 @@ async def classify_invoice(data: dict) -> dict:
     return data
 
 
-async def _classify_with_llm(text: str) -> str:
-    """Use LLM to classify invoice direction."""
+async def _classify_with_llm(
+    text: str,
+    *,
+    prompt_definition: PromptDefinition | None = None,
+) -> str:
+    """Use LLM to classify invoice direction.
+
+    Sprint T / S149: when ``prompt_definition`` is supplied (workflow
+    shim resolved the ``classify`` step), use it directly; otherwise
+    fall back to the legacy ``prompt_manager.get`` lookup.
+    """
     try:
-        prompt = prompt_manager.get("invoice/classifier")
+        prompt = prompt_definition or prompt_manager.get("invoice/classifier")
         messages = prompt.compile(variables={"invoice_text": text[:3000]})
         result = await models_client.generate(
             messages=messages,
@@ -235,6 +338,7 @@ async def _classify_with_llm(text: str) -> str:
 # Step 3: Extract structured data (2 LLM calls)
 # ---------------------------------------------------------------------------
 
+
 @step(name="extract_invoice_data", description="Extract structured invoice fields via LLM")
 async def extract_invoice_data(data: dict) -> dict:
     """Extract header, line items, and totals from each invoice.
@@ -244,6 +348,12 @@ async def extract_invoice_data(data: dict) -> dict:
     2. Line items + totals
     """
     files = data.get("files", [])
+
+    # Sprint T / S149 — resolve once per pipeline run; the executor caches
+    # the workflow descriptor for the manager's TTL so per-file calls are
+    # cheap. Returns (None, None) on flag-off (zero behaviour change).
+    header_prompt, header_ceiling = _resolve_workflow_step("extract_header")
+    lines_prompt, lines_ceiling = _resolve_workflow_step("extract_lines")
 
     for f in files:
         if f.get("error"):
@@ -255,8 +365,17 @@ async def extract_invoice_data(data: dict) -> dict:
 
         # Run both LLM calls in parallel — no data dependency between them
         header_data, lines_data = await asyncio.gather(
-            _extract_header(text),
-            _extract_lines(text, tables_md),
+            _extract_header(
+                text,
+                prompt_definition=header_prompt,
+                cost_ceiling_usd=header_ceiling,
+            ),
+            _extract_lines(
+                text,
+                tables_md,
+                prompt_definition=lines_prompt,
+                cost_ceiling_usd=lines_ceiling,
+            ),
         )
 
         f["vendor"] = header_data.get("vendor", {})
@@ -274,8 +393,12 @@ async def extract_invoice_data(data: dict) -> dict:
         # Collect LLM token usage for cost tracking
         h_usage = header_data.pop("_llm_usage", {})
         l_usage = lines_data.pop("_llm_usage", {})
-        f["_llm_total_input_tokens"] = h_usage.get("input_tokens", 0) + l_usage.get("input_tokens", 0)
-        f["_llm_total_output_tokens"] = h_usage.get("output_tokens", 0) + l_usage.get("output_tokens", 0)
+        f["_llm_total_input_tokens"] = h_usage.get("input_tokens", 0) + l_usage.get(
+            "input_tokens", 0
+        )
+        f["_llm_total_output_tokens"] = h_usage.get("output_tokens", 0) + l_usage.get(
+            "output_tokens", 0
+        )
         f["_llm_model"] = h_usage.get("model", "openai/gpt-4o")
 
         logger.info(
@@ -294,11 +417,26 @@ async def extract_invoice_data(data: dict) -> dict:
     return data
 
 
-async def _extract_header(text: str) -> dict[str, Any]:
-    """Extract header fields via LLM."""
+async def _extract_header(
+    text: str,
+    *,
+    prompt_definition: PromptDefinition | None = None,
+    cost_ceiling_usd: float | None = None,
+) -> dict[str, Any]:
+    """Extract header fields via LLM.
+
+    Sprint T / S149: when ``prompt_definition`` is supplied (workflow
+    shim resolved the ``extract_header`` step), use it directly. When
+    ``cost_ceiling_usd`` is supplied (descriptor metadata), enforce it
+    BEFORE the LLM call and surface :class:`CostGuardrailRefused`
+    upward — tenant-budget enforcement contract relies on visibility.
+    """
+    truncated = text[:4000]
     try:
-        prompt = prompt_manager.get("invoice/header_extractor")
-        messages = prompt.compile(variables={"invoice_text": text[:4000]})
+        prompt = prompt_definition or prompt_manager.get("invoice/header_extractor")
+        if cost_ceiling_usd is not None:
+            _enforce_step_cost_ceiling(prompt, truncated, cost_ceiling_usd, "extract_header")
+        messages = prompt.compile(variables={"invoice_text": truncated})
         result = await models_client.generate(
             messages=messages,
             model=prompt.config.model,
@@ -312,19 +450,43 @@ async def _extract_header(text: str) -> dict[str, Any]:
             "output_tokens": getattr(result, "output_tokens", 0),
         }
         return parsed
+    except CostGuardrailRefused:
+        raise
     except Exception as exc:
         logger.warning("extract_header_error", error=str(exc))
         return {"vendor": {}, "buyer": {}, "header": {}}
 
 
-async def _extract_lines(text: str, tables_md: str) -> dict[str, Any]:
-    """Extract line items and totals via LLM."""
+async def _extract_lines(
+    text: str,
+    tables_md: str,
+    *,
+    prompt_definition: PromptDefinition | None = None,
+    cost_ceiling_usd: float | None = None,
+) -> dict[str, Any]:
+    """Extract line items and totals via LLM.
+
+    Sprint T / S149: ``prompt_definition`` + ``cost_ceiling_usd`` mirror
+    :func:`_extract_header` — opt-in workflow path with structured
+    cost-guard refusal on flag-on.
+    """
+    truncated_text = text[:5000]
+    truncated_tables = tables_md[:2000] if tables_md else ""
     try:
-        prompt = prompt_manager.get("invoice/line_extractor")
-        messages = prompt.compile(variables={
-            "invoice_text": text[:5000],
-            "tables_markdown": tables_md[:2000] if tables_md else "",
-        })
+        prompt = prompt_definition or prompt_manager.get("invoice/line_extractor")
+        if cost_ceiling_usd is not None:
+            _enforce_step_cost_ceiling(
+                prompt,
+                truncated_text + truncated_tables,
+                cost_ceiling_usd,
+                "extract_lines",
+            )
+        messages = prompt.compile(
+            variables={
+                "invoice_text": truncated_text,
+                "tables_markdown": truncated_tables,
+            }
+        )
         result = await models_client.generate(
             messages=messages,
             model=prompt.config.model,
@@ -338,6 +500,8 @@ async def _extract_lines(text: str, tables_md: str) -> dict[str, Any]:
             "output_tokens": getattr(result, "output_tokens", 0),
         }
         return parsed
+    except CostGuardrailRefused:
+        raise
     except Exception as exc:
         logger.warning("extract_lines_error", error=str(exc))
         return {"line_items": [], "totals": {}}
@@ -370,6 +534,7 @@ def _parse_json_response(text: str, context: str = "") -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Step 4: Validate (pure Python)
 # ---------------------------------------------------------------------------
+
 
 @step(name="validate_invoice", description="Cross-check extracted invoice data")
 async def validate_invoice(data: dict) -> dict:
@@ -458,12 +623,14 @@ async def validate_invoice(data: dict) -> dict:
 # Step 5: Store to PostgreSQL
 # ---------------------------------------------------------------------------
 
+
 def _parse_date(val: str | None) -> object | None:
     """Parse a YYYY-MM-DD string to datetime.date, or return None."""
     if not val:
         return None
     try:
         from datetime import date as _date
+
         parts = val.strip().split("-")
         if len(parts) == 3:
             return _date(int(parts[0]), int(parts[1]), int(parts[2]))
@@ -476,6 +643,7 @@ def _parse_date(val: str | None) -> object | None:
 async def store_invoice(data: dict) -> dict:
     """Store invoices and line items in PostgreSQL (best-effort)."""
     import os
+
     files = data.get("files", [])
 
     db_url = os.getenv(
@@ -488,6 +656,7 @@ async def store_invoice(data: dict) -> dict:
             continue
         try:
             import asyncpg
+
             conn = await asyncpg.connect(db_url)
             try:
                 raw_text = f.get("raw_text", "")
@@ -582,6 +751,7 @@ async def store_invoice(data: dict) -> dict:
 # Step 6: Export
 # ---------------------------------------------------------------------------
 
+
 @step(name="export_invoice", description="Export processed invoices to CSV/Excel/JSON")
 async def export_invoice(data: dict) -> dict:
     """Export processed invoice data to files.
@@ -612,7 +782,8 @@ async def export_invoice(data: dict) -> dict:
         if export_format in ("json", "all"):
             json_str = json.dumps(
                 [inv.model_dump(mode="json") for inv in invoices],
-                ensure_ascii=False, indent=2,
+                ensure_ascii=False,
+                indent=2,
             )
             (tmp_dir / "invoices.json").write_text(json_str, encoding="utf-8")
             exported.append("invoices.json")
@@ -650,22 +821,26 @@ def _build_invoice_objects(files: list[dict]) -> list[ProcessedInvoice]:
     for f in files:
         if f.get("error"):
             continue
-        invoices.append(ProcessedInvoice(
-            source_file=f.get("filename", ""),
-            source_directory=f.get("path", ""),
-            direction=f.get("direction", ""),
-            vendor=InvoiceParty(**f.get("vendor", {})),
-            buyer=InvoiceParty(**f.get("buyer", {})),
-            header=InvoiceHeader(**f.get("header", {})),
-            line_items=[LineItem(**item) for item in f.get("line_items", [])],
-            totals=InvoiceTotals(
-                **{k: v for k, v in f.get("totals", {}).items() if k != "vat_summary"},
-                vat_summary=[VatSummaryLine(**vs) for vs in f.get("totals", {}).get("vat_summary", [])],
-            ),
-            validation=InvoiceValidation(**f.get("validation", {})),
-            tables_found=len(f.get("tables", [])),
-            parser_used=f.get("parser_used", ""),
-        ))
+        invoices.append(
+            ProcessedInvoice(
+                source_file=f.get("filename", ""),
+                source_directory=f.get("path", ""),
+                direction=f.get("direction", ""),
+                vendor=InvoiceParty(**f.get("vendor", {})),
+                buyer=InvoiceParty(**f.get("buyer", {})),
+                header=InvoiceHeader(**f.get("header", {})),
+                line_items=[LineItem(**item) for item in f.get("line_items", [])],
+                totals=InvoiceTotals(
+                    **{k: v for k, v in f.get("totals", {}).items() if k != "vat_summary"},
+                    vat_summary=[
+                        VatSummaryLine(**vs) for vs in f.get("totals", {}).get("vat_summary", [])
+                    ],
+                ),
+                validation=InvoiceValidation(**f.get("validation", {})),
+                tables_found=len(f.get("tables", [])),
+                parser_used=f.get("parser_used", ""),
+            )
+        )
     return invoices
 
 
@@ -678,12 +853,30 @@ def _export_csv(invoices: list[ProcessedInvoice], path: Path) -> None:
     import io
 
     fields = [
-        "source_file", "direction", "invoice_number", "invoice_date", "due_date",
-        "vendor_name", "vendor_tax_number", "buyer_name", "buyer_tax_number",
-        "currency", "payment_method",
-        "line_number", "description", "quantity", "unit", "unit_price",
-        "net_amount", "vat_rate", "vat_amount", "gross_amount",
-        "net_total", "vat_total", "gross_total", "is_valid",
+        "source_file",
+        "direction",
+        "invoice_number",
+        "invoice_date",
+        "due_date",
+        "vendor_name",
+        "vendor_tax_number",
+        "buyer_name",
+        "buyer_tax_number",
+        "currency",
+        "payment_method",
+        "line_number",
+        "description",
+        "quantity",
+        "unit",
+        "unit_price",
+        "net_amount",
+        "vat_rate",
+        "vat_amount",
+        "gross_amount",
+        "net_total",
+        "vat_total",
+        "gross_total",
+        "is_valid",
     ]
     buf = io.StringIO()
     writer = csv.DictWriter(buf, fieldnames=fields, delimiter=";")
@@ -708,18 +901,20 @@ def _export_csv(invoices: list[ProcessedInvoice], path: Path) -> None:
         }
         if inv.line_items:
             for item in inv.line_items:
-                writer.writerow({
-                    **base,
-                    "line_number": item.line_number,
-                    "description": item.description,
-                    "quantity": item.quantity,
-                    "unit": item.unit,
-                    "unit_price": item.unit_price,
-                    "net_amount": item.net_amount,
-                    "vat_rate": item.vat_rate,
-                    "vat_amount": item.vat_amount,
-                    "gross_amount": item.gross_amount,
-                })
+                writer.writerow(
+                    {
+                        **base,
+                        "line_number": item.line_number,
+                        "description": item.description,
+                        "quantity": item.quantity,
+                        "unit": item.unit,
+                        "unit_price": item.unit_price,
+                        "net_amount": item.net_amount,
+                        "vat_rate": item.vat_rate,
+                        "vat_amount": item.vat_amount,
+                        "gross_amount": item.gross_amount,
+                    }
+                )
         else:
             writer.writerow(base)
     # Single atomic write — avoids row-by-row I/O on network drives
@@ -736,35 +931,74 @@ def _export_excel(invoices: list[ProcessedInvoice], path: Path) -> None:
     ws_sum = wb.active
     ws_sum.title = "Osszesito"
     sum_headers = [
-        "Fajl", "Irany", "Szamlaszam", "Datum", "Hat.ido",
-        "Szallito", "Ado.sz.", "Vevo", "Ado.sz.",
-        "Netto", "AFA", "Brutto", "Penznem", "Valid",
+        "Fajl",
+        "Irany",
+        "Szamlaszam",
+        "Datum",
+        "Hat.ido",
+        "Szallito",
+        "Ado.sz.",
+        "Vevo",
+        "Ado.sz.",
+        "Netto",
+        "AFA",
+        "Brutto",
+        "Penznem",
+        "Valid",
     ]
     ws_sum.append(sum_headers)
     for inv in invoices:
-        ws_sum.append([
-            inv.source_file, inv.direction,
-            inv.header.invoice_number, inv.header.invoice_date, inv.header.due_date,
-            inv.vendor.name, inv.vendor.tax_number,
-            inv.buyer.name, inv.buyer.tax_number,
-            inv.totals.net_total, inv.totals.vat_total, inv.totals.gross_total,
-            inv.header.currency, inv.validation.is_valid,
-        ])
+        ws_sum.append(
+            [
+                inv.source_file,
+                inv.direction,
+                inv.header.invoice_number,
+                inv.header.invoice_date,
+                inv.header.due_date,
+                inv.vendor.name,
+                inv.vendor.tax_number,
+                inv.buyer.name,
+                inv.buyer.tax_number,
+                inv.totals.net_total,
+                inv.totals.vat_total,
+                inv.totals.gross_total,
+                inv.header.currency,
+                inv.validation.is_valid,
+            ]
+        )
 
     # Sheet 2: Line Items
     ws_items = wb.create_sheet("Tetelek")
     item_headers = [
-        "Szamlaszam", "Szallito", "Sor", "Megnevezes",
-        "Menny.", "Egyseg", "Egysegar", "Netto", "AFA%", "AFA", "Brutto",
+        "Szamlaszam",
+        "Szallito",
+        "Sor",
+        "Megnevezes",
+        "Menny.",
+        "Egyseg",
+        "Egysegar",
+        "Netto",
+        "AFA%",
+        "AFA",
+        "Brutto",
     ]
     ws_items.append(item_headers)
     for inv in invoices:
         for item in inv.line_items:
-            ws_items.append([
-                inv.header.invoice_number, inv.vendor.name,
-                item.line_number, item.description,
-                item.quantity, item.unit, item.unit_price,
-                item.net_amount, item.vat_rate, item.vat_amount, item.gross_amount,
-            ])
+            ws_items.append(
+                [
+                    inv.header.invoice_number,
+                    inv.vendor.name,
+                    item.line_number,
+                    item.description,
+                    item.quantity,
+                    item.unit,
+                    item.unit_price,
+                    item.net_amount,
+                    item.vat_rate,
+                    item.vat_amount,
+                    item.gross_amount,
+                ]
+            )
 
     wb.save(str(path))
