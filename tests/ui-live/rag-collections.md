@@ -1,9 +1,58 @@
 # /live-test — rag-collections (Sprint S / S144)
 
-> **Status:** PENDING — automated authoring only. The Playwright MCP run
-> against a live `make api` + `npm run dev` stack must be reproduced by an
-> operator before this PR merges; the report below documents the exact
-> journey to follow and the data-testid hooks the page exposes.
+> **Status:** PASS — first live operator run on 2026-04-25 (see `## Utolso
+> futtatas`). Journey reproduced end-to-end via Playwright MCP against
+> `localhost:5173` + `localhost:8102`.
+
+## Utolso futtatas
+
+### 2026-04-25 09:07 — PASS
+
+- Lepes 1 (Login): PASS — `admin@bestix.hu` (creds now sourced from `.env`
+  via `scripts/seed_admin.py` + `python-dotenv`)
+- Lepes 2 (Seed two collections): PASS — direct asyncpg insert, IDs
+  `057283b3-…` (bestix, NULL profile, 1536-dim) + `94867f6e-…` (doha,
+  bge_m3, 1024-dim)
+- Lepes 3 (Navigate `/#/rag/collections`): PASS — `Live` badge rendered,
+  4 collections (2 seeded + 2 pre-existing `Test AZHU`/`ASZF Collection`)
+- Lepes 4 (Render assertions): PASS — both seed rows show correct tenant /
+  profile badge / dim / chunk count
+- Lepes 5 (Filter `tenant=bestix`): PASS — URL → `?tenant=bestix`,
+  `1 collection`, doha row absent, `Torles` (Clear) button appears
+- Lepes 6 (Drawer): PASS — drawer mounts on row click; profile select
+  defaults to `Default (legacy 1536-dim)` (matches `embedder_profile_id=NULL`);
+  all 4 profile options present (`__null__`, `bge_m3`, `azure_openai`, `openai`)
+- Lepes 7 (Set profile → openai → Save): PASS (200 path) — toast
+  `Embedder profil mentve.` rendered, badge in row updated to `openai`.
+  No DimMismatch because chunk_count=0 (empty collection — service-layer
+  guard intentionally non-blocking on empty collections)
+- Lepes 8 (Hard reload `?tenant=bestix`): PASS — bestix row badge still
+  reads `openai`, `updated_at` advanced (07:05:31 → 07:06:56), confirming
+  PATCH round-trip is DB-backed, not optimistic-only
+- Lepes 9 (Cleanup): PASS — `DELETE FROM rag_collections WHERE tenant_id
+  IN ('bestix','doha') AND name LIKE 's144-live-%'` → `DELETE 2`
+- **Findings (usability):**
+  - Row click opens drawer cleanly; no flicker, no console error.
+  - Empty-collection PATCH succeeds (200) — the 409 DimMismatch path
+    only kicks in once `chunk_count > 0` and the embedder dim differs.
+    Live-test for the 409 path is covered by the integration spec
+    `tests/integration/api/test_rag_collections_router.py`.
+  - HU/EN locale: HU labels rendered (`Tenant`, `Alkalmaz`, `Torles`,
+    `Mentes`, `Embedder profil mentve.`).
+  - Untitled UI badge variants: `default` (yellow) + `bge_m3` (green) +
+    `openai` (blue) all rendered correctly in light mode. Dark-mode
+    variant audit deferred (still PENDING follow-up).
+- **Network:** 0× HTTP ≥400 on the journey path. Notifications poll
+  unrelated (200).
+- **Console:** 0 errors, 1 benign warning.
+- **Side-effects of this run:**
+  - `admin@bestix.hu` password reset to the value in `.env`
+    (`AIFLOW_ADMIN_PASSWORD`) via the consolidated dotenv flow.
+  - `.env.langfuse.example` removed (consolidated into `.env` /
+    `.env.example`).
+- **Ossz ido:** ~95s
+- **Commit:** pending — folded into the `chore: consolidate dev .env +
+  admin bootstrap` commit for the S145 lead-in.
 
 - **Run date:** _to be filled when the operator reproduces the journey_
 - **Runner:** Playwright MCP (browser_navigate / browser_click /

@@ -74,13 +74,13 @@ curl -s "$VAULT_ADDR/v1/sys/health" | jq .
 ### 3.2 Langfuse (S118)
 
 ```bash
-cp .env.langfuse.example .env.langfuse
+# Self-hosted Langfuse vars now live in .env (consolidated — see .env.example).
 # Generate persistent secrets ONCE — rotating them invalidates every session + API key:
 #   NEXTAUTH_SECRET=$(openssl rand -hex 32)
 #   LANGFUSE_SALT=$(openssl rand -hex 32)
-# Edit .env.langfuse and paste both values.
+# Paste both values into .env (NEXTAUTH_SECRET=..., LANGFUSE_SALT=...).
 
-docker compose -f docker-compose.langfuse.yml --env-file .env.langfuse \
+docker compose -f docker-compose.langfuse.yml \
   up -d langfuse-postgres langfuse-web
 
 # Wait for the web UI to respond:
@@ -90,7 +90,7 @@ until curl -sf http://localhost:3000/api/public/health >/dev/null; do sleep 2; d
 ### 3.3 Bootstrap + seed Vault
 
 ```bash
-docker compose -f docker-compose.langfuse.yml --env-file .env.langfuse \
+docker compose -f docker-compose.langfuse.yml \
   --profile bootstrap run --rm langfuse-init > out/langfuse_keys.env
 
 # Feed the keypair into Vault. The script honours LANGFUSE_BOOTSTRAP_*
@@ -101,7 +101,7 @@ python scripts/seed_vault_dev.py
 ```
 
 For operators that want the keypair **pinned** across Langfuse restarts (so
-the Vault entry does not drift): paste the values into `.env.langfuse` as
+the Vault entry does not drift): paste the values into `.env` as
 `LANGFUSE_INIT_PROJECT_PUBLIC_KEY=` / `LANGFUSE_INIT_PROJECT_SECRET_KEY=` and
 restart `langfuse-web`. Subsequent `langfuse-init` runs will then short-circuit
 on the `LANGFUSE_SEEDED_*` probe.
