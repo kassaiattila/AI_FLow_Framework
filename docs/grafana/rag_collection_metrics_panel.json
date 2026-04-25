@@ -1,0 +1,136 @@
+{
+  "_comment": "Sprint S / S145 (SS-FU-3) — Grafana panel for nightly RAG retrieval-quality metrics. Import via Grafana UI: Dashboards > New > Import > paste JSON. Replace ${DS_AIFLOW_PG} with the operator's PostgreSQL datasource UID. Backed by table rag_collection_metrics_jsonl (operator-provisioned — see docs/runbooks/rag_metrics_nightly.md §3 for the schema).",
+  "schemaVersion": 39,
+  "title": "AIFlow — RAG Retrieval Quality (Nightly)",
+  "tags": ["aiflow", "rag", "uc2", "nightly", "sprint-s"],
+  "timezone": "browser",
+  "time": { "from": "now-30d", "to": "now" },
+  "refresh": "1h",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "MRR@5 — per collection (nightly)",
+      "datasource": { "type": "postgres", "uid": "${DS_AIFLOW_PG}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "orange", "value": 0.35 },
+              { "color": "yellow", "value": 0.45 },
+              { "color": "green",  "value": 0.55 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT measured_at AS time, collection_id AS metric, mrr5 AS value FROM rag_collection_metrics_jsonl WHERE measured_at BETWEEN $__timeFrom() AND $__timeTo() ORDER BY measured_at"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "p95 query latency (ms) — per collection (nightly)",
+      "datasource": { "type": "postgres", "uid": "${DS_AIFLOW_PG}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1500 },
+              { "color": "red", "value": 3000 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT measured_at AS time, collection_id AS metric, p95_latency_ms AS value FROM rag_collection_metrics_jsonl WHERE measured_at BETWEEN $__timeFrom() AND $__timeTo() ORDER BY measured_at"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Latest MRR@5 — last 24h",
+      "datasource": { "type": "postgres", "uid": "${DS_AIFLOW_PG}" },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.35 },
+              { "color": "yellow", "value": 0.45 },
+              { "color": "green", "value": 0.55 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT DISTINCT ON (collection_id) measured_at AS time, collection_id AS metric, mrr5 AS value FROM rag_collection_metrics_jsonl WHERE measured_at >= NOW() - INTERVAL '24 hours' ORDER BY collection_id, measured_at DESC"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Latest run per collection",
+      "datasource": { "type": "postgres", "uid": "${DS_AIFLOW_PG}" },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 8 },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT DISTINCT ON (collection_id) collection_id, mrr5, p95_latency_ms, query_count, harness_version, measured_at FROM rag_collection_metrics_jsonl ORDER BY collection_id, measured_at DESC"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_AIFLOW_PG",
+        "type": "datasource",
+        "query": "postgres",
+        "label": "PostgreSQL datasource",
+        "current": { "selected": false, "text": "AIFlow Postgres", "value": "AIFlow Postgres" }
+      }
+    ]
+  },
+  "annotations": { "list": [] }
+}
