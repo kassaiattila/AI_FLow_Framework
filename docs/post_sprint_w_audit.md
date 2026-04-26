@@ -4,6 +4,30 @@
 > **Trigger:** Sprint W SW-5 close PR #60 merged on `main` (commit `fed97af`); v1.7.0 tag queued post-merge.
 > **Audit reference:** `01_PLAN/120_SPRINT_W_KICKOFF_PLAN.md` §9 + `docs/sprint_w_retro.md` §5.
 > **Output:** Sprint X kickoff plan at `01_PLAN/121_SPRINT_X_INTAKE_PIPELINE_RAG_CHAT_PLAN.md`.
+> **Companion audit:** `docs/honest_alignment_audit.md` (drift recap across Sprint J–W; binding "one use-case per sprint" policy review).
+
+## Operator-directed multi-UC deviation note
+
+`docs/honest_alignment_audit.md` identifies that 6 sprints (M, N, R, S,
+U, W) violated the `110_USE_CASE_FIRST_REPLAN.md` "one use-case per
+sprint" rule. **Sprint X is a deliberate, operator-directed deviation
+from that rule** — a multi-UC pipeline-unification sprint touching UC3
+intent + DocRecognizer doc-intent + UC2 RAG chat.
+
+**Why:** the three pipeline gaps Sprint W exposed (see below) are
+structurally coupled. UC3 → DocRecognizer routing is unobservable
+without the routing trace; the chat surface is unsuitable for
+production without conversation persistence; conversation persistence
+without the routing context the user is debugging is half-useful.
+Splitting into three single-UC sprints would ship the wiring before
+the observability that validates it.
+
+**Mitigation:** every session in this multi-UC sprint carries a
+**byte-stable golden-path gate** for the UCs it touches. Default-off
+rollout discipline (`AIFLOW_UC3_DOC_RECOGNIZER_ROUTING__ENABLED=false`,
+existing `/aszf/chat` retrieval API unchanged) ensures the deviation
+ships as additive capability, not as a behaviour change. Sprint Y
+returns to single-UC quality push (UC2 MRR@5 0.55 → ≥ 0.72).
 
 ## State of the project (post Sprint W)
 
