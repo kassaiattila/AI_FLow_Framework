@@ -1,115 +1,144 @@
-# AIFlow [Sprint X] — Session SX-1 Prompt (Post-Sprint-W audit + Sprint X kickoff)
+# AIFlow [Sprint X] — Session SX-2 Prompt (UC1 corpus extension + issue_date deep-fix)
 
-> **Datum:** 2026-04-26 (snapshot date — adjust if session runs later)
-> **Branch:** `feature/x-sx1-audit-and-kickoff` (cut from `main` after the
-> Sprint W SW-5 close PR squash-merges).
-> **HEAD (expected):** SW-5 close PR squash on top of `ad1b708` (SW-4 squash).
-> **Predecessor:** v1.7.0 Sprint W (production-readiness + multi-tenant cleanup, MERGED).
+> **Template version:** 1.0 (mandatory Quality target header).
+> **Source template:** `session_prompts/_TEMPLATE.md`.
+
+---
+
+## Quality target (MANDATORY)
+
+- **Use-case:** UC1 invoice extraction (`skills/invoice_processor`)
+- **Metric:** invoice extraction accuracy on 25-fixture mixed corpus (10 synthetic + 10 anonimizalt magyar szamla + 5 OCR-noise)
+- **Baseline (now):** 85.7% on 10-fixture synthetic (Sprint Q S137 measurement); `issue_date` field <100% real-corpus
+- **Target (after this session):** ≥ 92% on 25-fixture mixed corpus; `issue_date` ≥ 95% on real-corpus subset
+- **Measurement command:** `bash scripts/run_quality_baseline.sh --uc UC1 --output json`
 
 ---
 
 ## Goal
 
-Sprint W is closed; tag `v1.7.0` queued. SX-1 is a **planning + audit
-session**, not an execution session. The deliverable is a written audit
-+ Sprint X scope plan, not code changes.
+A Sprint X SX-1 audit megerositette: UC1 invoice extraction "85.7% / 10-fixture
+synthetic" baseline-on van, "professzionalis" szinttol tavol. SX-2 zarja a
+`SQ-FU-3` (corpus extension to 25) + Sprint Q nyitva maradt `issue_date`
+deep-fix-et, amit Sprint U S156 csak normalizalt de nem ellenorzott
+real-corpus-on.
 
-The operator picks Sprint X scope from the post-Sprint-W carry-forward
-inventory + any new business pressure that arrived during Sprint W.
+A session **csak** akkor zarul, ha az UC1 25-fixture mixed corpus accuracy ≥ 92%
+**es** az `issue_date` field accuracy ≥ 95% a real-corpus subseten. Ha
+barmelyik nem, extension-session indul (SX-2b) a hianyzo dimenzioral.
 
-## Carry-forward inventory (pick from these)
+A sprint NEM szallit:
+- uj feature-t / scaffold-ot
+- multi-tenant cleanup folytatas (SW-FU-3)
+- DocRecognizer (SX-3 scope) / UC3 (SX-4 scope)
 
-### From Sprint W follow-ups
+---
 
-* **SW-FU-1** — Langfuse v4 list-by-prefix SDK helper (replace
-  `list_langfuse_workflows()` stub with a real call when SDK ships)
-* **SW-FU-2** — Admin UI source-toggle widget on `/prompts/workflows`
-  (the router accepts `?source=`; the React page does not yet render
-  a toggle)
-* **SW-FU-3** — `audit_customer_references.py` extension to
-  `intent_schemas` / `document_extractor` configs / `skill_instances`
-* **SW-FU-4** — Vault AppRole IaC end-to-end test
-* **SW-FU-5** — DocRecognizer real-document fixture corpus (carry from
-  SV-FU-1; operator-driven anonymization)
+## Predecessor context
 
-### From Sprint V follow-ups (still open)
+> **Datum:** 2026-04-26 (snapshot date — adjust if session runs later)
+> **Branch:** `feature/x-sx2-uc1-corpus-issue-date` (cut from `main` after the
+> SX-1 audit PR squash-merges).
+> **HEAD (expected):** SX-1 close commit on top of `fed97af` (SW-5 squash).
+> **Predecessor session:** SX-1 — honest alignment audit + ROADMAP rewrite + CLAUDE slim + run_quality_baseline.sh + 121_*_PLAN.md publish.
 
-* **SV-FU-2** — UI bundle size guardrail (bundle hasn't grown
-  alarmingly yet, but a CI threshold would be cheap insurance)
-* **SV-FU-5** — Monaco editor for the doctype YAML drawer (textarea
-  works; Monaco is nice-to-have)
+---
 
-### Long-deferred topics
+## Pre-conditions
 
-* **Coverage uplift 70% → 80%** (SJ-FU-7) — dedicated cross-cutting
-  sprint candidate
-* **UC3 thread-aware classifier** (SP-FU-3) — architecture sprint
-* **Vault rotation E2E + Langfuse v3→v4** — infrastructure sprint
-* **Grafana cost panels** (SN-FU-3) — observability sprint
-* **UC1 corpus extension to 25 fixtures** (SQ-FU-3) — operator curation
-* **Profile B Azure OpenAI live MRR@5** (SS-SKIP-2) — blocked on credit
+- [ ] SX-1 PR merged on `main` (audit + Sprint X plan + ROADMAP + CLAUDE slim)
+- [ ] `bash scripts/run_quality_baseline.sh --uc UC1 --output json` produces a number (baseline measurement)
+- [ ] `01_PLAN/121_SPRINT_X_QUALITY_PUSH_PLAN.md` exists
+- [ ] `docs/honest_alignment_audit.md` exists
+- [ ] **Operator dependency:** anonimizalt magyar szamla PDF corpus (10 file) keszultseg ellenorizve. Ha NEM keszul el, ezt SOFT-STOP-pal jelezni kell, es SX-3 elobb mehet (DocRecognizer real-corpus is operator-feedolas, korrelalva).
+- [ ] OPENAI_API_KEY env var beallitva (real-corpus integration teszthez)
+- [ ] PostgreSQL Docker container fut (5433)
 
-### Strategic candidates
+---
 
-* **DocRecognizer ML classifier** — only if SW-FU-5 corpus reveals the
-  rule engine is inadequate
-* **Skill multi-tenancy cleanup** — `skill_instances.customer` rename
-  parallel to SW-3 (separate domain, separate cleanup pass)
-* **Multi-region prod readiness** — what Sprint W boot guard implies but
-  doesn't deliver: replication, failover, region-aware Vault auth
+## Tasks
 
-## SX-1 deliverables
+1. **Corpus extension to 25 fixture:**
+   - 10 existing synthetic preserved at `data/fixtures/invoices_sprint_q/` (UNCHANGED)
+   - 10 anonimizalt magyar szamla PDF: `data/fixtures/invoices_sprint_x/anonymized/{001..010}.pdf` + `manifest.yaml` (operator-supplied)
+   - 5 OCR-noise fixture: `data/fixtures/invoices_sprint_x/ocr_noise/{001..005}.pdf` (deliberately blurry / rotated / scan-noisy synthetic generation, vagy real-PDF + `pdfimages` re-rasterize @72dpi)
+   - 25-fixture aggregate manifest: `data/fixtures/invoices_sprint_x/manifest_aggregate.yaml`
 
-1. **`docs/post_sprint_w_audit.md`** (new) — operator-facing audit
-   mirroring `docs/post_sprint_v_audit.md`. Sections:
-   - Sprint W trajectory recap (what shipped, what didn't)
-   - Test deltas (cumulative since v1.6.0)
-   - Capability cohort delta (cumulative)
-   - Carry-forward inventory annotated with effort estimate (S/M/L)
-   - Recommended Sprint X scope (pick 4-5 sessions worth)
-   - STOP conditions if Sprint X is delayed (anything time-sensitive?)
-2. **`01_PLAN/121_SPRINT_X_<theme>_PLAN.md`** (new) — Sprint X
-   kickoff plan. Theme TBD; operator picks from the audit recommendation.
-   The plan ships with: Goal, Capability cohort delta, Sessions
-   (SX-1 already counted as kickoff), Risk register, Gate matrix,
-   Skipped tracker, STOP conditions.
-3. **`session_prompts/NEXT.md`** → SX-2 (the first execution session of
-   Sprint X) prompt.
-4. **CLAUDE.md banner update** — Sprint W DONE banner is already there;
-   SX-1 adds a Sprint X kickoff banner with the chosen theme.
+2. **`scripts/measure_uc1_golden_path.py` 25-fixture mode:**
+   - Add `--corpus {synthetic, anonymized, ocr_noise, all}` flag (default `all`)
+   - When `all`: load all 25 fixtures from the aggregate manifest
+   - Per-corpus + aggregated accuracy in JSON output
+   - Update `argparse_output()` integration: JSON output includes `per_corpus`, `overall_accuracy`, `per_field_accuracy[issue_date]`
 
-## Constraints
+3. **`issue_date` deep-fix:**
+   - Identify failure modes on real-corpus (likely: alternative date formats, OCR-noise misreads, partial matches)
+   - Possible fixes (pick what works):
+     (a) Alternative regex pattern (e.g. `\d{4}\.\d{2}\.\d{2}` HU-style)
+     (b) OCR-confidence-aware fallback (low-conf chars retried with structure inference)
+     (c) Prompt-tuning the `extract_header` step in `invoice_extraction_chain.yaml` to explicitly mention "Magyar szamla kiallitasi datum" + alternative format examples
+   - Byte-stable check: 10-fixture synthetic remains 100% on `invoice_number/vendor/buyer/currency/due_date/gross_total`
 
-* No code changes in SX-1 — pure planning + docs.
-* Carry-forward triage MUST preserve the SW-FU and SV-FU IDs verbatim
-  so cross-references stay stable.
-* Every recommended Sprint X session needs a UC golden-path gate
-  identified up front (UC1 / UC2 / UC3 / DocRecognizer / Monitoring).
-* If Sprint X picks an infrastructure topic (e.g., Vault rotation E2E),
-  identify the rollback path before merging the SX-1 plan.
+4. **Test updates:**
+   - `tests/integration/skills/test_uc1_golden_path.py` — parametrize `corpus_mode` (synthetic/real/ocr_noise/all)
+   - 1 new integration test: `test_uc1_25fixture_real_openai.py` — full 25-fixture run on real OpenAI gpt-4o-mini, skip-by-default behind `OPENAI_API_KEY`
+   - `tests/unit/skills/invoice_processor/test_issue_date_extraction.py` — 10 new unit cases for the date-format edge cases the deep-fix addresses
 
-## Gate
+5. **Documentation:**
+   - `docs/uc1_25fixture_report.md` — measurement report (accuracy per corpus, per field; cost; wall-clock)
+   - `01_PLAN/ROADMAP.md` — Sprint X table SX-2 row → DONE + measured value
+   - PR description with baseline → measured comparison
 
-* **`docs/post_sprint_w_audit.md` published** with operator sign-off
-  on the recommended Sprint X scope
-* **`01_PLAN/121_*` plan published** with all sections filled
-* **`session_prompts/NEXT.md` → SX-2 prompt** ready to execute
+---
+
+## Acceptance criteria
+
+- [ ] **Quality target met:** `bash scripts/run_quality_baseline.sh --uc UC1 --output json` reports `overall_accuracy >= 0.92`
+- [ ] `issue_date` field accuracy ≥ 95% on real-corpus subset (≥ 9/10 anonymized fixtures)
+- [ ] 10-fixture synthetic unchanged: `invoice_number / vendor / buyer / currency / due_date / gross_total` all 100% (regression check)
+- [ ] All unit tests PASS (`make test`)
+- [ ] `tests/integration/skills/test_uc1_golden_path.py` PASS in `--corpus all` mode
+- [ ] `tests/integration/skills/test_uc1_25fixture_real_openai.py` PASS when `OPENAI_API_KEY` set (skipped otherwise)
+- [ ] `docs/uc1_25fixture_report.md` published with per-corpus / per-field breakdown
+- [ ] PR opened against `main`, CI green
+- [ ] OpenAPI snapshot unchanged (no router changes expected)
+- [ ] `bash scripts/run_quality_baseline.sh --uc UC1 --strict` exit 0
+
+---
 
 ## STOP conditions
 
-* HARD: If Sprint W tag `v1.7.0` did not actually ship (the SW-5 PR is
-  still pending), do NOT publish post-W audit. Wait for the tag.
-* SOFT: If the operator wants to take a calendar-day break before
-  Sprint X kicks off, freeze SX-1 deliverables behind a
-  `01_PLAN/121_*_DRAFT.md` filename until kickoff resumes.
+**HARD:**
+- 25-fixture corpus accuracy < 92% after best-effort deep-fix → halt; investigate further or escalate to extension session SX-2b
+- 10-fixture synthetic regression on any field that was previously 100% → halt, revert prompt-tuning
+- `invoice_extraction_chain.yaml` PromptWorkflow descriptor change breaks Sprint T S149 byte-stable test → halt, redesign
+
+**SOFT:**
+- Anonimizalt corpus operator-feedolas keses → defer SX-2 to SX-7; queue SX-3 (DocRecognizer real-corpus) elobbre
+- OCR-noise fixture-generation tooling problem → reduce OCR-noise corpus to 3 fixture; document as `SX-FU-1` follow-up
 
 ---
 
 ## Output / handoff format
 
 The session ends with:
-1. PR opened against `main` titled
-   `docs(post-sprint-w): audit + Sprint X kickoff plan publish`
-2. PR body summarizes the chosen Sprint X theme + 4-5 sessions
-3. `session_prompts/NEXT.md` → SX-2 prompt that the operator can
-   execute next via `/next`
+
+1. PR opened against `main` titled `feat(sprint-x): SX-2 — UC1 25-fixture corpus + issue_date deep-fix (SQ-FU-3)`
+2. PR body summarizes: baseline (85.7% / 10-fixture synthetic) → measured (X% / 25-fixture mixed); `issue_date` baseline → measured
+3. `/session-close` invoked → generates `session_prompts/NEXT.md` for SX-3 (DocRecognizer real-corpus)
+4. `01_PLAN/ROADMAP.md` Sprint X table SX-2 row → DONE
+5. `docs/sprint_x_retro.md` not yet (only at SX-6 close)
+
+---
+
+## References
+
+- Sprint X plan: `01_PLAN/121_SPRINT_X_QUALITY_PUSH_PLAN.md` §2 SX-2
+- Forward queue: `01_PLAN/ROADMAP.md`
+- Honest alignment audit: `docs/honest_alignment_audit.md`
+- Quality baseline script: `scripts/run_quality_baseline.sh`
+- Sprint Q UC1 baseline report: `docs/uc1_golden_path_report.md`
+- Sprint Q UC1 plan: `01_PLAN/115_SPRINT_Q_INTENT_EXTRACTION_UNIFICATION.md`
+- UC1 measure script: `scripts/measure_uc1_golden_path.py`
+- UC1 PromptWorkflow descriptor: `prompts/workflows/invoice_extraction_chain.yaml`
+- UC1 skill: `skills/invoice_processor/`
+- Use-case-first replan (policy): `01_PLAN/110_USE_CASE_FIRST_REPLAN.md`

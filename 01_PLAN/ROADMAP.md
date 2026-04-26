@@ -1,184 +1,150 @@
 # AIFlow Forward Roadmap
 
 > **Status:** ACTIVE — single-source forward queue for `/auto-sprint` and `/next`.
-> **Last refreshed:** 2026-04-28 (S93 close + use-case-first replan).
-> **Owner:** Sprint I (v1.4.5) and onward. Maintainers: update after every session-close.
+> **Last refreshed:** 2026-04-26 (Sprint W close + honest alignment audit).
+> **Owner:** Sprint X (v1.8.0) and onward. Maintainers: update after every sprint-close.
 > **Scope:** Forward pointer, not a recipe. Each session prompt lives under
 > `session_prompts/`; this file declares the *order* and *intent*.
 >
-> **Policy (new, from `110_USE_CASE_FIRST_REPLAN.md`):** every sprint from v1.4.5
-> must close with exactly one end-user use-case going end-to-end green. Architecture
-> work rides the use-case it enables; it does not get its own sprint.
+> **Policy (binding, from `110_USE_CASE_FIRST_REPLAN.md` + `docs/honest_alignment_audit.md`):**
+> every sprint must close with **measurable quality improvement on exactly one
+> use-case** (UC1 / UC2 / UC3 / DocRecognizer). Architecture / infra work
+> rides the use-case it enables; it does not get its own sprint until the 4
+> use-cases are all "production-grade" (Sprint Z gate).
 
 ---
 
 ## How to read this
 
 - Sessions listed in execution order within each sprint.
-- A session line carries: id, scope summary, status.
-- "DONE" lines stay as anchors (history in git + `session_prompts/archive/`).
-- `/auto-sprint` consumes the next **non-DONE** session prompt referenced by `NEXT.md`.
+- Each non-DONE session line carries: id, scope summary, **mandatory quality target metric**.
+- "DONE" sprint summary lines stay as anchors (full history in `docs/SPRINT_HISTORY.md`).
+- `/auto-sprint` consumes the next non-DONE session prompt referenced by `NEXT.md`.
 - This file does **not** replace `NEXT.md`; it explains what `NEXT.md` points to next.
 
 ---
 
-## Closed sprint — v1.4.4 Consolidation (Sprint H)
+## Closed sprints (J → W) — history snapshot
 
-Branch: `feature/v1.4.4-consolidation` | Base: `v1.4.3-phase-1d` (`0d669aa`).
-Status: **SCOPE DONE (S88–S93). PR cut + tag `v1.4.4` pending user approval.**
+Full per-sprint trajectory: `docs/SPRINT_HISTORY.md`.
 
-| Session | Scope | Status |
+| Sprint | Tag | Use-case-zar | Headline |
+|---|---|---|---|
+| J | v1.4.5-sprint-j-uc2 | UC2 | RAG providers + UnstructuredChunker + MRR@5 0.55 baseline |
+| K | v1.4.7 | UC3 | Email intent + 4-test golden path |
+| L | v1.4.8 | UC4 monitoring | Cost monitoring + ci-cross-uc 42-test smoke |
+| M | v1.4.9 | (drift: infra-only) | Vault hvac + self-hosted Langfuse |
+| N | v1.4.10 | (drift: infra-only) | Per-tenant budget + cost preflight guardrail |
+| O | v1.4.11 | UC3 | Attachment-aware intent (misclass 56% → 32%) |
+| P | v1.4.12 | UC3 | LLM-fallback body/mixed (misclass 32% → 4%) |
+| Q | v1.5.0 | UC1 | Intent + extraction unification (85.7% accuracy 10-fixture) |
+| R | v1.5.1 | (drift: scaffold-only) | PromptWorkflow scaffold |
+| S | v1.5.2 | (drift: infra-only) | Multi-tenant + multi-profile vector DB |
+| T | v1.5.3 | (drift: refactor) | PromptWorkflow per-skill consumer migration (byte-stable) |
+| U | v1.5.4 | (drift: polish) | Operational hardening (own plan: "zero new functional capability") |
+| V | v1.6.0 | DocRecognizer | Generic document recognizer skill (5 doctype synthetic-only) |
+| W | v1.7.0 | (drift: polish) | Multi-tenant cleanup + boot guard + Langfuse stub |
+
+**Drift count:** 11 sprints — **6 sprintek (M, N, R, S, U, W) megsertették a
+"one use-case per sprint" szabalyt.** Reszletes elemzes:
+`docs/honest_alignment_audit.md`.
+
+---
+
+## Active sprint — v1.8.0 "UC1+UC3+DocRecognizer Quality Push" (Sprint X)
+
+Branch: `feature/x-sx{N}-*` (per-session) → squash-merge to `main` after each PR.
+Plan: `01_PLAN/121_SPRINT_X_QUALITY_PUSH_PLAN.md`.
+Goal: dokumentum + email tortzs intent + adatpont kinyeres SZILARDDA tetele.
+
+| Session | Scope | Quality target metric | Status |
+|---|---|---|---|
+| **SX-1** | Honest alignment audit + ROADMAP rewrite + CLAUDE slim + run_quality_baseline.sh + session-prompt template + 121_*_PLAN.md publish | doc-only; baseline measured (4 UC json) | **IN PROGRESS** |
+| SX-2 | UC1 corpus extension (25 fixture: 10 synthetic + 10 anonimizalt magyar szamla + 5 rontott OCR) + `issue_date` deep-fix + measure_uc1_golden_path.py 25-fixture mode | UC1 accuracy 85.7% → ≥ 92%; `issue_date` ≥ 95% | QUEUED |
+| SX-3 | DocRecognizer **valos anonimizalt** PDF/scan corpus (5 per doctype × 5 = 25) + per-doctype accuracy gate + ci-cross-uc UC1-General slot | per-doctype real-corpus accuracy ≥ 80% (`hu_invoice` ≥ 90%) | QUEUED |
+| SX-4 | UC3 thread-aware classifier (SP-FU-3) + `024_complaint` body-vs-attachment conflict (SP-FU-1) + measure_uc3 → uniform `argparse_output()` | UC3 misclass 4% → ≤ 1% on 25-fixture corpus | QUEUED |
+| SX-5 | DocRecognizer admin UI: intent-routing rule editor (UC3 intent-rules editor mintaja) + PII-redaction live test (1 ID-card + 1 passport fixture E2E) | nincs UI → live UI + 1 Playwright spec; PII roundtrip verified | QUEUED |
+| SX-6 | Sprint X close — retro + tag `v1.8.0` + run_quality_baseline.sh PASS gate | mind 4 UC target felett (UC2 erintetlen Sprint Y-ra varva) | QUEUED |
+
+**Sprint X exit gate:** `bash scripts/run_quality_baseline.sh --strict`
+mind UC1 + UC3 + DocRecognizer minden cel felett. UC2 erintetlen marad
+Sprint Y-ig (jelen baseline 0.55 MRR@5 elfogadva mint Sprint Y starting
+point).
+
+---
+
+## Queued sprint — v1.9.0 "UC2 RAG Depth Push" (Sprint Y)
+
+Branch: `feature/y-sy{N}-*` (cut from `main` after `v1.8.0` tag).
+Goal: professzionalis chunkolas + vektor DB menedzsment.
+
+| Session | Scope | Quality target metric |
 |---|---|---|
-| S88 / v1.4.4.1 | Version reconcile, port doc fix, stale prompt archive, NEXT.md cleanup | DONE |
-| S89 / v1.4.4.2 | Frontend dev-env live, journey E2E triage, Untitled UI ADR | DONE |
-| S90 / v1.4.4.3 | Journey E2E rerun + contract regressions | DONE |
-| S91 / v1.4.4.4 | `test_auth` leak fix, e2e asyncio markers, coverage roadmap (HARD STOP) | DONE |
-| S92 / v1.4.4.5 | ROADMAP.md + 104_* drift fix + v1.4.4 PR draft | DONE |
-| S93 / v1.4.4.6 | `test_alembic_034` head-relative (ScriptDirectory) + `out/` cleanup + CLAUDE.md sync + **use-case-first replan authored** (`110_*`) | DONE |
+| SY-1 | Semantic chunker (heading-aware + table-preservation) + multilingual HU+EN ProviderRegistry slot | UC2 MRR@5 0.55 → ≥ 0.65 (Profile A BGE-M3) |
+| SY-2 | Hybrid search (BM25 + vector RRF) + cross-encoder reranker production wiring | UC2 MRR@5 0.65 → ≥ 0.72 |
+| SY-3 | Reembedding workflow (collection re-embed UI + worker) + collection split/merge/rename API + UI | nincs → live + 1 Playwright |
+| SY-4 | Per-tenant izolacio E2E test + `aszf_rag_chat` Reflex ingest UI completion | gap → closed |
+| SY-5 | Sprint Y close — tag `v1.9.0` + run_quality_baseline.sh PASS | UC2 ≥ 0.72; ingest UI live |
 
-**Sprint exit gate:** v1.4.4 PR open + merge + tag. After tag, `feature/v1.4.5-doc-processing`
-is cut from `main` and Sprint I begins with S94.
+**Sprint Y exit gate:** UC2 MRR@5 ≥ 0.72 Profile A; collection management
+Playwright PASS; aszf_rag_chat ingest UI mukodik.
 
 ---
 
-## Active sprint — v1.4.5 "Document processing usable" (Sprint I)
+## Conditional sprint — v2.0.0 "Phase 3 Ops + Audit" (Sprint Z)
 
-Branch: `feature/v1.4.5-doc-processing` (cut from `main` after `v1.4.4` tag).
-Plan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` §4 Sprint I.
+**Csak akkor indul,** ha Sprint X+Y mind zold (4 UC szilardan target felett).
+Ha barmely UC nem ert celt → extension sprint indul a leszakadt UC-re,
+Sprint Z ujra elhalasztva.
 
-| Session | Scope | Status |
+Plan: TBD — Sprint Y close session writes `01_PLAN/123_SPRINT_Z_PHASE_3_OPS_PLAN.md`.
+
+| Tema | Forras-FU | Effort becsules |
 |---|---|---|
-| **S94 / v1.4.5.1** | `DocumentExtractorService.extract_from_package()` impl (replaces `NotImplementedError`) + Docling standard pipeline wired as default extractor + PolicyEngine gate | **QUEUED** |
-| S95 / v1.4.5.2 | `RoutingDecision` Pydantic stub + `MultiSignalRouter` + Alembic 038 + Unstructured + Docling std registered as `ParserProvider` impls | QUEUED |
-| S96 / v1.4.5.3 | Azure DI parser (Profile B gated) + PII redaction gate v0 | QUEUED |
-| S97 / v1.4.5.4 | UI: `DocumentDetail` parser badge + extraction JSON + Langfuse trace link. `Prompts.tsx` v1 read-only | QUEUED |
-| S98 / v1.4.5.5 | Golden-path E2E (3 test docs, 1 per parser path) + `/regression` + `/lint-check` + PR + tag `v1.4.5` | QUEUED |
-| SI.H1 (issue [#12](https://github.com/kassaiattila/AI_FLow_Framework/issues/12)) | **CI infra housekeeping** — `alembic/env.py` reads `AIFLOW_DATABASE__URL` env var first, falls back to INI. Unmasked by v1.4.4 coverage waiver; `integration-tests` job red on PR CI until fixed. Single-session; schedule as prerequisite for S94 if Docling integration tests need it, otherwise between S94 and S95. | QUEUED |
-
-**Sprint exit gate:** upload real PDF in admin UI → see parser badge + extraction JSON + clickable Langfuse trace.
+| OTel tracer + Prometheus metrics | Phase 3 N19/N20, jelen STUB | M |
+| Audit lineage + ProvenanceRecord activation | Phase 3 N17/N18 | M |
+| Grafana cost panels (`cost_guardrail_refused` vs `cost_cap_breached`) | SN-FU-3 | S |
+| Coverage uplift 70% → 80% | SJ-FU-7 | M (cross-cutting) |
+| Vault rotation E2E + AppRole IaC | SM-FU-1 + SW-FU-4 | M |
+| ci-cross-uc UC1-General slot | (Sprint X SX-3 sets up) | S |
 
 ---
 
-## Queued sprint — v1.4.6 "RAG chat usable" (Sprint J)
+## Cross-cutting backlog — STRICT-DEFERRED
 
-Branch: `feature/v1.4.6-rag-chat` (cut from `main` after `v1.4.5` tag).
-Plan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` §4 Sprint J.
+Az alabbi follow-up ID-k explicit nincsenek Sprint X scope-ban, **ne keruljenek be
+session-prompt-okba** kivéve, ha kozvetlenul a 4 UC valamelyikene melyitenek.
 
-| Session | Scope |
-|---|---|
-| S99 / v1.4.6.1 | `EmbedderProvider` abstraction: BGE-M3 (Profile A) + Azure OpenAI text-embedding-3-small (Profile B) + `EmbeddingDecision` contract + Alembic 039 |
-| S100 / v1.4.6.2 | `UnstructuredChunker` as RAG ingest step, replaces hardcoded path |
-| S101 / v1.4.6.3 | UI: `Rag` chunk viewer + embedding-model badge + retrieval metrics panel |
-| S102 / v1.4.6.4 | PII redaction gate between Chunker and Embedder + `PIIRedactionReport` stub |
-| S103 / v1.4.6.5 | Golden-path E2E (collection-ingest → chat → citations) + PR + tag `v1.4.6` |
-
----
-
-## Queued sprint — v1.4.7 "Email intent usable" (Sprint K)
-
-Branch: `feature/v1.4.7-email-intent` (cut from `main` after `v1.4.6` tag).
-Plan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` §4 Sprint K.
-
-| Session | Scope |
-|---|---|
-| S104 / v1.4.7.1 | `EmailSource` → `IntakePackageSink` → `IntentClassifier` glue (adapter exists from Phase 1d) |
-| S105 / v1.4.7.2 | `IntentRoutingPolicy` per tenant (notify / extract / archive / manual review) via PolicyEngine |
-| S106 / v1.4.7.3 | UI: `Emails` scan button + intent badge + routing chip + trace link |
-| S107 / v1.4.7.4 | `Prompts.tsx` v2: edit Langfuse-synced prompts from UI (round-trip PUT + read-back) |
-| S108 / v1.4.7.5 | Golden-path E2E (mailbox scan → 3 emails → intents + routing) + PR + tag `v1.4.7` |
-
----
-
-## Queued sprint — v1.4.8 "Cross-cutting monitoring + cost" (Sprint L, 1 week)
-
-Branch: `feature/v1.4.8-monitoring-cost` (cut from `main` after `v1.4.7` tag).
-Plan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` §4 Sprint L.
-
-| Session | Scope |
-|---|---|
-| S109 / v1.4.8.1 | `Runs.tsx` + `Monitoring.tsx`: Langfuse drill-down (trace tree, step timings, token counts) |
-| S110 / v1.4.8.2 | `Costs.tsx` + `CostAttribution` stub + PolicyEngine cost-cap enforced at Extractor + Embedder (429 on breach) |
-| S111 / v1.4.8.3 | Playwright regression pack (UC1 + UC2 + UC3 together) + PR + tag `v1.4.8` |
-
-**Sprint exit gate:** v1.4.8 ship-ready — 3 use-cases production-usable, monitored, cost-capped, prompts admin-editable.
-
----
-
-## v1.4.9 — Vault prod + self-hosted Langfuse
-
-Deferred from old v1.4.5 (0.5-sprint estimate was wrong — full standalone sprint needed).
-Branch: `feature/v1.4.9-vault-langfuse-selfhost`.
-
-| Session | Scope | Acceptance |
+| ID | Topic | Indok |
 |---|---|---|
-| S112 | Vault `hvac` prod client + token rotation + `test_vault_token_rotation.py` | Vault dev + prod profile tested with real Vault container |
-| S113 | Self-hosted Langfuse Docker + Profile A air-gapped E2E | Full UC1 pipeline runs with `cloud_disallowed=true` and zero outbound cloud calls |
-| S114 | PR + tag `v1.4.9-phase-1-5`. **Phase 1 officially complete end-to-end.** | — |
+| SW-FU-1 | Langfuse v4 list-by-prefix SDK helper | SDK-fuggo, Sprint Z scope |
+| SW-FU-2 | Admin UI source-toggle widget /prompts/workflows | UI polish, halasztva |
+| SW-FU-3 | audit_customer_references.py kiterjesztes masik tablakra | multi-tenant cleanup folytatas, Sprint Z |
+| SW-FU-4 | Vault AppRole IaC E2E test | infra, Sprint Z |
+| SV-FU-2 | UI bundle size guardrail | CI polish, halasztva |
+| SV-FU-5 | Monaco editor for DocTypeDetailDrawer | nice-to-have, halasztva |
+| SU-FU-2 | scripts/ ruff cleanup | code hygiene |
+| SU-FU-3 | Alembic invoice_date SQL column rename | nincs funkcionalis nyomas |
+| SS-SKIP-2 | Profile B Azure live MRR@5 | blocked: Azure credit pending |
+| SO-FU-2/6/7 | UC3 minor follow-ups | beolvad SX-4-be |
 
----
+**Az alabbiak Sprint X scope-ban — felulkulonbozteto a fenti listatol:**
 
-## v1.5.x — Phase 2 (architectural refinement)
-
-Reference: `104_*` §4 phase ordering. Each version = one Phase 2 sub-phase ≈ 1 sprint.
-Sequencing policy: Phase 2 sub-phase kicks off **only after** its enabling pre-work spike (PP0) is green.
-
-| Version | Sub-phase | Scope |
+| ID | Topic | Sprint X session |
 |---|---|---|
-| v1.5.0 | 2a — VLM hard-case fallback | Docling VLM + Qwen25-VL + vLLM registered as `ParserProvider`; router picks VLM when OCR-conf below threshold |
-| v1.5.1 | 2b — Embedding provider variety | e5-large registered alongside BGE-M3 + Azure OpenAI; EmbeddingDecision v2 upgrade |
-| v1.5.2 | 2c — Archival | Gotenberg + veraPDF + `ArchivalArtifact` + `QuarantineItem` + `CostAttribution` upgrade |
-| v1.5.3 | 2d — Acceptance | 10 processing-flow E2E + Profile A/B parity + Phase 2 acceptance matrix |
-
-Exit: tag `v1.5.3-phase-2`. After v1.5.3, **Phase 2 is complete** and the system is feature-complete for the target processing architecture.
-
-**PP0 (pre-work spike, blocks each Phase 2 sprint):** for each new provider (Qwen25-VL, e5-large, Gotenberg, veraPDF), 1-day sandbox + contract ADR + capacity bench **before** the Phase 2 sub-sprint plans that provider.
-
----
-
-## v1.6.x — Phase 3 (governance & ops)
-
-Reference: `104_*` §4. Sequenced after Phase 2 acceptance.
-
-- **v1.6.0** — Audit lineage (N17) + provenance map (N18) + `ProvenanceRecord` contract activation.
-- **v1.6.1** — OTel tracer (N19) + Prometheus metrics (N20) + `ValidationResult` contract.
-- **v1.6.2** — CrewAI bounded sidecar (N22 + N22b experiment) + `ReviewTask` + `EmbeddingDecision` v2 + N23 typer CLI extensions.
-
-Exit: tag `v1.6.2-phase-3`. After v1.6.2, **Phase 3 closes** and the platform is ops-ready.
-
----
-
-## v2.0.0+ — Phase 4 (optional)
-
-Not committed; activated only if business case lands.
-
-- N24 Microsoft LazyGraphRAG.
-- N25 Kafka event bus.
-- Multi-tenant SaaS hardening (per-tenant rate limiting, billing pipeline).
-- Azure AI Search vector store as alternative to pgvector.
-
----
-
-## Cross-cutting backlogs
-
-Reassessed S93-close (many prior items were stale or already solved):
-
-- **`aiflow-admin` Untitled UI fragmentation** — ADR `01_PLAN/ADR-UI-Library.md` binding; per-UI-session enforcement.
-- **LangChain opt-in scope** — max 3 importers (classifier, extractor, prompt-template helper). Re-audit at v1.4.8 tag cut.
-- **§10.3 deferred contracts** — 7 remain after v1.4.8 (see `110_*` §5). Each lands in its owning Phase 2/3 sub-sprint.
-- **Coverage gate flip** — from `fail_under=67` to `fail_under=80`. Target: v1.4.8 tag. Drivers: new tests per sprint already push coverage up; S91.A–D coverage mini-sprint no longer standalone, absorbed into the sprint-by-sprint new-test target.
-
-**Retired (done or obsolete):**
-- ~~`test_alembic_034` head assertion drift~~ — DONE S93.
-- ~~`out/` log accumulation cleanup~~ — DONE S93.
-- ~~`CLAUDE.md` key-numbers sync~~ — DONE S93, enforced every sprint close going forward.
-- ~~S91.A–D coverage mini-sprint~~ — absorbed into sprint-by-sprint new-test targets.
+| SQ-FU-3 | UC1 corpus extension to 25 fixtures | **SX-2** |
+| SW-FU-5 / SV-FU-1 | DocRecognizer real-document fixture corpus | **SX-3** |
+| SP-FU-1 | UC3 `024_complaint` body-vs-attachment | **SX-4** |
+| SP-FU-3 | UC3 thread-aware classifier | **SX-4** |
 
 ---
 
 ## Pointers
 
-- Use-case-first replan: `01_PLAN/110_USE_CASE_FIRST_REPLAN.md`
+- Honest alignment audit: `docs/honest_alignment_audit.md`
+- Use-case-first replan (binding policy): `01_PLAN/110_USE_CASE_FIRST_REPLAN.md`
+- Sprint X plan: `01_PLAN/121_SPRINT_X_QUALITY_PUSH_PLAN.md`
+- Sprint history (J–W trajectory): `docs/SPRINT_HISTORY.md`
 - Master architecture index: `01_PLAN/104_AIFLOW_v2_FINAL_MASTER_INDEX.md`
-- Phase 1a implementation guide (done): `01_PLAN/106_AIFLOW_v2_PHASE_1a_IMPLEMENTATION_GUIDE.md`
-- Sprint H kickoff (done): `01_PLAN/session_S88_v1_4_4_consolidation_kickoff.md`
-- DOHA auto-sprint reference: `DOHA/01_PLAN/19_DOHA_AUTO_SPRINT_GUIDE.md`
+- Session-prompt template: `session_prompts/_TEMPLATE.md`
+- Quality baseline script: `scripts/run_quality_baseline.sh`
