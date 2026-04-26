@@ -22,8 +22,13 @@ from aiflow.services.document_recognizer.classifier import (
     classify_doctype,
     needs_llm_fallback,
 )
+from aiflow.services.document_recognizer.extraction import (
+    GenerateFn,
+    build_extract_fn,
+)
 from aiflow.services.document_recognizer.orchestrator import (
     DocumentRecognizerOrchestrator,
+    ExtractFn,
     LLMClassifyFn,
 )
 from aiflow.services.document_recognizer.registry import DocTypeRegistry
@@ -31,14 +36,21 @@ from aiflow.services.document_recognizer.safe_eval import (
     SafeEvalError,
     safe_eval_intent_rule,
 )
+from aiflow.services.document_recognizer.validators import (
+    apply_validators,
+)
 
 __all__ = [
     "ClassifierInput",
     "DocTypeRegistry",
     "DocumentRecognizerOrchestrator",
+    "ExtractFn",
+    "GenerateFn",
     "LLMClassifyFn",
     "RuleEngine",
     "SafeEvalError",
+    "apply_validators",
+    "build_extract_fn",
     "classify_doctype",
     "needs_llm_fallback",
     "safe_eval_intent_rule",

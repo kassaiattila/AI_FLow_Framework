@@ -37,6 +37,7 @@ from aiflow.contracts.doc_recognition import (
     DocTypeMatch,
 )
 from aiflow.services.document_recognizer.classifier import ClassifierInput
+from aiflow.services.document_recognizer.extraction import build_extract_fn
 from aiflow.services.document_recognizer.orchestrator import (
     DocumentRecognizerOrchestrator,
     LLMClassifyFn,
@@ -62,9 +63,52 @@ def _build_default_orchestrator() -> DocumentRecognizerOrchestrator:
         bootstrap_dir=_DEFAULT_BOOTSTRAP_DIR,
         tenant_overrides_dir=_DEFAULT_TENANT_DIR,
     )
-    # SV-2 ships without an LLM fallback wired in by default; SV-3 wires it
-    # up against the ClassifierService once the API layer is present.
-    return DocumentRecognizerOrchestrator(registry=registry, llm_classify_fn=None)
+
+    # Sprint W SW-1 — real PromptWorkflow extraction wire-up. Build the
+    # extract_fn lazily; if any wiring fails (Langfuse offline, model
+    # backend missing, etc.) fall back to None so the orchestrator
+    # preserves its SV-2 placeholder behavior + warns clearly.
+    extract_fn = None
+    try:
+        from skills.document_recognizer import models_client, prompt_manager
+
+        from aiflow.core.config import get_settings
+        from aiflow.guardrails.cost_estimator import CostEstimator
+        from aiflow.guardrails.cost_preflight import CostPreflightGuardrail
+        from aiflow.prompts.workflow_executor import PromptWorkflowExecutor
+
+        # Per-call cost preflight (Sprint U S154 check_step API). Operators
+        # tune ceilings via per-step descriptor metadata; the budget-side
+        # tenant ledger is not needed for per-step gating.
+        guardrail = CostPreflightGuardrail(
+            budgets=None,  # type: ignore[arg-type] — check_step doesn't read budgets
+            estimator=CostEstimator(),
+            enabled=True,
+            dry_run=False,
+        )
+
+        workflow_executor = PromptWorkflowExecutor(
+            manager=prompt_manager,
+            settings=get_settings().prompt_workflows,
+        )
+
+        extract_fn = build_extract_fn(
+            workflow_executor=workflow_executor,
+            cost_guardrail=guardrail,
+            generate_fn=models_client.generate,
+            skill_name="document_recognizer",
+        )
+    except Exception:  # noqa: BLE001 — graceful degradation
+        # On any wiring failure, the orchestrator runs with extract_fn=None
+        # and emits a single validation warning per recognize call. The
+        # docrecognizer remains classifier-only on misconfigured deployments.
+        extract_fn = None
+
+    return DocumentRecognizerOrchestrator(
+        registry=registry,
+        llm_classify_fn=None,
+        extract_fn=extract_fn,
+    )
 
 
 def get_orchestrator() -> DocumentRecognizerOrchestrator:
