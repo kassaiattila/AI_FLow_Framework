@@ -56,6 +56,11 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        # Sprint W SW-4 (SM-FU-2): refuse to boot in prod with a Vault root token.
+        from aiflow.security.boot_guards import enforce_boot_guards
+
+        enforce_boot_guards()
+
         # Startup: pool/engine created lazily on first use
         logger.info("app_startup")
 

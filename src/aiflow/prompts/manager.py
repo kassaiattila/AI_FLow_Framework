@@ -344,6 +344,37 @@ class PromptManager:
                 )
             return None
 
+    def list_langfuse_workflows(self) -> list[PromptWorkflow]:
+        """Sprint W SW-4 (SR-FU-6) — list ``workflow:<name>`` Langfuse prompts.
+
+        Returns the descriptors hosted on Langfuse under the
+        ``workflow:<name>`` JSON-typed prompt convention. Today this is a
+        **stub** that returns an empty list when:
+
+        * The Langfuse client is unavailable, OR
+        * The v4 SDK does not expose a list-by-prefix call.
+
+        When the Langfuse SDK ships a list endpoint, swap the body out
+        for a real call. The router consumes whatever this returns.
+        """
+        client = self._langfuse_client
+        if client is None:
+            try:
+                from aiflow.observability.tracing import get_langfuse_client
+
+                client = get_langfuse_client()
+            except ImportError:
+                return []
+
+        if client is None:
+            return []
+
+        # The Langfuse v4 Python SDK has no cheap list-by-prefix call as
+        # of this writing. Operators that want Langfuse-hosted workflows
+        # in the admin UI will get an empty list until the helper lands.
+        # The local YAML path keeps working unchanged.
+        return []
+
     def invalidate(self, prompt_name: str, label: str | None = None) -> None:
         """Remove prompt(s) from cache.
 

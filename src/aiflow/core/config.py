@@ -236,6 +236,11 @@ class VaultSettings(BaseSettings):
     kv_namespace: str = "aiflow"
     cache_ttl_seconds: float = 300.0
     negative_cache_ttl_seconds: float = 60.0
+    # Sprint W SW-4 (SM-FU-2) — emergency bypass for the prod-vs-root-token
+    # boot guard. Setting this to True lets the app boot in prod with a
+    # root/dev token; the guard logs a structured warning. Use only for
+    # disaster recovery; switch back to AppRole as soon as possible.
+    allow_root_token_in_prod: bool = False
 
 
 class AIFlowSettings(BaseSettings):

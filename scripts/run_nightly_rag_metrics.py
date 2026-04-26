@@ -36,6 +36,9 @@ load_dotenv(_PROJECT_ROOT / ".env", override=False)
 
 # Source-on-path so this script runs without a system install.
 sys.path.insert(0, str(_PROJECT_ROOT / "src"))
+sys.path.insert(0, str(_PROJECT_ROOT))
+
+from scripts._common import write_output  # noqa: E402
 
 from aiflow.services.rag_metrics import (  # noqa: E402
     QuerySpec,
@@ -80,17 +83,31 @@ async def _run(collection_id: str, query_set_path: Path, output: str) -> int:
         await engine.dispose()
 
     if output == "jsonl":
-        print(metrics.to_jsonl())
-    elif output == "table":
-        print(
-            f"collection_id={metrics.collection_id} "
-            f"mrr5={metrics.mrr5:.4f} "
-            f"p95_latency_ms={metrics.p95_latency_ms:.2f} "
-            f"query_count={metrics.query_count} "
-            f"measured_at={metrics.measured_at.isoformat()}"
+        write_output("jsonl", "-", metrics.to_jsonl())
+    elif output == "text":
+        write_output(
+            "text",
+            "-",
+            (
+                f"collection_id={metrics.collection_id} "
+                f"mrr5={metrics.mrr5:.4f} "
+                f"p95_latency_ms={metrics.p95_latency_ms:.2f} "
+                f"query_count={metrics.query_count} "
+                f"measured_at={metrics.measured_at.isoformat()}"
+            ),
         )
-    else:
-        raise SystemExit(f"unknown --output mode: {output!r}")
+    else:  # json
+        write_output(
+            "json",
+            "-",
+            {
+                "collection_id": metrics.collection_id,
+                "mrr5": metrics.mrr5,
+                "p95_latency_ms": metrics.p95_latency_ms,
+                "query_count": metrics.query_count,
+                "measured_at": metrics.measured_at.isoformat(),
+            },
+        )
 
     return 0
 
@@ -104,11 +121,12 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Path to the QuerySpec JSON file (see data/fixtures/rag_metrics/).",
     )
-    parser.add_argument(
-        "--output",
-        choices=["jsonl", "table"],
-        default="jsonl",
-    )
+
+    # Sprint U S156 (ST-FU-4) / Sprint W SW-4 (SU-FU-1) — uniform --output flag.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from scripts._common import argparse_output  # noqa: E402
+
+    argparse_output(parser, default_mode="jsonl")
     args = parser.parse_args(argv)
 
     return asyncio.run(_run(args.collection_id, args.query_set, args.output))
