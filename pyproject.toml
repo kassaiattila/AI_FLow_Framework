@@ -109,6 +109,12 @@ ignore = [
     "UP042",   # replace-str-enum — requires StrEnum migration
     "UP046",   # non-pep695-generic-class — Python 3.12+ syntax, opt-in later
 ]
+# Sprint U S153 ST-FU-5 — ruff-strips-imports mitigation:
+# Mark F401 (unused-import) as unsafe so `--fix` will not auto-remove imports
+# mid-edit (Sprint T S150 footgun where type-only imports were stripped between
+# Edit waves before the corresponding usage landed). Operators can still pass
+# `--unsafe-fixes` explicitly when intentionally cleaning unused imports.
+extend-unsafe-fixes = ["F401"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["B017"]     # assert-raises-exception OK in tests

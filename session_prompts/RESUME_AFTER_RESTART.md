@@ -21,7 +21,7 @@ Sprint K v1.4.7:
 
 ```bash
 # 1. Docker (AIFlow PG + Redis)
-cd "/c/Users/kassaiattila/OneDrive - BestIxCom Kft/00_BESTIX_KFT/11_DEV/80_Sample_Projects/07_AI_Flow_Framwork"
+cd /c/00_DEV_LOCAL/07_AI_Flow_Framwork
 docker compose up -d db redis
 
 # 2. FastAPI (port 8102)

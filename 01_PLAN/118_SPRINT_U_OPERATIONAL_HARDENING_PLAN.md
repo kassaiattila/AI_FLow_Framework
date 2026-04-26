@@ -24,7 +24,7 @@ Sprint U is the **carry-forward catch-up sprint**. After eight feature sprints (
 | `CostPreflightGuardrail` reach | per-call + per-tenant period | **+ per-step ceiling consolidated** (ST-FU-3) |
 | Cost recorder consolidation | `record_cost` + `CostAttributionRepository` parallel paths | **single attribution path** (SN-FU) |
 | PromptWorkflow descriptors live | 3 (email_intent, invoice_extraction, aszf_rag baseline) | **5** (+ aszf_rag expert + mentor) |
-| Live-stack Playwright coverage | `/budget-management`, `/extracted-fields`, `/rag/collections` | **+ `/prompts/workflows`** (SR-FU-4) |
+| Live-stack Playwright coverage | `/budget-management`, `/extracted-fields`, `/rag/collections` | unchanged (SR-FU-4 deferred to Sprint V) |
 | Operator script `--output` parity | inconsistent across `measure_uc1_*`, `run_nightly_rag_metrics`, `bootstrap_*` | **uniform `--output` JSON/text flag** |
 | Sprint Q `issue_date` extraction | systematically misses (Sprint Q corpus) | **fixed** (SQ-FU-1) — accuracy lift target ≥ 90% on `issue_date` |
 | Alembic head | 047 | 047 (no migration in Sprint U) |
@@ -66,19 +66,19 @@ Sprint U is the **carry-forward catch-up sprint**. After eight feature sprints (
 
 **Risk.** R2 — env-alias shim drift (see §4 R2).
 
-### S155 — PromptWorkflow ergonomics + persona descriptors
-**Scope.** Close the three SR-FU-4/5/6 items + ST-FU-2 expert/mentor descriptors:
+### S155 — Persona descriptors (RESCOPED 2026-04-26)
+**Scope.** **NARROWED** in audit `01_PLAN/AUDIT_2026_04_26_SPRINT_V_DIRECTION.md` to ship only the additive ST-FU-2 expert/mentor PromptWorkflow descriptors. SR-FU-4 (live Playwright `/prompts/workflows`) and SR-FU-6 (Langfuse workflow listing) **deferred to Sprint V/W** — they sit more naturally next to the doc-recognizer admin page work; pulling them into Sprint U bloated session risk without unblocking Sprint V scope.
 
 1. **Expert/mentor persona descriptors.** ST-FU-2. Author `prompts/workflows/aszf_rag_chain_expert.yaml` + `aszf_rag_chain_mentor.yaml` mirroring the baseline 4-step DAG (rewrite_query + system_<role> + answer + extract_citations) but pointing the `system_*` step at `system_prompt_expert.yaml` / `system_prompt_mentor.yaml` respectively. Update `_resolve_workflow_for_persona(role)` from S150 to return the new descriptors when `role in ("expert","mentor")` and flag-on. Default-off preserved — flag-off keeps the legacy direct-prompt path for both personas, byte-stable.
-2. **Live-stack Playwright for `/prompts/workflows`.** SR-FU-4. Today the only coverage is unit tests of the router + a route-mocked vitest. Add `tests/ui-live/prompt-workflows.md` (Python Playwright on the live admin stack — seeds workflow descriptors via `PromptManager.get_workflow()`, navigates to `/prompts/workflows`, asserts list + detail + dry-run). Mirrors `/budget-management` Sprint N S123 pattern.
+2. ~~**Live-stack Playwright for `/prompts/workflows`.** SR-FU-4.~~ **DEFERRED to Sprint V/W** — folded into Sprint V SV-4 admin UI scope or a follow-up post-Sprint-V.
 3. **`vite build` pre-commit hook.** *Already in S153 batch 3.* Cross-reference only.
-4. **Langfuse workflow listing surface.** SR-FU-6. Sprint R left `PromptManager.get_workflow()` doing 3-layer lookup (cache → Langfuse `workflow:<name>` JSON-typed prompt → local YAML); but the admin UI page only enumerates **local YAML descriptors** because there's no listing API for Langfuse-typed prompts. Add a `LangfuseClient.list_workflow_prompts()` helper + `/api/v1/prompt-workflows?source=langfuse` query param so the admin UI surfaces both sources. **Defer** if Langfuse v3→v4 server migration would simplify (operator decides at session start).
+4. ~~**Langfuse workflow listing surface.** SR-FU-6.~~ **DEFERRED to Sprint V/W** — re-evaluate after Langfuse v3→v4 server migration decision; operator may choose to handle both at once.
 
-**Gate.** Sprint J UC2 MRR@5 ≥ 0.55 on Profile A baseline persona (regression check — the new persona descriptors must not bleed onto the baseline path). Plus a flag-on parity check for expert/mentor: same answer text on a 5-question fixture set (`data/fixtures/rag_metrics/uc2_persona_smoke.json`) within ±0 token-difference.
+**Gate.** Sprint J UC2 MRR@5 ≥ 0.55 on Profile A baseline persona (regression check — the new persona descriptors must not bleed onto the baseline path). Plus a flag-on parity check for expert/mentor: same answer text on a 5-question fixture set (`data/fixtures/rag_metrics/uc2_persona_smoke.json`) within ±0 token-difference (deterministic prompt-resolution test, no LLM call).
 
-**Expected diff.** ~120 lines (2 new YAML descriptors + persona resolver update + Langfuse listing helper + admin UI source-toggle + 1 new live Playwright spec). **+6–10 unit tests** (persona resolver returns descriptor for expert/mentor, descriptor loader DAG-validates the new YAMLs, Langfuse listing helper happy/empty paths, source-toggle filter). **+1 integration** (real Langfuse — skip-by-default behind `AIFLOW_RUN_LIVE_LANGFUSE=1` to keep CI hermetic). **+1 live Playwright** (live admin stack).
+**Expected diff.** ~80 lines (2 new YAML descriptors + persona resolver update). **+4–6 unit tests** (persona resolver returns descriptor for expert/mentor, descriptor loader DAG-validates the new YAMLs). **0 integration** (the deferred Langfuse listing test goes with SR-FU-6 to Sprint V). **0 live Playwright** (the deferred SR-FU-4 spec also goes to Sprint V).
 
-**Risk.** R3 — persona variant LLM nondeterminism (see §4 R3).
+**Risk.** R3 — persona variant LLM nondeterminism (see §4 R3). Rescope **lowers** session risk to "low" since SR-FU-4/6 are out of scope.
 
 ### S156 — Sprint Q polish + operator script parity
 **Scope.** Close the four SQ-FU-* items + ST-FU-4:
@@ -95,8 +95,24 @@ Sprint U is the **carry-forward catch-up sprint**. After eight feature sprints (
 
 **Risk.** R4 — `issue_date` regression on already-correct fixtures (see §4 R4).
 
-### S157 — Sprint U close
-**Scope.** `docs/sprint_u_retro.md`, `docs/sprint_u_pr_description.md`, CLAUDE.md banner flip + key-numbers update, PR opened against `main`, tag `v1.5.4` queued. Explicit skipped-items enumeration. Closes carry-forward IDs ST-FU-2/3/4/5, SR-FU-4/5/6, SQ-FU-1/2/3/4, SN-FU subset (cost-settings consolidation). Carries forward to Sprint V: SS-FU-1/5 customer rename, Langfuse v3→v4, Vault rotation E2E, AppRole IaC, SS-SKIP-2 Profile B Azure live MRR@5.
+### S157 — Sprint U close + Sprint V kickoff plan publish
+**Scope.** `docs/sprint_u_retro.md`, `docs/sprint_u_pr_description.md`, CLAUDE.md banner flip + key-numbers update, PR opened against `main`, tag `v1.5.4` queued. Explicit skipped-items enumeration. **Plus** the Sprint V kickoff plan dokumentum: `01_PLAN/119_SPRINT_V_DOCUMENT_RECOGNIZER_PLAN.md` (per the audit decision in `01_PLAN/AUDIT_2026_04_26_SPRINT_V_DIRECTION.md`).
+
+Closes carry-forward IDs ST-FU-2/3/4/5, SR-FU-5, SQ-FU-1/2/4, SN-FU subset (cost-settings consolidation).
+
+Carries forward **to Sprint V** (headline scope):
+- **NEW** Generic document recognizer skill (refactor `invoice_finder` → `document_recognizer`; pluggable doc-type registry; 5 initial doc-types: hu_invoice, hu_id_card, hu_address_card, eu_passport, pdf_contract)
+- SR-FU-4 live Playwright `/prompts/workflows` (rescoped from S155)
+- SR-FU-6 Langfuse workflow listing (rescoped from S155)
+
+Carries forward **to post-Sprint-V audit**:
+- SS-FU-1/5 customer→tenant_id rename
+- SM-FU-1/2/4/5 Vault prod hardening + Langfuse v3→v4
+- SS-SKIP-2 Profile B Azure live MRR@5 (still credit-blocked)
+- SJ-FU-7 coverage uplift 70%→80%
+- SN-FU-3 Grafana panel
+- SQ-FU-3 corpus extension to 25
+- SP-FU-1 UC3 `024_complaint` body-vs-attachment intractable conflict
 
 ---
 

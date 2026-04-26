@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# AIFlow pre-commit hook — Sprint U S153 SR-FU-5
+#
+# Runs a development-mode Vite build whenever staged files include
+# anything under `aiflow-admin/src/`. Catches the kind of mid-PR
+# `react-i18next` → `useTranslate` breakage that surfaced in Sprint R
+# S140 (CI caught it; the hook would have caught it locally).
+#
+# Skipped on backend-only commits — fast path for Python edits.
+#
+# Install via:  make install-hooks
+# Bypass once:  git commit --no-verify   (use sparingly!)
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# 1. Quick gate: any staged file under aiflow-admin/src/?
+staged_admin_src=$(git diff --cached --name-only --diff-filter=ACMR \
+    | grep -E '^aiflow-admin/(src|tsconfig|vite\.config|package(-lock)?\.json)' || true)
+
+if [ -z "$staged_admin_src" ]; then
+    # Backend-only commit — skip the vite build.
+    exit 0
+fi
+
+echo "[pre-commit] aiflow-admin/ files staged → running 'vite build --mode development'..."
+
+cd "$REPO_ROOT/aiflow-admin"
+
+# Ensure node_modules is present; install if missing.
+if [ ! -d "node_modules" ]; then
+    echo "[pre-commit] node_modules missing — running 'npm install --silent'..."
+    npm install --silent >/dev/null
+fi
+
+# Vite build in development mode (faster, no minification, surfaces type/import errors).
+if ! npx vite build --mode development >/tmp/aiflow-vite-build.log 2>&1; then
+    echo ""
+    echo "[pre-commit] FAIL — vite build broke. Last 30 lines of log:"
+    echo "----------------------------------------------------------"
+    tail -30 /tmp/aiflow-vite-build.log
+    echo "----------------------------------------------------------"
+    echo "Full log: /tmp/aiflow-vite-build.log"
+    echo ""
+    echo "Bypass once with: git commit --no-verify (only if you know why)."
+    exit 1
+fi
+
+echo "[pre-commit] OK — vite build clean."
+exit 0

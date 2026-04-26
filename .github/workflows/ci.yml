@@ -82,3 +82,112 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Sprint U S153 — OpenAPI drift gate.
+  # Runs `scripts/check_openapi_drift.py` against `docs/api/openapi.json` on
+  # every PR. Catches the stale-uvicorn-snapshot bug Sprint S S144 leaked
+  # through (admin UI typed against stale spec). Hermetic — no DB, no LLM, no
+  # network. The script imports `create_app()` in-process and diffs the live
+  # spec against the committed JSON snapshot.
+  openapi-drift:
+    name: OpenAPI Drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv venv && uv pip install -e ".[dev,vectorstore]"
+
+      - name: Check OpenAPI drift vs docs/api/openapi.json
+        run: PYTHONPATH=src .venv/bin/python scripts/check_openapi_drift.py
+
+  # Sprint U S153 — Promote BGE-M3 1024-dim integration tests from nightly
+  # to PR-time. The `nightly-regression.yml` already caches BAAI/bge-m3
+  # weights via `actions/cache@v4` (Sprint S S145). This job runs only the
+  # dim-1024 integration slice so 1024-dim regressions surface on every PR
+  # rather than waiting for the next nightly. Full integration suite stays
+  # in `nightly-regression.yml`.
+  integration-1024-dim:
+    name: Integration (1024-dim BGE-M3 slice)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: aiflow_test
+          POSTGRES_USER: aiflow
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aiflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv venv && uv pip install -e ".[dev,vectorstore,local-models]"
+
+      - name: Run migrations
+        run: .venv/bin/alembic upgrade head
+        env:
+          AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
+
+      - name: Cache BGE-M3 weights
+        id: bge-m3-cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/models/bge-m3
+          key: bge-m3-${{ runner.os }}-${{ hashFiles('scripts/bootstrap_bge_m3.py') }}
+
+      - name: Bootstrap BGE-M3 weights (on cache miss)
+        if: steps.bge-m3-cache.outputs.cache-hit != 'true'
+        run: .venv/bin/python scripts/bootstrap_bge_m3.py --cache-dir .cache/models/bge-m3
+
+      - name: Run 1024-dim integration tests
+        run: |
+          .venv/bin/pytest \
+            tests/integration/services/rag_engine/test_query_1024_dim.py \
+            tests/integration/services/rag_engine/test_retrieval_baseline.py::test_retrieval_baseline_profile_a_bge_m3 \
+            -v --timeout=300 --timeout-method=thread \
+            --junitxml=test-results-integration-1024.xml
+        env:
+          AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
+          AIFLOW_REDIS__URL: redis://localhost:6379/1
+          AIFLOW_BGE_M3__CACHE_FOLDER: .cache/models/bge-m3
+          # Disable Langfuse cloud flush to avoid TestClient teardown hang
+          AIFLOW_LANGFUSE__ENABLED: "false"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-1024-results
+          path: test-results-integration-1024.xml
+          retention-days: 14
