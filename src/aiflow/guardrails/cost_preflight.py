@@ -38,6 +38,10 @@ PreflightReason = Literal[
     "under_budget",
     "over_budget",
     "dry_run_over_budget",
+    "step_under_ceiling",
+    "step_over_ceiling",
+    "step_dry_run_over_ceiling",
+    "step_no_ceiling",
 ]
 
 
@@ -179,6 +183,112 @@ class CostPreflightGuardrail:
             projected_usd=projected,
             remaining_usd=remaining,
             reason="over_budget",
+            period=self._period,
+            dry_run=False,
+        )
+
+    def check_step(
+        self,
+        *,
+        step_name: str,
+        model: str,
+        input_tokens: int,
+        max_output_tokens: int,
+        ceiling_usd: float | None,
+    ) -> PreflightDecision:
+        """Per-step cost ceiling check (Sprint U / S154 ST-FU-3).
+
+        Synchronous, tenant-agnostic counterpart of :meth:`check`. Compares the
+        projected USD against an explicit ``ceiling_usd`` (typically read from a
+        ``PromptWorkflow`` step descriptor's ``metadata.cost_ceiling_usd``).
+        Designed to be called by ``PromptWorkflowExecutor`` consumers (Sprint T
+        S149 invoice_processor pattern lifted into the framework guardrail).
+
+        Decision matrix:
+
+        * ``ceiling_usd is None`` → ``allowed=True, reason='step_no_ceiling'``
+        * ``not self._enabled`` → ``allowed=True, reason='disabled'``
+        * ``projected <= ceiling_usd`` → ``allowed=True, reason='step_under_ceiling'``
+        * ``projected > ceiling_usd`` and ``self._dry_run`` → ``allowed=True,
+          reason='step_dry_run_over_ceiling'`` (warning logged)
+        * ``projected > ceiling_usd`` and not dry-run → ``allowed=False,
+          reason='step_over_ceiling'``
+
+        Caller is responsible for raising :class:`CostGuardrailRefused` on
+        ``allowed=False`` (mirrors :meth:`check`).
+        """
+        if ceiling_usd is None:
+            return PreflightDecision(
+                allowed=True,
+                projected_usd=0.0,
+                remaining_usd=None,
+                reason="step_no_ceiling",
+                period=self._period,
+                dry_run=self._dry_run,
+            )
+
+        if not self._enabled:
+            return PreflightDecision(
+                allowed=True,
+                projected_usd=0.0,
+                remaining_usd=None,
+                reason="disabled",
+                period=self._period,
+                dry_run=self._dry_run,
+            )
+
+        projected = self._estimator.estimate(
+            model=model,
+            input_tokens=input_tokens,
+            max_output_tokens=max_output_tokens,
+        )
+
+        if projected <= ceiling_usd:
+            logger.debug(
+                "cost_preflight_step_under_ceiling",
+                step=step_name,
+                model=model,
+                projected_usd=round(projected, 6),
+                ceiling_usd=round(ceiling_usd, 6),
+            )
+            return PreflightDecision(
+                allowed=True,
+                projected_usd=projected,
+                remaining_usd=ceiling_usd,
+                reason="step_under_ceiling",
+                period=self._period,
+                dry_run=self._dry_run,
+            )
+
+        if self._dry_run:
+            logger.warning(
+                "cost_preflight_step_over_ceiling_dry_run",
+                step=step_name,
+                model=model,
+                projected_usd=round(projected, 6),
+                ceiling_usd=round(ceiling_usd, 6),
+            )
+            return PreflightDecision(
+                allowed=True,
+                projected_usd=projected,
+                remaining_usd=ceiling_usd,
+                reason="step_dry_run_over_ceiling",
+                period=self._period,
+                dry_run=True,
+            )
+
+        logger.warning(
+            "cost_preflight_step_refused",
+            step=step_name,
+            model=model,
+            projected_usd=round(projected, 6),
+            ceiling_usd=round(ceiling_usd, 6),
+        )
+        return PreflightDecision(
+            allowed=False,
+            projected_usd=projected,
+            remaining_usd=ceiling_usd,
+            reason="step_over_ceiling",
             period=self._period,
             dry_run=False,
         )
