@@ -1,0 +1,80 @@
+name: eu_passport
+display_name: "EU útlevél"
+description: "Európai uniós útlevél (kártya és könyvecske formátum) — PII high"
+language: en
+category: identity
+version: 1
+pii_level: high
+parser_preferences:
+  - azure_di
+  - docling
+type_classifier:
+  rules:
+    - kind: regex
+      weight: 0.30
+      pattern: "\\b(PASSPORT|PASSEPORT|REISEPASS|PASAPORTE|PASSAPORTO|[ÚU]TLEV[ÉE]L)\\b"
+    - kind: regex
+      weight: 0.25
+      pattern: "\\b(P<[A-Z]{3}|MRZ|Machine\\s+Readable\\s+Zone)\\b"
+    - kind: regex
+      weight: 0.20
+      pattern: "\\b[A-Z]{2}\\d{7}\\b|\\b[A-Z]\\d{8}\\b"
+    - kind: keyword_list
+      weight: 0.15
+      keywords:
+        - "passport number"
+        - "date of birth"
+        - "place of issue"
+        - "date of expiry"
+        - "nationality"
+      threshold: 2
+    - kind: structure_hint
+      weight: 0.10
+      hint: "page_count == 1"
+  llm_fallback: true
+  llm_threshold_below: 0.65
+extraction:
+  workflow: passport_extraction_chain
+  fields:
+    - name: full_name
+      type: string
+      required: true
+    - name: passport_number
+      type: string
+      required: true
+      validators:
+        - "regex:^[A-Z]{1,2}\\d{6,9}$"
+    - name: nationality
+      type: string
+      required: true
+    - name: birth_date
+      type: date
+      required: true
+      validators:
+        - "iso_date"
+        - "before_today"
+    - name: birth_place
+      type: string
+    - name: issue_date
+      type: date
+      validators:
+        - "iso_date"
+    - name: expiry_date
+      type: date
+      validators:
+        - "iso_date"
+    - name: issuing_authority
+      type: string
+    - name: gender
+      type: enum
+      enum:
+        - "M"
+        - "F"
+        - "X"
+intent_routing:
+  default: route_to_human
+  pii_redaction: true
+  conditions:
+    - if: "doc_type_confidence < 0.85"
+      intent: reject
+      reason: "Útlevél bizonyítatlan klasszifikáció — PII miatt nem perzisztálható"
