@@ -1,26 +1,28 @@
-"""DocumentRecognizer orchestrator — Sprint V SV-2.
+"""DocumentRecognizer orchestrator — Sprint V SV-2 + Sprint W SW-1.
 
-Wires the 3-stage pipeline that the SV-1 ``recognize_and_extract`` skeleton
-left as ``NotImplementedError``:
+Wires the 4-stage pipeline:
 
     parse (caller-provided ClassifierInput) -> classify (rule engine + LLM
-        fallback) -> resolve extraction PromptWorkflow descriptor ->
-        intent_routing (safe-eval rules) -> assemble result triple.
+        fallback) -> extract (Sprint W SW-1: real PromptWorkflow execution
+        with per-step cost preflight + field validators) -> intent_routing
+        (safe-eval rules) -> assemble result triple.
 
-SV-2 keeps the orchestrator **LLM-free for the classifier path** when the
-rule engine produces a confident match. When ``needs_llm_fallback`` returns
-True, the orchestrator delegates to the caller-supplied
-``llm_classify_fn`` (typically the ``ClassifierService.classify``-style
-callable from Sprint K UC3). When ``llm_classify_fn`` is None the
-orchestrator returns the rule-engine match unchanged (degraded mode).
+Sprint V SV-2 shipped stages 1+2+4 with an EMPTY extraction placeholder.
+Sprint W SW-1 fills the extraction stage in: when an ``extract_fn`` is
+injected, the orchestrator resolves the descriptor's
+``extraction.workflow`` PromptWorkflow descriptor + invokes per-step LLM
+calls + maps results into ``DocFieldValue`` entries. Without an
+``extract_fn`` the orchestrator preserves the SV-2 placeholder behavior
+(empty extraction; downstream tests that don't need extraction still
+work).
 
-The actual extraction step is **deferred to SV-3** — SV-2 returns an
-empty ``DocExtractionResult`` placeholder so SV-3 can wire in the
-PromptWorkflowExecutor + cost preflight without touching the SV-2 surface.
+LLM fallback for classifier (SV-2): graceful degradation on None /
+exception — rule-engine match preserved.
 """
 
 from __future__ import annotations
 
+import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -28,6 +30,7 @@ import structlog
 
 from aiflow.contracts.doc_recognition import (
     DocExtractionResult,
+    DocFieldValue,
     DocIntentDecision,
     DocTypeDescriptor,
     DocTypeMatch,
@@ -42,9 +45,11 @@ from aiflow.services.document_recognizer.safe_eval import (
     SafeEvalError,
     safe_eval_intent_rule,
 )
+from aiflow.services.document_recognizer.validators import apply_validators
 
 __all__ = [
     "DocumentRecognizerOrchestrator",
+    "ExtractFn",
     "LLMClassifyFn",
 ]
 
@@ -58,6 +63,16 @@ LLMClassifyFn = Callable[
     Awaitable[tuple[str, float] | None],
 ]
 
+# Sprint W SW-1 — extraction stage callable. Receives the descriptor +
+# parsed text + tenant_id; returns a populated DocExtractionResult (or
+# raises CostGuardrailRefused if a per-step ceiling fires). Contract is
+# async so the implementation can do real LLM calls; deterministic fakes
+# in tests just return a coroutine.
+ExtractFn = Callable[
+    [DocTypeDescriptor, ClassifierInput, str],
+    Awaitable[DocExtractionResult],
+]
+
 
 class DocumentRecognizerOrchestrator:
     """Stateful coordinator. Reuses a :class:`DocTypeRegistry` across calls."""
@@ -66,9 +81,11 @@ class DocumentRecognizerOrchestrator:
         self,
         registry: DocTypeRegistry,
         llm_classify_fn: LLMClassifyFn | None = None,
+        extract_fn: ExtractFn | None = None,
     ) -> None:
         self._registry = registry
         self._llm_classify_fn = llm_classify_fn
+        self._extract_fn = extract_fn
 
     async def classify(
         self,
@@ -193,9 +210,11 @@ class DocumentRecognizerOrchestrator:
     ) -> tuple[DocTypeMatch, DocExtractionResult, DocIntentDecision] | None:
         """End-to-end orchestration. Returns ``None`` if classification fails.
 
-        SV-2 stops at the classifier + intent stages — the extraction step
-        returns an EMPTY ``DocExtractionResult`` (no fields). SV-3 wires
-        the PromptWorkflowExecutor + cost preflight to populate it.
+        Sprint W SW-1: when an ``extract_fn`` was injected at construction,
+        the orchestrator delegates to it. Otherwise (no ``extract_fn``)
+        the SV-2 placeholder behavior is preserved — empty extraction +
+        validation_warnings note explaining why. Field validators run on
+        the extracted values regardless of source (real LLM or fake).
         """
         match, descriptor = await self.classify(
             ctx, tenant_id=tenant_id, doc_type_hint=doc_type_hint
@@ -203,14 +222,7 @@ class DocumentRecognizerOrchestrator:
         if match is None or descriptor is None:
             return None
 
-        # SV-2 placeholder: empty extraction. SV-3 fills this in.
-        extraction = DocExtractionResult(
-            doc_type=match.doc_type,
-            extracted_fields={},
-            validation_warnings=[],
-            cost_usd=0.0,
-            extraction_time_ms=0.0,
-        )
+        extraction = await self._extract(ctx, descriptor, tenant_id=tenant_id)
 
         intent = self.route_intent(
             descriptor,
@@ -219,6 +231,80 @@ class DocumentRecognizerOrchestrator:
             pii_detected=pii_detected,
         )
         return match, extraction, intent
+
+    async def _extract(
+        self,
+        ctx: ClassifierInput,
+        descriptor: DocTypeDescriptor,
+        *,
+        tenant_id: str,
+    ) -> DocExtractionResult:
+        """Stage 3 — extraction. Sprint W SW-1.
+
+        When ``self._extract_fn`` is set, delegate; otherwise return an
+        empty placeholder with a validation_warning explaining the gap.
+        Field validators (``apply_validators``) run on the result so even
+        fake / placeholder extractions get a consistent warning surface.
+        """
+        if self._extract_fn is None:
+            logger.info(
+                "doc_recognizer.extract_skipped",
+                doc_type=descriptor.name,
+                reason="no_extract_fn",
+            )
+            return DocExtractionResult(
+                doc_type=descriptor.name,
+                extracted_fields={},
+                validation_warnings=[
+                    "extract_fn not configured — extraction skipped (Sprint V SV-2 placeholder)"
+                ],
+                cost_usd=0.0,
+                extraction_time_ms=0.0,
+            )
+
+        start = time.monotonic()
+        try:
+            result = await self._extract_fn(descriptor, ctx, tenant_id)
+        except Exception:
+            # Re-raise — CostGuardrailRefused / network / parse errors
+            # surface to the caller for explicit handling.
+            raise
+
+        # Sprint W SW-1: re-run field validators on the result. The
+        # extract_fn implementation may have already produced warnings;
+        # we ADD validator-driven warnings without dropping the originals.
+        validator_warnings = self._validate_fields(descriptor, result.extracted_fields)
+        if validator_warnings:
+            merged_warnings = list(result.validation_warnings) + validator_warnings
+            result = result.model_copy(update={"validation_warnings": merged_warnings})
+
+        # Stamp extraction_time_ms if the extract_fn didn't.
+        if result.extraction_time_ms <= 0.0:
+            elapsed_ms = (time.monotonic() - start) * 1000.0
+            result = result.model_copy(update={"extraction_time_ms": elapsed_ms})
+
+        return result
+
+    @staticmethod
+    def _validate_fields(
+        descriptor: DocTypeDescriptor,
+        extracted_fields: dict[str, DocFieldValue],
+    ) -> list[str]:
+        """Apply field-level validators per the descriptor's extraction.fields list.
+
+        Returns a flat list of warning strings (qualified by field name).
+        Missing required fields also get a warning. Never raises.
+        """
+        warnings: list[str] = []
+        for field_spec in descriptor.extraction.fields:
+            fv = extracted_fields.get(field_spec.name)
+            if fv is None:
+                if field_spec.required:
+                    warnings.append(f"{field_spec.name}: required but not extracted")
+                continue
+            field_warnings = apply_validators(fv.value, field_spec.validators)
+            warnings.extend(f"{field_spec.name}: {w}" for w in field_warnings)
+        return warnings
 
     # ------------------------------------------------------------------
     # Helpers
