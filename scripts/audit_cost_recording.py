@@ -62,31 +62,62 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Exit non-zero on ANY legacy reference (including imports + tests).",
     )
+
+    # Sprint U S156 (ST-FU-4) — uniform --output flag.
+    # Lazy import so the script works even if scripts/ isn't on sys.path
+    # (operator may invoke as `python scripts/audit_cost_recording.py`).
+    sys.path.insert(0, str(REPO_ROOT))
+    from scripts._common import argparse_output, write_output
+
+    argparse_output(parser, default_mode="text")
     args = parser.parse_args(argv)
 
     legacy_hits = _scan(SRC, LEGACY_PATTERNS)
     repo_hits = _scan(SRC, (REPOSITORY_PATTERN,))
 
-    print(f"=== Legacy `record_cost` call sites in src/ ({len(legacy_hits)}) ===")
-    for path, lineno, snippet in legacy_hits:
-        print(f"  {path.relative_to(REPO_ROOT)}:{lineno}: {snippet}")
-
-    print(f"\n=== Repository path call sites in src/ ({len(repo_hits)}) ===")
-    for path, lineno, snippet in repo_hits:
-        print(f"  {path.relative_to(REPO_ROOT)}:{lineno}: {snippet}")
+    if args.output == "text":
+        lines = [f"=== Legacy `record_cost` call sites in src/ ({len(legacy_hits)}) ==="]
+        for path, lineno, snippet in legacy_hits:
+            lines.append(f"  {path.relative_to(REPO_ROOT)}:{lineno}: {snippet}")
+        lines.append("")
+        lines.append(f"=== Repository path call sites in src/ ({len(repo_hits)}) ===")
+        for path, lineno, snippet in repo_hits:
+            lines.append(f"  {path.relative_to(REPO_ROOT)}:{lineno}: {snippet}")
+        if args.strict and legacy_hits:
+            lines.append("")
+            lines.append(
+                f"[strict] {len(legacy_hits)} legacy reference(s) found — Sprint U S154 "
+                f"migration not yet complete."
+            )
+        elif not args.strict:
+            lines.append("")
+            lines.append(
+                "[non-strict] Run with --strict to fail CI on remaining legacy references."
+            )
+        else:
+            lines.append("")
+            lines.append("[strict] No legacy references remain — Sprint U S154 migration clean.")
+        write_output(args.output, args.output_path, "\n".join(lines))
+    else:
+        # JSON / JSONL — structured shape for CI consumption.
+        payload = {
+            "strict": args.strict,
+            "legacy_hits": [
+                {"path": str(p.relative_to(REPO_ROOT)), "lineno": ln, "snippet": s}
+                for p, ln, s in legacy_hits
+            ],
+            "repo_hits": [
+                {"path": str(p.relative_to(REPO_ROOT)), "lineno": ln, "snippet": s}
+                for p, ln, s in repo_hits
+            ],
+            "legacy_count": len(legacy_hits),
+            "repo_count": len(repo_hits),
+            "ok": not (args.strict and legacy_hits),
+        }
+        write_output(args.output, args.output_path, payload)
 
     if args.strict and legacy_hits:
-        print(
-            f"\n[strict] {len(legacy_hits)} legacy reference(s) found — Sprint U S154 "
-            f"migration not yet complete.",
-            file=sys.stderr,
-        )
         return 1
-
-    if not args.strict:
-        print("\n[non-strict] Run with --strict to fail CI on remaining legacy references.")
-    else:
-        print("\n[strict] No legacy references remain — Sprint U S154 migration clean.")
     return 0
 
 
