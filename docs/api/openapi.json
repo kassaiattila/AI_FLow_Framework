@@ -16068,8 +16068,25 @@
     },
     "/api/v1/prompts/workflows": {
       "get": {
-        "description": "List all locally-discoverable workflows.\n\nFlag-off \u2192 503 ``FeatureDisabled``.\nLangfuse-only workflows are not enumerated here (Langfuse v4 has no\ncheap list-by-prefix call); that surfaces as a follow-up if needed.",
+        "description": "List workflow descriptors.\n\nFlag-off \u2192 503 ``FeatureDisabled``.\n\nSprint W SW-4 (SR-FU-6) added the ``source`` query param so the admin\nUI can offer a source toggle:\n\n* ``local`` (default) \u2014 local YAML descriptors at ``prompts/workflows/``\n* ``langfuse`` \u2014 Langfuse-hosted ``workflow:<name>`` JSON-typed prompts\n* ``both`` \u2014 merged, deduplicated by ``name`` (local wins on collision)\n\nThe Langfuse listing surface is shipped as a stub\n(:func:`PromptManager.list_langfuse_workflows`) that returns an empty\nlist when the Langfuse client is unavailable or the v4 SDK does not\nexpose a cheap list-by-prefix call. Operators flip\n``source=langfuse`` once a real listing helper lands.",
         "operationId": "list_workflows_api_v1_prompts_workflows_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "default": "local",
+              "enum": [
+                "local",
+                "langfuse",
+                "both"
+              ],
+              "title": "Source",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -16080,6 +16097,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "List Workflows",

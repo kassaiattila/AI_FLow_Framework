@@ -108,6 +108,38 @@ class TestListing:
         assert item["step_count"] == 3
         assert item["default_label"] == "prod"
 
+    def test_list_source_local_only(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Sprint W SW-4 (SR-FU-6) — `?source=local` matches default behaviour.
+        client = _client(monkeypatch, enabled=True)
+        resp = client.get("/api/v1/prompts/workflows?source=local", headers=_AUTH_HEADERS)
+        assert resp.status_code == 200
+        names = {wf["name"] for wf in resp.json()["workflows"]}
+        assert "uc3_intent_and_extract" in names
+
+    def test_list_source_langfuse_returns_empty(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Stub helper returns []; router must respond 200 with zero rows.
+        client = _client(monkeypatch, enabled=True)
+        resp = client.get("/api/v1/prompts/workflows?source=langfuse", headers=_AUTH_HEADERS)
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["workflows"] == []
+        assert body["total"] == 0
+
+    def test_list_source_both_dedupes_local(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # `both` merges local + langfuse; the stub langfuse list is empty,
+        # so this returns the same set as `local`.
+        client = _client(monkeypatch, enabled=True)
+        resp_both = client.get("/api/v1/prompts/workflows?source=both", headers=_AUTH_HEADERS)
+        resp_local = client.get("/api/v1/prompts/workflows?source=local", headers=_AUTH_HEADERS)
+        names_both = {wf["name"] for wf in resp_both.json()["workflows"]}
+        names_local = {wf["name"] for wf in resp_local.json()["workflows"]}
+        assert names_both == names_local
+
+    def test_list_source_invalid_returns_422(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        client = _client(monkeypatch, enabled=True)
+        resp = client.get("/api/v1/prompts/workflows?source=badvalue", headers=_AUTH_HEADERS)
+        assert resp.status_code == 422
+
 
 class TestDetail:
     def test_detail_unknown_returns_404(self, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -14,6 +14,8 @@ S141 will add the executor; this session ships read-only surface only.
 
 from __future__ import annotations
 
+from typing import Literal
+
 import structlog
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -65,12 +67,25 @@ def _to_listing_item(wf: PromptWorkflow) -> WorkflowListItem:
 
 
 @router.get("", response_model=WorkflowListResponse)
-async def list_workflows() -> WorkflowListResponse:
-    """List all locally-discoverable workflows.
+async def list_workflows(
+    source: Literal["local", "langfuse", "both"] = Query(default="local"),
+) -> WorkflowListResponse:
+    """List workflow descriptors.
 
     Flag-off → 503 ``FeatureDisabled``.
-    Langfuse-only workflows are not enumerated here (Langfuse v4 has no
-    cheap list-by-prefix call); that surfaces as a follow-up if needed.
+
+    Sprint W SW-4 (SR-FU-6) added the ``source`` query param so the admin
+    UI can offer a source toggle:
+
+    * ``local`` (default) — local YAML descriptors at ``prompts/workflows/``
+    * ``langfuse`` — Langfuse-hosted ``workflow:<name>`` JSON-typed prompts
+    * ``both`` — merged, deduplicated by ``name`` (local wins on collision)
+
+    The Langfuse listing surface is shipped as a stub
+    (:func:`PromptManager.list_langfuse_workflows`) that returns an empty
+    list when the Langfuse client is unavailable or the v4 SDK does not
+    expose a cheap list-by-prefix call. Operators flip
+    ``source=langfuse`` once a real listing helper lands.
     """
     pm = get_prompt_manager()
     if not pm._workflows_enabled:
@@ -80,17 +95,30 @@ async def list_workflows() -> WorkflowListResponse:
         )
 
     items: list[WorkflowListItem] = []
-    if pm._workflow_loader is not None:
+    seen: set[str] = set()
+
+    if source in ("local", "both") and pm._workflow_loader is not None:
         for name in pm._workflow_loader.list_local():
             try:
                 wf, _ = pm.get_workflow(name)
                 items.append(_to_listing_item(wf))
+                seen.add(wf.name)
             except WorkflowResolutionError as exc:
                 logger.warning(
                     "workflow_router.list_skip_unresolvable",
                     workflow=name,
                     error=str(exc),
                 )
+
+    if source in ("langfuse", "both"):
+        try:
+            for wf in pm.list_langfuse_workflows():
+                if wf.name in seen:
+                    continue
+                items.append(_to_listing_item(wf))
+                seen.add(wf.name)
+        except Exception as exc:  # noqa: BLE001 — Langfuse is best-effort
+            logger.warning("workflow_router.list_langfuse_failed", error=str(exc))
 
     return WorkflowListResponse(workflows=items, total=len(items))
 

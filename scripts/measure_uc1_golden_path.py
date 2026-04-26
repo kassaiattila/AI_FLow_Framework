@@ -281,7 +281,7 @@ def _render_report(data: dict[str, Any], agg: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-async def main() -> int:
+async def _async_main(output_mode: str, output_path: str) -> int:
     if not os.getenv("OPENAI_API_KEY"):
         print("[error] OPENAI_API_KEY not set", file=sys.stderr)
         return 2
@@ -292,11 +292,41 @@ async def main() -> int:
     agg = _aggregate(data)
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(_render_report(data, agg), encoding="utf-8")
-    print(f"[ok] wrote {REPORT_PATH.relative_to(REPO_ROOT)}")
-    print(
-        f"[stats] accuracy={agg['overall_accuracy_pct']}% mean_cost=${agg['mean_cost_usd']} "
-        f"wall={agg['wall_clock_ms']:.0f}ms"
-    )
+
+    # Sprint U S156 (ST-FU-4) / Sprint W SW-4 (SU-FU-1) — uniform --output.
+    from scripts._common import write_output  # noqa: E402
+
+    if output_mode == "text":
+        text = (
+            f"[ok] wrote {REPORT_PATH.relative_to(REPO_ROOT)}\n"
+            f"[stats] accuracy={agg['overall_accuracy_pct']}% "
+            f"mean_cost=${agg['mean_cost_usd']} "
+            f"wall={agg['wall_clock_ms']:.0f}ms"
+        )
+        write_output("text", output_path, text)
+    elif output_mode == "jsonl":
+        write_output(
+            "jsonl",
+            output_path,
+            [
+                {
+                    "report_path": str(REPORT_PATH.relative_to(REPO_ROOT)),
+                    "overall_accuracy_pct": agg["overall_accuracy_pct"],
+                    "mean_cost_usd": agg["mean_cost_usd"],
+                    "wall_clock_ms": agg["wall_clock_ms"],
+                }
+            ],
+        )
+    else:  # json
+        write_output(
+            "json",
+            output_path,
+            {
+                "report_path": str(REPORT_PATH.relative_to(REPO_ROOT)),
+                "aggregate": agg,
+            },
+        )
+
     if agg["wall_clock_ms"] > HALT_WALL_CLOCK_SECONDS * 1000.0:
         print(
             f"[HALT] wall clock {agg['wall_clock_ms']:.0f}ms exceeds "
@@ -320,5 +350,18 @@ async def main() -> int:
     return 0
 
 
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+
+    from scripts._common import argparse_output  # noqa: E402
+
+    argparse_output(parser, default_mode="text")
+    args = parser.parse_args(argv)
+
+    return asyncio.run(_async_main(args.output, args.output_path))
+
+
 if __name__ == "__main__":
-    raise SystemExit(asyncio.run(main()))
+    raise SystemExit(main())
