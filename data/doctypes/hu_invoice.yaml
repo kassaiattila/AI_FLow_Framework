@@ -1,0 +1,92 @@
+name: hu_invoice
+display_name: "Magyar számla"
+description: "ÁFA-tartalmú HU számla, B2B/B2C — reuses Sprint T S149 invoice_extraction_chain workflow"
+language: hu
+category: financial
+version: 1
+pii_level: low
+parser_preferences:
+  - docling
+  - azure_di
+  - unstructured
+type_classifier:
+  rules:
+    - kind: regex
+      weight: 0.35
+      pattern: "\\bSz[aá]mla\\s*sz[aá]m\\b|\\bsz[aá]mlasorsz[aá]m\\b"
+    - kind: regex
+      weight: 0.25
+      pattern: "\\b[ÁA]fa[- ]?azonos[ií]t[oó]\\b|\\bAd[oó]sz[aá]m\\b"
+    - kind: keyword_list
+      weight: 0.25
+      keywords:
+        - "fizetési határidő"
+        - "teljesítés időpontja"
+        - "nettó"
+        - "bruttó"
+        - "ÁFA"
+        - "végösszeg"
+      threshold: 2
+    - kind: structure_hint
+      weight: 0.10
+      hint: "table_count >= 1"
+    - kind: filename_match
+      weight: 0.05
+      pattern: "^(invoice|szamla|szla|sz)[-_].*\\.(pdf|png|jpg|jpeg|tiff)$"
+  llm_fallback: true
+  llm_threshold_below: 0.70
+extraction:
+  workflow: invoice_extraction_chain
+  fields:
+    - name: invoice_number
+      type: string
+      required: true
+      validators:
+        - "non_empty"
+        - "regex:^[A-Za-z0-9/-]+$"
+    - name: vendor_name
+      type: string
+      required: true
+    - name: vendor_tax_id
+      type: string
+      validators:
+        - "regex:^\\d{8}-\\d-\\d{2}$"
+    - name: buyer_name
+      type: string
+      required: true
+    - name: buyer_tax_id
+      type: string
+      validators:
+        - "regex:^\\d{8}-\\d-\\d{2}$"
+    - name: issue_date
+      type: date
+      required: true
+      validators:
+        - "iso_date"
+    - name: due_date
+      type: date
+      validators:
+        - "iso_date"
+    - name: total_net
+      type: money
+      currency_default: HUF
+    - name: total_vat
+      type: money
+      currency_default: HUF
+    - name: total_gross
+      type: money
+      required: true
+      currency_default: HUF
+intent_routing:
+  default: process
+  pii_redaction: false
+  conditions:
+    - if: "extracted.total_gross > 1000000"
+      intent: route_to_human
+      reason: "Magas összegű számla — kötelező manuális ellenőrzés (HU > 1M HUF)"
+    - if: "field_confidence_min < 0.6"
+      intent: route_to_human
+      reason: "Alacsony adatkinyerési bizonyosság"
+    - if: "doc_type_confidence < 0.75"
+      intent: route_to_human
+      reason: "Bizonytalan dokumentum-típus klasszifikáció"

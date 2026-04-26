@@ -1,0 +1,65 @@
+name: hu_id_card
+display_name: "Magyar személyi igazolvány"
+description: "Magyar állampolgári személyi igazolvány (eID és kártya formátum) — PII-aware: default route_to_human"
+language: hu
+category: identity
+version: 1
+pii_level: high
+parser_preferences:
+  - azure_di
+  - docling
+type_classifier:
+  rules:
+    - kind: regex
+      weight: 0.20
+      pattern: "MAGYARORSZ[ÁA]G|HUNGARY"
+    - kind: regex
+      weight: 0.40
+      pattern: "Szem[eé]lyazonos[ií]t[oó]\\s+igazolv[aá]ny|IDENTITY CARD"
+    - kind: regex
+      weight: 0.30
+      pattern: "\\b\\d{6}[A-Z]{2}\\b"
+    - kind: structure_hint
+      weight: 0.10
+      hint: "page_count == 1"
+  llm_fallback: true
+  llm_threshold_below: 0.65
+extraction:
+  workflow: id_card_extraction_chain
+  fields:
+    - name: full_name
+      type: string
+      required: true
+    - name: birth_date
+      type: date
+      required: true
+      validators:
+        - "iso_date"
+        - "before_today"
+    - name: birth_place
+      type: string
+    - name: id_number
+      type: string
+      required: true
+      validators:
+        - "regex:^\\d{6}[A-Z]{2}$"
+    - name: issue_date
+      type: date
+      validators:
+        - "iso_date"
+    - name: validity_date
+      type: date
+      validators:
+        - "iso_date"
+    - name: nationality
+      type: string
+      currency_default: ""
+    - name: mother_name
+      type: string
+intent_routing:
+  default: route_to_human
+  pii_redaction: true
+  conditions:
+    - if: "doc_type_confidence < 0.85"
+      intent: reject
+      reason: "ID-kártya bizonyítatlan klasszifikáció — PII miatt nem perzisztálható"

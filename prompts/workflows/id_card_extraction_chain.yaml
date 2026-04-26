@@ -1,0 +1,55 @@
+name: id_card_extraction_chain
+version: "0.1.0"
+description: |
+  Sprint V SV-2 — magyar személyi igazolvány (HU ID card) extraction chain.
+  4-step DAG: ocr_normalize → fields → confidence → validate. Used by the
+  hu_id_card doctype descriptor. PII-aware: every field is treated as PII
+  high; the doc_recognizer audit-log boundary redacts values when the
+  descriptor's intent_routing.pii_redaction is True.
+
+default_label: prod
+tags:
+  - sprint-v
+  - sv2
+  - id_card
+  - hu
+  - pii_high
+
+steps:
+  - id: ocr_normalize
+    prompt_name: doc-recognizer/id_card_ocr_normalize
+    description: |
+      Strip OCR noise from the MRZ + identity field area. Normalize
+      whitespace + Hungarian diacritics + canonicalize date stamps.
+    output_key: normalized_text
+
+  - id: fields
+    prompt_name: doc-recognizer/id_card_fields
+    description: |
+      Extract structured ID-card fields: full_name, birth_date,
+      birth_place, id_number, issue_date, validity_date, nationality,
+      mother_name. Strict YYYY-MM-DD format. Empty string for missing.
+    depends_on: [ocr_normalize]
+    output_key: fields
+    metadata:
+      cost_ceiling_usd: 0.02
+
+  - id: confidence
+    prompt_name: doc-recognizer/id_card_confidence
+    description: |
+      Per-field confidence scoring (0..1) based on OCR quality + pattern
+      match strength. Returns one float per declared field.
+    depends_on: [fields]
+    output_key: per_field_confidence
+
+  - id: validate
+    prompt_name: doc-recognizer/id_card_validate_placeholder
+    description: |
+      Pure-Python validators per the descriptor field spec — no LLM call.
+      regex:^\\d{6}[A-Z]{2}$ for id_number; iso_date + before_today for
+      birth_date. Pure pass-through step in the descriptor topology.
+      `required: false` lets the executor skip resolution; the legacy
+      pure-Python validator runs in the orchestrator (Sprint T S149 pattern).
+    depends_on: [confidence]
+    output_key: validation_warnings
+    required: false
