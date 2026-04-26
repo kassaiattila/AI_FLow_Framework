@@ -18,6 +18,7 @@ import { EmailConnectors } from "./pages-new/EmailConnectors";
 import { IntentRules } from "./pages-new/IntentRules";
 import { Rag as RagNew } from "./pages-new/Rag";
 import { RagCollections } from "./pages-new/RagCollections";
+import { DocumentRecognizer } from "./pages-new/DocumentRecognizer";
 import { RagDetail } from "./pages-new/RagDetail";
 // J4 archived pages — redirected to dashboard (Sprint C)
 import { Reviews as ReviewsNew } from "./pages-new/Reviews";
@@ -96,6 +97,8 @@ export const router = createHashRouter([
       // AI Services
       { path: "rag", element: <RagNew /> },
       { path: "rag/collections", element: <RagCollections /> },
+      // Sprint V SV-4 — generic document recognizer admin page
+      { path: "document-recognizer", element: <DocumentRecognizer /> },
       { path: "rag/collections/:id", element: <RagDetail /> },
       { path: "rag/:id", element: <RagDetail /> },
       { path: "rag-chat", element: <Navigate to="/rag" replace /> },
