@@ -179,6 +179,9 @@ jobs:
             --junitxml=test-results-integration-1024.xml
         env:
           AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
+          # Tests read DATABASE_URL directly (PgVectorStore uses asyncpg DSN
+          # format, no driver suffix); both must point at the CI postgres-service.
+          DATABASE_URL: postgresql://aiflow:test@localhost:5432/aiflow_test
           AIFLOW_REDIS__URL: redis://localhost:6379/1
           AIFLOW_BGE_M3__CACHE_FOLDER: .cache/models/bge-m3
           # Disable Langfuse cloud flush to avoid TestClient teardown hang
