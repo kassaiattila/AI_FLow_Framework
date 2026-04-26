@@ -51,25 +51,37 @@ Full per-sprint trajectory: `docs/SPRINT_HISTORY.md`.
 
 ---
 
-## Active sprint — v1.8.0 "UC1+UC3+DocRecognizer Quality Push" (Sprint X)
+## Active sprint — v1.8.0 "Intake pipeline unification + Professional RAG chat management" (Sprint X)
 
 Branch: `feature/x-sx{N}-*` (per-session) → squash-merge to `main` after each PR.
-Plan: `01_PLAN/121_SPRINT_X_QUALITY_PUSH_PLAN.md`.
-Goal: dokumentum + email tortzs intent + adatpont kinyeres SZILARDDA tetele.
+Plan: `01_PLAN/121_SPRINT_X_INTAKE_PIPELINE_RAG_CHAT_PLAN.md`.
+Audit (Sprint W → X handoff): `docs/post_sprint_w_audit.md`.
+Goal: zar 3 pipeline-rest Sprint W felfedte de nem dratoltt:
+(1) UC3 EXTRACT path hardcode-olt `invoice_processor`-ra → DocRecognizer-mediated
+dispatch; (2) nincs routing trace → operator nem latja miert lett egy
+doctype valasztva; (3) `/aszf/chat` stateless → professzionalis kezelo
+felulet (conversation persistence + persona switcher + cost meter +
+transcript export).
 
-| Session | Scope | Quality target metric | Status |
+> **Operator-directed deviation note.** Sprint X **nem** "one-UC quality
+> push" — multi-UC pipeline-unification sprint, mert a 3 gap szorosan
+> kapcsolt (UC3 → DocRecognizer routing CSAK akkor megfigyelheto ha a
+> trace ship-el; chat persistence CSAK akkor ertelmes ha a routing
+> hatasa nyomon kovetheto). A `110_USE_CASE_FIRST_REPLAN.md` policy-tol
+> tudatos eltérés, dokumentalva `docs/post_sprint_w_audit.md`-ben.
+
+| Session | Scope | Composite gate | Status |
 |---|---|---|---|
-| **SX-1** | Honest alignment audit + ROADMAP rewrite + CLAUDE slim + run_quality_baseline.sh + session-prompt template + 121_*_PLAN.md publish | doc-only; baseline measured (4 UC json) | **IN PROGRESS** |
-| SX-2 | UC1 corpus extension (25 fixture: 10 synthetic + 10 anonimizalt magyar szamla + 5 rontott OCR) + `issue_date` deep-fix + measure_uc1_golden_path.py 25-fixture mode | UC1 accuracy 85.7% → ≥ 92%; `issue_date` ≥ 95% | QUEUED |
-| SX-3 | DocRecognizer **valos anonimizalt** PDF/scan corpus (5 per doctype × 5 = 25) + per-doctype accuracy gate + ci-cross-uc UC1-General slot | per-doctype real-corpus accuracy ≥ 80% (`hu_invoice` ≥ 90%) | QUEUED |
-| SX-4 | UC3 thread-aware classifier (SP-FU-3) + `024_complaint` body-vs-attachment conflict (SP-FU-1) + measure_uc3 → uniform `argparse_output()` | UC3 misclass 4% → ≤ 1% on 25-fixture corpus | QUEUED |
-| SX-5 | DocRecognizer admin UI: intent-routing rule editor (UC3 intent-rules editor mintaja) + PII-redaction live test (1 ID-card + 1 passport fixture E2E) | nincs UI → live UI + 1 Playwright spec; PII roundtrip verified | QUEUED |
-| SX-6 | Sprint X close — retro + tag `v1.8.0` + run_quality_baseline.sh PASS gate | mind 4 UC target felett (UC2 erintetlen Sprint Y-ra varva) | QUEUED |
+| **SX-1** | Post-Sprint-W audit + Sprint X plan + intake-pipeline kickoff (this row) | doc-only deliverables (audit + plan + NEXT + CLAUDE slim merge) | **IN PROGRESS** |
+| SX-2 | UC3 → DocRecognizer routing layer (default-off; flag-on `hu_invoice` byte-stable on existing `invoice_processor`; other doctypes route to SW-1 extraction) | UC3 4/4 unchanged (flag-off) + UC1 ≥ 75% / `invoice_number` ≥ 90% (flag-on `hu_invoice`) + id_card ≥ 3 fields confidence ≥ 0.7 (flag-on integration test) | QUEUED |
+| SX-3 | Routing trace — Alembic 050 `routing_runs` + `RoutingRunRepository` + 3-route `/api/v1/routing-runs` API + `/routing-runs` admin UI | UC3 4/4 + UC1 byte-stable (observation-only writes) + `routing_runs` row written per EXTRACT email + Playwright `routing-runs.md` PASS | QUEUED |
+| SX-4 | Professional RAG chat — Alembic 051 `aszf_conversations` + `aszf_conversation_turns` + `ConversationService` + 4-route `/api/v1/conversations` API + `/aszf/chat` UI upgrade (sidebar history + persona switcher + collection picker + citation card + cost meter + transcript export) | UC2 MRR@5 ≥ 0.55 unchanged (existing `/aszf/chat` retrieval API byte-stable) + Playwright `aszf-chat.md` PASS (4 tests) | QUEUED |
+| SX-5 | Sprint X close + Sprint W follow-up bundle (SW-FU-2 admin UI source-toggle on `/prompts/workflows` + SW-FU-3 `audit_customer_references.py` extension to `skill_instances` / `intent_schemas` / `document_extractor`) + retro + PR description + tag `v1.8.0` queued + NEXT.md → SY-1 | All four UCs unchanged + `bash scripts/run_quality_baseline.sh --strict` UC2 ≥ 0.55 + UC3 ≤ 4% + UC1 ≥ 75% + DocRecognizer 5-doctype ≥ 80% (no-regression gate, not a quality push) | QUEUED |
 
-**Sprint X exit gate:** `bash scripts/run_quality_baseline.sh --strict`
-mind UC1 + UC3 + DocRecognizer minden cel felett. UC2 erintetlen marad
-Sprint Y-ig (jelen baseline 0.55 MRR@5 elfogadva mint Sprint Y starting
-point).
+**Sprint X exit gate:** all four UC golden paths byte-stable +
+DocRecognizer-mediated dispatch flag-on green + routing_runs observability
+live + `/aszf/chat` conversation persistence live + tag `v1.8.0` queued.
+UC2 quality push (MRR@5 ≥ 0.65) explicitly **out of scope** — Sprint Y.
 
 ---
 
@@ -132,10 +144,20 @@ session-prompt-okba** kivéve, ha kozvetlenul a 4 UC valamelyikene melyitenek.
 
 | ID | Topic | Sprint X session |
 |---|---|---|
-| SQ-FU-3 | UC1 corpus extension to 25 fixtures | **SX-2** |
-| SW-FU-5 / SV-FU-1 | DocRecognizer real-document fixture corpus | **SX-3** |
-| SP-FU-1 | UC3 `024_complaint` body-vs-attachment | **SX-4** |
-| SP-FU-3 | UC3 thread-aware classifier | **SX-4** |
+| Sprint W gap §1 | UC3 EXTRACT hardcode-olt `invoice_processor`-ra | **SX-2** (DocRecognizer-mediated dispatch) |
+| Sprint W gap §2 | Nincs routing trace | **SX-3** (Alembic 050 `routing_runs` + admin UI) |
+| Sprint W gap §3 | `/aszf/chat` stateless API | **SX-4** (Alembic 051 conversations + UI upgrade) |
+| SW-FU-2 | Admin UI source-toggle widget /prompts/workflows | **SX-5** (Sprint W follow-up bundle) |
+| SW-FU-3 | `audit_customer_references.py` kiterjesztes masik tablakra | **SX-5** (Sprint W follow-up bundle) |
+
+**Sprint Y-re halasztva** (eredeti Quality Push tervekbol carry-forward):
+
+| ID | Topic | Indok |
+|---|---|---|
+| SQ-FU-3 | UC1 corpus extension to 25 fixtures | UC1 quality push, Sprint Y or operator ad-hoc |
+| SW-FU-5 / SV-FU-1 | DocRecognizer real-document fixture corpus | operator-driven anonymization |
+| SP-FU-1 | UC3 `024_complaint` body-vs-attachment | UC3 quality push, Sprint Y |
+| SP-FU-3 | UC3 thread-aware classifier | architecture sprint, Sprint Y or Z |
 
 ---
 
@@ -143,7 +165,8 @@ session-prompt-okba** kivéve, ha kozvetlenul a 4 UC valamelyikene melyitenek.
 
 - Honest alignment audit: `docs/honest_alignment_audit.md`
 - Use-case-first replan (binding policy): `01_PLAN/110_USE_CASE_FIRST_REPLAN.md`
-- Sprint X plan: `01_PLAN/121_SPRINT_X_QUALITY_PUSH_PLAN.md`
+- Sprint X plan: `01_PLAN/121_SPRINT_X_INTAKE_PIPELINE_RAG_CHAT_PLAN.md`
+- Sprint X audit (operator-directed deviation rationale): `docs/post_sprint_w_audit.md`
 - Sprint history (J–W trajectory): `docs/SPRINT_HISTORY.md`
 - Master architecture index: `01_PLAN/104_AIFLOW_v2_FINAL_MASTER_INDEX.md`
 - Session-prompt template: `session_prompts/_TEMPLATE.md`
