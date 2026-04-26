@@ -1,4 +1,4 @@
-.PHONY: help setup setup-full dev dev-docker api worker down down-volumes test test-cov test-integration test-e2e test-ui test-prompts test-all lint lint-fix migrate migrate-new db-reset lock clean skill-list workflow-list check-env deploy deploy-status deploy-down deploy-logs
+.PHONY: help setup setup-full dev dev-docker api worker down down-volumes test test-cov test-integration test-e2e test-ui test-prompts test-all lint lint-fix migrate migrate-new db-reset lock clean skill-list workflow-list check-env deploy deploy-status deploy-down deploy-logs install-hooks openapi-snapshot
 
 # Platform-aware venv paths
 ifeq ($(OS),Windows_NT)
@@ -26,7 +26,18 @@ setup: ## Create venv + install dev dependencies
 	uv pip install -e ".[dev]"
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null && echo ".env created from .env.example" || echo "No .env.example found"; fi
 	@echo ""
-	@echo "Setup DONE. Next: make dev"
+	@echo "Setup DONE. Next: make dev (or 'make install-hooks' for pre-commit hook)"
+
+install-hooks: ## Install git pre-commit hook (vite build on aiflow-admin/ changes)
+	@mkdir -p .git/hooks
+	@cp scripts/hooks/pre-commit .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit
+	@echo "[install-hooks] .git/hooks/pre-commit installed (Sprint U S153 SR-FU-5)."
+	@echo "Bypass once: git commit --no-verify (use sparingly)."
+
+openapi-snapshot: ## Refresh docs/api/openapi.json from live FastAPI source
+	PYTHONPATH=src $(PYTHON) scripts/check_openapi_drift.py --update
+	@echo "[openapi-snapshot] docs/api/openapi.json refreshed. Commit if intentional."
 
 setup-full: ## Setup with all optional extras
 	uv venv

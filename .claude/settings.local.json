@@ -54,7 +54,12 @@
       "Bash(npx prettier*)",
       "Bash(mkdir:*)",
       "Bash(curl -sf*)",
-      "Bash(curl -s*)"
+      "Bash(curl -s*)",
+      "Bash(PYTHONPATH=src \"C:/00_DEV_LOCAL/07_AI_Flow_Framwork/.venv/Scripts/python.exe\" scripts/check_openapi_drift.py --update)",
+      "Bash(mkdir -p .git/hooks)",
+      "Bash(cp scripts/hooks/pre-commit .git/hooks/pre-commit)",
+      "Bash(chmod +x .git/hooks/pre-commit)",
+      "Bash(PYTHONPATH=src \"C:/00_DEV_LOCAL/07_AI_Flow_Framwork/.venv/Scripts/python.exe\" scripts/check_openapi_drift.py)"
     ],
     "deny": [
       "Bash(rm -rf /)",

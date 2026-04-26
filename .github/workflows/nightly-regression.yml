@@ -3,6 +3,7 @@ name: Nightly Regression (L3)
 on:
   schedule:
     - cron: "0 3 * * *"  # 03:00 UTC daily (after nightly-eval at 02:00)
+    - cron: "0 7 * * 1"  # 07:00 UTC Monday — weekly UC3 4-combo matrix
   workflow_dispatch:  # Manual trigger
 
 jobs:
@@ -216,6 +217,94 @@ jobs:
 
       - name: Install and build
         run: cd aiflow-admin && npm ci && npx tsc --noEmit && npm run build
+
+  # Sprint U S153 SP-FU-2 — Weekly UC3 4-combo measurement matrix.
+  # Runs `scripts/measure_uc3_llm_context.py` on the 25-fixture corpus across
+  # the 4 (strategy × LLM-context) combinations. Skip-by-default on forks
+  # (needs `secrets.OPENAI_API_KEY`). Triggers on Monday 07:00 UTC schedule
+  # AND on workflow_dispatch for manual reruns.
+  uc3-4combo-matrix:
+    name: UC3 4-combo matrix (weekly)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 7 * * 1' || github.event_name == 'workflow_dispatch'
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: aiflow_test
+          POSTGRES_USER: aiflow
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aiflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv venv && uv pip install -e ".[dev,vectorstore]"
+
+      - name: Run migrations
+        run: .venv/bin/alembic upgrade head
+        env:
+          AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
+
+      - name: Skip if OPENAI_API_KEY missing (fork-safe)
+        id: openai-gate
+        run: |
+          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "result=skip" >> "$GITHUB_OUTPUT"
+            echo "::notice::OPENAI_API_KEY not set — UC3 4-combo matrix skipped."
+          else
+            echo "result=run" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run UC3 4-combo matrix
+        if: steps.openai-gate.outputs.result == 'run'
+        run: |
+          PYTHONPATH=src .venv/bin/python scripts/measure_uc3_llm_context.py
+        env:
+          AIFLOW_DATABASE__URL: postgresql+asyncpg://aiflow:test@localhost:5432/aiflow_test
+          AIFLOW_REDIS__URL: redis://localhost:6379/1
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AIFLOW_LANGFUSE__ENABLED: "false"
+
+      - name: Upload UC3 4-combo report
+        if: steps.openai-gate.outputs.result == 'run' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uc3-4combo-matrix-report
+          path: docs/uc3_llm_context_baseline.md
+          retention-days: 90
+
+      - name: Append summary
+        if: always()
+        run: |
+          if [ -f docs/uc3_llm_context_baseline.md ]; then
+            echo "## UC3 4-combo matrix" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            head -40 docs/uc3_llm_context_baseline.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## UC3 4-combo matrix — skipped (no OPENAI_API_KEY)" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   summary:
     name: Regression Summary
