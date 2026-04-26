@@ -1,50 +1,34 @@
-# AIFlow [Post-Sprint-V] — Audit gate session prompt
+# AIFlow [Sprint W] — Session SW-1 Prompt (Real PromptWorkflow extraction wire-up)
 
-> **Datum:** 2026-04-26 (post Sprint V close, tag `v1.6.0` queued)
-> **Branch:** TBD (cut from `main` after the Sprint V SV-5 close PR squash-merges).
-> **HEAD (expected):** Sprint V SV-5 close PR squash on top of `b4a0358` (SV-4 squash).
+> **Datum:** 2026-04-26 (snapshot date — adjust if session runs later)
+> **Branch:** `feature/w-sw1-prompt-workflow-extraction` (cut from `main` after the post-Sprint-V audit PR squash-merges).
+> **HEAD (expected):** post-Sprint-V audit close PR squash on top of `ee3f5ff` (Sprint V SV-5 squash).
 > **Port:** API 8102 | UI 5173
-> **Elozo session:** SV-5 — Sprint V close. `docs/sprint_v_retro.md` + `docs/sprint_v_pr_description.md` + CLAUDE.md banner flip + `data/fixtures/doc_recognizer/` + `scripts/measure_doc_recognizer_accuracy.py` + 2 CI jobs (PR-time + weekly) + tag `v1.6.0` queued.
-> **Audit reference:** `01_PLAN/119_SPRINT_V_DOCUMENT_RECOGNIZER_PLAN.md` §9 Post-Sprint-V audit gate (DEFER) + `01_PLAN/AUDIT_2026_04_26_SPRINT_V_DIRECTION.md` §"Post-Sprint-V audit gate".
-> **Session tipus:** AUDIT (no code change; produces Sprint W kickoff plan).
+> **Elozo session:** post-Sprint-V audit. `01_PLAN/120_SPRINT_W_KICKOFF_PLAN.md` + `docs/post_sprint_v_audit.md`.
+> **Terv:** `01_PLAN/120_SPRINT_W_KICKOFF_PLAN.md` §2 / SW-1 row.
+> **Session tipus:** IMPLEMENTATION (extraction stage wire-up — real LLM, real PromptWorkflow descriptors).
 
 ---
 
 ## 1. MISSION
 
-Per the Sprint V plan §9: **after Sprint V's gate green, audit the "professzionális működéshez szükséges struktúra" topics** and produce the Sprint W kickoff plan + post-v1.6 roadmap. Sprint V is now green (5 PRs merged, 100% top-1 starter accuracy, UC1/2/3 unchanged, OpenAPI drift `[ok]`); this is the trigger.
+The unblocker. SV-2 shipped the `DocumentRecognizerOrchestrator.run()` that returns an EMPTY `DocExtractionResult` after classification + intent routing. SW-1 wires the real LLM-driven extraction step so the recognize endpoint produces fields, not just a doc-type match. After SW-1, operators can run the doc_recognizer end-to-end on real documents.
 
-**Highest-priority audit topic per Sprint V retro:** SV-FU-4 — wire the real PromptWorkflow extraction step into `recognize_and_extract` so the recognize endpoint produces fields, not just a doc-type match. This unblocks operator usage of the doc_recognizer in production.
+### Five deliverables
 
-### Audit topics (Sprint W kickoff candidates)
+1. **Extend `DocumentRecognizerOrchestrator.run()` extraction stage** — after the classifier match, resolve the descriptor's `extraction.workflow` via `PromptWorkflowExecutor.resolve_for_skill("document_recognizer", descriptor.extraction.workflow)`.
+2. **Per-step LLM invocation** — for each resolved `(step_id, prompt_def)`, build the input dict (parsed text + per-field schema), invoke the LLM (`models_client.generate(...)`), capture cost.
+3. **Per-step cost preflight** — wire `CostPreflightGuardrail.check_step(step_name, model, input_tokens, max_output_tokens, ceiling_usd)` (Sprint U S154 API). On `allowed=False` → raise `CostGuardrailRefused` (Sprint T S149 pattern).
+4. **Field mapping + validators** — parse the LLM JSON response, build `dict[str, DocFieldValue]` per the descriptor's `extraction.fields` schema. Implement 7 validator functions: `non_empty`, `regex:<pattern>`, `iso_date`, `before_today`, `after_today`, `min:N`, `max:N`. Failures → `validation_warnings`, not crashes.
+5. **Backward-compat for hu_invoice** — when descriptor is `hu_invoice`, the executor delegates to `invoice_extraction_chain` (Sprint T S149 reuse). UC1 byte-stable; doc_recognizer is an alternative entry point with the same shape.
 
-From `01_PLAN/119_SPRINT_V_DOCUMENT_RECOGNIZER_PLAN.md` §9 + Sprint V retro:
+### Out of scope for SW-1
 
-1. **SV-FU-4** — Real PromptWorkflow-driven extraction in the orchestrator (highest priority)
-2. **SV-FU-1** — Real-document fixture corpus extension (5 per doctype = 25 anonymized real PDFs/scans)
-3. **SV-FU-3** — Live Playwright `tests/ui-live/document-recognizer.md` (mirror Sprint N S123 pattern)
-4. **SV-FU-6** — Live Playwright `tests/ui-live/prompt-workflows.md` (carried from Sprint U SR-FU-4)
-5. **Multi-tenant prod readiness** — Vault AppRole IaC, `AIFLOW_ENV=prod` boot guard, `customer` → `tenant_id` rename
-6. **Observability bővítés** — Grafana panels for `cost_guardrail_refused`, `doc_recognizer_intent_distribution`; ci-cross-uc kibővítés UC1-General-rel
-7. **Coverage uplift 70% → 80%** (SJ-FU-7 dormant)
-8. **Profile B Azure live MRR@5** (SS-SKIP-2 — if credit lands)
-9. **UC3 thread-aware classification** (body-only cohort 100% felé — SP-FU-1)
-10. **Test corpus expansion** — UC1 25 fixtures + doc_recognizer per-type 10+
-11. **Doc_recognizer ML classifier** (kis fasttext / sklearn / kis BERT) replacing rule-engine if accuracy demands
-12. **Sprint U `invoice_date` → `issue_date` SQL column rename** (SU-FU-3)
-13. **UI bundle size guardrail** in pre-commit hook (SV-FU-2)
-14. **Monaco YAML editor** for the DocTypeDetailDrawer (SV-FU-5, if operator feedback demands)
-
-### Audit deliverables
-
-1. `01_PLAN/120_SPRINT_W_KICKOFF_PLAN.md` — Sprint W plan covering 4–5 sessions of ranked-priority work.
-2. `docs/post_sprint_v_audit.md` — operator-facing audit summary (each topic: scope / risk / effort estimate / SLO target).
-3. `session_prompts/NEXT.md` → first Sprint W session prompt (likely SW-1 around SV-FU-4 if approved).
-
-### Out of scope
-
-- Any code change in this session. Audit only.
-- Sprint W execution. The audit publishes the plan; Sprint W kickoff session executes against it.
+- New doctype descriptors (Sprint V already shipped 5).
+- Admin UI changes (SV-4 surface unchanged).
+- Per-doctype real-document fixtures (SV-FU-1 = SW-2 scope).
+- Multi-tenant rename (SS-FU-1/5 = SW-3 scope).
+- `AIFLOW_ENV=prod` boot guard (SM-FU-2 = SW-4 scope).
 
 ---
 
@@ -52,11 +36,11 @@ From `01_PLAN/119_SPRINT_V_DOCUMENT_RECOGNIZER_PLAN.md` §9 + Sprint V retro:
 
 ### Honnan jöttünk
 
-Sprint V closed 2026-04-26 with 5 PRs merged in 1 calendar day. The generic document recognizer skill ships with 5 initial doctypes scoring 100% top-1 on the 8-fixture synthetic corpus. UC1 byte-stable; the doc_recognizer is additive.
+Sprint V closed 2026-04-26 with 5 PRs (#50–#54). The doc_recognizer skill scaffolds production-usable: 5 doctypes + 1 PromptWorkflow descriptor (`id_card_extraction_chain`) + admin UI + API router + Alembic 048. **But extraction returns empty** — the SV-2 placeholder.
 
 ### Hova tartunk
 
-The Sprint V retro identified 6 follow-ups (SV-FU-1..6). Per the audit doc + Sprint V plan §9, this session sequences them + the carry-forwards (Sprint U/S/Q/P/N/M/J residuals) into Sprint W's session list.
+SW-1 (this session) fills the placeholder. SW-2 adds live Playwright. SW-3 finishes `customer`→`tenant_id`. SW-4 production guards + Langfuse listing + script `--output`. SW-5 close + tag `v1.7.0`.
 
 ### Jelenlegi állapot
 
@@ -67,19 +51,22 @@ The Sprint V retro identified 6 follow-ups (SV-FU-1..6). Per the audit doc + Spr
 27 UI oldal | 8 skill | 22 pipeline adapter
 6 PromptWorkflow descriptors | 5 doctype descriptors
 5 ci.yml jobs | 6 nightly-regression.yml jobs | 1 pre-commit hook
+DocRecognizer rule engine: 100% top-1 on 8-fixture starter corpus.
 Default-off rollout preserved.
 ```
 
-### Key files for the audit session
+### Key files for SW-1
 
 | Role | Path |
 |---|---|
-| Sprint V plan | `01_PLAN/119_SPRINT_V_DOCUMENT_RECOGNIZER_PLAN.md` (§9 Post-Sprint-V audit gate) |
-| Sprint V retro | `docs/sprint_v_retro.md` (SV-FU-1..6 inventory) |
-| Audit + design depth | `01_PLAN/AUDIT_2026_04_26_SPRINT_V_DIRECTION.md` |
-| Capability roadmap | `01_PLAN/114_CAPABILITY_ROADMAP_Q_R_S.md` (operator priorities) |
-| UC trajectory | `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` |
-| Carry-forward inventory | All sprint retros: `docs/sprint_*_retro.md` |
+| Sprint W plan | `01_PLAN/120_SPRINT_W_KICKOFF_PLAN.md` (§2 / SW-1 row, §3 gate matrix, §4 R1+R2) |
+| Audit | `docs/post_sprint_v_audit.md` |
+| Orchestrator skeleton (SW-1 modifies `run()`) | `src/aiflow/services/document_recognizer/orchestrator.py` |
+| Validators target file (NEW) | `src/aiflow/services/document_recognizer/validators.py` |
+| LLM invocation pattern reuse | Sprint T S149 `skills/invoice_processor/workflows/process.py` (`_resolve_workflow_step` + `_enforce_step_cost_ceiling`) |
+| PromptWorkflowExecutor | `src/aiflow/prompts/workflow_executor.py` |
+| CostPreflightGuardrail | `src/aiflow/guardrails/cost_preflight.py` (Sprint U S154 `check_step` API) |
+| Doctype descriptors | `data/doctypes/hu_invoice.yaml`, `hu_id_card.yaml` (SW-1 priority targets) |
 
 ---
 
@@ -88,124 +75,200 @@ Default-off rollout preserved.
 ```bash
 git switch main
 git pull --ff-only origin main
-git log --oneline -5                                              # confirm SV-5 close squash on tip
+git checkout -b feature/w-sw1-prompt-workflow-extraction
+git log --oneline -5                                              # confirm post-Sprint-V audit squash on tip
 PYTHONPATH=src .venv/Scripts/python.exe -m alembic current        # head: 048
 PYTHONPATH=src .venv/Scripts/python.exe -m pytest tests/unit/ --collect-only -q 2>&1 | tail -1  # 2606 collected
 .venv/Scripts/python.exe -m ruff check src/ tests/ skills/ --quiet
-PYTHONPATH=src .venv/Scripts/python.exe scripts/measure_doc_recognizer_accuracy.py 2>&1 | tail -10  # 5 doctypes PASS
+PYTHONPATH=src .venv/Scripts/python.exe scripts/measure_doc_recognizer_accuracy.py 2>&1 | tail -10  # 5 doctypes 100% PASS
 ```
 
 Stop, ha:
-- Sprint V SV-5 close PR not yet merged → wait or escalate.
-- Alembic head ≠ 048 → drift; investigate before opening the audit session.
-- DocRecognizer accuracy drops below SLO on the starter corpus → halt; SV-FU-4 cannot proceed without a stable rule-engine baseline.
+- Post-Sprint-V audit PR not yet merged → wait or escalate.
+- Alembic head ≠ 048 → drift; investigate.
+- DocRecognizer accuracy script reports any below-SLO on the starter corpus → halt; SW-1 cannot proceed without a stable rule-engine baseline.
 
 ---
 
-## 4. FELADATOK (audit, no code)
+## 4. FELADATOK
 
-### LEPES 1 — Read the inputs
+### LEPES 1 — `services/document_recognizer/validators.py`
 
-- `01_PLAN/119_SPRINT_V_DOCUMENT_RECOGNIZER_PLAN.md` §9 (the deferred audit topics)
-- `docs/sprint_v_retro.md` §"Open follow-ups (Sprint W or later)" + §"Carried"
-- The 4 most-recent sprint retros (`sprint_t`, `sprint_u`, `sprint_v`) for unresolved carry-forwards.
+7 validator functions, all pure-Python:
 
-### LEPES 2 — Score each audit topic
+```python
+def non_empty(value: Any) -> tuple[bool, str | None]: ...
+def regex(value: Any, pattern: str) -> tuple[bool, str | None]: ...
+def iso_date(value: Any) -> tuple[bool, str | None]: ...
+def before_today(value: Any) -> tuple[bool, str | None]: ...
+def after_today(value: Any) -> tuple[bool, str | None]: ...
+def min_value(value: Any, n: float) -> tuple[bool, str | None]: ...
+def max_value(value: Any, n: float) -> tuple[bool, str | None]: ...
 
-For each topic in the Sprint V plan §9 list + SV-FU-1..6:
-- **Scope** — what concretely ships
-- **Risk class** — UC1/2/3 regression / endpoint surface / multi-tenant / external dependency
-- **Effort** — in session-multiples (1 / 2 / 3+)
-- **SLO** — measurable gate at session close
-- **Dependencies** — which other Sprint W topics block / are blocked by this
+def apply_validators(field_value: Any, validator_specs: list[str]) -> list[str]:
+    """Return a list of warning strings (empty list = all pass)."""
+```
 
-### LEPES 3 — Sequence Sprint W
+Validator strings come from doctype YAML's `field.validators: ["regex:^\\d{8}-\\d-\\d{2}$", "iso_date"]`. Parse the prefix (`regex:` / `min:` / `max:`) and dispatch.
 
-Pick **4–5 sessions** for Sprint W. Recommended ordering (operator-pickable):
+Tests: per-validator happy + sad path (14 tests minimum).
 
-- **SW-1** — SV-FU-4: real PromptWorkflow extraction in `recognize_and_extract` orchestrator. Unblocks doc_recognizer production usage. Highest priority.
-- **SW-2** — SV-FU-1 + SV-FU-3: real-document fixture corpus + live Playwright `/document-recognizer` spec. Operator-curated content + UI gate.
-- **SW-3** — Multi-tenant prod readiness slice 1: `customer` → `tenant_id` rename + `AIFLOW_ENV=prod` guard. Prep for Vault AppRole.
-- **SW-4** — Observability bővítés: Grafana panels + ci-cross-uc UC1-General slot.
-- **SW-5** — Sprint W close + tag `v1.7.0` (or queue earlier if scope cuts).
+### LEPES 2 — Extend `DocumentRecognizerOrchestrator.run()`
 
-Operator may swap SW-2 ↔ SW-3 depending on tenancy demand vs operator-content readiness.
+Replace the SV-2 placeholder (empty `DocExtractionResult`) with:
 
-### LEPES 4 — Author `01_PLAN/120_SPRINT_W_KICKOFF_PLAN.md`
+```python
+async def run(self, ctx, *, tenant_id, doc_type_hint=None, pii_detected=False):
+    match, descriptor = await self.classify(...)
+    if match is None or descriptor is None:
+        return None
 
-Mirror the structure of `01_PLAN/119_SPRINT_V_DOCUMENT_RECOGNIZER_PLAN.md`:
-1. Goal
-2. Sessions (4–5 with concrete deliverables, LOC + test estimates)
-3. Plan / gate matrix
-4. Risk register
-5. Definition of done
-6. Out of scope (deferred to post-Sprint-W)
-7. Skipped tracker
+    # NEW: real extraction stage
+    extraction = await self._extract(ctx, descriptor, tenant_id=tenant_id)
 
-### LEPES 5 — Write `docs/post_sprint_v_audit.md`
+    intent = self.route_intent(descriptor, extraction, match, pii_detected=pii_detected)
+    return match, extraction, intent
 
-Operator-facing summary. Each topic gets a 1-paragraph block: what it is, why it matters now, what changes if we ship it, what changes if we defer.
+async def _extract(self, ctx, descriptor, *, tenant_id) -> DocExtractionResult:
+    # 1. Resolve the PromptWorkflow descriptor
+    resolved = self._workflow_executor.resolve_for_skill(
+        SKILL_NAME, descriptor.extraction.workflow
+    )
+    if resolved is None:
+        # Flag-off: empty fields + warning
+        return DocExtractionResult(
+            doc_type=descriptor.name,
+            extracted_fields={},
+            validation_warnings=[f"workflow {descriptor.extraction.workflow!r} not resolved"],
+        )
+    workflow, prompt_map = resolved
 
-### LEPES 6 — `session_prompts/NEXT.md` → SW-1
+    # 2. Per-step LLM invocation with cost preflight
+    extracted: dict[str, DocFieldValue] = {}
+    total_cost_usd = 0.0
+    start = time.monotonic()
+    for step in workflow.steps:
+        if not step.required:
+            continue  # validate-style steps skip in SW-1
+        prompt_def = prompt_map.get(step.id)
+        if prompt_def is None:
+            continue
+        ceiling = step.metadata.get("cost_ceiling_usd") if step.metadata else None
+        decision = self._cost_guardrail.check_step(
+            step_name=step.id,
+            model=prompt_def.config.model,
+            input_tokens=len(ctx.text) // 4 + 256,
+            max_output_tokens=prompt_def.config.max_tokens,
+            ceiling_usd=ceiling,
+        )
+        if not decision.allowed:
+            raise CostGuardrailRefused(...)
 
-Detailed kickoff prompt for the first Sprint W session.
+        # Compile prompt + invoke LLM
+        messages = prompt_def.compile(variables={"text": ctx.text})
+        response = await self._models_client.generate(
+            messages=messages, model=prompt_def.config.model,
+            temperature=prompt_def.config.temperature,
+            max_tokens=prompt_def.config.max_tokens,
+        )
+        total_cost_usd += response.cost_usd
 
-### LEPES 7 — Validate + commit + push + PR
+        # Parse JSON; map to DocFieldValue with confidence
+        # ... (per-step output_key handling)
+
+    # 3. Apply field validators
+    warnings: list[str] = []
+    for field_spec in descriptor.extraction.fields:
+        if field_spec.name not in extracted:
+            if field_spec.required:
+                warnings.append(f"{field_spec.name} required but not extracted")
+            continue
+        field_warnings = apply_validators(
+            extracted[field_spec.name].value, field_spec.validators
+        )
+        warnings.extend(f"{field_spec.name}: {w}" for w in field_warnings)
+
+    elapsed_ms = (time.monotonic() - start) * 1000
+    return DocExtractionResult(
+        doc_type=descriptor.name,
+        extracted_fields=extracted,
+        validation_warnings=warnings,
+        cost_usd=total_cost_usd,
+        extraction_time_ms=elapsed_ms,
+    )
+```
+
+Wire `_workflow_executor`, `_cost_guardrail`, `_models_client` via constructor injection.
+
+### LEPES 3 — Backward-compat for `hu_invoice`
+
+When `descriptor.name == "hu_invoice"`, the executor naturally resolves `invoice_extraction_chain` (Sprint T S149's existing descriptor). UC1 byte-stable because `invoice_processor.workflows.process` keeps using the same descriptor; the doc_recognizer is just an alternate entry point that hits the same chain.
+
+**Verify** that the doc_recognizer extraction round-trip produces the same shape that `invoice_processor.workflows.process` produces (same field names + ranges); if not, document the difference + decide whether to backfill or hand-map.
+
+### LEPES 4 — Tests
+
+- **+12 unit** (validators × 7 happy/sad + extraction stage shape × 5):
+  - `tests/unit/services/document_recognizer/test_validators.py` — per-validator
+  - `tests/unit/services/document_recognizer/test_orchestrator_extraction.py` — workflow resolution + per-step cost preflight + JSON parse + field mapping
+- **+2 integration** (skip-by-default behind `OPENAI_API_KEY`):
+  - `tests/integration/services/document_recognizer/test_extraction_real.py` — real OpenAI gpt-4o-mini call on `hu_invoice` + `hu_id_card` starter fixtures
+
+### LEPES 5 — Validate + commit + push + PR
 
 ```bash
 .venv/Scripts/python.exe -m ruff check src/ tests/ skills/ --quiet
-PYTHONPATH=src .venv/Scripts/python.exe -m pytest tests/unit/ --collect-only -q 2>&1 | tail -1   # 2606 collected (no test changes)
+PYTHONPATH=src .venv/Scripts/python.exe -m pytest tests/unit/ -q --tb=line | tail -3   # 2620+ collected (+14)
+PYTHONPATH=src .venv/Scripts/python.exe -m pytest tests/unit/services/document_recognizer/ -v
+# Real-LLM integration (only when OPENAI_API_KEY available):
+PYTHONPATH=src .venv/Scripts/python.exe -m pytest tests/integration/services/document_recognizer/ -v --timeout=120
 
-git checkout -b chore/post-sprint-v-audit
-git add 01_PLAN/120_SPRINT_W_KICKOFF_PLAN.md \
-        docs/post_sprint_v_audit.md \
-        session_prompts/NEXT.md \
-        CLAUDE.md
-git commit -m "docs(post-sprint-v): audit + Sprint W kickoff plan"
-git push -u origin chore/post-sprint-v-audit
-gh pr create --base main --head chore/post-sprint-v-audit \
-  --title "Post-Sprint-V audit + Sprint W kickoff plan"
+# UC1 regression check
+AIFLOW_LANGFUSE__ENABLED=false PYTHONPATH=src .venv/Scripts/python.exe \
+    -m pytest tests/integration/skills/test_uc1_golden_path.py --timeout=300
+
+git add src/aiflow/services/document_recognizer/ \
+        tests/unit/services/document_recognizer/ \
+        tests/integration/services/document_recognizer/
+git commit -m "feat(sprint-w): SW-1 — DocRecognizer PromptWorkflow extraction wire-up (SV-FU-4)"
+git push -u origin feature/w-sw1-prompt-workflow-extraction
+gh pr create --base main --head feature/w-sw1-prompt-workflow-extraction \
+  --title "Sprint W SW-1 — DocRecognizer PromptWorkflow extraction wire-up"
 ```
 
-Then `/session-close post-sprint-v-audit` — which queues SW-1.
+Then `/session-close SW-1` — which queues SW-2 (live Playwright + corpus extension).
 
 ---
 
 ## 5. STOP FELTETELEK
 
 **HARD:**
-1. Sprint V SV-5 close PR not yet merged on `main` → wait.
-2. Alembic head ≠ 048 → drift.
-3. DocRecognizer accuracy script reports any below-SLO on the starter corpus → halt; the audit cannot land while Sprint V's gate is red.
+1. UC1 invoice_processor golden-path regression — UC1 < 75% accuracy or `invoice_number` < 90% → halt; SW-1 must NOT touch UC1 behavior.
+2. LLM cost per recognize call exceeds $0.05 on the starter corpus → investigate per-step ceilings + descriptor configuration.
+3. `OPENAI_API_KEY` available but real-LLM integration test fails on both starter fixtures → halt; debug LLM JSON parsing or prompt template.
 
 **SOFT:**
-- Operator chooses to skip the audit session and go straight to SW-1 implementation → bypass this prompt; the Sprint V plan §9 + retro are sufficient inputs for SW-1 kickoff.
-- Audit reveals that 4–5 sessions is too tight for the carry-forward + new debt; Sprint W splits into Sprint W (5) + Sprint X (4) — document the split rationale.
+- LLM returns inconsistent JSON shape across runs → tighten prompt + add `response_format: json_object`.
+- Per-step cost ceiling on `id_card_extraction_chain.fields` (0.02 USD) trips on long fixtures → bump ceiling per-tenant via override or relax ceiling to 0.03.
 
 ---
 
 ## 6. SESSION VEGEN
 
 ```
-/session-close post-sprint-v-audit
+/session-close SW-1
 ```
 
-The `/session-close` will:
-- Validate lint + unit collect.
-- Stage + commit the audit + Sprint W kickoff plan diff.
-- Push the branch.
-- Open the PR.
-- Generate `session_prompts/NEXT.md` for SW-1 — the first Sprint W execution session.
+Generates `session_prompts/NEXT.md` for SW-2 (live Playwright + corpus extension).
 
 ---
 
-## 7. SKIPPED-ITEMS TRACKER (carry from Sprint V)
+## 7. SKIPPED-ITEMS TRACKER
+
+Carry from Sprint V SV-5 unchanged. Plus:
 
 | ID | Hely | Mi | Unskip feltetel |
 |---|---|---|---|
-| ST-SKIP-1 | `tests/unit/providers/embedder/test_azure_openai.py` | Conditional Azure Profile B live | Azure credit |
-| SU-SKIP-1 | `.github/workflows/nightly-regression.yml` `uc3-4combo-matrix` | Weekly job skip-by-default on PR runs | `secrets.OPENAI_API_KEY` + scheduled trigger |
-| SS-SKIP-2 | `tests/integration/services/rag_engine/test_retrieval_baseline.py::test_retrieval_baseline_profile_b_openai` | Profile B Azure live MRR@5 | Azure credit |
-| SV-SKIP-1 | `.github/workflows/nightly-regression.yml` `doc-recognizer-weekly-matrix` | Weekly DocRecognizer per-doctype matrix | Mon 08:00 UTC schedule + workflow_dispatch |
+| SW-SKIP-1 (planned, this session) | `tests/integration/services/document_recognizer/test_extraction_real.py` | Real-OpenAI integration on hu_invoice + hu_id_card | `secrets.OPENAI_API_KEY` |
 
-SU-FU-1..4 (operator-script `--output`, `scripts/` ruff cleanup, Alembic `invoice_date` rename, UC1 full-corpus verification) tracked in `docs/sprint_u_retro.md`. SV-FU-1..6 tracked in `docs/sprint_v_retro.md`. The audit session sequences these into Sprint W.
+Sprint V carry-forwards inherit unchanged: ST-SKIP-1, SU-SKIP-1, SU-SKIP-2, SS-SKIP-2, SV-SKIP-1.
