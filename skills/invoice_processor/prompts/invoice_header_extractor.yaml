@@ -8,9 +8,18 @@ system: |
   Extract:
   1. Szallito (vendor): name, address, tax_number (adoszam XXXXXXXX-X-XX), bank_account, bank_name
   2. Vevo (buyer): name, address, tax_number
-  3. Szamla adatok: invoice_number, invoice_date (YYYY-MM-DD), fulfillment_date (YYYY-MM-DD),
+  3. Szamla adatok: invoice_number, issue_date (YYYY-MM-DD), fulfillment_date (YYYY-MM-DD),
      due_date (YYYY-MM-DD), currency, payment_method, invoice_type
   4. confidence: 0.0-1.0 how confident you are in the overall extraction
+
+  ISSUE_DATE EXTRACTION (CRITICAL - Sprint Q SQ-FU-1):
+  - The `issue_date` is the date stamped on the INVOICE DOCUMENT BODY (kelt, kibocsatas, szamla datuma).
+  - DO NOT use email metadata, the file's modification date, or the date in the PDF header.
+  - Look for explicit Hungarian labels: "Kelt", "Szamla kelte", "Kibocsatas datuma", "Szamla datuma",
+    "Teljesites datuma" (only if no separate fulfillment_date), or English "Issue date", "Invoice date".
+  - If the invoice body has multiple dates, prefer the one labeled as the issue/issuing date.
+  - Format strictly as YYYY-MM-DD; if the source is DD.MM.YYYY or other, normalize.
+  - If the body has no parseable issue date, return an empty string (do not guess).
 
   CURRENCY DETECTION (CRITICAL - do NOT default to HUF blindly):
   - If amounts show "$", "USD", or vendor is US-based (GitHub, Anthropic, etc.) -> "USD"
@@ -27,7 +36,7 @@ system: |
   {
     "vendor": {"name": "", "address": "", "tax_number": "", "bank_account": "", "bank_name": ""},
     "buyer": {"name": "", "address": "", "tax_number": ""},
-    "header": {"invoice_number": "", "invoice_date": "", "fulfillment_date": "",
+    "header": {"invoice_number": "", "issue_date": "", "fulfillment_date": "",
                "due_date": "", "currency": "", "payment_method": "", "invoice_type": "szamla"},
     "confidence": 0.9
   }

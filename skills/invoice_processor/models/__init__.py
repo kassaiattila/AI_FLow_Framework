@@ -1,9 +1,10 @@
 """Invoice Processor models - I/O types for invoice processing workflow."""
+
 from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 __all__ = [
     "InvoiceParty",
@@ -30,16 +31,30 @@ class InvoiceParty(BaseModel):
 
 
 class InvoiceHeader(BaseModel):
-    """Invoice header fields (szamla adatok)."""
+    """Invoice header fields (szamla adatok).
+
+    Sprint U / S156 (SQ-FU-1): the date stamped on the invoice document body
+    is exposed primarily as ``issue_date``. ``invoice_date`` is kept as an
+    alias for backward compatibility with the SQL column and pre-S156 JSONB
+    rows; both names round-trip the same value.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
 
     invoice_number: str = ""
-    invoice_date: str = ""
+    issue_date: str = Field(default="", validation_alias=AliasChoices("issue_date", "invoice_date"))
     fulfillment_date: str = ""
     due_date: str = ""
     currency: str = "HUF"
     payment_method: str = ""
     invoice_type: str = "szamla"
     language: str = "hu"
+
+    # Backward-compat read accessor — pre-S156 callers keep using
+    # ``header.invoice_date``.
+    @property
+    def invoice_date(self) -> str:  # type: ignore[override]
+        return self.issue_date
 
 
 class LineItem(BaseModel):

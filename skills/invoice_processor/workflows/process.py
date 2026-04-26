@@ -381,6 +381,16 @@ async def extract_invoice_data(data: dict) -> dict:
         f["vendor"] = header_data.get("vendor", {})
         f["buyer"] = header_data.get("buyer", {})
         f["header"] = header_data.get("header", {})
+        # Sprint U S156 (SQ-FU-1): the prompt now returns `issue_date` (was
+        # `invoice_date` pre-S156). Normalize the dict so consumers can read
+        # either key — `issue_date` is the canonical name; `invoice_date`
+        # remains populated for backward-compat with pre-S156 JSONB rows
+        # and the SQL column.
+        _h = f["header"]
+        if "issue_date" not in _h and "invoice_date" in _h:
+            _h["issue_date"] = _h["invoice_date"]
+        elif "invoice_date" not in _h and "issue_date" in _h:
+            _h["invoice_date"] = _h["issue_date"]
         f["line_items"] = lines_data.get("line_items", [])
         f["totals"] = lines_data.get("totals", {})
         f["extraction_time_ms"] = round((time.monotonic() - start) * 1000, 1)
@@ -625,7 +635,13 @@ async def validate_invoice(data: dict) -> dict:
 
 
 def _parse_date(val: str | None) -> object | None:
-    """Parse a YYYY-MM-DD string to datetime.date, or return None."""
+    """Parse a YYYY-MM-DD string to datetime.date, or return None.
+
+    Used at the SQL persistence boundary — asyncpg expects a
+    :class:`datetime.date` for ``date`` columns. JSON-payload boundaries
+    (UI, ``EmailDetailResponse.extracted_fields``) should prefer
+    :func:`_parse_date_iso` instead so the shape stays a string.
+    """
     if not val:
         return None
     try:
@@ -636,6 +652,68 @@ def _parse_date(val: str | None) -> object | None:
             return _date(int(parts[0]), int(parts[1]), int(parts[2]))
     except (ValueError, TypeError):
         pass
+    return None
+
+
+def _parse_date_iso(val: object | None) -> str | None:
+    """Sprint U S156 (SQ-FU-4) — normalize any input to ISO ``YYYY-MM-DD`` str.
+
+    Accepts:
+      * ``str`` — checks if already ISO (``YYYY-MM-DD``); otherwise tries
+        common European patterns (``DD.MM.YYYY``, ``YYYY/MM/DD``,
+        ``DD/MM/YYYY``);
+      * ``datetime.date`` / ``datetime.datetime`` — calls ``isoformat()``.
+
+    Returns ``None`` when the input is empty or unparseable. Designed for
+    JSON-payload boundaries where ``ExtractedFieldsCard.tsx`` and
+    ``EmailDetailResponse.extracted_fields`` need a single-shape value.
+    """
+    if val is None or val == "":
+        return None
+
+    from datetime import date as _date
+    from datetime import datetime as _dt
+
+    # Already a date / datetime — isoformat truncated to YYYY-MM-DD
+    if isinstance(val, _dt):
+        return val.date().isoformat()
+    if isinstance(val, _date):
+        return val.isoformat()
+
+    if not isinstance(val, str):
+        return None
+
+    s = val.strip()
+    if not s:
+        return None
+
+    # Try ISO directly (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)
+    try:
+        return _date.fromisoformat(s[:10]).isoformat()
+    except ValueError:
+        pass
+
+    # Try common European patterns
+    import re
+
+    # Note: char class [./-] — the `-` MUST be last (or escaped) to avoid being
+    # interpreted as a range. Pattern accepts dot, slash, or dash separator.
+    m = re.fullmatch(r"(\d{1,2})[./-](\d{1,2})[./-](\d{4})", s)
+    if m:
+        day, month, year = m.groups()
+        try:
+            return _date(int(year), int(month), int(day)).isoformat()
+        except ValueError:
+            return None
+
+    m = re.fullmatch(r"(\d{4})[./-](\d{1,2})[./-](\d{1,2})", s)
+    if m:
+        year, month, day = m.groups()
+        try:
+            return _date(int(year), int(month), int(day)).isoformat()
+        except ValueError:
+            return None
+
     return None
 
 
@@ -695,7 +773,13 @@ async def store_invoice(data: dict) -> dict:
                     f.get("buyer", {}).get("address", ""),
                     f.get("buyer", {}).get("tax_number", ""),
                     f.get("header", {}).get("invoice_number", ""),
-                    _parse_date(f.get("header", {}).get("invoice_date")),
+                    # Sprint U S156 (SQ-FU-1): prefer `issue_date` (new key)
+                    # but fall back to `invoice_date` for backward-compat
+                    # with pre-S156 callers / JSONB rows.
+                    _parse_date(
+                        f.get("header", {}).get("issue_date")
+                        or f.get("header", {}).get("invoice_date")
+                    ),
                     _parse_date(f.get("header", {}).get("fulfillment_date")),
                     _parse_date(f.get("header", {}).get("due_date")),
                     f.get("header", {}).get("currency", "HUF"),

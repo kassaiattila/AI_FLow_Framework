@@ -64,7 +64,11 @@ dev-docker: ## Full environment in Docker (API + Worker in containers)
 	@sleep 5
 	docker compose exec api alembic upgrade head 2>/dev/null || true
 
-api: ## Run FastAPI locally with hot reload
+api: ## Run FastAPI locally with hot reload (set AIFLOW_DOCLING_WARMUP=true to pre-load docling)
+	@if [ "$$AIFLOW_DOCLING_WARMUP" = "true" ]; then \
+		echo "[api] AIFLOW_DOCLING_WARMUP=true — pre-loading docling (~60s cold-start)..."; \
+		PYTHONPATH=src $(PYTHON) scripts/warmup_docling.py || echo "[api] docling warmup failed (continuing)"; \
+	fi
 	$(PYTHON) -m uvicorn aiflow.api.app:create_app --factory --reload --port 8000
 
 worker: ## Run arq worker locally
