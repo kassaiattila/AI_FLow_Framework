@@ -1,0 +1,42 @@
+name: aszf_rag_chain_mentor
+version: "0.1.0"
+description: |
+  Sprint U / S155 — UC2 RAG retrieval + answer chain for the MENTOR persona.
+  Mirrors the baseline 4-step DAG but pins `system_<role>` to
+  `aszf-rag/system_prompt_mentor`. Default-off — only resolved by
+  `_resolve_workflow_for_persona("mentor")` when the PromptWorkflow shim is
+  on and `aszf_rag_chat` is in `AIFLOW_PROMPT_WORKFLOWS__SKILLS_CSV`. Flag-off
+  keeps the legacy direct-prompt path byte-stable for the mentor persona.
+
+default_label: prod
+tags:
+  - uc2
+  - rag
+  - aszf
+  - persona-mentor
+  - sprint-u-s155
+
+steps:
+  - id: rewrite_query
+    prompt_name: aszf-rag/query_rewriter
+    description: Reformulate the user query for vector search.
+    output_key: rewritten_query
+
+  - id: system_mentor
+    prompt_name: aszf-rag/system_prompt_mentor
+    description: Mentor persona system message (warm, explanatory tone).
+    depends_on: [rewrite_query]
+    output_key: system_prompt
+
+  - id: answer
+    prompt_name: aszf-rag/answer_generator
+    description: Generate the user-facing answer with retrieved citations.
+    depends_on: [system_mentor]
+    output_key: answer
+
+  - id: extract_citations
+    prompt_name: aszf-rag/citation_extractor
+    description: Extract verifiable citations from the generated answer.
+    required: false
+    depends_on: [answer]
+    output_key: citations

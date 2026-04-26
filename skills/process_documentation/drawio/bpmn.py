@@ -6,6 +6,8 @@ with swimlanes, typed tasks, events, gateways, and flows.
 
 from __future__ import annotations
 
+from typing import Any
+
 from skills.process_documentation.drawio.builder import DrawioBuilder
 from skills.process_documentation.drawio.colors import (
     C_END,

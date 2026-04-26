@@ -89,25 +89,48 @@ prompt_workflow_executor = PromptWorkflowExecutor(
 )
 
 
+_PERSONA_WORKFLOW_MAP: dict[str, str] = {
+    RoleType.BASELINE: WORKFLOW_NAME,  # aszf_rag_chain
+    RoleType.EXPERT: f"{WORKFLOW_NAME}_expert",  # aszf_rag_chain_expert (Sprint U S155)
+    RoleType.MENTOR: f"{WORKFLOW_NAME}_mentor",  # aszf_rag_chain_mentor (Sprint U S155)
+}
+
+# Sprint U S155 — per-persona descriptor uses a different step ID for the
+# system prompt: ``system_baseline`` / ``system_expert`` / ``system_mentor``.
+# generate_answer() looks up the resolved system prompt via this map.
+_PERSONA_SYSTEM_STEP_MAP: dict[str, str] = {
+    RoleType.BASELINE: "system_baseline",
+    RoleType.EXPERT: "system_expert",
+    RoleType.MENTOR: "system_mentor",
+}
+
+
 def _resolve_workflow_for_persona(
     role: str,
 ) -> tuple[PromptWorkflow, dict[str, PromptDefinition]] | None:
-    """Resolve ``aszf_rag_chain`` for the baseline persona only.
+    """Resolve the persona-specific PromptWorkflow descriptor for ``role``.
 
-    Expert / mentor personas keep the legacy single-prompt path on every
-    flag state (out of scope per Sprint T plan §6 R3). Returns ``None``
-    when:
+    Sprint U / S155 (ST-FU-2): expert and mentor personas now have their own
+    PromptWorkflow descriptors (``aszf_rag_chain_expert`` and
+    ``aszf_rag_chain_mentor``). The baseline persona keeps using the original
+    ``aszf_rag_chain`` descriptor from Sprint T S150. Default-off rollout
+    preserved — when the shim is off the legacy single-prompt path runs for
+    every persona unchanged.
 
-    * ``role`` is not ``BASELINE_PERSONA``;
+    Returns ``None`` when:
+
+    * ``role`` is unknown (not in ``_PERSONA_WORKFLOW_MAP``);
     * the workflow shim is off for this skill (flag-off or skill not in CSV);
-    * the descriptor / nested prompts cannot be resolved.
+    * the descriptor / nested prompts cannot be resolved (executor handles
+      missing descriptor / unresolvable nested prompt by returning ``None``).
 
     Callers fall back to the legacy ``_prompt_manager.get(...)`` path on
     a ``None`` return.
     """
-    if role != BASELINE_PERSONA:
+    workflow_name = _PERSONA_WORKFLOW_MAP.get(role)
+    if workflow_name is None:
         return None
-    return prompt_workflow_executor.resolve_for_skill(SKILL_NAME, WORKFLOW_NAME)
+    return prompt_workflow_executor.resolve_for_skill(SKILL_NAME, workflow_name)
 
 
 import os as _os
@@ -379,15 +402,20 @@ async def generate_answer(data: dict) -> dict:
     role = data.get("role", RoleType.BASELINE)
     conversation_history = data.get("conversation_history", [])
 
-    # Load role-specific system prompt. Sprint T / S150 — baseline persona
-    # may resolve system_baseline through the aszf_rag_chain workflow when
-    # the shim is on; expert/mentor stay on the legacy single-prompt path.
+    # Load role-specific system prompt. Sprint T S150 + Sprint U S155 —
+    # each persona has its own PromptWorkflow descriptor:
+    #   baseline -> aszf_rag_chain.system_baseline
+    #   expert   -> aszf_rag_chain_expert.system_expert
+    #   mentor   -> aszf_rag_chain_mentor.system_mentor
+    # When the shim is off (or the skill is not opted in), every persona
+    # falls back to the legacy ``_prompt_manager.get(...)`` path byte-stable.
     prompt_name = _ROLE_PROMPT_MAP.get(role, _ROLE_PROMPT_MAP[RoleType.BASELINE])
+    system_step_id = _PERSONA_SYSTEM_STEP_MAP.get(role, _PERSONA_SYSTEM_STEP_MAP[RoleType.BASELINE])
     try:
         resolved = _resolve_workflow_for_persona(role)
         if resolved is not None:
             _, prompt_map = resolved
-            system_prompt = prompt_map.get("system_baseline") or _prompt_manager.get(prompt_name)
+            system_prompt = prompt_map.get(system_step_id) or _prompt_manager.get(prompt_name)
         else:
             system_prompt = _prompt_manager.get(prompt_name)
         system_messages = system_prompt.compile(

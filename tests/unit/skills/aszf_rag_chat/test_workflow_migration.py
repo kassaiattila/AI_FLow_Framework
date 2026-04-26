@@ -134,24 +134,60 @@ class TestResolveWorkflowForPersona:
         assert prompt_map["answer"].name == "aszf-rag/answer_generator"
         assert prompt_map["extract_citations"].name == "aszf-rag/citation_extractor"
 
-    def test_expert_persona_always_falls_through(
+    def test_expert_persona_resolves_expert_workflow_on_flag_on(
         self, workflow_aware_manager: PromptManager
     ) -> None:
+        """Sprint U S155 (ST-FU-2) — expert persona now resolves
+        ``aszf_rag_chain_expert``. Was None pre-S155 (carried legacy).
+        """
         executor_on = PromptWorkflowExecutor(
             workflow_aware_manager,
             _settings(enabled=True, skills_csv="aszf_rag_chat"),
         )
         with patch.object(qmod, "prompt_workflow_executor", executor_on):
+            resolved = qmod._resolve_workflow_for_persona("expert")
+        assert resolved is not None
+        workflow, prompt_map = resolved
+        assert workflow.name == "aszf_rag_chain_expert"
+        assert prompt_map["system_expert"].name == "aszf-rag/system_prompt_expert"
+
+    def test_mentor_persona_resolves_mentor_workflow_on_flag_on(
+        self, workflow_aware_manager: PromptManager
+    ) -> None:
+        """Sprint U S155 (ST-FU-2) — mentor persona now resolves
+        ``aszf_rag_chain_mentor``. Was None pre-S155 (carried legacy).
+        """
+        executor_on = PromptWorkflowExecutor(
+            workflow_aware_manager,
+            _settings(enabled=True, skills_csv="aszf_rag_chat"),
+        )
+        with patch.object(qmod, "prompt_workflow_executor", executor_on):
+            resolved = qmod._resolve_workflow_for_persona("mentor")
+        assert resolved is not None
+        workflow, prompt_map = resolved
+        assert workflow.name == "aszf_rag_chain_mentor"
+        assert prompt_map["system_mentor"].name == "aszf-rag/system_prompt_mentor"
+
+    def test_expert_persona_flag_off_returns_none(
+        self, workflow_aware_manager: PromptManager
+    ) -> None:
+        """Sprint U S155 — flag-off keeps every persona on the legacy path."""
+        executor_off = PromptWorkflowExecutor(
+            workflow_aware_manager,
+            _settings(enabled=False, skills_csv="aszf_rag_chat"),
+        )
+        with patch.object(qmod, "prompt_workflow_executor", executor_off):
             assert qmod._resolve_workflow_for_persona("expert") is None
 
-    def test_mentor_persona_always_falls_through(
+    def test_mentor_persona_flag_off_returns_none(
         self, workflow_aware_manager: PromptManager
     ) -> None:
-        executor_on = PromptWorkflowExecutor(
+        """Sprint U S155 — flag-off keeps every persona on the legacy path."""
+        executor_off = PromptWorkflowExecutor(
             workflow_aware_manager,
-            _settings(enabled=True, skills_csv="aszf_rag_chat"),
+            _settings(enabled=False, skills_csv="aszf_rag_chat"),
         )
-        with patch.object(qmod, "prompt_workflow_executor", executor_on):
+        with patch.object(qmod, "prompt_workflow_executor", executor_off):
             assert qmod._resolve_workflow_for_persona("mentor") is None
 
     def test_unknown_persona_falls_through(self, workflow_aware_manager: PromptManager) -> None:
@@ -212,17 +248,40 @@ class TestRewriteQueryWorkflowWiring:
         assert out["original_question"] == "Mi a GDPR?"
 
     @pytest.mark.asyncio
-    async def test_expert_flag_on_uses_legacy_prompt(
+    async def test_expert_flag_on_uses_workflow_prompt_after_s155(
         self, workflow_aware_manager: PromptManager
     ) -> None:
+        """Sprint U S155 (ST-FU-2) — expert now has its own descriptor whose
+        ``rewrite_query`` step uses ``aszf-rag/query_rewriter`` (same as
+        baseline). Workflow path runs; legacy path is NOT invoked.
+        """
         executor_on = PromptWorkflowExecutor(
             workflow_aware_manager,
             _settings(enabled=True, skills_csv="aszf_rag_chat"),
         )
         legacy_pm = MagicMock()
-        legacy_pm.get.return_value = _stub_prompt("aszf-rag/query_rewriter")
         with (
             patch.object(qmod, "prompt_workflow_executor", executor_on),
+            patch.object(qmod, "_prompt_manager", legacy_pm),
+            patch.object(qmod, "_model_client") as mc,
+        ):
+            mc.generate = AsyncMock(return_value=_llm_text_response("rewritten"))
+            await qmod.rewrite_query({"question": "Q?", "role": "expert"})
+
+        legacy_pm.get.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_expert_flag_off_uses_legacy_prompt(self) -> None:
+        """Sprint U S155 — flag-off keeps the legacy direct-prompt path for
+        the expert persona, byte-stable.
+        """
+        executor_off = PromptWorkflowExecutor(
+            qmod._prompt_manager, _settings(enabled=False, skills_csv="aszf_rag_chat")
+        )
+        legacy_pm = MagicMock()
+        legacy_pm.get.return_value = _stub_prompt("aszf-rag/query_rewriter")
+        with (
+            patch.object(qmod, "prompt_workflow_executor", executor_off),
             patch.object(qmod, "_prompt_manager", legacy_pm),
             patch.object(qmod, "_model_client") as mc,
         ):
@@ -315,17 +374,19 @@ class TestGenerateAnswerWorkflowWiring:
         assert out["role"] == "baseline"
 
     @pytest.mark.asyncio
-    async def test_expert_persona_always_uses_legacy(
+    async def test_expert_persona_uses_workflow_after_s155(
         self, workflow_aware_manager: PromptManager
     ) -> None:
+        """Sprint U S155 (ST-FU-2) — expert persona now uses
+        ``aszf_rag_chain_expert`` whose ``system_expert`` step pins
+        ``aszf-rag/system_prompt_expert``. Workflow path runs; legacy NOT
+        invoked.
+        """
         executor_on = PromptWorkflowExecutor(
             workflow_aware_manager,
             _settings(enabled=True, skills_csv="aszf_rag_chat"),
         )
         legacy_pm = MagicMock()
-        legacy_pm.get.return_value = _stub_system_prompt_with_user_message(
-            "aszf-rag/system_prompt_expert"
-        )
         with (
             patch.object(qmod, "prompt_workflow_executor", executor_on),
             patch.object(qmod, "_prompt_manager", legacy_pm),
@@ -342,21 +403,23 @@ class TestGenerateAnswerWorkflowWiring:
                 }
             )
 
-        legacy_pm.get.assert_called_once_with("aszf-rag/system_prompt_expert")
+        legacy_pm.get.assert_not_called()
         assert out["role"] == "expert"
 
     @pytest.mark.asyncio
-    async def test_mentor_persona_always_uses_legacy(
+    async def test_mentor_persona_uses_workflow_after_s155(
         self, workflow_aware_manager: PromptManager
     ) -> None:
+        """Sprint U S155 (ST-FU-2) — mentor persona now uses
+        ``aszf_rag_chain_mentor`` whose ``system_mentor`` step pins
+        ``aszf-rag/system_prompt_mentor``. Workflow path runs; legacy NOT
+        invoked.
+        """
         executor_on = PromptWorkflowExecutor(
             workflow_aware_manager,
             _settings(enabled=True, skills_csv="aszf_rag_chat"),
         )
         legacy_pm = MagicMock()
-        legacy_pm.get.return_value = _stub_system_prompt_with_user_message(
-            "aszf-rag/system_prompt_mentor"
-        )
         with (
             patch.object(qmod, "prompt_workflow_executor", executor_on),
             patch.object(qmod, "_prompt_manager", legacy_pm),
@@ -373,8 +436,39 @@ class TestGenerateAnswerWorkflowWiring:
                 }
             )
 
-        legacy_pm.get.assert_called_once_with("aszf-rag/system_prompt_mentor")
+        legacy_pm.get.assert_not_called()
         assert out["role"] == "mentor"
+
+    @pytest.mark.asyncio
+    async def test_expert_persona_flag_off_uses_legacy(self) -> None:
+        """Sprint U S155 — flag-off keeps expert on the legacy direct-prompt
+        path, byte-stable.
+        """
+        executor_off = PromptWorkflowExecutor(
+            qmod._prompt_manager, _settings(enabled=False, skills_csv="aszf_rag_chat")
+        )
+        legacy_pm = MagicMock()
+        legacy_pm.get.return_value = _stub_system_prompt_with_user_message(
+            "aszf-rag/system_prompt_expert"
+        )
+        with (
+            patch.object(qmod, "prompt_workflow_executor", executor_off),
+            patch.object(qmod, "_prompt_manager", legacy_pm),
+            patch.object(qmod, "_model_client") as mc,
+        ):
+            mc.generate = AsyncMock(return_value=_llm_text_response("expert-answer"))
+            out = await qmod.generate_answer(
+                {
+                    "context": "ctx",
+                    "question": "Q?",
+                    "sources": [],
+                    "search_results": [],
+                    "role": "expert",
+                }
+            )
+
+        legacy_pm.get.assert_called_once_with("aszf-rag/system_prompt_expert")
+        assert out["role"] == "expert"
 
 
 # --- extract_citations step wiring -------------------------------------------
@@ -431,15 +525,18 @@ class TestExtractCitationsWorkflowWiring:
         assert out["citations"] == []
 
     @pytest.mark.asyncio
-    async def test_expert_flag_on_uses_legacy_prompt(
+    async def test_expert_flag_on_uses_workflow_prompt_after_s155(
         self, workflow_aware_manager: PromptManager
     ) -> None:
+        """Sprint U S155 (ST-FU-2) — expert descriptor's ``extract_citations``
+        step uses ``aszf-rag/citation_extractor`` (same as baseline).
+        Workflow path runs; legacy NOT invoked.
+        """
         executor_on = PromptWorkflowExecutor(
             workflow_aware_manager,
             _settings(enabled=True, skills_csv="aszf_rag_chat"),
         )
         legacy_pm = MagicMock()
-        legacy_pm.get.return_value = _stub_citation_prompt("aszf-rag/citation_extractor")
         with (
             patch.object(qmod, "prompt_workflow_executor", executor_on),
             patch.object(qmod, "_prompt_manager", legacy_pm),
@@ -456,7 +553,7 @@ class TestExtractCitationsWorkflowWiring:
                 }
             )
 
-        legacy_pm.get.assert_called_once_with("aszf-rag/citation_extractor")
+        legacy_pm.get.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_flag_off_baseline_uses_legacy_prompt(self) -> None:
