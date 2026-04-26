@@ -19,6 +19,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import yaml
 from fastapi.testclient import TestClient
 
+from aiflow.api.deps import get_pool
 from aiflow.contracts.doc_recognition import (
     DocTypeDescriptor,
     ExtractionConfig,
@@ -325,21 +326,29 @@ class TestDeleteTenantOverride:
 class TestRecognizeEndpoint:
     def test_no_file_returns_400(self):
         with _client_and_headers() as (client, headers):
-            resp = client.post(
-                "/api/v1/document-recognizer/recognize",
-                files={},
-                headers=headers,
-            )
+            client.app.dependency_overrides[get_pool] = lambda: AsyncMock()
+            try:
+                resp = client.post(
+                    "/api/v1/document-recognizer/recognize",
+                    files={},
+                    headers=headers,
+                )
+            finally:
+                client.app.dependency_overrides.pop(get_pool, None)
         # FastAPI 422 for missing required form field
         assert resp.status_code in (400, 422)
 
     def test_empty_upload_returns_400(self):
         with _client_and_headers() as (client, headers):
-            resp = client.post(
-                "/api/v1/document-recognizer/recognize",
-                files={"file": ("empty.txt", b"", "text/plain")},
-                headers=headers,
-            )
+            client.app.dependency_overrides[get_pool] = lambda: AsyncMock()
+            try:
+                resp = client.post(
+                    "/api/v1/document-recognizer/recognize",
+                    files={"file": ("empty.txt", b"", "text/plain")},
+                    headers=headers,
+                )
+            finally:
+                client.app.dependency_overrides.pop(get_pool, None)
         assert resp.status_code == 400
 
 

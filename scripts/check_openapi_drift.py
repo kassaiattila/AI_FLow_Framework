@@ -82,7 +82,22 @@ def _tags(spec: dict) -> set[str]:
 
 
 def _schemas(spec: dict) -> set[str]:
-    return set(spec.get("components", {}).get("schemas", {}).keys())
+    # FastAPI 0.115+ generates "-Input" and "-Output" suffix variants for a
+    # Pydantic model when its serialised shape differs between request body
+    # and response. Whether the split happens depends on the Pydantic minor
+    # version installed (e.g. Linux CI may resolve a different patch than
+    # Windows local dev), so we normalise: strip both suffixes and dedupe.
+    # The drift gate still catches genuine schema additions/removals.
+    raw = set(spec.get("components", {}).get("schemas", {}).keys())
+    out: set[str] = set()
+    for name in raw:
+        if name.endswith("-Input"):
+            out.add(name[: -len("-Input")])
+        elif name.endswith("-Output"):
+            out.add(name[: -len("-Output")])
+        else:
+            out.add(name)
+    return out
 
 
 def _schema_properties(spec: dict, name: str) -> set[str]:
