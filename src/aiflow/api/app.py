@@ -139,6 +139,7 @@ def create_app() -> FastAPI:
     from aiflow.api.v1.data_router import router as data_router_router
     from aiflow.api.v1.diagram_generator import router as diagram_router
     from aiflow.api.v1.document_extractor import router as document_extractor_router
+    from aiflow.api.v1.document_recognizer import router as document_recognizer_router
     from aiflow.api.v1.documents import router as documents_router
     from aiflow.api.v1.emails import router as emails_router
     from aiflow.api.v1.feedback import router as feedback_router
@@ -180,6 +181,7 @@ def create_app() -> FastAPI:
     app.include_router(verifications_router)  # before documents (has /:path catch-all)
     app.include_router(documents_router)
     app.include_router(document_extractor_router)
+    app.include_router(document_recognizer_router)
     app.include_router(process_docs_router)
     app.include_router(cubix_router)
     app.include_router(services_router)

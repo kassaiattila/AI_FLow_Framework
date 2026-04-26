@@ -1,0 +1,69 @@
+name: hu_address_card
+display_name: "Magyar lakcímkártya"
+description: "Magyar lakcímet igazoló hatósági kártya — PII medium (cím + név)"
+language: hu
+category: identity
+version: 1
+pii_level: medium
+parser_preferences:
+  - azure_di
+  - docling
+type_classifier:
+  rules:
+    - kind: regex
+      weight: 0.30
+      pattern: "Lakc[ií]met\\s+igazol[oó]\\s+hat[oó]s[aá]gi\\s+igazolv[aá]ny|Address Card"
+    - kind: regex
+      weight: 0.25
+      pattern: "Lakc[ií]m|[Á]lland[oó]\\s+lak[oó]hely"
+    - kind: keyword_list
+      weight: 0.20
+      keywords:
+        - "irányítószám"
+        - "település"
+        - "közterület"
+        - "házszám"
+      threshold: 2
+    - kind: regex
+      weight: 0.15
+      pattern: "\\b\\d{4}\\s+[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]"
+    - kind: structure_hint
+      weight: 0.10
+      hint: "page_count == 1"
+  llm_fallback: true
+  llm_threshold_below: 0.65
+extraction:
+  workflow: address_card_extraction_chain
+  fields:
+    - name: full_name
+      type: string
+      required: true
+    - name: birth_date
+      type: date
+      validators:
+        - "iso_date"
+        - "before_today"
+    - name: address_zip
+      type: string
+      required: true
+      validators:
+        - "regex:^\\d{4}$"
+    - name: address_city
+      type: string
+      required: true
+    - name: address_street
+      type: string
+      required: true
+    - name: address_house_number
+      type: string
+    - name: issue_date
+      type: date
+      validators:
+        - "iso_date"
+intent_routing:
+  default: route_to_human
+  pii_redaction: true
+  conditions:
+    - if: "doc_type_confidence < 0.75"
+      intent: reject
+      reason: "Lakcímkártya bizonyítatlan klasszifikáció — PII miatt nem perzisztálható"

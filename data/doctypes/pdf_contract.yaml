@@ -1,0 +1,80 @@
+name: pdf_contract
+display_name: "Szerződés (PDF)"
+description: "Általános szerződés — felek, tárgy, hatály, díjazás. Magyar és angol nyelvű minták."
+language: hu
+category: legal
+version: 1
+pii_level: low
+parser_preferences:
+  - docling
+  - azure_di
+  - unstructured
+type_classifier:
+  rules:
+    - kind: regex
+      weight: 0.30
+      pattern: "\\bSZERZ[ŐO]D[EÉ]S\\b|\\bCONTRACT\\b|\\bAGREEMENT\\b"
+    - kind: keyword_list
+      weight: 0.30
+      keywords:
+        - "felek"
+        - "szerződő"
+        - "tárgy"
+        - "hatály"
+        - "díjazás"
+        - "parties"
+        - "term"
+        - "effective"
+        - "consideration"
+      threshold: 3
+    - kind: regex
+      weight: 0.20
+      pattern: "\\b[Aa]l[aá][ií]r[aá]s\\b|\\b[Ss]ignature\\b|\\bSigned\\b"
+    - kind: structure_hint
+      weight: 0.15
+      hint: "page_count >= 1"
+    - kind: filename_match
+      weight: 0.05
+      pattern: "(contract|szerz|agreement|nda|sla|msa)\\.?(pdf|docx)?$"
+  llm_fallback: true
+  llm_threshold_below: 0.70
+extraction:
+  workflow: contract_extraction_chain
+  fields:
+    - name: contract_title
+      type: string
+      required: true
+    - name: party_a_name
+      type: string
+      required: true
+    - name: party_b_name
+      type: string
+      required: true
+    - name: contract_subject
+      type: string
+    - name: effective_date
+      type: date
+      validators:
+        - "iso_date"
+    - name: expiry_date
+      type: date
+      validators:
+        - "iso_date"
+    - name: contract_value
+      type: money
+      currency_default: HUF
+    - name: signature_count
+      type: int
+intent_routing:
+  default: rag_ingest
+  pii_redaction: false
+  conditions:
+    - if: "extracted.contract_value > 10000000"
+      intent: route_to_human
+      reason: "Magas értékű szerződés — kötelező manuális ellenőrzés (>10M HUF)"
+    - if: "field_confidence_min < 0.5"
+      intent: route_to_human
+      reason: "Alacsony adatkinyerési bizonyosság"
+    - if: "doc_type_confidence < 0.65"
+      intent: route_to_human
+      reason: "Bizonytalan szerződés-klasszifikáció"
