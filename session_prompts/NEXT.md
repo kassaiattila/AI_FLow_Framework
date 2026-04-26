@@ -1,120 +1,158 @@
-# AIFlow [Sprint X] — Session SX-2 Prompt (UC1 corpus extension + issue_date deep-fix)
+# AIFlow [Sprint X] — Session SX-2 Prompt (UC3 → DocRecognizer routing layer)
 
 > **Template version:** 1.0 (mandatory Quality target header).
 > **Source template:** `session_prompts/_TEMPLATE.md`.
+> **Closes:** Sprint W pipeline gap §1 — UC3 EXTRACT path is hardcoded to `invoice_processor` (Sprint Q S135).
 
 ---
 
 ## Quality target (MANDATORY)
 
-- **Use-case:** UC1 invoice extraction (`skills/invoice_processor`)
-- **Metric:** invoice extraction accuracy on 25-fixture mixed corpus (10 synthetic + 10 anonimizalt magyar szamla + 5 OCR-noise)
-- **Baseline (now):** 85.7% on 10-fixture synthetic (Sprint Q S137 measurement); `issue_date` field <100% real-corpus
-- **Target (after this session):** ≥ 92% on 25-fixture mixed corpus; `issue_date` ≥ 95% on real-corpus subset
-- **Measurement command:** `bash scripts/run_quality_baseline.sh --uc UC1 --output json`
+- **Use-case:** UC3 + DocRecognizer composite (no single UC quality metric — this is a **routing wiring** session that preserves UC3 + UC1 byte-stable while introducing a new DocRecognizer-mediated dispatch path)
+- **Metric:** composite gate — (a) UC3 4/4 unchanged on flag-off; (b) UC1 ≥ 75% / `invoice_number` ≥ 90% on flag-on `hu_invoice` path; (c) new id_card extraction successful on flag-on (≥ 3 fields with confidence ≥ 0.7 on the SW-1 starter fixture)
+- **Baseline (now):** UC3 4/4 (Sprint K, byte-stable since); UC1 ≥ 75% / `invoice_number` ≥ 90% (Sprint Q baseline); id_card extraction = **N/A** (no path exists today — UC3 EXTRACT silently misroutes ID-card attachments to `invoice_processor`)
+- **Target (after this session):** all three gates green. Flag-off path byte-identical to pre-SX-2; flag-on path gains the id_card capability while keeping UC1 byte-stable on the `hu_invoice` route.
+- **Measurement command:** `pytest tests/integration/skills/test_uc3_4_intents.py tests/integration/skills/test_uc1_golden_path.py tests/integration/skills/test_uc3_doc_recognizer_routing_real.py -v`
+
+> Note (deviation from "one-UC quality push"): Sprint X is operator-directed
+> as a multi-UC pipeline-unification sprint (see `docs/post_sprint_w_audit.md`).
+> SX-2 uses a **composite gate** rather than a single quality number because
+> the value of the session is wiring, not metric improvement on an existing
+> golden path. Acceptance is binary: all three sub-gates pass.
 
 ---
 
 ## Goal
 
-A Sprint X SX-1 audit megerositette: UC1 invoice extraction "85.7% / 10-fixture
-synthetic" baseline-on van, "professzionalis" szinttol tavol. SX-2 zarja a
-`SQ-FU-3` (corpus extension to 25) + Sprint Q nyitva maradt `issue_date`
-deep-fix-et, amit Sprint U S156 csak normalizalt de nem ellenorzott
-real-corpus-on.
+Replace Sprint Q S135's hardcoded `invoice_processor.workflows.process(...)` call with **DocRecognizer-mediated dispatch**. Every UC3 EXTRACT email runs DocRecognizer on its attachments first; the detected doctype picks the extraction handler.
 
-A session **csak** akkor zarul, ha az UC1 25-fixture mixed corpus accuracy ≥ 92%
-**es** az `issue_date` field accuracy ≥ 95% a real-corpus subseten. Ha
-barmelyik nem, extension-session indul (SX-2b) a hianyzo dimenzioral.
+**Default-off** (`AIFLOW_UC3_DOC_RECOGNIZER_ROUTING__ENABLED=false`) so the pre-SX-2 path stays byte-identical. **Flag-on path** keeps UC1 byte-stable: `hu_invoice` continues to route through the existing `invoice_processor`. Other doctypes (`hu_id_card`, `hu_address_card`, `eu_passport`, `pdf_contract`) route through the SW-1 DocRecognizer extraction wire-up.
 
-A sprint NEM szallit:
-- uj feature-t / scaffold-ot
-- multi-tenant cleanup folytatas (SW-FU-3)
-- DocRecognizer (SX-3 scope) / UC3 (SX-4 scope)
+This is the biggest behaviour-changing session of Sprint X. The default-off discipline + UC1 + UC3 golden-path gates protect every existing flow.
 
 ---
 
 ## Predecessor context
 
 > **Datum:** 2026-04-26 (snapshot date — adjust if session runs later)
-> **Branch:** `feature/x-sx2-uc1-corpus-issue-date` (cut from `main` after the
-> SX-1 audit PR squash-merges).
-> **HEAD (expected):** SX-1 close commit on top of `fed97af` (SW-5 squash).
-> **Predecessor session:** SX-1 — honest alignment audit + ROADMAP rewrite + CLAUDE slim + run_quality_baseline.sh + 121_*_PLAN.md publish.
+> **Branch:** `feature/x-sx2-uc3-doc-recognizer-routing` (cut from `main`
+> after the SX-1 audit + kickoff PR squash-merges).
+> **HEAD (expected):** SX-1 close PR squash on top of `0c7cd28` (PR #61
+> honest alignment audit + ROADMAP + CLAUDE slim) and `83af02f`-or-later
+> (PR #62 intake pipeline plan + audit publish).
+> **Predecessor session:** SX-1 — Sprint X kickoff (audit + plan publish).
 
 ---
 
 ## Pre-conditions
 
-- [ ] SX-1 PR merged on `main` (audit + Sprint X plan + ROADMAP + CLAUDE slim)
-- [ ] `bash scripts/run_quality_baseline.sh --uc UC1 --output json` produces a number (baseline measurement)
-- [ ] `01_PLAN/121_SPRINT_X_QUALITY_PUSH_PLAN.md` exists
-- [ ] `docs/honest_alignment_audit.md` exists
-- [ ] **Operator dependency:** anonimizalt magyar szamla PDF corpus (10 file) keszultseg ellenorizve. Ha NEM keszul el, ezt SOFT-STOP-pal jelezni kell, es SX-3 elobb mehet (DocRecognizer real-corpus is operator-feedolas, korrelalva).
-- [ ] OPENAI_API_KEY env var beallitva (real-corpus integration teszthez)
-- [ ] PostgreSQL Docker container fut (5433)
+- [ ] SX-1 PR (#62) merged on `main` (intake pipeline plan + post-Sprint-W audit + NEXT → SX-2)
+- [ ] Branch cut: `feature/x-sx2-uc3-doc-recognizer-routing`
+- [ ] Stack runnable (`bash scripts/start_stack.sh --validate-only` GREEN)
+- [ ] `bash scripts/run_quality_baseline.sh --uc UC3 --output json` produces UC3 4/4 baseline
+- [ ] `bash scripts/run_quality_baseline.sh --uc UC1 --output json` produces UC1 ≥ 75% baseline
+- [ ] `OPENAI_API_KEY` env var set (real-corpus integration test)
+- [ ] PostgreSQL Docker container running (5433)
+- [ ] DocRecognizer 5 doctype YAML descriptors present at `data/doctypes/`
+- [ ] Sprint W SW-1 `DocumentRecognizerOrchestrator.run(...)` callable (extraction wire-up landed)
+
+---
+
+## Predecessor surfaces (existing, do not modify)
+
+- UC3 orchestrator: `skills/email_intent_processor/orchestrator.py` — Sprint Q S135 `_maybe_extract_invoice_fields` (calls `invoice_processor.workflows.process` directly via lazy import; SX-2 wraps this).
+- UC3 intent resolver: Sprint O FU-2 `_resolve_intent_class(...)` (gates EXTRACT detection).
+- DocRecognizer orchestrator: `src/aiflow/services/document_recognizer/orchestrator.py` — `DocumentRecognizerOrchestrator.classify(attachment) → DocClassification` and `.run(attachment, doctype) → DocExtractionResult` (Sprint W SW-1).
+- Cost preflight: `CostPreflightGuardrail.check_step(...)` (Sprint U S154).
+- Existing settings: `UC3ExtractionSettings` (Sprint Q S135) — flag for the existing extraction wire-up.
+- Existing schema: `EmailDetailResponse.extracted_fields` (Sprint Q S136) + `EmailDetailResponse.attachment_features` (Sprint O S129).
+- Existing UC1 byte-stable test: `tests/integration/skills/test_uc1_golden_path.py`.
+- Existing UC3 4/4 test: `tests/integration/skills/test_uc3_4_intents.py`.
 
 ---
 
 ## Tasks
 
-1. **Corpus extension to 25 fixture:**
-   - 10 existing synthetic preserved at `data/fixtures/invoices_sprint_q/` (UNCHANGED)
-   - 10 anonimizalt magyar szamla PDF: `data/fixtures/invoices_sprint_x/anonymized/{001..010}.pdf` + `manifest.yaml` (operator-supplied)
-   - 5 OCR-noise fixture: `data/fixtures/invoices_sprint_x/ocr_noise/{001..005}.pdf` (deliberately blurry / rotated / scan-noisy synthetic generation, vagy real-PDF + `pdfimages` re-rasterize @72dpi)
-   - 25-fixture aggregate manifest: `data/fixtures/invoices_sprint_x/manifest_aggregate.yaml`
+1. **New settings module.** Add `UC3DocRecognizerRoutingSettings`:
+   - `enabled: bool = False` (env `AIFLOW_UC3_DOC_RECOGNIZER_ROUTING__ENABLED`)
+   - `confidence_threshold: float = 0.6`
+   - `total_budget_seconds: float = 30.0`
+   - `unknown_doctype_action: Literal["fallback_invoice_processor", "rag_ingest", "skip"] = "fallback_invoice_processor"`
+   - Pydantic v2 `BaseSettings` with `env_prefix="AIFLOW_UC3_DOC_RECOGNIZER_ROUTING__"`
 
-2. **`scripts/measure_uc1_golden_path.py` 25-fixture mode:**
-   - Add `--corpus {synthetic, anonymized, ocr_noise, all}` flag (default `all`)
-   - When `all`: load all 25 fixtures from the aggregate manifest
-   - Per-corpus + aggregated accuracy in JSON output
-   - Update `argparse_output()` integration: JSON output includes `per_corpus`, `overall_accuracy`, `per_field_accuracy[issue_date]`
+2. **New routing helper.** `_route_extract_by_doctype(email, attachments) -> RoutingDecision`:
+   - For each attachment, lazy-import `DocumentRecognizerOrchestrator`, call `classify(attachment)` with per-attachment `asyncio.wait_for(timeout=settings.total_budget_seconds / max(1, len(attachments)))`
+   - Pick top-1 doctype if confidence ≥ `settings.confidence_threshold`
+   - Dispatch:
+     - `hu_invoice` → `invoice_processor.workflows.process(...)` (byte-stable pre-SX-2 path)
+     - other known doctypes → `DocumentRecognizerOrchestrator.run(attachment, doctype)` → field-map to `EmailDetailResponse.extracted_fields` shape
+     - confidence below threshold OR doctype unknown → `settings.unknown_doctype_action` policy
+   - Returns a `RoutingDecision` Pydantic model (per-attachment list: `attachment_id`, `doctype_detected`, `doctype_confidence`, `extraction_path`, `extraction_outcome`, `cost_usd`, `latency_ms`)
 
-3. **`issue_date` deep-fix:**
-   - Identify failure modes on real-corpus (likely: alternative date formats, OCR-noise misreads, partial matches)
-   - Possible fixes (pick what works):
-     (a) Alternative regex pattern (e.g. `\d{4}\.\d{2}\.\d{2}` HU-style)
-     (b) OCR-confidence-aware fallback (low-conf chars retried with structure inference)
-     (c) Prompt-tuning the `extract_header` step in `invoice_extraction_chain.yaml` to explicitly mention "Magyar szamla kiallitasi datum" + alternative format examples
-   - Byte-stable check: 10-fixture synthetic remains 100% on `invoice_number/vendor/buyer/currency/due_date/gross_total`
+3. **Per-extraction cost preflight.** Each routed extraction calls `CostPreflightGuardrail.check_step(step_name, model, input_tokens, max_output_tokens, ceiling_usd)`. On `allowed=False` → set `extraction_outcome="refused_cost"` and skip that attachment (do not raise; per-attachment isolation pattern).
 
-4. **Test updates:**
-   - `tests/integration/skills/test_uc1_golden_path.py` — parametrize `corpus_mode` (synthetic/real/ocr_noise/all)
-   - 1 new integration test: `test_uc1_25fixture_real_openai.py` — full 25-fixture run on real OpenAI gpt-4o-mini, skip-by-default behind `OPENAI_API_KEY`
-   - `tests/unit/skills/invoice_processor/test_issue_date_extraction.py` — 10 new unit cases for the date-format edge cases the deep-fix addresses
+4. **Per-extraction error isolation.** A single attachment's exception does not poison the rest. Wrap each per-attachment dispatch in try/except + log WARN with the attachment_id; mark that row's `extraction_outcome="failed"`.
 
-5. **Documentation:**
-   - `docs/uc1_25fixture_report.md` — measurement report (accuracy per corpus, per field; cost; wall-clock)
-   - `01_PLAN/ROADMAP.md` — Sprint X table SX-2 row → DONE + measured value
-   - PR description with baseline → measured comparison
+5. **Wire into Sprint Q `_maybe_extract_invoice_fields`.** When `routing.enabled` is true, replace the direct `invoice_processor` call with `_route_extract_by_doctype`. When disabled, keep the existing direct call (byte-stable).
+
+6. **Extend `EmailDetailResponse`.** Additive `routing_decision: Optional[RoutingDecisionView]` field. Backward-compat: absent when flag is off (`exclude_none=True`). Schema-stable on flag-off.
+
+7. **OpenAPI snapshot refresh.** `python scripts/dump_openapi.py > tests/snapshots/openapi.json` (or equivalent). Schema delta limited to the new field.
+
+---
+
+## Tests (10 unit + 1 integration)
+
+- `test_settings_defaults` — flag default off; threshold 0.6; budget 30 s; `unknown_doctype_action="fallback_invoice_processor"`
+- `test_route_dispatches_hu_invoice_to_invoice_processor` — mock classify → `hu_invoice` confidence 0.9; assert `invoice_processor.workflows.process` called; `extraction_path="invoice_processor"`
+- `test_route_dispatches_other_doctypes_to_doc_recognizer` (4 cases: hu_id_card, hu_address_card, eu_passport, pdf_contract) — assert `DocumentRecognizerOrchestrator.run` called; `extraction_path="doc_recognizer_workflow"`
+- `test_below_threshold_falls_through` — confidence 0.4 < 0.6 → `extraction_path` per `unknown_doctype_action`
+- `test_unknown_doctype_action_fallback_invoice_processor` — unrecognized doctype → invoice_processor called
+- `test_unknown_doctype_action_rag_ingest` — unrecognized doctype → rag_ingest fallback called
+- `test_unknown_doctype_action_skip` — unrecognized doctype → no extractor called; `extraction_path="skipped"`
+- `test_per_attachment_error_isolation` — first attachment raises; second succeeds; second's row present
+- `test_cost_ceiling_refusal_marks_outcome` — `CostPreflightGuardrail.check_step` returns `allowed=False`; `extraction_outcome="refused_cost"`; no LLM call
+- `test_total_budget_timeout_returns_partial` — synthetic slow-mock attachment + 0.1 s budget → some attachments routed, others timeout-skipped
+- **Integration** (skip-by-default, `OPENAI_API_KEY`): real PG + real OpenAI; 2-fixture test (1 hu_invoice + 1 hu_id_card EML); flag-on; assert hu_invoice routes to invoice_processor (UC1 byte-stable extraction) AND hu_id_card routes to DocRecognizer (≥ 3 fields with confidence ≥ 0.7)
 
 ---
 
 ## Acceptance criteria
 
-- [ ] **Quality target met:** `bash scripts/run_quality_baseline.sh --uc UC1 --output json` reports `overall_accuracy >= 0.92`
-- [ ] `issue_date` field accuracy ≥ 95% on real-corpus subset (≥ 9/10 anonymized fixtures)
-- [ ] 10-fixture synthetic unchanged: `invoice_number / vendor / buyer / currency / due_date / gross_total` all 100% (regression check)
+- [ ] **Quality target met** — `pytest tests/integration/skills/test_uc3_4_intents.py tests/integration/skills/test_uc1_golden_path.py tests/integration/skills/test_uc3_doc_recognizer_routing_real.py -v` PASS (all three composite sub-gates)
 - [ ] All unit tests PASS (`make test`)
-- [ ] `tests/integration/skills/test_uc1_golden_path.py` PASS in `--corpus all` mode
-- [ ] `tests/integration/skills/test_uc1_25fixture_real_openai.py` PASS when `OPENAI_API_KEY` set (skipped otherwise)
-- [ ] `docs/uc1_25fixture_report.md` published with per-corpus / per-field breakdown
+- [ ] DocRecognizer 5-doctype top-1 accuracy unchanged on starter corpus (`scripts/measure_doc_recognizer_accuracy.py --strict` PASS)
+- [ ] No regression on byte-stable golden paths (UC3 4/4 + UC1 ≥ 75% / `invoice_number` ≥ 90% unchanged on flag-off)
+- [ ] `make lint` clean
+- [ ] OpenAPI snapshot refreshed (only the new `routing_decision` field on `EmailDetailResponse`; **zero new paths**)
 - [ ] PR opened against `main`, CI green
-- [ ] OpenAPI snapshot unchanged (no router changes expected)
-- [ ] `bash scripts/run_quality_baseline.sh --uc UC1 --strict` exit 0
+- [ ] `01_PLAN/ROADMAP.md` Sprint X table row SX-2 status → DONE
+
+---
+
+## Constraints
+
+- **Default-off byte-stable.** Flag-off, the pre-SX-2 UC3 EXTRACT path is preserved bit-for-bit: `_maybe_extract_invoice_fields` calls `invoice_processor.workflows.process` directly. Test `test_uc3_4_intents.py` runs unchanged on flag-off.
+- **UC1 byte-stable on flag-on `hu_invoice` path.** When DocRecognizer detects `hu_invoice`, the dispatch goes back through `invoice_processor.workflows.process` — same module, same call, same result. Test `test_uc1_golden_path.py` ≥ 75% / `invoice_number` ≥ 90% gates this.
+- **No new endpoint.** SX-2 changes only the orchestrator. The `/api/v1/emails/{id}` response gains an additive optional field (`routing_decision`); router routing unchanged.
+- **No DB schema change.** Alembic 050 (`routing_runs` table) is SX-3, not SX-2.
+- **No UI change.** SX-2 is server-side; UI surfaces (`/routing-runs` page) are SX-3; `/aszf/chat` upgrade is SX-4.
+- **Lazy imports.** `DocumentRecognizerOrchestrator` import-time chain pulls in OCR / parser stacks; lazy-import inside `_route_extract_by_doctype` to avoid boot-time penalty (mirror Sprint Q S135 lazy-import pattern).
 
 ---
 
 ## STOP conditions
 
 **HARD:**
-- 25-fixture corpus accuracy < 92% after best-effort deep-fix → halt; investigate further or escalate to extension session SX-2b
-- 10-fixture synthetic regression on any field that was previously 100% → halt, revert prompt-tuning
-- `invoice_extraction_chain.yaml` PromptWorkflow descriptor change breaks Sprint T S149 byte-stable test → halt, redesign
+- UC3 4/4 regression on flag-off — by definition the byte-stable path. Halt.
+- UC1 < 75% or `invoice_number` < 90% on flag-on `hu_invoice` path. Halt; the dispatch back to `invoice_processor` is broken.
+- DocRecognizer accuracy regression on starter corpus. Halt; the classifier was perturbed.
+- OpenAPI drift on routes (only `EmailDetailResponse` schema delta is allowed; any path delta is a HARD stop).
 
 **SOFT:**
-- Anonimizalt corpus operator-feedolas keses → defer SX-2 to SX-7; queue SX-3 (DocRecognizer real-corpus) elobbre
-- OCR-noise fixture-generation tooling problem → reduce OCR-noise corpus to 3 fixture; document as `SX-FU-1` follow-up
+- Per-attachment latency on emails with > 5 attachments exceeds the 30 s budget. Adjust `total_budget_seconds` or per-attachment slicing.
+- LLM cost per email exceeds $0.05 on the integration test. Tune `confidence_threshold` upward or per-step descriptor `cost_ceiling_usd`.
+- Operator-driven dependency missing (no `OPENAI_API_KEY`) → integration test skips; unit gates still required.
 
 ---
 
@@ -122,23 +160,24 @@ A sprint NEM szallit:
 
 The session ends with:
 
-1. PR opened against `main` titled `feat(sprint-x): SX-2 — UC1 25-fixture corpus + issue_date deep-fix (SQ-FU-3)`
-2. PR body summarizes: baseline (85.7% / 10-fixture synthetic) → measured (X% / 25-fixture mixed); `issue_date` baseline → measured
-3. `/session-close` invoked → generates `session_prompts/NEXT.md` for SX-3 (DocRecognizer real-corpus)
-4. `01_PLAN/ROADMAP.md` Sprint X table SX-2 row → DONE
-5. `docs/sprint_x_retro.md` not yet (only at SX-6 close)
+1. PR opened against `main` titled `feat(sprint-x): SX-2 — UC3 → DocRecognizer routing layer (default-off)`
+2. PR body summarizes the dispatch + flag-off byte-stable + UC1/UC3 gates green + composite Quality target outcome
+3. `/session-close` invoked → generates `session_prompts/NEXT.md` for SX-3 (routing trace `routing_runs` Alembic 050 + 3-route API + admin UI)
+4. `01_PLAN/ROADMAP.md` Sprint X table row SX-2 status → DONE
+5. (No `docs/SPRINT_HISTORY.md` entry — that lands at SX-5 sprint-close only)
 
 ---
 
 ## References
 
-- Sprint X plan: `01_PLAN/121_SPRINT_X_QUALITY_PUSH_PLAN.md` §2 SX-2
+- Sprint X plan: `01_PLAN/121_SPRINT_X_INTAKE_PIPELINE_RAG_CHAT_PLAN.md` §SX-2
 - Forward queue: `01_PLAN/ROADMAP.md`
+- Post-Sprint-W audit: `docs/post_sprint_w_audit.md` §"UC3 → DocRecognizer routing layer"
 - Honest alignment audit: `docs/honest_alignment_audit.md`
+- Sprint W retro (SW-1 extraction wire-up surfaces): `docs/sprint_w_retro.md`
+- Sprint Q S135 pattern (the wrap target): `skills/email_intent_processor/orchestrator.py`
+- DocRecognizer service: `src/aiflow/services/document_recognizer/`
+- Cost preflight API: Sprint U S154 `CostPreflightGuardrail.check_step()`
+- DocType descriptors: `data/doctypes/`
 - Quality baseline script: `scripts/run_quality_baseline.sh`
-- Sprint Q UC1 baseline report: `docs/uc1_golden_path_report.md`
-- Sprint Q UC1 plan: `01_PLAN/115_SPRINT_Q_INTENT_EXTRACTION_UNIFICATION.md`
-- UC1 measure script: `scripts/measure_uc1_golden_path.py`
-- UC1 PromptWorkflow descriptor: `prompts/workflows/invoice_extraction_chain.yaml`
-- UC1 skill: `skills/invoice_processor/`
-- Use-case-first replan (policy): `01_PLAN/110_USE_CASE_FIRST_REPLAN.md`
+- Reusable settings pattern: Sprint Q `UC3ExtractionSettings`, Sprint O `UC3AttachmentIntentSettings`

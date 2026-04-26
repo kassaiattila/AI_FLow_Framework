@@ -4,19 +4,34 @@
 
 Enterprise AI Automation Framework. Python 3.12+, FastAPI, PostgreSQL, Redis.
 **Latest tag:** `v1.7.0` (Sprint W, queued). **Current sprint:** Sprint X
-"UC1 + UC3 + DocRecognizer Quality Push" (`v1.8.0`, in progress).
+"Intake pipeline unification + Professional RAG chat management" (`v1.8.0`, in progress).
 
 **Use-case status snapshot (2026-04-26):**
-- UC1 invoice extraction: 85.7% / 10-fixture synthetic — Sprint X SX-2 push to ≥ 92%
-- UC2 RAG chat: MRR@5 = 0.55 baseline — Sprint Y push to ≥ 0.72
-- UC3 email intent: 4% misclass / 25-fixture — Sprint X SX-4 push to ≤ 1%
-- DocRecognizer: 100% / synthetic 8-fixture — Sprint X SX-3 push to real-corpus ≥ 80%
+- UC1 invoice extraction: 85.7% / 10-fixture synthetic (Sprint Q baseline)
+- UC2 RAG chat: MRR@5 = 0.55 baseline; **stateless API** (no conversation persistence) — Sprint X SX-4 ships professional management surface
+- UC3 email intent: 4% misclass / 25-fixture; EXTRACT path **hardcoded** to `invoice_processor` (Sprint Q S135) — Sprint X SX-2 introduces DocRecognizer-mediated dispatch
+- DocRecognizer: 100% / synthetic 8-fixture; extraction wired (Sprint W SW-1) but **not consumed by UC3** — Sprint X SX-2 closes the gap
+- Routing observability: **none** — Sprint X SX-3 ships `routing_runs` audit trail + admin UI
 
-**Binding policy:** every sprint closes with measurable quality improvement on
-exactly one use-case. See `docs/honest_alignment_audit.md` for the drift recap
-and `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` for the original policy.
+**Binding policy:** every sprint closes with measurable improvement on a use-case
+boundary. Sprint X is a **multi-UC pipeline-unification sprint** (operator-directed
+deviation from one-UC-per-sprint default in `110_USE_CASE_FIRST_REPLAN.md` because
+the three pipeline gaps are coupled). See `docs/honest_alignment_audit.md` for the
+drift recap and `docs/post_sprint_w_audit.md` for the Sprint X scope rationale.
 
 For sprint-by-sprint trajectory: `docs/SPRINT_HISTORY.md`.
+
+## Sprint X — session lineup (target tag `v1.8.0`)
+
+| Session | Theme | UC golden-path gate | Status |
+|---|---|---|---|
+| SX-1 | Audit + kickoff (this PR) | n/a (planning) | IN PROGRESS |
+| SX-2 | UC3 → DocRecognizer routing layer (default-off; `hu_invoice` byte-stable on flag-on via existing `invoice_processor`) | UC3 4/4 (flag-off) + UC1 4/4 (flag-on hu_invoice) | QUEUED |
+| SX-3 | Routing trace — Alembic 050 `routing_runs` + 3-route API + `/routing-runs` admin UI | UC3 + UC1 byte-stable (observation-only) | QUEUED |
+| SX-4 | Professional RAG chat — Alembic 051 `aszf_conversations` + `aszf_conversation_turns` + 4-route API + `/aszf/chat` UI upgrade (sidebar history, persona switcher, collection picker, citation card, cost meter, transcript export) | UC2 MRR@5 ≥ 0.55 (existing retrieval API byte-stable) | QUEUED |
+| SX-5 | Close + SW-FU-2 (admin UI source-toggle) + SW-FU-3 (audit script extension) + tag `v1.8.0` | All four UCs unchanged | QUEUED |
+
+**Expected cumulative deltas:** ~+50 unit, ~+8 integration, +7 endpoints (201 → 208), +2 routers (32 → 34), +1 UI page + 1 UI page upgrade (27 → 28), +2 Alembic (049 → 051), +2 live Playwright specs.
 
 ## Structure
 
@@ -24,7 +39,7 @@ For sprint-by-sprint trajectory: `docs/SPRINT_HISTORY.md`.
 src/aiflow/         — Framework: core, engine, api, services, pipeline, guardrails, security
 skills/             — 8 skills (aszf_rag_chat, document_recognizer, email_intent_processor, invoice_processor, ...)
 aiflow-admin/       — React 19 + Tailwind v4 + Vite (admin dashboard, 27 pages)
-01_PLAN/            — Plans (121_SPRINT_X_QUALITY_PUSH_PLAN.md = CURRENT, ROADMAP.md = forward queue)
+01_PLAN/            — Plans (121_SPRINT_X_INTAKE_PIPELINE_RAG_CHAT_PLAN.md = CURRENT, ROADMAP.md = forward queue)
 tests/              — unit/, integration/, e2e/, ui-live/ (markdown journey scripts)
 data/doctypes/      — DocRecognizer doctype YAML descriptors (5 doctypes)
 data/fixtures/      — Test corpus per use-case
@@ -83,7 +98,8 @@ bash scripts/run_quality_baseline.sh      # 4 UC measurement (Sprint X gate)
 
 ## Current plan
 
-- **Active sprint:** Sprint X — `01_PLAN/121_SPRINT_X_QUALITY_PUSH_PLAN.md`
+- **Active sprint:** Sprint X — `01_PLAN/121_SPRINT_X_INTAKE_PIPELINE_RAG_CHAT_PLAN.md`
+- **Sprint X audit:** `docs/post_sprint_w_audit.md`
 - **Forward queue:** `01_PLAN/ROADMAP.md`
 - **Binding policy:** `01_PLAN/110_USE_CASE_FIRST_REPLAN.md` + `docs/honest_alignment_audit.md`
 
@@ -132,8 +148,9 @@ Preserve: modified files list + test status + current Sprint X session id + whic
 ## References
 
 - **Honest alignment audit (binding):** `docs/honest_alignment_audit.md`
+- **Sprint X audit:** `docs/post_sprint_w_audit.md`
 - **Forward queue:** `01_PLAN/ROADMAP.md`
-- **Current sprint plan:** `01_PLAN/121_SPRINT_X_QUALITY_PUSH_PLAN.md`
+- **Current sprint plan:** `01_PLAN/121_SPRINT_X_INTAKE_PIPELINE_RAG_CHAT_PLAN.md`
 - **Use-case-first replan (policy source):** `01_PLAN/110_USE_CASE_FIRST_REPLAN.md`
 - **Sprint history:** `docs/SPRINT_HISTORY.md`
 - **Session-prompt template:** `session_prompts/_TEMPLATE.md`
