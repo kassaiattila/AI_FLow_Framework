@@ -191,3 +191,42 @@ jobs:
           name: integration-1024-results
           path: test-results-integration-1024.xml
           retention-days: 14
+
+  # Sprint V SV-5 — DocRecognizer 3-doctype accuracy slice (hermetic).
+  # Runs the rule-engine classifier (no LLM call) on the synthetic fixture
+  # corpus at data/fixtures/doc_recognizer/. Gates the top-3 doctypes
+  # (hu_invoice ≥90%, hu_id_card ≥80%, pdf_contract ≥80%); the SLO ladder
+  # is enforced via `--strict`.
+  doc-recognizer-accuracy:
+    name: DocRecognizer 3-doctype accuracy slice
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv venv && uv pip install -e ".[dev,vectorstore]"
+
+      - name: Measure accuracy on the 3-doctype CI slice
+        run: |
+          PYTHONPATH=src .venv/bin/python scripts/measure_doc_recognizer_accuracy.py \
+            --doctypes hu_invoice,hu_id_card,pdf_contract \
+            --strict \
+            --output json \
+            --output-path measure_doc_recognizer_accuracy.json
+
+      - name: Upload accuracy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-recognizer-accuracy-report
+          path: measure_doc_recognizer_accuracy.json
+          retention-days: 30

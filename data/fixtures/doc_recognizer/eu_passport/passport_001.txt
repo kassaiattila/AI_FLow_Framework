@@ -1,0 +1,18 @@
+PASSPORT / PASSEPORT / ÚTLEVÉL
+HUNGARY / HONGRIE / MAGYARORSZÁG
+
+Type: P
+Country code: HUN
+Passport No: AB1234567
+Surname / Family name: KISS
+Given names: ANNA
+Nationality: HUNGARIAN / MAGYAR
+Date of birth: 15 MAR 1990
+Place of birth: BUDAPEST
+Sex: F
+Date of issue: 10 MAY 2022
+Date of expiry: 10 MAY 2032
+Authority: KKM
+
+P<HUNKISS<<ANNA<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+AB1234567HUN9003150F3205103<<<<<<<<<<<<<<<8

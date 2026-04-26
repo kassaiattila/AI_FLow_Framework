@@ -1,0 +1,20 @@
+Számla
+Számlaszám: SZLA-2026-0001
+Kelt: 2026-04-15
+Fizetési határidő: 2026-04-30
+
+Szállító:
+Acme Tanácsadó Kft.
+Adószám: 12345678-1-42
+Bankszámlaszám: 11111111-22222222-33333333
+
+Vevő:
+BestIx Kft.
+Adószám: 87654321-2-13
+
+Tételek:
+1. Szakértői óradíj — 10 óra × 25.000 Ft = 250.000 Ft
+
+Nettó összesen: 250.000 Ft
+ÁFA (27%): 67.500 Ft
+Bruttó (Végösszeg): 317.500 Ft

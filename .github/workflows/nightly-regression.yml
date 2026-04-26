@@ -4,6 +4,7 @@ on:
   schedule:
     - cron: "0 3 * * *"  # 03:00 UTC daily (after nightly-eval at 02:00)
     - cron: "0 7 * * 1"  # 07:00 UTC Monday — weekly UC3 4-combo matrix
+    - cron: "0 8 * * 1"  # 08:00 UTC Monday — Sprint V SV-5 weekly DocRecognizer per-doctype matrix
   workflow_dispatch:  # Manual trigger
 
 jobs:
@@ -304,6 +305,57 @@ jobs:
             head -40 docs/uc3_llm_context_baseline.md >> "$GITHUB_STEP_SUMMARY"
           else
             echo "## UC3 4-combo matrix — skipped (no OPENAI_API_KEY)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # Sprint V SV-5 — Weekly DocRecognizer per-doctype accuracy matrix.
+  # Hermetic (no LLM, no DB) — runs the rule-engine classifier across
+  # all doctypes + all fixtures. Mon 08:00 UTC + workflow_dispatch.
+  doc-recognizer-weekly-matrix:
+    name: DocRecognizer per-doctype matrix (weekly)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 8 * * 1' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv venv && uv pip install -e ".[dev,vectorstore]"
+
+      - name: Run full per-doctype matrix
+        run: |
+          PYTHONPATH=src .venv/bin/python scripts/measure_doc_recognizer_accuracy.py \
+            --output json \
+            --output-path doc_recognizer_weekly.json
+
+      - name: Run JSONL per-fixture (operator drilldown)
+        run: |
+          PYTHONPATH=src .venv/bin/python scripts/measure_doc_recognizer_accuracy.py \
+            --output jsonl \
+            --output-path doc_recognizer_weekly.jsonl
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-recognizer-weekly-matrix
+          path: |
+            doc_recognizer_weekly.json
+            doc_recognizer_weekly.jsonl
+          retention-days: 90
+
+      - name: Append summary
+        if: always()
+        run: |
+          if [ -f doc_recognizer_weekly.json ]; then
+            echo "## DocRecognizer Weekly Matrix" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            cat doc_recognizer_weekly.json | head -60 >> "$GITHUB_STEP_SUMMARY"
           fi
 
   summary:

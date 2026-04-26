@@ -1,0 +1,22 @@
+SZERZŐDÉS
+
+Felek:
+1. Szállító: Acme Tanácsadó Kft. (1052 Budapest, Petőfi Sándor utca 12)
+2. Megrendelő: BestIx Kft. (1234 Budapest, Példa utca 5)
+
+Tárgy:
+A Megrendelő megbízza a Szállítót, hogy számára szakértői tanácsadást végezzen.
+
+Hatály:
+Effective date: 2026-01-01
+Date of expiry: 2026-12-31
+
+Díjazás:
+Havi díj: 500.000 Ft + ÁFA
+Consideration: 6.000.000 Ft annual
+
+Aláírás / Signature:
+Acme Tanácsadó Kft. képviselője: ____________________
+BestIx Kft. képviselője: ____________________
+
+Date: 2025-12-15

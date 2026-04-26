@@ -1,0 +1,11 @@
+MAGYARORSZÁG
+Személyazonosító igazolvány
+
+Név: KISS ANNA
+Születési hely: Budapest
+Születési idő: 1990-03-15
+Igazolvány-szám: 123456AB
+Kiállítás dátuma: 2022-05-10
+Érvényesség: 2032-05-10
+Anyja neve: NAGY MÁRIA
+Állampolgárság: magyar

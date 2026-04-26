@@ -1,0 +1,11 @@
+HUNGARY
+IDENTITY CARD / Személyazonosító igazolvány
+
+Name / Név: SZABÓ PÉTER
+Date of birth / Születési idő: 1985-11-22
+Place of birth: Pécs
+Card number: 789012CD
+Issue date: 2021-06-01
+Validity: 2031-06-01
+Mother's name / Anyja neve: KOVÁCS ERZSÉBET
+Nationality: magyar
