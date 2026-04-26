@@ -16,6 +16,16 @@ SV-5 will add the corpus + accuracy gate.
 
 from __future__ import annotations
 
+from aiflow.services.document_recognizer.classifier import (
+    ClassifierInput,
+    RuleEngine,
+    classify_doctype,
+    needs_llm_fallback,
+)
+from aiflow.services.document_recognizer.orchestrator import (
+    DocumentRecognizerOrchestrator,
+    LLMClassifyFn,
+)
 from aiflow.services.document_recognizer.registry import DocTypeRegistry
 from aiflow.services.document_recognizer.safe_eval import (
     SafeEvalError,
@@ -23,7 +33,13 @@ from aiflow.services.document_recognizer.safe_eval import (
 )
 
 __all__ = [
+    "ClassifierInput",
     "DocTypeRegistry",
+    "DocumentRecognizerOrchestrator",
+    "LLMClassifyFn",
+    "RuleEngine",
     "SafeEvalError",
+    "classify_doctype",
+    "needs_llm_fallback",
     "safe_eval_intent_rule",
 ]
