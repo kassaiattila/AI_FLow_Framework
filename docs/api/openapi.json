@@ -374,6 +374,33 @@
         "title": "Body_ingest_documents_stream_api_v1_rag_collections__collection_id__ingest_stream_post",
         "type": "object"
       },
+      "Body_recognize_endpoint_api_v1_document_recognizer_recognize_post": {
+        "properties": {
+          "doc_type_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional doc-type hint to short-circuit the rule engine",
+            "title": "Doc Type Hint"
+          },
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "description": "Document to recognize",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_recognize_endpoint_api_v1_document_recognizer_recognize_post",
+        "type": "object"
+      },
       "Body_upload_and_process_api_v1_media_upload_post": {
         "properties": {
           "file": {
@@ -2707,6 +2734,506 @@
         "title": "DiagramResponse",
         "type": "object"
       },
+      "DocExtractionResult": {
+        "description": "Full extraction output for a recognized document.",
+        "properties": {
+          "cost_usd": {
+            "default": 0.0,
+            "minimum": 0.0,
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "doc_type": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "extracted_fields": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DocFieldValue"
+            },
+            "title": "Extracted Fields",
+            "type": "object"
+          },
+          "extraction_time_ms": {
+            "default": 0.0,
+            "minimum": 0.0,
+            "title": "Extraction Time Ms",
+            "type": "number"
+          },
+          "validation_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Validation Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "doc_type"
+        ],
+        "title": "DocExtractionResult",
+        "type": "object"
+      },
+      "DocFieldValue": {
+        "description": "Single extracted field \u2014 value + confidence + source span hint.",
+        "properties": {
+          "confidence": {
+            "default": 0.0,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "source_text_hint": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Text Hint"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "title": "DocFieldValue",
+        "type": "object"
+      },
+      "DocIntentDecision": {
+        "description": "Routing decision after extraction \u2014 what to do with this document.",
+        "properties": {
+          "intent": {
+            "enum": [
+              "process",
+              "route_to_human",
+              "rag_ingest",
+              "respond",
+              "reject"
+            ],
+            "title": "Intent",
+            "type": "string"
+          },
+          "next_action": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Action"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "intent"
+        ],
+        "title": "DocIntentDecision",
+        "type": "object"
+      },
+      "DocTypeDescriptor-Input": {
+        "description": "Full operator-authored descriptor (YAML-driven).\n\nLoaded from ``data/doctypes/<name>.yaml`` (bootstrap) or\n``data/doctypes/_tenant/<tenant_id>/<name>.yaml`` (per-tenant override).",
+        "properties": {
+          "category": {
+            "default": "other",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Category",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "extraction": {
+            "$ref": "#/components/schemas/ExtractionConfig"
+          },
+          "intent_routing": {
+            "$ref": "#/components/schemas/IntentRoutingConfig"
+          },
+          "language": {
+            "default": "hu",
+            "maxLength": 10,
+            "minLength": 2,
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Name",
+            "type": "string"
+          },
+          "parser_preferences": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parser Preferences",
+            "type": "array"
+          },
+          "pii_level": {
+            "default": "low",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Pii Level",
+            "type": "string"
+          },
+          "type_classifier": {
+            "$ref": "#/components/schemas/TypeClassifierConfig"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "display_name",
+          "type_classifier",
+          "extraction"
+        ],
+        "title": "DocTypeDescriptor",
+        "type": "object"
+      },
+      "DocTypeDescriptor-Output": {
+        "description": "Full operator-authored descriptor (YAML-driven).\n\nLoaded from ``data/doctypes/<name>.yaml`` (bootstrap) or\n``data/doctypes/_tenant/<tenant_id>/<name>.yaml`` (per-tenant override).",
+        "properties": {
+          "category": {
+            "default": "other",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Category",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "extraction": {
+            "$ref": "#/components/schemas/ExtractionConfig"
+          },
+          "intent_routing": {
+            "$ref": "#/components/schemas/IntentRoutingConfig"
+          },
+          "language": {
+            "default": "hu",
+            "maxLength": 10,
+            "minLength": 2,
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Name",
+            "type": "string"
+          },
+          "parser_preferences": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parser Preferences",
+            "type": "array"
+          },
+          "pii_level": {
+            "default": "low",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Pii Level",
+            "type": "string"
+          },
+          "type_classifier": {
+            "$ref": "#/components/schemas/TypeClassifierConfig"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "display_name",
+          "type_classifier",
+          "extraction"
+        ],
+        "title": "DocTypeDescriptor",
+        "type": "object"
+      },
+      "DocTypeMatch": {
+        "description": "Classifier output \u2014 primary doc-type + top-3 alternatives.",
+        "properties": {
+          "alternatives": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "title": "Alternatives",
+            "type": "array"
+          },
+          "confidence": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "doc_type": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Doc Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_type",
+          "confidence"
+        ],
+        "title": "DocTypeMatch",
+        "type": "object"
+      },
+      "DoctypeDetailResponse": {
+        "description": "Response shape for ``GET /doctypes/{name}``.",
+        "properties": {
+          "descriptor": {
+            "$ref": "#/components/schemas/DocTypeDescriptor-Output"
+          },
+          "has_tenant_override": {
+            "title": "Has Tenant Override",
+            "type": "boolean"
+          },
+          "source": {
+            "enum": [
+              "bootstrap",
+              "tenant_override"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "descriptor",
+          "has_tenant_override",
+          "source"
+        ],
+        "title": "DoctypeDetailResponse",
+        "type": "object"
+      },
+      "DoctypeListItem": {
+        "description": "One row in the doctype list.",
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "field_count": {
+            "title": "Field Count",
+            "type": "integer"
+          },
+          "has_tenant_override": {
+            "title": "Has Tenant Override",
+            "type": "boolean"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "pii_level": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Pii Level",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "display_name",
+          "language",
+          "category",
+          "version",
+          "pii_level",
+          "field_count",
+          "has_tenant_override"
+        ],
+        "title": "DoctypeListItem",
+        "type": "object"
+      },
+      "DoctypeListResponse": {
+        "description": "Response shape for ``GET /doctypes``.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DoctypeListItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "items"
+        ],
+        "title": "DoctypeListResponse",
+        "type": "object"
+      },
+      "DoctypeOverrideRequest": {
+        "description": "Body of ``PUT /doctypes/{name}``: a YAML payload as a string OR a parsed dict.",
+        "properties": {
+          "descriptor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocTypeDescriptor-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "yaml_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yaml Text"
+          }
+        },
+        "title": "DoctypeOverrideRequest",
+        "type": "object"
+      },
+      "DoctypeOverrideResponse": {
+        "description": "Response shape for ``PUT /doctypes/{name}``.",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "saved_path": {
+            "title": "Saved Path",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "tenant_id",
+          "saved_path"
+        ],
+        "title": "DoctypeOverrideResponse",
+        "type": "object"
+      },
       "DocumentDetailResponse": {
         "additionalProperties": true,
         "description": "Single document detail response (flexible schema).",
@@ -3508,6 +4035,29 @@
         "title": "ExecutionResponse",
         "type": "object"
       },
+      "ExtractionConfig": {
+        "description": "Doc-type extraction config \u2014 workflow descriptor + field schema.",
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldSpec"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "workflow": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Workflow",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workflow"
+        ],
+        "title": "ExtractionConfig",
+        "type": "object"
+      },
       "ExtractorConfigItem": {
         "description": "A single extractor config summary.",
         "properties": {
@@ -3757,6 +4307,90 @@
           "config_id"
         ],
         "title": "FetchResponse",
+        "type": "object"
+      },
+      "FieldSpec": {
+        "description": "One field in a doc-type's extraction config.",
+        "properties": {
+          "currency_default": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency Default"
+          },
+          "enum": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enum"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "required": {
+            "default": false,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "schema_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Ref"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "string",
+                  "date",
+                  "money",
+                  "int",
+                  "enum",
+                  "bool"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "string",
+            "title": "Type"
+          },
+          "validators": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Validators",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "FieldSpec",
         "type": "object"
       },
       "FilterRequest": {
@@ -4338,6 +4972,71 @@
           }
         },
         "title": "IntentRouting",
+        "type": "object"
+      },
+      "IntentRoutingConfig": {
+        "description": "Intent routing \u2014 default + conditional rules.",
+        "properties": {
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/IntentRoutingRule"
+            },
+            "title": "Conditions",
+            "type": "array"
+          },
+          "default": {
+            "default": "process",
+            "enum": [
+              "process",
+              "route_to_human",
+              "rag_ingest",
+              "respond",
+              "reject"
+            ],
+            "title": "Default",
+            "type": "string"
+          },
+          "pii_redaction": {
+            "default": false,
+            "title": "Pii Redaction",
+            "type": "boolean"
+          }
+        },
+        "title": "IntentRoutingConfig",
+        "type": "object"
+      },
+      "IntentRoutingRule": {
+        "description": "One conditional rule in intent_routing.conditions.",
+        "properties": {
+          "if": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "If",
+            "type": "string"
+          },
+          "intent": {
+            "enum": [
+              "process",
+              "route_to_human",
+              "rag_ingest",
+              "respond",
+              "reject"
+            ],
+            "title": "Intent",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "if",
+          "intent"
+        ],
+        "title": "IntentRoutingRule",
         "type": "object"
       },
       "IntentRulesDetailResponse": {
@@ -6675,6 +7374,48 @@
         "title": "ReadyResponse",
         "type": "object"
       },
+      "RecognizeResponse": {
+        "description": "Response shape for ``POST /recognize``.",
+        "properties": {
+          "classification_method": {
+            "enum": [
+              "rule_engine",
+              "llm_fallback",
+              "hint"
+            ],
+            "title": "Classification Method",
+            "type": "string"
+          },
+          "extraction": {
+            "$ref": "#/components/schemas/DocExtractionResult"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/DocIntentDecision"
+          },
+          "match": {
+            "$ref": "#/components/schemas/DocTypeMatch"
+          },
+          "pii_redacted": {
+            "title": "Pii Redacted",
+            "type": "boolean"
+          },
+          "run_id": {
+            "description": "UUID of the persisted doc_recognition_runs row",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "match",
+          "extraction",
+          "intent",
+          "classification_method",
+          "pii_redacted"
+        ],
+        "title": "RecognizeResponse",
+        "type": "object"
+      },
       "RefreshRequest": {
         "description": "Token refresh request.",
         "properties": {
@@ -7225,6 +7966,82 @@
           "rubrics"
         ],
         "title": "RubricsResponse",
+        "type": "object"
+      },
+      "RuleSpec": {
+        "description": "One rule in the type classifier \u2014 5 kinds, each weight-scored.",
+        "properties": {
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "keywords": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keywords"
+          },
+          "kind": {
+            "enum": [
+              "regex",
+              "keyword_list",
+              "structure_hint",
+              "filename_match",
+              "parser_metadata"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          },
+          "weight": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "weight"
+        ],
+        "title": "RuleSpec",
         "type": "object"
       },
       "RunDetailResponse": {
@@ -8869,6 +9686,32 @@
           "duration_ms"
         ],
         "title": "TraceSpan",
+        "type": "object"
+      },
+      "TypeClassifierConfig": {
+        "description": "Doc-type classifier rules + LLM fallback gate.",
+        "properties": {
+          "llm_fallback": {
+            "default": true,
+            "title": "Llm Fallback",
+            "type": "boolean"
+          },
+          "llm_threshold_below": {
+            "default": 0.7,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Llm Threshold Below",
+            "type": "number"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/RuleSpec"
+            },
+            "title": "Rules",
+            "type": "array"
+          }
+        },
+        "title": "TypeClassifierConfig",
         "type": "object"
       },
       "UnreadCountResponse": {
@@ -11330,6 +12173,194 @@
         "summary": "Get Package Detail",
         "tags": [
           "document-extractor"
+        ]
+      }
+    },
+    "/api/v1/document-recognizer/doctypes": {
+      "get": {
+        "operationId": "list_doctypes_api_v1_document_recognizer_doctypes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctypeListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Doctypes",
+        "tags": [
+          "document-recognizer"
+        ]
+      }
+    },
+    "/api/v1/document-recognizer/doctypes/{name}": {
+      "delete": {
+        "operationId": "delete_tenant_override_api_v1_document_recognizer_doctypes__name__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Tenant Override",
+        "tags": [
+          "document-recognizer"
+        ]
+      },
+      "get": {
+        "operationId": "get_doctype_api_v1_document_recognizer_doctypes__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctypeDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Doctype",
+        "tags": [
+          "document-recognizer"
+        ]
+      },
+      "put": {
+        "operationId": "upsert_tenant_override_api_v1_document_recognizer_doctypes__name__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoctypeOverrideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctypeOverrideResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upsert Tenant Override",
+        "tags": [
+          "document-recognizer"
+        ]
+      }
+    },
+    "/api/v1/document-recognizer/recognize": {
+      "post": {
+        "description": "Run the full recognize_and_extract pipeline + persist audit row.\n\nSV-3 ships a **simplified parse stage**: we read the upload bytes and\ndecode as UTF-8 best-effort. The full document_extractor parser\nrouting (docling / Azure DI / unstructured) wires in via the same\nClassifierInput envelope in a future iteration; SV-3 keeps the API\nsurface stable so the admin UI (SV-4) can develop against a clean\ncontract.",
+        "operationId": "recognize_endpoint_api_v1_document_recognizer_recognize_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_recognize_endpoint_api_v1_document_recognizer_recognize_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecognizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recognize Endpoint",
+        "tags": [
+          "document-recognizer"
         ]
       }
     },
