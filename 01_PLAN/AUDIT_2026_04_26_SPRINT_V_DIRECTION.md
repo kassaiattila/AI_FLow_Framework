@@ -181,19 +181,290 @@ A skill **NEM újraépíti** ami már megvan:
 
 | Session | Téma | Deliverables | Diff (becslés) | Tesztek |
 |---------|------|--------------|----------------|---------|
-| **SV-1** | Plan + interface | `01_PLAN/119_SPRINT_V_DOCUMENT_RECOGNIZER_PLAN.md` (S157 publishes) → bővítés; `DocTypeDescriptor` Pydantic + 2 unit teszt | ~150 LOC | +6 unit |
-| **SV-2** | Doc-type registry + 2 doctype kickoff (`hu_invoice`, `hu_id_card`) | `services/document_recognizer/registry.py` + 2 YAML descriptor + 2 prompt yaml + ingestion path | ~400 LOC | +12 unit + 2 integration (real PG) |
-| **SV-3** | API endpoint + Alembic 048 + cost preflight integration | `api/v1/document_recognizer.py` (3 routes: recognize / list-doctypes / get-doctype) + Alembic 048 | ~250 LOC | +8 unit + 3 integration (real PG + real OpenAI) |
-| **SV-4** | Admin UI page + 3 további doctype (`hu_address_card`, `eu_passport`, `pdf_contract`) | `aiflow-admin/src/pages-new/DocumentRecognizer/` + 3 YAML + 3 prompt yaml + 1 Playwright E2E | ~500 LOC TS + ~100 LOC YAML | +1 Playwright + +6 unit |
-| **SV-5** | Close + retro + PR | `docs/sprint_v_retro.md`, `docs/sprint_v_pr_description.md`, CLAUDE.md banner, tag `v1.6.0` | ~100 LOC docs | 0 |
+| **SV-1** | Contracts + DocTypeDescriptor Pydantic + safe-eval + skill rename | `src/aiflow/contracts/doc_recognition.py` (8 Pydantic class) · `src/aiflow/services/document_recognizer/{registry,classifier,intent_router,extractor}.py` skeleton · `src/aiflow/services/document_recognizer/safe_eval.py` (simpleeval wrapper) · `skills/document_recognizer/` rename `invoice_finder/` → `document_recognizer/` (keep git history) · `skills/invoice_finder/` becomes deprecated alias (re-export only) | ~600 LOC + skill rename | +18 unit (Pydantic round-trip + safe-eval grammar + DAG load) |
+| **SV-2** | Type classifier (rule-engine + LLM fallback) + 2 doctype kickoff | `services/document_recognizer/classifier.py` 5 rule-kind support · `data/doctypes/hu_invoice.yaml` + `hu_id_card.yaml` (full descriptor) · `prompts/workflows/id_card_extraction_chain.yaml` (új 4-step DAG: ocr_normalize → fields → confidence → validate) · `services/document_recognizer/orchestrator.py` (parse → classify → extract → intent) · per-tenant override loader | ~700 LOC + 2 YAML descriptor + 1 PromptWorkflow YAML | +20 unit (rule-engine 5 kind + LLM fallback gate + tenant override) + 4 integration (real PG, real docling, real OpenAI on 1 fixture per doctype) |
+| **SV-3** | API endpoint + Alembic 048 `doc_recognition_runs` + cost preflight integration + 2 további doctype | `src/aiflow/api/v1/document_recognizer.py` (5 routes: POST /recognize, GET /doctypes, GET /doctypes/{name}, PUT /doctypes/{name} per-tenant override, DELETE override) · `alembic/versions/048_doc_recognition_runs.py` · `data/doctypes/hu_address_card.yaml` + `pdf_contract.yaml` · CostPreflightGuardrail integration (S154 `check_step()` API after consolidation) · `audit_log` boundary PII redactor | ~450 LOC + 2 YAML | +14 unit (router shape + path traversal guard + tenant_id mismatch + Alembic round-trip) + 3 integration (real PG + real OpenAI per-doctype) |
+| **SV-4** | Admin UI page (3 felület) + 1 további doctype + Playwright | `aiflow-admin/src/pages-new/DocumentRecognizer/` (Browse + Recognize + DocTypeEditor) · Monaco YAML editor (read-only validate + save) · `data/doctypes/eu_passport.yaml` (5. és utolsó kezdő doctype) · `tests/ui-live/document-recognizer.md` Playwright spec a `/document-recognizer` flow-ra (upload → recognize → result panel + per-tenant YAML override save → re-recognize) | ~700 LOC TS + 1 YAML | +1 live Playwright E2E (live admin stack) + 8 vitest (page + child component) |
+| **SV-5** | Per-doctype golden-path corpus + accuracy gate + close | `data/fixtures/doc_recognizer/<doctype>/` (5 fixture per type × 5 doctypes = 25 file) · `scripts/measure_doc_recognizer_accuracy.py` (uniform `--output {text,json,jsonl}` per S156 ST-FU-4 pattern) · `docs/sprint_v_retro.md` + `docs/sprint_v_pr_description.md` · CLAUDE.md banner flip · tag `v1.6.0` queued | ~500 LOC + 25 fixture | +1 ci-cross-uc gate (3 doctype slice ≥75% accuracy on CI) + +1 nightly weekly per-doctype matrix |
 
-**Sprint V gate:** legalább 3 doc-type-on (`hu_invoice`, `hu_id_card`, `pdf_contract`) end-to-end accuracy ≥ 80% on 5-fixture-per-type corpus. UC1 invoice_processor változatlan marad (byte-stable) — a doc_recognizer additive új skill, a régi UC1 path nem romlik.
+**Sprint V gate:**
+
+1. **Doc-type accuracy** — `hu_invoice` ≥ 90% (mert `invoice_extraction_chain` reuse-ból), `hu_id_card` ≥ 80%, `pdf_contract` ≥ 80% on 5-fixture-per-type corpus. `hu_address_card` és `eu_passport` ≥ 70% (best-effort, kevés HU-fixture nyilvánosan elérhető).
+2. **Type classifier accuracy** — top-1 doc-type match ≥ 90% on the 25-fixture full corpus (cross-doctype false-positive ≤ 4%).
+3. **Intent routing** — minden fixture pontosan EGY intent-et generál (no `process` + `route_to_human` egyszerre).
+4. **Regression** — UC1 `invoice_processor` byte-stable (Sprint Q UC1 ≥ 75% / `invoice_number` ≥ 90% gate), UC2 MRR@5 ≥ 0.55, UC3 4/4 unchanged.
+5. **API contract** — OpenAPI drift CI step (Sprint U S153) zöld; `docs/api/openapi.json` snapshot frissítve a 5 új route-tal.
+
+### Sprint V kockázatok (R1–R5)
+
+| ID | Kockázat | Mitigation |
+|----|----------|-----------|
+| **R1** | LLM fallback cost amplification — minden bizonytalan típusú dok 2× LLM call (klasszifier + extraktor) | Per-step CostPreflightGuardrail.check_step() limit (S154 után), per-doctype `llm_threshold_below` operator-tunable, dry-run mode default-tested |
+| **R2** | HU-specifikus regex/keyword brittleness — pl. `8 számjegy + kötőjel + szám + kötőjel + 2 számjegy` adószám csak 1986+ számokra ad jó találatot | Multiple weighted rules per doc-type, LLM fallback safety net, per-tenant override |
+| **R3** | OCR pontosság képszerű igazolványoknál (rossz minőségű scan) | Azure DI primary, docling fallback, retry logic; ha pontosság < threshold → automatic `route_to_human` |
+| **R4** | PII leak in audit log/Langfuse trace — id_card extracted_fields PII | `pii_redaction: true` boundary-n, `extracted_fields` JSONB encrypted (opt-in), audit log csak hash + tag |
+| **R5** | Per-tenant YAML override → invalid YAML → service crash | YAML-load Pydantic validation gate, fallback to bootstrap descriptor on parse error + UI warning + audit log entry |
+
+### Doc-type classification — működési mechanizmus
+
+A felismerő egy **3-lépcsős pipeline**:
+
+```
+File (bytes/path)
+    │
+    ▼  parser_preferences (docling → azure_di → unstructured)
+[Parsed text + structure (pages, tables, blocks) + metadata]
+    │
+    ▼  rule-based scorer (regex + keyword_list + structure hints)
+[Per-doc-type rule scores: hu_invoice=0.82, hu_id_card=0.05, ...]
+    │
+    ▼  if max_score < llm_threshold → LLM classifier with top-k descriptors
+[DocTypeMatch: doc_type=hu_invoice, confidence=0.82, alternatives=[(pdf_contract, 0.18)]]
+    │
+    ▼  selected DocType's extraction PromptWorkflow runs
+[DocExtractionResult: doc_type=hu_invoice, extracted_fields={invoice_number=..., total_gross=...},
+                     per_field_confidence={...}, validation_warnings=[...]]
+    │
+    ▼  intent_routing rules evaluated against extracted_fields + confidence
+[DocIntentDecision: intent=process | route_to_human | reject | rag_ingest | respond,
+                    reason=..., next_action=...]
+```
+
+**Classifier rule kinds (YAML-driven):**
+
+| Kind | Match | Weight |
+|------|-------|--------|
+| `regex` | regex hit a parsed text-ben (case-insensitive default) | per-rule weight |
+| `keyword_list` | min N kulcsszó hits (operator állítja a threshold-ot) | per-rule weight |
+| `structure_hint` | pl. "table_count >= 1" vagy "page_count == 1" | per-rule weight |
+| `filename_match` | regex a fájlnévre (pl. `^szamla_.*\\.pdf$`) | per-rule weight |
+| `parser_metadata` | docling/Azure DI által visszaadott `language`, `mime_type` | per-rule weight |
+
+A score-ok normalizáltak (`sum(weights) == 1.0` per descriptor); az aggregált doc-type score a hits weight-jeinek összege.
+
+**LLM fallback** csak akkor fut, ha a top rule-score < `llm_threshold_below` (default 0.7). Az LLM-nek a top-k (default k=3) doc-type descriptor metadata + first 1500 chars of parsed text van adva; a válasz egy enum + confidence.
+
+### Intent routing — szemantika
+
+Az **intent** itt nem azonos a Sprint K UC3 email-intent fogalmával (ami a `EXTRACT/REPLY/IGNORE` triage volt). Document intent = **mit csináljunk a dokumentummal a felismerés után**:
+
+| Intent | Mit jelent | Tipikus trigger |
+|--------|-----------|-----------------|
+| `process` | Extract → persist (DB, JSONB) → done | High confidence + complete required fields |
+| `route_to_human` | Human review queue (Reviews UI page) | Low confidence OR business rule (pl. nagy összeg) OR PII detected |
+| `rag_ingest` | Doc-recognizer kihagyja a strukturált extraction-t, helyette RAG ingest pipeline-ba küldi | Knowledge-base / referencia doc-type-ok (`pdf_contract` template-ek) |
+| `respond` | Választ generálni (LLM válasz draft a Reviews UI-on) | Customer letter / panaszlevél |
+| `reject` | Strukturált hibaüzenet, nem perzistál | Tiltott tartalom, validation hard-fail, PII without consent |
+
+A descriptor `intent_routing` szekciója egy default + feltételes szabálylista:
+
+```yaml
+intent_routing:
+  default: process
+  conditions:
+    - if: "extracted.total_gross > 1000000"     # safe expr eval (Pydantic + restricted operators)
+      intent: route_to_human
+      reason: "Magas összegű számla — kötelező manuális ellenőrzés"
+    - if: "field_confidence_min < 0.6"
+      intent: route_to_human
+      reason: "Alacsony adatkinyerési bizonyosság"
+    - if: "doc_type_confidence < 0.75"
+      intent: route_to_human
+      reason: "Bizonytalan dokumentum-típus"
+```
+
+A safe-expression-eval **NEM** Python `eval()` — egy zárt grammatika (Pydantic + operator: `==`, `!=`, `<`, `>`, `<=`, `>=`, `and`, `or`, `not`, `in`, `extracted.<field>`, `field_confidence_min`, `field_confidence_max`, `doc_type_confidence`, `pii_detected`).
+
+### YAML descriptor minta — `hu_invoice`
+
+```yaml
+# data/doctypes/hu_invoice.yaml
+name: hu_invoice
+display_name: "Magyar számla"
+description: "ÁFA-tartalmú HU számla, B2B/B2C"
+language: hu
+category: financial
+version: 1
+parser_preferences:
+  - docling      # PDF/DOCX szerkezet-aware
+  - azure_di     # OCR scan-ekhez
+  - unstructured # last-resort
+type_classifier:
+  rules:
+    - kind: regex
+      pattern: "\\bSzámla\\s*sz[aá]m\\b|\\bszámlasorszám\\b"
+      weight: 0.35
+    - kind: regex
+      pattern: "\\bÁfa-azonosító\\b|\\bAdószám\\b"
+      weight: 0.25
+    - kind: keyword_list
+      keywords: ["fizetési határidő", "teljesítés időpontja", "nettó", "bruttó", "ÁFA", "végösszeg"]
+      threshold: 2
+      weight: 0.25
+    - kind: structure_hint
+      hint: "table_count >= 1"
+      weight: 0.10
+    - kind: filename_match
+      pattern: "^(invoice|szamla|szla|sz)[-_].*\\.(pdf|png|jpg|jpeg|tiff)$"
+      weight: 0.05
+  llm_fallback: true
+  llm_threshold_below: 0.70
+extraction:
+  workflow: invoice_extraction_chain   # Sprint T S149 PromptWorkflow descriptor (reused)
+  fields:
+    - name: invoice_number
+      type: string
+      required: true
+      validators: ["non_empty", "regex:^[A-Za-z0-9/-]+$"]
+    - name: vendor_name
+      type: string
+      required: true
+    - name: vendor_tax_id
+      type: string
+      validators: ["regex:^\\d{8}-\\d-\\d{2}$"]   # HU adószám pattern
+    - name: buyer_name
+      type: string
+      required: true
+    - name: buyer_tax_id
+      type: string
+      validators: ["regex:^\\d{8}-\\d-\\d{2}$"]
+    - name: invoice_date
+      type: date
+      required: true
+      validators: ["iso_date"]
+    - name: due_date
+      type: date
+      validators: ["iso_date"]
+    - name: total_net
+      type: money
+      currency_default: HUF
+    - name: total_vat
+      type: money
+      currency_default: HUF
+    - name: total_gross
+      type: money
+      required: true
+      currency_default: HUF
+    - name: line_items
+      type: list[invoice_line]
+      schema_ref: hu_invoice_line
+intent_routing:
+  default: process
+  conditions:
+    - if: "extracted.total_gross > 1000000"
+      intent: route_to_human
+      reason: "Magas összegű számla — kötelező manuális ellenőrzés (HU > 1M HUF)"
+    - if: "field_confidence_min < 0.6"
+      intent: route_to_human
+      reason: "Alacsony adatkinyerési bizonyosság"
+    - if: "doc_type_confidence < 0.75"
+      intent: route_to_human
+      reason: "Bizonytalan dokumentum-típus klasszifikáció"
+```
+
+### YAML descriptor minta — `hu_id_card`
+
+```yaml
+# data/doctypes/hu_id_card.yaml
+name: hu_id_card
+display_name: "Magyar személyi igazolvány"
+description: "Magyar állampolgári személyi igazolvány (eID és kártya formátum)"
+language: hu
+category: identity
+version: 1
+pii_level: high                          # PII-aware — lásd intent_routing
+parser_preferences:
+  - azure_di                             # OCR-heavy, kép-alapú
+  - docling
+type_classifier:
+  rules:
+    - kind: regex
+      pattern: "MAGYARORSZÁG|HUNGARY"
+      weight: 0.20
+    - kind: regex
+      pattern: "Személyazonos[ií]t[oó]\\s+igazolv[aá]ny|IDENTITY CARD"
+      weight: 0.40
+    - kind: regex
+      pattern: "\\b\\d{6}[A-Z]{2}\\b"    # HU igazolvány-szám pattern
+      weight: 0.30
+    - kind: structure_hint
+      hint: "page_count == 1"
+      weight: 0.10
+  llm_fallback: true
+  llm_threshold_below: 0.65
+extraction:
+  workflow: id_card_extraction_chain     # NEW PromptWorkflow descriptor (Sprint V SV-2)
+  fields:
+    - name: full_name
+      type: string
+      required: true
+    - name: birth_date
+      type: date
+      required: true
+      validators: ["iso_date", "before_today"]
+    - name: birth_place
+      type: string
+    - name: id_number
+      type: string
+      required: true
+      validators: ["regex:^\\d{6}[A-Z]{2}$"]
+    - name: issue_date
+      type: date
+      validators: ["iso_date"]
+    - name: validity_date
+      type: date
+      validators: ["iso_date"]
+    - name: nationality
+      type: string
+      default: "magyar"
+    - name: mother_name
+      type: string
+intent_routing:
+  default: route_to_human                # PII → mindig human review default
+  pii_redaction: true                    # extracted_fields PII oszlopok REDACTED log-ban
+  conditions:
+    - if: "doc_type_confidence < 0.85"
+      intent: reject
+      reason: "ID-kártya bizonyítatlan klasszifikáció — PII miatt nem perzisztálható"
+```
+
+### Field types + validators
+
+| Type | Pydantic alap | Példa validator |
+|------|---------------|-----------------|
+| `string` | `str` | `non_empty`, `regex:<pattern>`, `min_length:N`, `max_length:N` |
+| `date` | `datetime.date` (ISO `YYYY-MM-DD` string) | `iso_date`, `before_today`, `after_today`, `not_in_future` |
+| `money` | `Decimal` + currency code | `min:N`, `max:N`, `currency_in:[HUF,EUR,USD]` |
+| `int` | `int` | `min:N`, `max:N` |
+| `enum` | `Literal[...]` | YAML `enum: [val1, val2]` |
+| `list[<type>]` | `list[<inner>]` | `min_count:N`, `schema_ref:<doctype>_<sub>` |
+| `bool` | `bool` | — |
+
+A validator-ek **post-extraction** futnak a `DocExtractionResult` ellen. Ha hard validator fail → `validation_warnings` mezőbe kerül + a field `confidence = 0`. Ha `required=true` mezőre fail → automatikusan `intent_routing.conditions` `field_confidence_min < threshold`-jét triggereli (és onnan `route_to_human`).
+
+### Multi-tenancy + per-tenant override
+
+A descriptor-ok két forrásból töltődnek (sorrendben):
+
+1. **Bootstrap (built-in):** `data/doctypes/<name>.yaml` — git-ben tárolt 5 alap (hu_invoice, hu_id_card, hu_address_card, eu_passport, pdf_contract).
+2. **Per-tenant override:** `data/doctypes/_tenant/<tenant_id>/<name>.yaml` — operator-uploaded YAML; ha létezik tenant-specific verzió ugyanazon a `name`-en, az felülírja.
+
+A `DocTypeRegistry` runtime-ban tenant-aware → ha tenant X-nek van saját `hu_invoice.yaml`-je (pl. külön VAT tax-id pattern), akkor azt látja, különben a bootstrap-et.
+
+**Admin UI flow** (Sprint V SV-4):
+- Operator a `/document-recognizer/doctypes` lapon látja a doc-type listát
+- Klikk + "Override for tenant" gomb → YAML-szerkesztő side-drawer (Monaco editor)
+- Mentés → `data/doctypes/_tenant/<tenant_id>/<name>.yaml` perzistál + cache invalidate
+- "Test" gomb → file upload + dry-run a frissen mentett descriptor-ral
 
 ### Sprint V open kérdések (S157-ben kell eldönteni)
 
 - **Renaming vs új skill:** átnevezzük `invoice_finder` → `document_recognizer`, vagy új skill létrehozása + `invoice_finder` törlés? (recommendation: **rename**, mert preserve git history és skill registry már várja)
 - **`invoice_processor` jövője:** marad-e külön skill UC1-re, vagy doc_recognizer wrap-eli? (recommendation: **mindkettő marad**; doc_recognizer ÚJ skill, invoice_processor a "specifikus" path; doc_recognizer alapértelmezetten az invoice_processor extraction chain-et hívja `hu_invoice` doc-type-ra — kompatibilitás megmarad)
 - **Magyar OCR pontosság:** a docling vs Azure DI-t hogyan választjuk személyi igazolvány képhez (JPG/PNG)? Profile A (air-gap) vs Profile B (Azure).
+- **PII redaction layer:** `hu_id_card` descriptor-ben `pii_level: high` jelölve. **Ki a felelős** a redakcióért? Lehetőségek: (a) `DocRecognitionService.run()` post-extraction lépésben, (b) `audit` service log-write boundary-n, (c) per-doc-type custom redactor plugin. **Recommendation:** (b) — boundary-on, az audit logba PII-mentes hash + per-field tag (`pii_redacted=true`) megy, a `extracted_fields` JSONB DB-ben titkosítva (operator opt-in `AIFLOW_PII_ENCRYPTION__ENABLED`).
+- **Type classifier rule-engine vs ML model:** a 3-lépcsős pipeline első fázisa rule-based; van-e később hozzáadott ML klasszifier (kis fasttext / sklearn / kis BERT)? **Recommendation:** Sprint V scope-ban CSAK rule-based + LLM fallback; ML klasszifier post-Sprint-V audit + külön sprint, ha a fixture-corpus pontatlan eredményeket mutat.
+- **`safe-expression-eval` engine:** saját parser vs. `simpleeval` library. Recommendation: `simpleeval` (battle-tested, pinned version), restricted operator list a config-ban.
 
 ---
 
