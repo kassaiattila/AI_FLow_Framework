@@ -21,7 +21,7 @@ from jinja2 import Template
 PROMPT_PATH = (
     Path(__file__).resolve().parents[3]
     / "skills"
-    / "invoice_finder"
+    / "document_recognizer"
     / "prompts"
     / "invoice_field_extractor.yaml"
 )

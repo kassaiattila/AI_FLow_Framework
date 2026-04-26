@@ -51,6 +51,8 @@ dependencies = [
     # Filesystem watch (FolderSourceAdapter, Phase 1b E2.1)
     "watchdog>=4.0",
     "unstructured>=0.21.5",
+    # Sprint V SV-1: restricted expression evaluator for IntentRoutingRule.if_expr
+    "simpleeval>=0.9.13",
     # Windows requires a bundled libmagic; python-magic otherwise hard-crashes
     # (S95 venv triage).
     "python-magic-bin>=0.4.14; sys_platform == 'win32'",

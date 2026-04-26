@@ -25,7 +25,7 @@ from aiflow.pipeline.adapters.classifier_adapter import ClassifierAdapter, Class
 PROMPT_PATH = (
     Path(__file__).resolve().parents[3]
     / "skills"
-    / "invoice_finder"
+    / "document_recognizer"
     / "prompts"
     / "invoice_classifier.yaml"
 )
