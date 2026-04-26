@@ -157,8 +157,8 @@ def test_046_backfill_default_tenant_and_downgrade_roundtrip() -> None:
             )
             await conn.execute(
                 """
-                INSERT INTO rag_collections (id, name, customer, skill_name)
-                VALUES (gen_random_uuid(), $1, 's143-test-customer', 'rag_engine')
+                INSERT INTO rag_collections (id, name, skill_name)
+                VALUES (gen_random_uuid(), $1, 'rag_engine')
                 """,
                 "s143-alembic-test",
             )

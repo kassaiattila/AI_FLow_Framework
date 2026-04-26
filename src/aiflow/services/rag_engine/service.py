@@ -287,7 +287,7 @@ class RAGEngineService(BaseService):
         embedding_model: str | None = None,
         embedding_dim: int | None = None,
         config: dict[str, Any] | None = None,
-        customer: str = "default",
+        tenant_id: str = "default",
     ) -> CollectionInfo:
         """Create a new RAG collection.
 
@@ -295,6 +295,10 @@ class RAGEngineService(BaseService):
         embedder — defaults to 1536 (OpenAI/Azure ``text-embedding-3-small``).
         Set to 1024 for Profile A (BGE-M3). The value gates cross-dim reads
         in the retrieval layer (see alembic 042).
+
+        ``tenant_id`` defaults to ``"default"`` (matching the migration 046
+        server default). Sprint W SW-3 dropped the legacy ``customer`` column
+        + kwarg via Alembic 049.
         """
         emb_model = embedding_model or self._ext_config.default_embedding_model
         emb_dim = embedding_dim if embedding_dim is not None else 1536
@@ -305,15 +309,15 @@ class RAGEngineService(BaseService):
         async with self._session_factory() as session:
             result = await session.execute(
                 text("""
-                    INSERT INTO rag_collections (name, customer, skill_name, config,
+                    INSERT INTO rag_collections (name, tenant_id, skill_name, config,
                         description, language, embedding_model, embedding_dim)
-                    VALUES (:name, :customer, 'rag_engine', CAST(:config AS jsonb),
+                    VALUES (:name, :tenant_id, 'rag_engine', CAST(:config AS jsonb),
                         :description, :language, :embedding_model, :embedding_dim)
                     RETURNING id, created_at, updated_at
                 """),
                 {
                     "name": name,
-                    "customer": customer,
+                    "tenant_id": tenant_id,
                     "config": _json.dumps(coll_config),
                     "description": description,
                     "language": language,
@@ -337,7 +341,7 @@ class RAGEngineService(BaseService):
             updated_at=row[2].isoformat() if row[2] else None,
         )
 
-    async def list_collections(self, customer: str = "default") -> list[CollectionInfo]:
+    async def list_collections(self, tenant_id: str = "default") -> list[CollectionInfo]:
         """List all collections."""
         async with self._session_factory() as session:
             result = await session.execute(

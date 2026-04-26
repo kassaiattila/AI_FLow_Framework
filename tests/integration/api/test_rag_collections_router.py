@@ -92,13 +92,12 @@ async def _seed_collection(
         row = await conn.fetchrow(
             """
             INSERT INTO rag_collections
-                (id, name, customer, skill_name,
+                (id, name, skill_name,
                  tenant_id, embedder_profile_id, embedding_dim, chunk_count)
-            VALUES (gen_random_uuid(), $1, $2, 'rag_engine', $3, $4, $5, $6)
+            VALUES (gen_random_uuid(), $1, 'rag_engine', $2, $3, $4, $5)
             RETURNING id
             """,
             name,
-            tenant,
             tenant,
             embedder_profile_id,
             embedding_dim,

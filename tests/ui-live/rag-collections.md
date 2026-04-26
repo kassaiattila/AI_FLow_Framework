@@ -71,12 +71,12 @@
 2. **Seed** two collections via direct asyncpg or the seeded admin token:
    ```sql
    INSERT INTO rag_collections
-       (id, name, customer, skill_name, tenant_id, embedder_profile_id,
+       (id, name, skill_name, tenant_id, embedder_profile_id,
         embedding_dim, chunk_count)
    VALUES
-       (gen_random_uuid(), 's144-live-bestix-coll', 'bestix', 'rag_engine',
+       (gen_random_uuid(), 's144-live-bestix-coll', 'rag_engine',
         'bestix', NULL, 1536, 0),
-       (gen_random_uuid(), 's144-live-doha-coll',   'doha',   'rag_engine',
+       (gen_random_uuid(), 's144-live-doha-coll',   'rag_engine',
         'doha',   'bge_m3', 1024, 0);
    ```
 3. **Navigate** — `/#/rag/collections`. Sidebar group `Tudasbazis →
