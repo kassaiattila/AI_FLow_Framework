@@ -1,10 +1,39 @@
-"""Persistent cost recording — writes LLM usage to cost_records table."""
+"""Persistent cost recording — Sprint U S154 thin shim over CostAttributionRepository.
+
+This module previously owned its own ``cost_records`` INSERT path with an
+inline DDL hack that ran on every call (``ALTER TABLE cost_records ALTER
+COLUMN workflow_run_id DROP NOT NULL``). Sprint U S154 (SN-FU) consolidates
+the cost-recording surface: ``record_cost`` is now a thin shim that builds a
+:class:`aiflow.contracts.cost_attribution.CostAttribution` and delegates to
+:class:`aiflow.state.cost_repository.CostAttributionRepository.insert_attribution`.
+
+Behavior preserved:
+
+* Best-effort — logs warning on failure but never raises (existing contract).
+* ``workflow_run_id`` may be ``None`` (cost recorded before the workflow_run
+  is persisted; the repository handles ``None`` UUIDs).
+
+Removed:
+
+* Inline ``ALTER TABLE`` DDL — Alembic owns schema; the previous one-time
+  migration was applied long ago. Subsequent calls were running it under
+  ``IF EXISTS`` guards (no-ops) but still acquiring catalog locks.
+
+Migration sequence: existing call sites continue to use ``record_cost(...)``.
+A follow-up sprint may migrate them to call the repository directly and
+delete this shim. Until then ``scripts/audit_cost_recording.py --strict``
+tracks remaining call sites.
+"""
+
+from __future__ import annotations
 
 import uuid
 
 import structlog
 
 from aiflow.api.deps import get_pool
+from aiflow.contracts.cost_attribution import CostAttribution
+from aiflow.state.cost_repository import CostAttributionRepository
 
 __all__ = ["record_cost"]
 
@@ -23,53 +52,42 @@ async def record_cost(
 ) -> None:
     """Insert a cost record into the cost_records table.
 
+    Sprint U S154: thin shim over CostAttributionRepository. The legacy
+    ``team_id`` argument is mapped to ``tenant_id`` on
+    :class:`CostAttribution` (string-cast). When ``team_id`` is ``None`` the
+    tenant defaults to ``"default"`` so the contract's ``min_length=1``
+    constraint never trips on legacy callers that pre-date the multi-tenant
+    boundary.
+
     Best-effort: logs warning on failure but never raises.
-    workflow_run_id is nullable — use None when the workflow_run hasn't been persisted yet.
     """
     try:
         pool = await get_pool()
         provider = model.split("/")[0] if "/" in model else "unknown"
+        tenant_id = str(team_id) if team_id else "default"
 
-        # Make workflow_run_id nullable to avoid FK constraint issues
-        # (cost may be recorded before the workflow_run is persisted)
-        run_uuid = None
-        if workflow_run_id:
-            try:
-                run_uuid = uuid.UUID(str(workflow_run_id))
-            except (ValueError, AttributeError):
-                run_uuid = None
+        attribution = CostAttribution(
+            tenant_id=tenant_id,
+            run_id=str(workflow_run_id) if workflow_run_id else None,
+            skill=step_name,
+            provider=provider,
+            model=model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost_usd,
+        )
 
-        async with pool.acquire() as conn:
-            # Drop FK constraint if it exists (one-time migration)
-            await conn.execute("""
-                DO $$ BEGIN
-                    ALTER TABLE cost_records ALTER COLUMN workflow_run_id DROP NOT NULL;
-                    ALTER TABLE cost_records DROP CONSTRAINT IF EXISTS cost_records_workflow_run_id_fkey;
-                EXCEPTION WHEN others THEN NULL;
-                END $$;
-            """)
-            await conn.execute(
-                """INSERT INTO cost_records
-                   (id, workflow_run_id, step_name, model, provider,
-                    input_tokens, output_tokens, cost_usd, team_id)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)""",
-                uuid.uuid4(),
-                run_uuid,
-                step_name,
-                model,
-                provider,
-                input_tokens,
-                output_tokens,
-                cost_usd,
-                uuid.UUID(str(team_id)) if team_id else None,
-            )
+        repo = CostAttributionRepository(pool)
+        await repo.insert_attribution(attribution)
+
         logger.info(
             "cost_recorded",
-            run_id=str(workflow_run_id),
+            run_id=str(workflow_run_id) if workflow_run_id else None,
             step=step_name,
             model=model,
             tokens=input_tokens + output_tokens,
             cost_usd=round(cost_usd, 6),
+            tenant_id=tenant_id,
         )
     except Exception as e:
         logger.warning("cost_record_failed", error=str(e), step=step_name)

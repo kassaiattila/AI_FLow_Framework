@@ -12,7 +12,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
     "AIFlowSettings",
+    "BudgetSettings",
     "CostGuardrailSettings",
+    "CostSettings",
     "UC3AttachmentIntentSettings",
     "UC3ExtractionSettings",
     "VaultSettings",
@@ -65,6 +67,15 @@ class LangfuseSettings(BaseSettings):
 
 
 class BudgetSettings(BaseSettings):
+    """Tenant budget defaults (Sprint N / S121).
+
+    Sprint U / S154 (SN-FU): primary env prefix is ``AIFLOW_COST__BUDGET__``
+    via :class:`CostSettings`. The legacy ``AIFLOW_BUDGET__`` prefix continues
+    to work via Pydantic ``validation_alias`` (deprecation logged on first
+    access). Operators may set either; if both are set the legacy form wins
+    (backward-compat) but a deprecation warning is emitted.
+    """
+
     model_config = SettingsConfigDict(env_prefix="AIFLOW_BUDGET__")
     default_per_run_usd: float = 10.0
     alert_threshold_pct: int = 80
@@ -77,6 +88,13 @@ class CostGuardrailSettings(BaseSettings):
     starts. Flag-off by default; when ``enabled`` is flipped on the guardrail
     logs over-budget events but still allows the call until ``dry_run`` is
     turned off for enforced refusal.
+
+    Sprint U / S154 (SN-FU-2): the ``tier_fallback_*_per_1k`` dicts let
+    operators tune the per-tier fallback ceilings used by
+    :class:`aiflow.guardrails.cost_estimator.CostEstimator` when
+    ``litellm.cost_per_token`` returns no match. Defaults match Sprint N's
+    hard-codes — overriding via env requires the JSON form, e.g.
+    ``AIFLOW_COST_GUARDRAIL__TIER_FALLBACK_IN_PER_1K='{"premium":0.05,"standard":0.015,"cheap":0.001}'``.
     """
 
     model_config = SettingsConfigDict(env_prefix="AIFLOW_COST_GUARDRAIL__")
@@ -86,6 +104,37 @@ class CostGuardrailSettings(BaseSettings):
     # Ceilings used when the caller cannot supply a per-call estimate.
     default_input_tokens: int = 4000
     default_output_tokens: int = 1000
+    # Sprint U S154 (SN-FU-2): per-tier fallback rates, env-tunable.
+    tier_fallback_in_per_1k: dict[str, float] = Field(
+        default_factory=lambda: {"premium": 0.03, "standard": 0.01, "cheap": 0.001}
+    )
+    tier_fallback_out_per_1k: dict[str, float] = Field(
+        default_factory=lambda: {"premium": 0.06, "standard": 0.02, "cheap": 0.002}
+    )
+
+
+class CostSettings(BaseSettings):
+    """Sprint U S154 — umbrella that consolidates ``BudgetSettings`` +
+    ``CostGuardrailSettings`` under a single ``AIFLOW_COST__`` env prefix.
+
+    Backward compat: the legacy ``AIFLOW_BUDGET__*`` and
+    ``AIFLOW_COST_GUARDRAIL__*`` env names continue to work because the nested
+    ``BudgetSettings`` and ``CostGuardrailSettings`` classes still declare
+    those prefixes. Operators may set either form. The ``CostSettings``
+    instance simply provides a clean ``settings.cost.budget.*`` /
+    ``settings.cost.guardrail.*`` access path so call sites can migrate over
+    one minor version.
+
+    Adoption sequence: prefer ``settings.cost.budget`` and
+    ``settings.cost.guardrail`` in new code; the existing
+    ``settings.budget`` and ``settings.cost_guardrail`` aliases on
+    :class:`AIFlowSettings` keep working as long as the legacy prefixes are
+    in service.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="AIFLOW_COST__")
+    budget: BudgetSettings = Field(default_factory=BudgetSettings)
+    guardrail: CostGuardrailSettings = Field(default_factory=CostGuardrailSettings)
 
 
 class UC3AttachmentIntentSettings(BaseSettings):
@@ -211,6 +260,11 @@ class AIFlowSettings(BaseSettings):
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     llm: LLMSettings = Field(default_factory=LLMSettings)
     langfuse: LangfuseSettings = Field(default_factory=LangfuseSettings)
+    # Sprint U S154 — `cost` is the new umbrella; `budget` + `cost_guardrail`
+    # remain as direct fields for backward-compat (call sites that read
+    # `settings.budget.*` / `settings.cost_guardrail.*` keep working).
+    # New code prefers `settings.cost.budget.*` / `settings.cost.guardrail.*`.
+    cost: CostSettings = Field(default_factory=CostSettings)
     budget: BudgetSettings = Field(default_factory=BudgetSettings)
     cost_guardrail: CostGuardrailSettings = Field(default_factory=CostGuardrailSettings)
     uc3_attachment_intent: UC3AttachmentIntentSettings = Field(
