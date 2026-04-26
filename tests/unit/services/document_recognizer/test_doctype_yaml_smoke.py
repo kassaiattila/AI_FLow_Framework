@@ -71,12 +71,40 @@ class TestRealBootstrapDoctypes:
         for required in ("full_name", "birth_date", "id_number"):
             assert required in names
 
-    def test_registry_loads_both_bootstrap_descriptors(self):
+    def test_hu_address_card_yaml_loads(self):
+        path = DOCTYPES_DIR / "hu_address_card.yaml"
+        assert path.exists(), f"hu_address_card.yaml missing at {path}"
+        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        d = DocTypeDescriptor.model_validate(payload)
+        assert d.name == "hu_address_card"
+        assert d.pii_level == "medium"
+        assert d.intent_routing.pii_redaction is True
+        assert d.intent_routing.default == "route_to_human"
+        names = d.field_names()
+        for required in ("full_name", "address_zip", "address_city", "address_street"):
+            assert required in names
+
+    def test_pdf_contract_yaml_loads(self):
+        path = DOCTYPES_DIR / "pdf_contract.yaml"
+        assert path.exists(), f"pdf_contract.yaml missing at {path}"
+        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        d = DocTypeDescriptor.model_validate(payload)
+        assert d.name == "pdf_contract"
+        assert d.category == "legal"
+        assert d.pii_level == "low"
+        assert d.intent_routing.default == "rag_ingest"
+        names = d.field_names()
+        for required in ("contract_title", "party_a_name", "party_b_name"):
+            assert required in names
+
+    def test_registry_loads_all_four_bootstrap_descriptors(self):
         reg = DocTypeRegistry(bootstrap_dir=DOCTYPES_DIR)
         descriptors = reg.list_doctypes()
         names = {d.name for d in descriptors}
         assert "hu_invoice" in names
         assert "hu_id_card" in names
+        assert "hu_address_card" in names
+        assert "pdf_contract" in names
 
 
 class TestIdCardExtractionChain:
