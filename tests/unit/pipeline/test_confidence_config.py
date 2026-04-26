@@ -20,7 +20,10 @@ import yaml
 from aiflow.engine.confidence_router import ConfidenceRoutingConfig
 
 CONFIG_PATH = (
-    Path(__file__).resolve().parents[3] / "skills" / "invoice_finder" / "confidence_config.yaml"
+    Path(__file__).resolve().parents[3]
+    / "skills"
+    / "document_recognizer"
+    / "confidence_config.yaml"
 )
 
 

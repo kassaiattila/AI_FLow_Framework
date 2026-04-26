@@ -21,7 +21,7 @@ from jinja2 import Template
 TEMPLATE_PATH = (
     Path(__file__).resolve().parents[3]
     / "skills"
-    / "invoice_finder"
+    / "document_recognizer"
     / "prompts"
     / "invoice_report_notification.yaml"
 )

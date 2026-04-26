@@ -1,0 +1,29 @@
+name: document_recognizer
+display_name: "Document Recognizer"
+version: "0.1.0"
+description: "Generic doc-type recognition + extraction. Pluggable doc-type registry (YAML-driven) for invoice / ID card / contract / passport / address card / etc."
+skill_type: ai
+
+capabilities:
+  - doc_type_classification
+  - field_extraction
+  - intent_routing
+  - per_tenant_doctype_override
+
+required_models:
+  - name: openai/gpt-4o
+    type: generation
+    usage: "Doc-type classification fallback + per-doctype field extraction"
+  - name: openai/gpt-4o-mini
+    type: generation
+    usage: "Lightweight rule-engine assist + cheap-tier extraction for low-PII types"
+
+workflows:
+  - recognize-and-extract
+
+# Sprint V SV-1: skeleton; descriptors land in SV-2+.
+# data/doctypes/<name>.yaml — bootstrap descriptors
+# data/doctypes/_tenant/<tenant_id>/<name>.yaml — per-tenant overrides
+estimated_cost_per_run: 0.05
+tags: [document, recognizer, extraction, classification, multi-doctype, sprint-v]
+depends_on: []
