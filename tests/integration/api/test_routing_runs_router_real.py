@@ -18,18 +18,23 @@ write is invoked directly through ``_write_routing_run_safe`` (the same
 helper the orchestrator calls at the SX-2 dispatch boundary) so the
 test exercises the end-to-end shape without spinning up the full
 EmailSourceAdapter / classifier stack.
+
+Uses ``httpx.AsyncClient`` + ``ASGITransport`` so the entire test stays
+in a single asyncio event loop. (TestClient internally creates its own
+loop, which clashes with the asyncpg pool cached on pytest-asyncio's
+loop — same pattern documented in
+``tests/integration/services/email_connector/conftest.py``.)
 """
 
 from __future__ import annotations
 
 import os
 import uuid
-from contextlib import contextmanager
 from unittest.mock import patch
 
 import asyncpg
+import httpx
 import pytest
-from fastapi.testclient import TestClient
 
 from aiflow.api import deps
 from aiflow.api.deps import get_pool
@@ -67,19 +72,6 @@ async def _pg_ready() -> bool:
     return True
 
 
-@contextmanager
-def _client_and_headers(tenant_id: str):
-    auth = AuthProvider.from_env()
-    with patch.object(AuthProvider, "from_env", return_value=auth):
-        from aiflow.api.app import create_app
-
-        app = create_app()
-        client = TestClient(app, raise_server_exceptions=False)
-        client.get("/health/live")
-        token = auth.create_token(user_id=tenant_id, role="admin")
-        yield client, {"Authorization": f"Bearer {token}"}
-
-
 # ---------------------------------------------------------------------------
 # Round-trip: orchestrator hook writes → router GET reads
 # ---------------------------------------------------------------------------
@@ -94,8 +86,6 @@ async def test_full_round_trip_orchestrator_writes_row_router_reads_it():
     repo = RoutingRunRepository(pool)
     email_id = uuid.uuid4()
 
-    # Drive the orchestrator-side write hook with a flag-on routing_decision
-    # payload (mirrors the SX-2 contract shape).
     routing_decision = {
         "attachments": [
             {
@@ -124,26 +114,36 @@ async def test_full_round_trip_orchestrator_writes_row_router_reads_it():
         total_cost_usd=0.004,
     )
 
-    # Now hit the router and verify the row is visible.
-    with _client_and_headers(tenant) as (client, headers):
-        r = client.get(
-            f"/api/v1/routing-runs/?tenant_id={tenant}",
-            headers=headers,
-        )
-        assert r.status_code == 200, r.text
-        rows = r.json()
-        assert len(rows) == 1
-        row = rows[0]
-        assert row["tenant_id"] == tenant
-        assert row["doctype_detected"] == "hu_invoice"
-        assert row["extraction_path"] == "invoice_processor"
-        assert row["extraction_outcome"] == "success"
-        assert row["intent_class"] == "EXTRACT"
-        # Detail fetch returns full metadata
-        detail = client.get(
-            f"/api/v1/routing-runs/{row['id']}?tenant_id={tenant}",
-            headers=headers,
-        )
-        assert detail.status_code == 200, detail.text
-        body = detail.json()
-        assert body["metadata"]["attachments"][0]["filename"] == "a.pdf"
+    # Build the FastAPI app under the same patched AuthProvider that signed
+    # the token (AuthProvider tokens only verify on the same provider
+    # instance — see tests/unit/api/test_document_recognizer_router.py).
+    auth = AuthProvider.from_env()
+    with patch.object(AuthProvider, "from_env", return_value=auth):
+        from aiflow.api.app import create_app
+
+        app = create_app()
+        token = auth.create_token(user_id=tenant, role="admin")
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # ASGITransport keeps the app on this asyncio loop — same pool, no
+        # cross-loop pinning.
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            r = await client.get(f"/api/v1/routing-runs/?tenant_id={tenant}", headers=headers)
+            assert r.status_code == 200, r.text
+            rows = r.json()
+            assert len(rows) == 1
+            row = rows[0]
+            assert row["tenant_id"] == tenant
+            assert row["doctype_detected"] == "hu_invoice"
+            assert row["extraction_path"] == "invoice_processor"
+            assert row["extraction_outcome"] == "success"
+            assert row["intent_class"] == "EXTRACT"
+
+            detail = await client.get(
+                f"/api/v1/routing-runs/{row['id']}?tenant_id={tenant}",
+                headers=headers,
+            )
+            assert detail.status_code == 200, detail.text
+            body = detail.json()
+            assert body["metadata"]["attachments"][0]["filename"] == "a.pdf"
