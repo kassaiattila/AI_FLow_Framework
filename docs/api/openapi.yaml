@@ -252,6 +252,23 @@ components:
       - files
       title: Body_ingest_documents_stream_api_v1_rag_collections__collection_id__ingest_stream_post
       type: object
+    Body_recognize_endpoint_api_v1_document_recognizer_recognize_post:
+      properties:
+        doc_type_hint:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Optional doc-type hint to short-circuit the rule engine
+          title: Doc Type Hint
+        file:
+          contentMediaType: application/octet-stream
+          description: Document to recognize
+          title: File
+          type: string
+      required:
+      - file
+      title: Body_recognize_endpoint_api_v1_document_recognizer_recognize_post
+      type: object
     Body_upload_and_process_api_v1_media_upload_post:
       properties:
         file:
@@ -1822,6 +1839,373 @@ components:
       - mermaid_code
       title: DiagramResponse
       type: object
+    DocExtractionResult:
+      description: Full extraction output for a recognized document.
+      properties:
+        cost_usd:
+          default: 0.0
+          minimum: 0.0
+          title: Cost Usd
+          type: number
+        doc_type:
+          maxLength: 128
+          minLength: 1
+          title: Doc Type
+          type: string
+        extracted_fields:
+          additionalProperties:
+            $ref: '#/components/schemas/DocFieldValue'
+          title: Extracted Fields
+          type: object
+        extraction_time_ms:
+          default: 0.0
+          minimum: 0.0
+          title: Extraction Time Ms
+          type: number
+        validation_warnings:
+          items:
+            type: string
+          title: Validation Warnings
+          type: array
+      required:
+      - doc_type
+      title: DocExtractionResult
+      type: object
+    DocFieldValue:
+      description: Single extracted field — value + confidence + source span hint.
+      properties:
+        confidence:
+          default: 0.0
+          maximum: 1.0
+          minimum: 0.0
+          title: Confidence
+          type: number
+        source_text_hint:
+          anyOf:
+          - maxLength: 200
+            type: string
+          - type: 'null'
+          title: Source Text Hint
+        value:
+          anyOf:
+          - type: string
+          - type: integer
+          - type: number
+          - type: boolean
+          - type: 'null'
+          title: Value
+      title: DocFieldValue
+      type: object
+    DocIntentDecision:
+      description: Routing decision after extraction — what to do with this document.
+      properties:
+        intent:
+          enum:
+          - process
+          - route_to_human
+          - rag_ingest
+          - respond
+          - reject
+          title: Intent
+          type: string
+        next_action:
+          anyOf:
+          - maxLength: 255
+            type: string
+          - type: 'null'
+          title: Next Action
+        reason:
+          default: ''
+          maxLength: 500
+          title: Reason
+          type: string
+      required:
+      - intent
+      title: DocIntentDecision
+      type: object
+    DocTypeDescriptor-Input:
+      description: 'Full operator-authored descriptor (YAML-driven).
+
+
+        Loaded from ``data/doctypes/<name>.yaml`` (bootstrap) or
+
+        ``data/doctypes/_tenant/<tenant_id>/<name>.yaml`` (per-tenant override).'
+      properties:
+        category:
+          default: other
+          maxLength: 64
+          minLength: 1
+          title: Category
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        description:
+          anyOf:
+          - maxLength: 2000
+            type: string
+          - type: 'null'
+          title: Description
+        display_name:
+          maxLength: 255
+          minLength: 1
+          title: Display Name
+          type: string
+        extraction:
+          $ref: '#/components/schemas/ExtractionConfig'
+        intent_routing:
+          $ref: '#/components/schemas/IntentRoutingConfig'
+        language:
+          default: hu
+          maxLength: 10
+          minLength: 2
+          title: Language
+          type: string
+        name:
+          maxLength: 128
+          minLength: 1
+          pattern: ^[a-z][a-z0-9_]*$
+          title: Name
+          type: string
+        parser_preferences:
+          items:
+            type: string
+          title: Parser Preferences
+          type: array
+        pii_level:
+          default: low
+          enum:
+          - low
+          - medium
+          - high
+          title: Pii Level
+          type: string
+        type_classifier:
+          $ref: '#/components/schemas/TypeClassifierConfig'
+        version:
+          default: 1
+          minimum: 1.0
+          title: Version
+          type: integer
+      required:
+      - name
+      - display_name
+      - type_classifier
+      - extraction
+      title: DocTypeDescriptor
+      type: object
+    DocTypeDescriptor-Output:
+      description: 'Full operator-authored descriptor (YAML-driven).
+
+
+        Loaded from ``data/doctypes/<name>.yaml`` (bootstrap) or
+
+        ``data/doctypes/_tenant/<tenant_id>/<name>.yaml`` (per-tenant override).'
+      properties:
+        category:
+          default: other
+          maxLength: 64
+          minLength: 1
+          title: Category
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        description:
+          anyOf:
+          - maxLength: 2000
+            type: string
+          - type: 'null'
+          title: Description
+        display_name:
+          maxLength: 255
+          minLength: 1
+          title: Display Name
+          type: string
+        extraction:
+          $ref: '#/components/schemas/ExtractionConfig'
+        intent_routing:
+          $ref: '#/components/schemas/IntentRoutingConfig'
+        language:
+          default: hu
+          maxLength: 10
+          minLength: 2
+          title: Language
+          type: string
+        name:
+          maxLength: 128
+          minLength: 1
+          pattern: ^[a-z][a-z0-9_]*$
+          title: Name
+          type: string
+        parser_preferences:
+          items:
+            type: string
+          title: Parser Preferences
+          type: array
+        pii_level:
+          default: low
+          enum:
+          - low
+          - medium
+          - high
+          title: Pii Level
+          type: string
+        type_classifier:
+          $ref: '#/components/schemas/TypeClassifierConfig'
+        version:
+          default: 1
+          minimum: 1.0
+          title: Version
+          type: integer
+      required:
+      - name
+      - display_name
+      - type_classifier
+      - extraction
+      title: DocTypeDescriptor
+      type: object
+    DocTypeMatch:
+      description: Classifier output — primary doc-type + top-3 alternatives.
+      properties:
+        alternatives:
+          items:
+            maxItems: 2
+            minItems: 2
+            prefixItems:
+            - type: string
+            - type: number
+            type: array
+          title: Alternatives
+          type: array
+        confidence:
+          maximum: 1.0
+          minimum: 0.0
+          title: Confidence
+          type: number
+        doc_type:
+          maxLength: 128
+          minLength: 1
+          title: Doc Type
+          type: string
+      required:
+      - doc_type
+      - confidence
+      title: DocTypeMatch
+      type: object
+    DoctypeDetailResponse:
+      description: Response shape for ``GET /doctypes/{name}``.
+      properties:
+        descriptor:
+          $ref: '#/components/schemas/DocTypeDescriptor-Output'
+        has_tenant_override:
+          title: Has Tenant Override
+          type: boolean
+        source:
+          enum:
+          - bootstrap
+          - tenant_override
+          title: Source
+          type: string
+      required:
+      - descriptor
+      - has_tenant_override
+      - source
+      title: DoctypeDetailResponse
+      type: object
+    DoctypeListItem:
+      description: One row in the doctype list.
+      properties:
+        category:
+          title: Category
+          type: string
+        display_name:
+          title: Display Name
+          type: string
+        field_count:
+          title: Field Count
+          type: integer
+        has_tenant_override:
+          title: Has Tenant Override
+          type: boolean
+        language:
+          title: Language
+          type: string
+        name:
+          title: Name
+          type: string
+        pii_level:
+          enum:
+          - low
+          - medium
+          - high
+          title: Pii Level
+          type: string
+        version:
+          title: Version
+          type: integer
+      required:
+      - name
+      - display_name
+      - language
+      - category
+      - version
+      - pii_level
+      - field_count
+      - has_tenant_override
+      title: DoctypeListItem
+      type: object
+    DoctypeListResponse:
+      description: Response shape for ``GET /doctypes``.
+      properties:
+        count:
+          title: Count
+          type: integer
+        items:
+          items:
+            $ref: '#/components/schemas/DoctypeListItem'
+          title: Items
+          type: array
+      required:
+      - count
+      - items
+      title: DoctypeListResponse
+      type: object
+    DoctypeOverrideRequest:
+      description: 'Body of ``PUT /doctypes/{name}``: a YAML payload as a string OR
+        a parsed dict.'
+      properties:
+        descriptor:
+          anyOf:
+          - $ref: '#/components/schemas/DocTypeDescriptor-Input'
+          - type: 'null'
+        yaml_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Yaml Text
+      title: DoctypeOverrideRequest
+      type: object
+    DoctypeOverrideResponse:
+      description: Response shape for ``PUT /doctypes/{name}``.
+      properties:
+        name:
+          title: Name
+          type: string
+        saved_path:
+          title: Saved Path
+          type: string
+        tenant_id:
+          title: Tenant Id
+          type: string
+      required:
+      - name
+      - tenant_id
+      - saved_path
+      title: DoctypeOverrideResponse
+      type: object
     DocumentDetailResponse:
       additionalProperties: true
       description: Single document detail response (flexible schema).
@@ -1995,6 +2379,12 @@ components:
             type: object
           - type: 'null'
           title: Routing
+        routing_decision:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Routing Decision
         sender:
           default: ''
           title: Sender
@@ -2332,6 +2722,23 @@ components:
       - status
       title: ExecutionResponse
       type: object
+    ExtractionConfig:
+      description: Doc-type extraction config — workflow descriptor + field schema.
+      properties:
+        fields:
+          items:
+            $ref: '#/components/schemas/FieldSpec'
+          title: Fields
+          type: array
+        workflow:
+          maxLength: 128
+          minLength: 1
+          title: Workflow
+          type: string
+      required:
+      - workflow
+      title: ExtractionConfig
+      type: object
     ExtractorConfigItem:
       description: A single extractor config summary.
       properties:
@@ -2504,6 +2911,57 @@ components:
       required:
       - config_id
       title: FetchResponse
+      type: object
+    FieldSpec:
+      description: One field in a doc-type's extraction config.
+      properties:
+        currency_default:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Currency Default
+        enum:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Enum
+        name:
+          maxLength: 128
+          minLength: 1
+          title: Name
+          type: string
+        required:
+          default: false
+          title: Required
+          type: boolean
+        schema_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Schema Ref
+        type:
+          anyOf:
+          - enum:
+            - string
+            - date
+            - money
+            - int
+            - enum
+            - bool
+            type: string
+          - type: string
+          default: string
+          title: Type
+        validators:
+          items:
+            type: string
+          title: Validators
+          type: array
+      required:
+      - name
+      title: FieldSpec
       type: object
     FilterRequest:
       properties:
@@ -2918,6 +3376,57 @@ components:
           title: Sla Hours
           type: integer
       title: IntentRouting
+      type: object
+    IntentRoutingConfig:
+      description: Intent routing — default + conditional rules.
+      properties:
+        conditions:
+          items:
+            $ref: '#/components/schemas/IntentRoutingRule'
+          title: Conditions
+          type: array
+        default:
+          default: process
+          enum:
+          - process
+          - route_to_human
+          - rag_ingest
+          - respond
+          - reject
+          title: Default
+          type: string
+        pii_redaction:
+          default: false
+          title: Pii Redaction
+          type: boolean
+      title: IntentRoutingConfig
+      type: object
+    IntentRoutingRule:
+      description: One conditional rule in intent_routing.conditions.
+      properties:
+        if:
+          maxLength: 500
+          minLength: 1
+          title: If
+          type: string
+        intent:
+          enum:
+          - process
+          - route_to_human
+          - rag_ingest
+          - respond
+          - reject
+          title: Intent
+          type: string
+        reason:
+          default: ''
+          maxLength: 500
+          title: Reason
+          type: string
+      required:
+      - if
+      - intent
+      title: IntentRoutingRule
       type: object
     IntentRulesDetailResponse:
       description: 'Detail read — returns both structured fields and raw YAML so the
@@ -4364,6 +4873,141 @@ components:
       - question
       title: QueryResponse
       type: object
+    RagCollectionDetailResponse:
+      description: Detail-pane payload — list row plus descriptive fields.
+      properties:
+        chunk_count:
+          default: 0
+          title: Chunk Count
+          type: integer
+        config:
+          additionalProperties: true
+          title: Config
+          type: object
+        created_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created At
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        document_count:
+          default: 0
+          title: Document Count
+          type: integer
+        embedder_profile_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Embedder Profile Id
+        embedding_dim:
+          default: 1536
+          title: Embedding Dim
+          type: integer
+        embedding_model:
+          default: openai/text-embedding-3-small
+          title: Embedding Model
+          type: string
+        id:
+          title: Id
+          type: string
+        language:
+          default: hu
+          title: Language
+          type: string
+        name:
+          title: Name
+          type: string
+        source:
+          default: backend
+          title: Source
+          type: string
+        tenant_id:
+          default: default
+          title: Tenant Id
+          type: string
+        updated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated At
+      required:
+      - id
+      - name
+      title: RagCollectionDetailResponse
+      type: object
+    RagCollectionEmbedderProfileUpdate:
+      description: Body for the PATCH …/embedder-profile route.
+      properties:
+        embedder_profile_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Embedder Profile Id
+      title: RagCollectionEmbedderProfileUpdate
+      type: object
+    RagCollectionListItem:
+      description: One row in the admin listing — minimum the table needs.
+      properties:
+        chunk_count:
+          default: 0
+          title: Chunk Count
+          type: integer
+        document_count:
+          default: 0
+          title: Document Count
+          type: integer
+        embedder_profile_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Embedder Profile Id
+        embedding_dim:
+          default: 1536
+          title: Embedding Dim
+          type: integer
+        id:
+          title: Id
+          type: string
+        name:
+          title: Name
+          type: string
+        tenant_id:
+          default: default
+          title: Tenant Id
+          type: string
+        updated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated At
+      required:
+      - id
+      - name
+      title: RagCollectionListItem
+      type: object
+    RagCollectionListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/RagCollectionListItem'
+          title: Items
+          type: array
+        source:
+          default: backend
+          title: Source
+          type: string
+        total:
+          title: Total
+          type: integer
+      required:
+      - items
+      - total
+      title: RagCollectionListResponse
+      type: object
     RateLimitInfoResponse:
       additionalProperties: true
       properties:
@@ -4407,6 +5051,38 @@ components:
       - status
       - checks
       title: ReadyResponse
+      type: object
+    RecognizeResponse:
+      description: Response shape for ``POST /recognize``.
+      properties:
+        classification_method:
+          enum:
+          - rule_engine
+          - llm_fallback
+          - hint
+          title: Classification Method
+          type: string
+        extraction:
+          $ref: '#/components/schemas/DocExtractionResult'
+        intent:
+          $ref: '#/components/schemas/DocIntentDecision'
+        match:
+          $ref: '#/components/schemas/DocTypeMatch'
+        pii_redacted:
+          title: Pii Redacted
+          type: boolean
+        run_id:
+          description: UUID of the persisted doc_recognition_runs row
+          title: Run Id
+          type: string
+      required:
+      - run_id
+      - match
+      - extraction
+      - intent
+      - classification_method
+      - pii_redacted
+      title: RecognizeResponse
       type: object
     RefreshRequest:
       description: Token refresh request.
@@ -4748,6 +5424,238 @@ components:
       - action
       title: RoutingRuleInput
       type: object
+    RoutingRunDetail:
+      additionalProperties: false
+      description: Single-row shape including the full metadata JSONB.
+      properties:
+        cost_usd:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Cost Usd
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        doctype_confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Doctype Confidence
+        doctype_detected:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Doctype Detected
+        email_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Email Id
+        extraction_outcome:
+          enum:
+          - success
+          - partial
+          - failed
+          - refused_cost
+          - skipped
+          title: Extraction Outcome
+          type: string
+        extraction_path:
+          enum:
+          - invoice_processor
+          - doc_recognizer_workflow
+          - rag_ingest_fallback
+          - skipped
+          title: Extraction Path
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        intent_class:
+          title: Intent Class
+          type: string
+        latency_ms:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Latency Ms
+        metadata:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Metadata
+        metadata_truncated:
+          default: false
+          title: Metadata Truncated
+          type: boolean
+        metadata_truncated_count:
+          default: 0
+          title: Metadata Truncated Count
+          type: integer
+        tenant_id:
+          title: Tenant Id
+          type: string
+      required:
+      - id
+      - tenant_id
+      - email_id
+      - intent_class
+      - doctype_detected
+      - doctype_confidence
+      - extraction_path
+      - extraction_outcome
+      - cost_usd
+      - latency_ms
+      - created_at
+      title: RoutingRunDetail
+      type: object
+    RoutingRunSummary:
+      additionalProperties: false
+      description: List-row shape — returned by GET /api/v1/routing-runs/.
+      properties:
+        cost_usd:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Cost Usd
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        doctype_confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Doctype Confidence
+        doctype_detected:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Doctype Detected
+        email_id:
+          anyOf:
+          - format: uuid
+            type: string
+          - type: 'null'
+          title: Email Id
+        extraction_outcome:
+          enum:
+          - success
+          - partial
+          - failed
+          - refused_cost
+          - skipped
+          title: Extraction Outcome
+          type: string
+        extraction_path:
+          enum:
+          - invoice_processor
+          - doc_recognizer_workflow
+          - rag_ingest_fallback
+          - skipped
+          title: Extraction Path
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        intent_class:
+          title: Intent Class
+          type: string
+        latency_ms:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Latency Ms
+        tenant_id:
+          title: Tenant Id
+          type: string
+      required:
+      - id
+      - tenant_id
+      - email_id
+      - intent_class
+      - doctype_detected
+      - doctype_confidence
+      - extraction_path
+      - extraction_outcome
+      - cost_usd
+      - latency_ms
+      - created_at
+      title: RoutingRunSummary
+      type: object
+    RoutingStatsBucket:
+      additionalProperties: false
+      description: Single bucket inside a distribution map.
+      properties:
+        count:
+          minimum: 0.0
+          title: Count
+          type: integer
+        key:
+          title: Key
+          type: string
+      required:
+      - key
+      - count
+      title: RoutingStatsBucket
+      type: object
+    RoutingStatsResponse:
+      additionalProperties: false
+      description: Aggregate response for GET /api/v1/routing-runs/stats.
+      properties:
+        by_doctype:
+          items:
+            $ref: '#/components/schemas/RoutingStatsBucket'
+          title: By Doctype
+          type: array
+        by_extraction_path:
+          items:
+            $ref: '#/components/schemas/RoutingStatsBucket'
+          title: By Extraction Path
+          type: array
+        by_outcome:
+          items:
+            $ref: '#/components/schemas/RoutingStatsBucket'
+          title: By Outcome
+          type: array
+        mean_cost_usd:
+          default: 0.0
+          minimum: 0.0
+          title: Mean Cost Usd
+          type: number
+        p50_latency_ms:
+          default: 0.0
+          minimum: 0.0
+          title: P50 Latency Ms
+          type: number
+        p95_latency_ms:
+          default: 0.0
+          minimum: 0.0
+          title: P95 Latency Ms
+          type: number
+        since:
+          format: date-time
+          title: Since
+          type: string
+        total_runs:
+          minimum: 0.0
+          title: Total Runs
+          type: integer
+        until:
+          format: date-time
+          title: Until
+          type: string
+      required:
+      - since
+      - until
+      - total_runs
+      title: RoutingStatsResponse
+      type: object
     RubricEvalResponse:
       properties:
         pass:
@@ -4783,6 +5691,51 @@ components:
       required:
       - rubrics
       title: RubricsResponse
+      type: object
+    RuleSpec:
+      description: One rule in the type classifier — 5 kinds, each weight-scored.
+      properties:
+        hint:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Hint
+        keywords:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Keywords
+        kind:
+          enum:
+          - regex
+          - keyword_list
+          - structure_hint
+          - filename_match
+          - parser_metadata
+          title: Kind
+          type: string
+        pattern:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pattern
+        threshold:
+          anyOf:
+          - minimum: 1.0
+            type: integer
+          - type: 'null'
+          title: Threshold
+        weight:
+          exclusiveMinimum: 0.0
+          maximum: 1.0
+          title: Weight
+          type: number
+      required:
+      - kind
+      - weight
+      title: RuleSpec
       type: object
     RunDetailResponse:
       properties:
@@ -5913,6 +6866,26 @@ components:
       - start_ms
       - duration_ms
       title: TraceSpan
+      type: object
+    TypeClassifierConfig:
+      description: Doc-type classifier rules + LLM fallback gate.
+      properties:
+        llm_fallback:
+          default: true
+          title: Llm Fallback
+          type: boolean
+        llm_threshold_below:
+          default: 0.7
+          maximum: 1.0
+          minimum: 0.0
+          title: Llm Threshold Below
+          type: number
+        rules:
+          items:
+            $ref: '#/components/schemas/RuleSpec'
+          title: Rules
+          type: array
+      title: TypeClassifierConfig
       type: object
     UnreadCountResponse:
       properties:
@@ -7506,6 +8479,136 @@ paths:
       summary: Get Package Detail
       tags:
       - document-extractor
+  /api/v1/document-recognizer/doctypes:
+    get:
+      operationId: list_doctypes_api_v1_document_recognizer_doctypes_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctypeListResponse'
+          description: Successful Response
+      summary: List Doctypes
+      tags:
+      - document-recognizer
+  /api/v1/document-recognizer/doctypes/{name}:
+    delete:
+      operationId: delete_tenant_override_api_v1_document_recognizer_doctypes__name__delete
+      parameters:
+      - in: path
+        name: name
+        required: true
+        schema:
+          title: Name
+          type: string
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete Tenant Override
+      tags:
+      - document-recognizer
+    get:
+      operationId: get_doctype_api_v1_document_recognizer_doctypes__name__get
+      parameters:
+      - in: path
+        name: name
+        required: true
+        schema:
+          title: Name
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctypeDetailResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Doctype
+      tags:
+      - document-recognizer
+    put:
+      operationId: upsert_tenant_override_api_v1_document_recognizer_doctypes__name__put
+      parameters:
+      - in: path
+        name: name
+        required: true
+        schema:
+          title: Name
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctypeOverrideRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctypeOverrideResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Upsert Tenant Override
+      tags:
+      - document-recognizer
+  /api/v1/document-recognizer/recognize:
+    post:
+      description: 'Run the full recognize_and_extract pipeline + persist audit row.
+
+
+        SV-3 ships a **simplified parse stage**: we read the upload bytes and
+
+        decode as UTF-8 best-effort. The full document_extractor parser
+
+        routing (docling / Azure DI / unstructured) wires in via the same
+
+        ClassifierInput envelope in a future iteration; SV-3 keeps the API
+
+        surface stable so the admin UI (SV-4) can develop against a clean
+
+        contract.'
+      operationId: recognize_endpoint_api_v1_document_recognizer_recognize_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_recognize_endpoint_api_v1_document_recognizer_recognize_post'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecognizeResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Recognize Endpoint
+      tags:
+      - document-recognizer
   /api/v1/documents:
     get:
       description: List all invoice documents from PostgreSQL.
@@ -9928,15 +11031,46 @@ paths:
       - prompts
   /api/v1/prompts/workflows:
     get:
-      description: 'List all locally-discoverable workflows.
+      description: 'List workflow descriptors.
 
 
         Flag-off → 503 ``FeatureDisabled``.
 
-        Langfuse-only workflows are not enumerated here (Langfuse v4 has no
 
-        cheap list-by-prefix call); that surfaces as a follow-up if needed.'
+        Sprint W SW-4 (SR-FU-6) added the ``source`` query param so the admin
+
+        UI can offer a source toggle:
+
+
+        * ``local`` (default) — local YAML descriptors at ``prompts/workflows/``
+
+        * ``langfuse`` — Langfuse-hosted ``workflow:<name>`` JSON-typed prompts
+
+        * ``both`` — merged, deduplicated by ``name`` (local wins on collision)
+
+
+        The Langfuse listing surface is shipped as a stub
+
+        (:func:`PromptManager.list_langfuse_workflows`) that returns an empty
+
+        list when the Langfuse client is unavailable or the v4 SDK does not
+
+        expose a cheap list-by-prefix call. Operators flip
+
+        ``source=langfuse`` once a real listing helper lands.'
       operationId: list_workflows_api_v1_prompts_workflows_get
+      parameters:
+      - in: query
+        name: source
+        required: false
+        schema:
+          default: local
+          enum:
+          - local
+          - langfuse
+          - both
+          title: Source
+          type: string
       responses:
         '200':
           content:
@@ -9944,6 +11078,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/WorkflowListResponse'
           description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
       summary: List Workflows
       tags:
       - prompts
@@ -10378,6 +11518,123 @@ paths:
       summary: Vector Collection Health
       tags:
       - rag-advanced
+  /api/v1/rag-collections:
+    get:
+      description: List collections, optionally filtered by ``tenant_id``.
+      operationId: list_collections_api_v1_rag_collections_get
+      parameters:
+      - description: Filter by tenant_id
+        in: query
+        name: tenant_id
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by tenant_id
+          title: Tenant Id
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 50
+          maximum: 500
+          minimum: 1
+          title: Limit
+          type: integer
+      - in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          minimum: 0
+          title: Offset
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RagCollectionListResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Collections
+      tags:
+      - rag-collections
+  /api/v1/rag-collections/{collection_id}:
+    get:
+      description: Return one collection's full admin detail.
+      operationId: get_collection_api_v1_rag_collections__collection_id__get
+      parameters:
+      - in: path
+        name: collection_id
+        required: true
+        schema:
+          title: Collection Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RagCollectionDetailResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Collection
+      tags:
+      - rag-collections
+  /api/v1/rag-collections/{collection_id}/embedder-profile:
+    patch:
+      description: 'Attach (or detach) an embedder profile.
+
+
+        Returns the updated collection on success. 404 if the collection does
+
+        not exist, 409 ``RAG_DIM_MISMATCH`` when the new profile would change
+
+        the vector dimensionality of an already-populated collection, 400
+
+        ``UNKNOWN_EMBEDDER_PROFILE`` for an unregistered alias.'
+      operationId: set_embedder_profile_api_v1_rag_collections__collection_id__embedder_profile_patch
+      parameters:
+      - in: path
+        name: collection_id
+        required: true
+        schema:
+          title: Collection Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RagCollectionEmbedderProfileUpdate'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RagCollectionDetailResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Set Embedder Profile
+      tags:
+      - rag-collections
   /api/v1/rag/collections:
     get:
       description: List all RAG collections.
@@ -11167,6 +12424,225 @@ paths:
       summary: Reject Review
       tags:
       - reviews
+  /api/v1/routing-runs/:
+    get:
+      description: 'List routing runs ordered ``created_at DESC``.
+
+
+        All filters are AND-combined. ``limit`` is hard-capped at 200; the
+
+        422 from FastAPI''s validator is the desired response (matches the
+
+        NEXT.md unit test ``test_get_list_rejects_limit_over_200_with_422``).'
+      operationId: list_routing_runs_api_v1_routing_runs__get
+      parameters:
+      - description: Tenant scope (default 'default').
+        in: query
+        name: tenant_id
+        required: false
+        schema:
+          default: default
+          description: Tenant scope (default 'default').
+          title: Tenant Id
+          type: string
+      - description: Filter by intent class.
+        in: query
+        name: intent_class
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by intent class.
+          title: Intent Class
+      - description: Filter by detected doctype.
+        in: query
+        name: doctype_detected
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by detected doctype.
+          title: Doctype Detected
+      - description: Filter by aggregated extraction outcome.
+        in: query
+        name: extraction_outcome
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - success
+            - partial
+            - failed
+            - refused_cost
+            - skipped
+            type: string
+          - type: 'null'
+          description: Filter by aggregated extraction outcome.
+          title: Extraction Outcome
+      - description: ISO8601 lower bound (inclusive).
+        in: query
+        name: since
+        required: false
+        schema:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          description: ISO8601 lower bound (inclusive).
+          title: Since
+      - description: ISO8601 upper bound (exclusive).
+        in: query
+        name: until
+        required: false
+        schema:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          description: ISO8601 upper bound (exclusive).
+          title: Until
+      - description: Page size.
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 50
+          description: Page size.
+          maximum: 200
+          minimum: 1
+          title: Limit
+          type: integer
+      - description: Page offset.
+        in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          description: Page offset.
+          minimum: 0
+          title: Offset
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/RoutingRunSummary'
+                title: Response List Routing Runs Api V1 Routing Runs  Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Routing Runs
+      tags:
+      - routing-runs
+  /api/v1/routing-runs/stats:
+    get:
+      description: 'Aggregate per-doctype + per-outcome + per-path counts plus
+
+        mean cost and latency centiles for the supplied window.
+
+
+        When both ``since`` and ``until`` are omitted the window defaults
+
+        to the last 7 days. Empty windows return ``total_runs=0`` with
+
+        empty distribution lists and zeroed centiles.'
+      operationId: get_routing_runs_stats_api_v1_routing_runs_stats_get
+      parameters:
+      - description: Tenant scope.
+        in: query
+        name: tenant_id
+        required: false
+        schema:
+          default: default
+          description: Tenant scope.
+          title: Tenant Id
+          type: string
+      - description: ISO8601 window start (default 7 days ago).
+        in: query
+        name: since
+        required: false
+        schema:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          description: ISO8601 window start (default 7 days ago).
+          title: Since
+      - description: ISO8601 window end (default now).
+        in: query
+        name: until
+        required: false
+        schema:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          description: ISO8601 window end (default now).
+          title: Until
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutingStatsResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Routing Runs Stats
+      tags:
+      - routing-runs
+  /api/v1/routing-runs/{run_id}:
+    get:
+      description: 'Detail row scoped to ``tenant_id``. 404 on miss OR cross-tenant
+
+        ID collision (no leakage).'
+      operationId: get_routing_run_api_v1_routing_runs__run_id__get
+      parameters:
+      - in: path
+        name: run_id
+        required: true
+        schema:
+          format: uuid
+          title: Run Id
+          type: string
+      - description: Tenant scope.
+        in: query
+        name: tenant_id
+        required: false
+        schema:
+          default: default
+          description: Tenant scope.
+          title: Tenant Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutingRunDetail'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Routing Run
+      tags:
+      - routing-runs
   /api/v1/rpa/configs:
     get:
       operationId: list_configs_api_v1_rpa_configs_get

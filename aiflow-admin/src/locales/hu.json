@@ -285,8 +285,45 @@
       "pipelineAndRuns": "Pipeline & Futasok",
       "archive": "Archiv",
       "reviewQueue": "Ellenorzes",
+      "routingRuns": "Routing nyom",
       "prompts": "Promptok",
       "promptWorkflows": "Prompt Workflowk"
+    },
+    "routingRuns": {
+      "title": "Routing nyom",
+      "subtitle": "UC3 EXTRACT routing audit — egy sor egy emailhez",
+      "tenantId": "Tenant",
+      "intentClass": "Intent osztaly",
+      "doctypeDetected": "Doctype",
+      "extractionOutcome": "Eredmeny",
+      "since": "Tol",
+      "until": "Ig",
+      "any": "Barmelyik",
+      "empty": "Nincs talalt routing run a szurokkel.",
+      "page": "Oldal",
+      "totalRuns": "Osszes futas",
+      "meanCost": "Atlag koltseg",
+      "p50Latency": "p50 latencia",
+      "p95Latency": "p95 latencia",
+      "byDoctype": "Doctype szerint",
+      "byOutcome": "Eredmeny szerint",
+      "byExtractionPath": "Extraction path szerint",
+      "col": {
+        "createdAt": "Letrejott",
+        "emailId": "Email",
+        "intentClass": "Intent osztaly",
+        "doctypeDetected": "Doctype",
+        "extractionPath": "Path",
+        "extractionOutcome": "Eredmeny",
+        "costUsd": "Koltseg",
+        "latencyMs": "Latencia"
+      },
+      "detail": {
+        "title": "Routing run reszletek",
+        "metadata": "Mellekletenkenti metadata",
+        "viewEmail": "Eredeti email megnyitasa",
+        "truncated": "A metadata levagva a 8 KB limithez"
+      }
     },
     "monitoring": {
       "title": "Monitoring",
@@ -731,6 +768,7 @@
       "loading": "Betoltes...",
       "error": "Hiba tortent",
       "retry": "Ujra",
+      "refresh": "Frissites",
       "empty": "Nincs adat",
       "save": "Mentes",
       "cancel": "Megse",
@@ -741,6 +779,8 @@
       "confirm": "Biztosan?",
       "yes": "Igen",
       "no": "Nem",
+      "prev": "Elozo",
+      "next": "Kovetkezo",
       "selected": "kivalasztva",
       "bulkDelete": "Kivalaszottak torlese",
       "bulkDeleteConfirm": "Biztosan torli a kivalasztott elemeket?"
