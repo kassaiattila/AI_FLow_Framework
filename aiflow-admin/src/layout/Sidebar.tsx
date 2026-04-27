@@ -42,6 +42,11 @@ const MENU_GROUPS: MenuGroup[] = [
         icon: "filter",
       },
       {
+        path: "/routing-runs",
+        labelKey: "aiflow.menu.routingRuns",
+        icon: "git-branch",
+      },
+      {
         path: "/reviews",
         labelKey: "aiflow.menu.reviewQueue",
         icon: "check-circle",

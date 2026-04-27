@@ -38,6 +38,7 @@ import { Prompts } from "./pages-new/Prompts";
 import { PromptDetail } from "./pages-new/PromptDetail";
 import { PromptWorkflows } from "./pages-new/PromptWorkflows";
 import { Quality } from "./pages-new/Quality";
+import { RoutingRuns } from "./pages-new/RoutingRuns";
 import { Services } from "./pages-new/Services";
 // Cubix archived (Sprint C)
 
@@ -90,6 +91,7 @@ export const router = createHashRouter([
       { path: "emails/connectors", element: <EmailConnectors /> },
       { path: "emails/intent-rules", element: <IntentRules /> },
       { path: "emails/intent-rules/:tenantId", element: <IntentRules /> },
+      { path: "routing-runs", element: <RoutingRuns /> },
       { path: "emails/:id", element: <EmailDetail /> },
       { path: "email-upload", element: <Navigate to="/emails" replace /> },
       { path: "email-connectors", element: <Navigate to="/emails" replace /> },

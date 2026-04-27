@@ -104,6 +104,10 @@ def test_049_drops_customer_column_and_index() -> None:
     cfg = _alembic_cfg()
     starting = asyncio.run(_current_revision())
     try:
+        # Sprint X SX-3 — head moved past 049 (now 050+). Downgrade to 048
+        # baseline first so the upgrade-to-049 below isn't a no-op when the
+        # DB is already past 049.
+        command.downgrade(cfg, "048")
         command.upgrade(cfg, "049")
         assert asyncio.run(_current_revision()) == "049"
         assert not asyncio.run(_column_exists("rag_collections", "customer"))

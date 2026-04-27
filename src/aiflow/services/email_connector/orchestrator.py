@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from aiflow.services.document_recognizer.orchestrator import (
         DocumentRecognizerOrchestrator,
     )
+    from aiflow.services.routing_runs.repository import RoutingRunRepository
     from aiflow.sources.base import SourceAdapter
     from aiflow.sources.sink import IntakePackageSink
     from aiflow.state.repository import StateRepository
@@ -56,6 +57,7 @@ _RUNTIME_HOOKS = (asyncio, Path)
 
 __all__ = [
     "_route_extract_by_doctype",
+    "_write_routing_run_safe",
     "build_default_doc_recognizer_orchestrator",
     "scan_and_classify",
 ]
@@ -85,6 +87,7 @@ async def scan_and_classify(
     routing_settings: UC3DocRecognizerRoutingSettings | None = None,
     doc_recognizer_orchestrator: DocumentRecognizerOrchestrator | None = None,
     cost_preflight: CostPreflightGuardrail | None = None,
+    routing_runs_repository: RoutingRunRepository | None = None,
 ) -> list[tuple[str, ClassificationResult]]:
     """Drain up to ``max_items`` packages: fetch → sink → classify → (route) → persist.
 
@@ -247,11 +250,21 @@ async def scan_and_classify(
         # by detected doctype (``hu_invoice`` → invoice_processor byte-stable;
         # other doctypes → DocRecognizer's PromptWorkflow extraction).
         # Flag-off (default) preserves the Sprint Q path bit-for-bit.
+        # Sprint X / SX-3 — every EXTRACT-class email leaves a forensic
+        # row in ``routing_runs`` regardless of which dispatch path ran
+        # (or whether extraction was enabled at all). The write is
+        # decoupled: a failure here WARN-logs but never poisons the
+        # EXTRACT path itself. ``extract_run_recorded`` flips True the
+        # moment a row is enqueued; the post-EXTRACT fallback writes a
+        # ``skipped`` row when extraction was disabled but the
+        # classifier still landed on an EXTRACT label.
+        extract_run_recorded = False
+        is_extract_intent = _intent_class_is_extract(result)
         if (
             extraction_settings is not None
             and extraction_settings.enabled
             and package.files
-            and _intent_class_is_extract(result)
+            and is_extract_intent
         ):
             if routing_settings is not None and routing_settings.enabled:
                 routing_payload = await _route_extract_by_doctype(
@@ -275,6 +288,15 @@ async def scan_and_classify(
                         total_cost_usd=routing_payload.get("total_cost_usd", 0.0),
                         routing_enabled=True,
                     )
+                    await _write_routing_run_safe(
+                        routing_runs_repository,
+                        tenant_id=tenant_id,
+                        email_id=run.id,
+                        routing_decision=routing_payload["routing_decision"],
+                        flag_off_extracted_fields=None,
+                        total_cost_usd=routing_payload.get("total_cost_usd"),
+                    )
+                    extract_run_recorded = True
             else:
                 extraction_payload = await _maybe_extract_invoice_fields(
                     package.files,
@@ -291,6 +313,29 @@ async def scan_and_classify(
                         file_count=len(extraction_payload["extracted_fields"]),
                         total_cost_usd=extraction_payload.get("total_cost_usd", 0.0),
                     )
+                    await _write_routing_run_safe(
+                        routing_runs_repository,
+                        tenant_id=tenant_id,
+                        email_id=run.id,
+                        routing_decision=None,
+                        flag_off_extracted_fields=extraction_payload["extracted_fields"],
+                        total_cost_usd=extraction_payload.get("total_cost_usd"),
+                    )
+                    extract_run_recorded = True
+
+        # Audit-only fallback: classifier landed on EXTRACT but the
+        # extraction subsystem was disabled (or skipped via no files).
+        # Operators still want to see "EXTRACT email arrived; nothing
+        # ran" in the routing_runs table.
+        if is_extract_intent and not extract_run_recorded:
+            await _write_routing_run_safe(
+                routing_runs_repository,
+                tenant_id=tenant_id,
+                email_id=run.id,
+                routing_decision=None,
+                flag_off_extracted_fields=None,
+                total_cost_usd=None,
+            )
 
         if routing_policy is not None:
             action, target = routing_policy.decide(result.label, result.confidence)
@@ -1030,3 +1075,128 @@ async def _apply_unknown_doctype_action(
         return "rag_ingest", "succeeded", 0.0, {"rag_ingest": "queued"}, None
     # action == "skip"
     return "skipped", "skipped", 0.0, None, None
+
+
+# ---------------------------------------------------------------------------
+# Sprint X / SX-3 — routing_runs audit write hook
+# ---------------------------------------------------------------------------
+
+
+async def _write_routing_run_safe(
+    repository: RoutingRunRepository | None,
+    *,
+    tenant_id: str,
+    email_id: Any,
+    routing_decision: dict[str, Any] | None,
+    flag_off_extracted_fields: dict[str, Any] | None,
+    total_cost_usd: float | None,
+) -> None:
+    """Insert one ``routing_runs`` row for an EXTRACT email.
+
+    Decoupled from the dispatch path: a failure to insert WARN-logs and
+    is swallowed so the EXTRACT path keeps its byte-stable behaviour.
+    The ``repository`` is optional — when ``None`` (default for tests
+    that don't seed a pool) the helper is a no-op.
+
+    Three input shapes the helper has to flatten:
+
+    * ``routing_decision`` non-None → flag-on routing path (SX-2 wrote a
+      full per-attachment trail). Use
+      :func:`summarize_routing_decision` to derive the table-shaped
+      fields.
+    * ``flag_off_extracted_fields`` non-None → flag-off direct
+      ``invoice_processor`` call. Synthesize a single-attachment
+      summary per filename and aggregate the outcome from the per-file
+      ``error`` keys.
+    * Both ``None`` → audit-only "EXTRACT email arrived but no
+      extraction ran" row (extraction_path / extraction_outcome both
+      ``"skipped"``).
+    """
+    if repository is None:
+        return
+
+    # Lazy import — keeps the audit dependency out of the hot path's
+    # cold-start surface and lets tests stub the schemas module.
+    from aiflow.services.routing_runs.schemas import (
+        RoutingRunCreate,
+        aggregate_outcome,
+        summarize_routing_decision,
+    )
+
+    try:
+        if routing_decision is not None:
+            doctype, confidence, path, outcome = summarize_routing_decision(routing_decision)
+            latency_total = routing_decision.get("total_latency_ms")
+            latency_ms = int(round(float(latency_total))) if latency_total is not None else None
+            cost = (
+                float(total_cost_usd)
+                if total_cost_usd is not None
+                else float(routing_decision.get("total_cost_usd") or 0.0)
+            )
+            metadata: dict[str, Any] | None = dict(routing_decision)
+            row = RoutingRunCreate(
+                tenant_id=tenant_id,
+                email_id=email_id,
+                intent_class="EXTRACT",
+                doctype_detected=doctype,
+                doctype_confidence=confidence,
+                extraction_path=path,
+                extraction_outcome=outcome,
+                cost_usd=cost,
+                latency_ms=latency_ms,
+                metadata=metadata,
+            )
+        elif flag_off_extracted_fields is not None:
+            per_file: list[dict[str, Any]] = []
+            outcomes: list[str] = []
+            for filename, fields in flag_off_extracted_fields.items():
+                err = (fields or {}).get("error") if isinstance(fields, dict) else None
+                outcomes.append("failed" if err else "succeeded")
+                per_file.append(
+                    {
+                        "filename": filename,
+                        "extraction_path": "invoice_processor",
+                        "extraction_outcome": "failed" if err else "succeeded",
+                        "cost_usd": (
+                            float((fields or {}).get("cost_usd") or 0.0)
+                            if isinstance(fields, dict)
+                            else 0.0
+                        ),
+                        "error": err if isinstance(err, str) else None,
+                    }
+                )
+            outcome = aggregate_outcome(outcomes)
+            row = RoutingRunCreate(
+                tenant_id=tenant_id,
+                email_id=email_id,
+                intent_class="EXTRACT",
+                doctype_detected=None,
+                doctype_confidence=None,
+                extraction_path="invoice_processor",
+                extraction_outcome=outcome,
+                cost_usd=float(total_cost_usd) if total_cost_usd is not None else None,
+                latency_ms=None,
+                metadata={"flag_off": True, "attachments": per_file},
+            )
+        else:
+            row = RoutingRunCreate(
+                tenant_id=tenant_id,
+                email_id=email_id,
+                intent_class="EXTRACT",
+                doctype_detected=None,
+                doctype_confidence=None,
+                extraction_path="skipped",
+                extraction_outcome="skipped",
+                cost_usd=None,
+                latency_ms=None,
+                metadata={"reason": "extraction_disabled_or_no_files"},
+            )
+
+        await repository.insert(row)
+    except Exception as exc:  # noqa: BLE001 — audit write must never poison EXTRACT
+        logger.warning(
+            "email_connector.scan_and_classify.routing_run_write_failed",
+            tenant_id=tenant_id,
+            email_id=str(email_id) if email_id else None,
+            reason=f"{type(exc).__name__}: {exc}"[:500],
+        )

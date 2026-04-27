@@ -285,8 +285,45 @@
       "pipelineAndRuns": "Pipelines & Runs",
       "archive": "Archive",
       "reviewQueue": "Review Queue",
+      "routingRuns": "Routing Trail",
       "prompts": "Prompts",
       "promptWorkflows": "Prompt Workflows"
+    },
+    "routingRuns": {
+      "title": "Routing Trail",
+      "subtitle": "UC3 EXTRACT routing audit — one row per email",
+      "tenantId": "Tenant",
+      "intentClass": "Intent class",
+      "doctypeDetected": "Doctype",
+      "extractionOutcome": "Outcome",
+      "since": "Since",
+      "until": "Until",
+      "any": "Any",
+      "empty": "No routing runs match the current filters.",
+      "page": "Page",
+      "totalRuns": "Total runs",
+      "meanCost": "Mean cost",
+      "p50Latency": "p50 latency",
+      "p95Latency": "p95 latency",
+      "byDoctype": "By doctype",
+      "byOutcome": "By outcome",
+      "byExtractionPath": "By extraction path",
+      "col": {
+        "createdAt": "Created",
+        "emailId": "Email",
+        "intentClass": "Intent class",
+        "doctypeDetected": "Doctype",
+        "extractionPath": "Path",
+        "extractionOutcome": "Outcome",
+        "costUsd": "Cost",
+        "latencyMs": "Latency"
+      },
+      "detail": {
+        "title": "Routing run detail",
+        "metadata": "Per-attachment metadata",
+        "viewEmail": "View original email",
+        "truncated": "Metadata was truncated to fit the 8 KB cap"
+      }
     },
     "monitoring": {
       "title": "Monitoring",
@@ -731,6 +768,7 @@
       "loading": "Loading...",
       "error": "An error occurred",
       "retry": "Retry",
+      "refresh": "Refresh",
       "empty": "No data",
       "save": "Save",
       "cancel": "Cancel",
@@ -741,6 +779,8 @@
       "confirm": "Are you sure?",
       "yes": "Yes",
       "no": "No",
+      "prev": "Prev",
+      "next": "Next",
       "selected": "selected",
       "bulkDelete": "Delete selected",
       "bulkDeleteConfirm": "Are you sure you want to delete the selected items?"
