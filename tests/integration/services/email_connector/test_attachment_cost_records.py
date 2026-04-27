@@ -100,19 +100,54 @@ class _FakeClassifier:
 
 
 class _FakeRun:
-    def __init__(self) -> None:
-        self.id = uuid4()
+    def __init__(self, run_id: UUID) -> None:
+        self.id = run_id
 
 
 class _FakeRepo:
+    """Persists a real ``workflow_runs`` row so cost_recorder's FK holds.
+
+    Earlier versions returned a synthetic UUID without seeding the DB,
+    which silently broke cost emission (cost_recorder swallowed the
+    asyncpg ``ForeignKeyViolationError`` and the test asserted on zero
+    rows). The cost_recorder writes through :func:`get_pool` — using the
+    same pool here keeps the test hermetic to a single DB connection.
+    """
+
     def __init__(self) -> None:
         self.updates: list[dict[str, Any]] = []
         self.last_run_id: UUID | None = None
 
-    async def create_workflow_run(self, **kwargs: Any) -> _FakeRun:
-        run = _FakeRun()
-        self.last_run_id = run.id
-        return run
+    async def create_workflow_run(
+        self,
+        workflow_name: str = "test_workflow",
+        workflow_version: str = "1.0",
+        input_data: dict[str, Any] | None = None,
+        *,
+        skill_name: str | None = None,
+        **_: Any,
+    ) -> _FakeRun:
+        import json
+
+        from aiflow.api.deps import get_pool
+
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                INSERT INTO workflow_runs
+                    (workflow_name, workflow_version, skill_name, status, input_data)
+                VALUES ($1, $2, $3, 'running', $4::jsonb)
+                RETURNING id
+                """,
+                workflow_name,
+                workflow_version,
+                skill_name,
+                json.dumps(input_data or {}),
+            )
+        run_id: UUID = row["id"]
+        self.last_run_id = run_id
+        return _FakeRun(run_id)
 
     async def update_workflow_run_status(
         self, run_id: UUID, status: str, *, output_data: dict[str, Any] | None = None
@@ -203,6 +238,7 @@ async def test_cost_records_row_per_processed_attachment(
         assert float(r["cost_usd"]) > 0.0
     finally:
         await pg_conn.execute("DELETE FROM cost_records WHERE workflow_run_id = $1", run_id)
+        await pg_conn.execute("DELETE FROM workflow_runs WHERE id = $1", run_id)
 
 
 async def test_failed_attachment_does_not_emit_cost_record(
@@ -247,3 +283,5 @@ async def test_failed_attachment_does_not_emit_cost_record(
     finally:
         if rows:
             await pg_conn.execute("DELETE FROM cost_records WHERE workflow_run_id = $1", run_id)
+        if run_id is not None:
+            await pg_conn.execute("DELETE FROM workflow_runs WHERE id = $1", run_id)

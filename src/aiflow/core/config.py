@@ -16,6 +16,7 @@ __all__ = [
     "CostGuardrailSettings",
     "CostSettings",
     "UC3AttachmentIntentSettings",
+    "UC3DocRecognizerRoutingSettings",
     "UC3ExtractionSettings",
     "VaultSettings",
     "get_settings",
@@ -188,6 +189,32 @@ class UC3ExtractionSettings(BaseSettings):
     # gpt-4o-mini. Ceiling leaves headroom for escalation to a larger
     # model (Sprint T).
     extraction_budget_usd: float = 0.05
+
+
+class UC3DocRecognizerRoutingSettings(BaseSettings):
+    """UC3 EXTRACT routing through DocRecognizer (Sprint X / SX-2).
+
+    When ``enabled`` is True and the UC3 classifier resolves an EXTRACT
+    intent on an email with attachments, the email-connector orchestrator
+    runs :class:`DocumentRecognizerOrchestrator` on each attachment and
+    dispatches based on the detected doctype. ``hu_invoice`` continues
+    through the existing ``invoice_processor`` path (UC1 byte-stable);
+    other known doctypes route through DocRecognizer's extraction
+    workflow; below-threshold or unknown doctypes follow
+    ``unknown_doctype_action``.
+
+    Flag-off (default) preserves the Sprint Q S135 path bit-for-bit:
+    ``_maybe_extract_invoice_fields`` is called directly and no
+    DocRecognizer code is imported.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="AIFLOW_UC3_DOC_RECOGNIZER_ROUTING__")
+    enabled: bool = False
+    confidence_threshold: float = 0.6
+    total_budget_seconds: float = 30.0
+    unknown_doctype_action: Literal["fallback_invoice_processor", "rag_ingest", "skip"] = (
+        "fallback_invoice_processor"
+    )
 
 
 class PromptWorkflowSettings(BaseSettings):

@@ -143,6 +143,11 @@ class EmailDetailResponse(BaseModel):
     # Present only when AIFLOW_UC3_EXTRACTION__ENABLED=true and classifier
     # landed on an EXTRACT intent class.
     extracted_fields: dict[str, Any] | None = None
+    # Sprint X / SX-2 — UC3 EXTRACT routing trail. Present only when
+    # AIFLOW_UC3_DOC_RECOGNIZER_ROUTING__ENABLED=true. Shape: see
+    # ``aiflow.contracts.uc3_routing.UC3ExtractRouting``. Read by the
+    # admin /routing-runs page (Sprint X / SX-3).
+    routing_decision: dict[str, Any] | None = None
     processing_time_ms: float = 0.0
     status: str = "completed"
     source: str = "backend"
@@ -1524,6 +1529,7 @@ async def get_email(email_id: str) -> EmailDetailResponse:
                         (data.get("intent") or {}).get("intent_id") or data.get("label")
                     ),
                     extracted_fields=data.get("extracted_fields"),
+                    routing_decision=data.get("routing_decision"),
                     processing_time_ms=row["total_duration_ms"] or 0.0,
                     status=row["status"],
                     source="backend",

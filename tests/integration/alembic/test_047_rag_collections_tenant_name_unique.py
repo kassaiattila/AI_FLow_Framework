@@ -22,6 +22,18 @@ Validates Sprint S / S145 SS-FU-4:
 
 NOTE (feedback_asyncpg_pool_event_loop.md): SYNC test — alembic.command.*
 spin their own asyncio.run() loop via alembic/env.py.
+
+Sprint X SX-2 repair note:
+* Sprint W SW-3 (Alembic 049) dropped the ``customer`` column from
+  ``rag_collections``. The test originally hard-coded
+  ``command.upgrade(cfg, "047")`` as the first step, which is a no-op
+  when starting from head=049 (alembic upgrade is forward-only). It also
+  inserted with ``customer`` in the column list — the column is gone at
+  head and exists only when the migration has been rolled back to
+  ≤ 048. The test now uses :func:`_move_to` to downgrade from any post-047
+  head to revision 047 and back, and the insert helper omits the dropped
+  ``customer`` column (relying on the column's nullability at revisions
+  ≤ 048 — see ``alembic/versions/049_rag_collections_drop_customer.py``).
 """
 
 from __future__ import annotations
@@ -109,12 +121,18 @@ async def _cleanup_test_rows() -> None:
 
 
 async def _insert(tenant: str, name: str) -> None:
+    """Insert a row that works at any revision in [046, 048].
+
+    The ``customer`` column was dropped in 049 (SW-3); 046–048 leave it
+    nullable, so omitting it is forward-compatible across the test's
+    downgrade window.
+    """
     conn = await _connect()
     try:
         await conn.execute(
             """
-            INSERT INTO rag_collections (id, name, customer, skill_name, tenant_id)
-            VALUES (gen_random_uuid(), $1, 's145-test', 'rag_engine', $2)
+            INSERT INTO rag_collections (id, name, skill_name, tenant_id)
+            VALUES (gen_random_uuid(), $1, 'rag_engine', $2)
             """,
             name,
             tenant,
@@ -123,11 +141,29 @@ async def _insert(tenant: str, name: str) -> None:
         await conn.close()
 
 
+def _move_to(cfg: Config, target: str) -> None:
+    """Move the alembic state to ``target``, picking the right direction.
+
+    Required because ``command.upgrade`` is forward-only — calling
+    ``upgrade(cfg, "047")`` from head=049 is a silent no-op. With
+    Sprint W's 048+049 migrations the test must be able to walk
+    backwards from head to 047 to inspect the constraint state.
+    """
+    current = asyncio.run(_current_revision())
+    if current == target:
+        return
+    # Compare zero-padded revision IDs: alembic IDs are 3-digit.
+    if current is None or current < target:
+        command.upgrade(cfg, target)
+    else:
+        command.downgrade(cfg, target)
+
+
 def test_047_upgrade_swaps_constraints_and_downgrade_roundtrip() -> None:
     cfg = _alembic_cfg()
     starting = asyncio.run(_current_revision())
     try:
-        command.upgrade(cfg, "047")
+        _move_to(cfg, "047")
         assert asyncio.run(_current_revision()) == "047"
         assert not asyncio.run(_constraint_exists(_OLD_NAME_UNIQUE))
         assert asyncio.run(_constraint_exists(_NEW_TENANT_NAME_UNIQUE))
@@ -144,7 +180,7 @@ def test_047_upgrade_swaps_constraints_and_downgrade_roundtrip() -> None:
     finally:
         if starting and starting != asyncio.run(_current_revision()):
             try:
-                command.upgrade(cfg, starting)
+                _move_to(cfg, starting)
             except Exception:
                 pass
 
@@ -153,7 +189,7 @@ def test_047_cross_tenant_name_collision_allowed_after_upgrade() -> None:
     cfg = _alembic_cfg()
     starting = asyncio.run(_current_revision())
     try:
-        command.upgrade(cfg, "047")
+        _move_to(cfg, "047")
         asyncio.run(_cleanup_test_rows())
 
         asyncio.run(_insert("tenant-a", "s145-alembic-shared"))
@@ -175,6 +211,6 @@ def test_047_cross_tenant_name_collision_allowed_after_upgrade() -> None:
             pass
         if starting and starting != asyncio.run(_current_revision()):
             try:
-                command.upgrade(cfg, starting)
+                _move_to(cfg, starting)
             except Exception:
                 pass

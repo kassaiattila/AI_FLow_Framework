@@ -2777,7 +2777,7 @@
         "type": "object"
       },
       "DocFieldValue": {
-        "description": "Single extracted field — value + confidence + source span hint.",
+        "description": "Single extracted field \u2014 value + confidence + source span hint.",
         "properties": {
           "confidence": {
             "default": 0.0,
@@ -2823,7 +2823,7 @@
         "type": "object"
       },
       "DocIntentDecision": {
-        "description": "Routing decision after extraction — what to do with this document.",
+        "description": "Routing decision after extraction \u2014 what to do with this document.",
         "properties": {
           "intent": {
             "enum": [
@@ -2861,8 +2861,186 @@
         "title": "DocIntentDecision",
         "type": "object"
       },
+      "DocTypeDescriptor-Input": {
+        "description": "Full operator-authored descriptor (YAML-driven).\n\nLoaded from ``data/doctypes/<name>.yaml`` (bootstrap) or\n``data/doctypes/_tenant/<tenant_id>/<name>.yaml`` (per-tenant override).",
+        "properties": {
+          "category": {
+            "default": "other",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Category",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "extraction": {
+            "$ref": "#/components/schemas/ExtractionConfig"
+          },
+          "intent_routing": {
+            "$ref": "#/components/schemas/IntentRoutingConfig"
+          },
+          "language": {
+            "default": "hu",
+            "maxLength": 10,
+            "minLength": 2,
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Name",
+            "type": "string"
+          },
+          "parser_preferences": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parser Preferences",
+            "type": "array"
+          },
+          "pii_level": {
+            "default": "low",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Pii Level",
+            "type": "string"
+          },
+          "type_classifier": {
+            "$ref": "#/components/schemas/TypeClassifierConfig"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "display_name",
+          "type_classifier",
+          "extraction"
+        ],
+        "title": "DocTypeDescriptor",
+        "type": "object"
+      },
+      "DocTypeDescriptor-Output": {
+        "description": "Full operator-authored descriptor (YAML-driven).\n\nLoaded from ``data/doctypes/<name>.yaml`` (bootstrap) or\n``data/doctypes/_tenant/<tenant_id>/<name>.yaml`` (per-tenant override).",
+        "properties": {
+          "category": {
+            "default": "other",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Category",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "extraction": {
+            "$ref": "#/components/schemas/ExtractionConfig"
+          },
+          "intent_routing": {
+            "$ref": "#/components/schemas/IntentRoutingConfig"
+          },
+          "language": {
+            "default": "hu",
+            "maxLength": 10,
+            "minLength": 2,
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Name",
+            "type": "string"
+          },
+          "parser_preferences": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parser Preferences",
+            "type": "array"
+          },
+          "pii_level": {
+            "default": "low",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Pii Level",
+            "type": "string"
+          },
+          "type_classifier": {
+            "$ref": "#/components/schemas/TypeClassifierConfig"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "display_name",
+          "type_classifier",
+          "extraction"
+        ],
+        "title": "DocTypeDescriptor",
+        "type": "object"
+      },
       "DocTypeMatch": {
-        "description": "Classifier output — primary doc-type + top-3 alternatives.",
+        "description": "Classifier output \u2014 primary doc-type + top-3 alternatives.",
         "properties": {
           "alternatives": {
             "items": {
@@ -2905,7 +3083,7 @@
         "description": "Response shape for ``GET /doctypes/{name}``.",
         "properties": {
           "descriptor": {
-            "$ref": "#/components/schemas/DocTypeDescriptor"
+            "$ref": "#/components/schemas/DocTypeDescriptor-Output"
           },
           "has_tenant_override": {
             "title": "Has Tenant Override",
@@ -3010,7 +3188,7 @@
           "descriptor": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DocTypeDescriptor"
+                "$ref": "#/components/schemas/DocTypeDescriptor-Input"
               },
               {
                 "type": "null"
@@ -3321,6 +3499,18 @@
               }
             ],
             "title": "Routing"
+          },
+          "routing_decision": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routing Decision"
           },
           "sender": {
             "default": "",
@@ -3858,7 +4048,7 @@
         "type": "object"
       },
       "ExtractionConfig": {
-        "description": "Doc-type extraction config — workflow descriptor + field schema.",
+        "description": "Doc-type extraction config \u2014 workflow descriptor + field schema.",
         "properties": {
           "fields": {
             "items": {
@@ -4797,7 +4987,7 @@
         "type": "object"
       },
       "IntentRoutingConfig": {
-        "description": "Intent routing — default + conditional rules.",
+        "description": "Intent routing \u2014 default + conditional rules.",
         "properties": {
           "conditions": {
             "items": {
@@ -4862,7 +5052,7 @@
         "type": "object"
       },
       "IntentRulesDetailResponse": {
-        "description": "Detail read — returns both structured fields and raw YAML so the\neditor can round-trip comments/formatting the user entered.",
+        "description": "Detail read \u2014 returns both structured fields and raw YAML so the\neditor can round-trip comments/formatting the user entered.",
         "properties": {
           "default_action": {
             "title": "Default Action",
@@ -4969,7 +5159,7 @@
         "type": "object"
       },
       "IntentRulesUpsertRequest": {
-        "description": "User-edited raw YAML — validated server-side before write.",
+        "description": "User-edited raw YAML \u2014 validated server-side before write.",
         "properties": {
           "yaml_text": {
             "title": "Yaml Text",
@@ -5829,7 +6019,7 @@
             "type": "string"
           },
           "extractions": {
-            "description": "Persisted extraction results for this package. Always empty in S97 — extraction persistence lands in S97.5.",
+            "description": "Persisted extraction results for this package. Always empty in S97 \u2014 extraction persistence lands in S97.5.",
             "items": {
               "additionalProperties": true,
               "type": "object"
@@ -6654,7 +6844,7 @@
         "type": "object"
       },
       "PromptUpsertRequest": {
-        "description": "User-edited raw YAML — validated server-side before write.",
+        "description": "User-edited raw YAML \u2014 validated server-side before write.",
         "properties": {
           "yaml_text": {
             "title": "Yaml Text",
@@ -6925,7 +7115,7 @@
         "type": "object"
       },
       "RagCollectionDetailResponse": {
-        "description": "Detail-pane payload — list row plus descriptive fields.",
+        "description": "Detail-pane payload \u2014 list row plus descriptive fields.",
         "properties": {
           "chunk_count": {
             "default": 0,
@@ -7028,7 +7218,7 @@
         "type": "object"
       },
       "RagCollectionEmbedderProfileUpdate": {
-        "description": "Body for the PATCH …/embedder-profile route.",
+        "description": "Body for the PATCH \u2026/embedder-profile route.",
         "properties": {
           "embedder_profile_id": {
             "anyOf": [
@@ -7046,7 +7236,7 @@
         "type": "object"
       },
       "RagCollectionListItem": {
-        "description": "One row in the admin listing — minimum the table needs.",
+        "description": "One row in the admin listing \u2014 minimum the table needs.",
         "properties": {
           "chunk_count": {
             "default": 0,
@@ -7791,7 +7981,7 @@
         "type": "object"
       },
       "RuleSpec": {
-        "description": "One rule in the type classifier — 5 kinds, each weight-scored.",
+        "description": "One rule in the type classifier \u2014 5 kinds, each weight-scored.",
         "properties": {
           "hint": {
             "anyOf": [
@@ -8117,7 +8307,7 @@
         "type": "object"
       },
       "ScanRequest": {
-        "description": "Trigger EmailSource → IntakePackageSink → Classifier scan.",
+        "description": "Trigger EmailSource \u2192 IntakePackageSink \u2192 Classifier scan.",
         "properties": {
           "max_items": {
             "default": 10,
@@ -9310,7 +9500,7 @@
         "type": "object"
       },
       "TenantBudgetGetResponse": {
-        "description": "GET response — persisted row plus the live projection.",
+        "description": "GET response \u2014 persisted row plus the live projection.",
         "properties": {
           "budget": {
             "$ref": "#/components/schemas/TenantBudget"
@@ -9327,7 +9517,7 @@
         "type": "object"
       },
       "TenantBudgetUpsertRequest": {
-        "description": "PUT body — immutable fields (tenant_id, period) come from the path.",
+        "description": "PUT body \u2014 immutable fields (tenant_id, period) come from the path.",
         "properties": {
           "alert_threshold_pct": {
             "items": {
@@ -9651,7 +9841,7 @@
         "type": "object"
       },
       "UploadPackageFile": {
-        "description": "File entry in the response — sanitized view of IntakeFile.",
+        "description": "File entry in the response \u2014 sanitized view of IntakeFile.",
         "properties": {
           "file_id": {
             "format": "uuid",
@@ -10888,95 +11078,6 @@
           "services"
         ],
         "title": "ServiceHealthResponse",
-        "type": "object"
-      },
-      "DocTypeDescriptor": {
-        "description": "Full operator-authored descriptor (YAML-driven).\n\nLoaded from ``data/doctypes/<name>.yaml`` (bootstrap) or\n``data/doctypes/_tenant/<tenant_id>/<name>.yaml`` (per-tenant override).",
-        "properties": {
-          "category": {
-            "default": "other",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Category",
-            "type": "string"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "maxLength": 2000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "display_name": {
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Display Name",
-            "type": "string"
-          },
-          "extraction": {
-            "$ref": "#/components/schemas/ExtractionConfig"
-          },
-          "intent_routing": {
-            "$ref": "#/components/schemas/IntentRoutingConfig"
-          },
-          "language": {
-            "default": "hu",
-            "maxLength": 10,
-            "minLength": 2,
-            "title": "Language",
-            "type": "string"
-          },
-          "name": {
-            "maxLength": 128,
-            "minLength": 1,
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "title": "Name",
-            "type": "string"
-          },
-          "parser_preferences": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Parser Preferences",
-            "type": "array"
-          },
-          "pii_level": {
-            "default": "low",
-            "enum": [
-              "low",
-              "medium",
-              "high"
-            ],
-            "title": "Pii Level",
-            "type": "string"
-          },
-          "type_classifier": {
-            "$ref": "#/components/schemas/TypeClassifierConfig"
-          },
-          "version": {
-            "default": 1,
-            "minimum": 1.0,
-            "title": "Version",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "name",
-          "display_name",
-          "type_classifier",
-          "extraction"
-        ],
-        "title": "DocTypeDescriptor",
         "type": "object"
       }
     }
@@ -12857,7 +12958,7 @@
         ]
       },
       "post": {
-        "description": "Batch save verification edits — replaces existing pending edits.",
+        "description": "Batch save verification edits \u2014 replaces existing pending edits.",
         "operationId": "save_verification_edits_api_v1_documents__document_id__verifications_post",
         "parameters": [
           {
@@ -12963,7 +13064,7 @@
     },
     "/api/v1/documents/{document_id}/verifications/reject": {
       "patch": {
-        "description": "Reject all pending verification edits — comment is required.",
+        "description": "Reject all pending verification edits \u2014 comment is required.",
         "operationId": "reject_verification_edits_api_v1_documents__document_id__verifications_reject_patch",
         "parameters": [
           {
@@ -13016,7 +13117,7 @@
     },
     "/api/v1/documents/{invoice_id}/verify": {
       "post": {
-        "description": "Verify an extracted document — confirm or correct extracted fields.",
+        "description": "Verify an extracted document \u2014 confirm or correct extracted fields.",
         "operationId": "verify_document_api_v1_documents__invoice_id__verify_post",
         "parameters": [
           {
@@ -13649,7 +13750,7 @@
     },
     "/api/v1/emails/intent-rules/{tenant_id}": {
       "delete": {
-        "description": "Delete the policy file for a tenant. Idempotent — 204 when missing.",
+        "description": "Delete the policy file for a tenant. Idempotent \u2014 204 when missing.",
         "operationId": "delete_intent_rules_api_v1_emails_intent_rules__tenant_id__delete",
         "parameters": [
           {
@@ -13724,7 +13825,7 @@
         ]
       },
       "put": {
-        "description": "Upsert the policy for a tenant. YAML is parsed and validated as\n``IntentRoutingPolicy`` before being written — invalid payloads return 422.\nThe ``tenant_id`` in the URL must match the ``tenant_id`` in the YAML.",
+        "description": "Upsert the policy for a tenant. YAML is parsed and validated as\n``IntentRoutingPolicy`` before being written \u2014 invalid payloads return 422.\nThe ``tenant_id`` in the URL must match the ``tenant_id`` in the YAML.",
         "operationId": "upsert_intent_rules_api_v1_emails_intent_rules__tenant_id__put",
         "parameters": [
           {
@@ -13859,7 +13960,7 @@
     },
     "/api/v1/emails/scan/{config_id}": {
       "post": {
-        "description": "Scan an inbox → IntakePackage → classifier → persist to workflow_runs.\n\nThin wrapper around ``scan_and_classify``; credentials are read from the\nconnector config's plaintext JSON ``credentials_encrypted`` (dev) — real\ncredential decryption lands in S107.",
+        "description": "Scan an inbox \u2192 IntakePackage \u2192 classifier \u2192 persist to workflow_runs.\n\nThin wrapper around ``scan_and_classify``; credentials are read from the\nconnector config's plaintext JSON ``credentials_encrypted`` (dev) \u2014 real\ncredential decryption lands in S107.",
         "operationId": "scan_and_classify_endpoint_api_v1_emails_scan__config_id__post",
         "parameters": [
           {
@@ -14037,7 +14138,7 @@
     },
     "/api/v1/intake/upload-package": {
       "post": {
-        "description": "Multipart/form-data endpoint for push-mode ingestion. The caller sends one or more ``files`` parts plus an optional JSON-encoded ``descriptions`` list and association controls. The N4 associator computes ``{file_id: description_id}`` mappings; the chosen ``AssociationMode`` is persisted. tenant_id is resolved from the JWT ``team_id`` claim (or ``sub`` as fallback) — never from form fields.",
+        "description": "Multipart/form-data endpoint for push-mode ingestion. The caller sends one or more ``files`` parts plus an optional JSON-encoded ``descriptions`` list and association controls. The N4 associator computes ``{file_id: description_id}`` mappings; the chosen ``AssociationMode`` is persisted. tenant_id is resolved from the JWT ``team_id`` claim (or ``sub`` as fallback) \u2014 never from form fields.",
         "operationId": "upload_package_api_v1_intake_upload_package_post",
         "requestBody": {
           "content": {
@@ -15935,7 +16036,7 @@
     },
     "/api/v1/prompts/list": {
       "get": {
-        "description": "List prompt YAML files found on disk.\n\nRead-only v1 surface: walks the configured prompt roots, parses each\nYAML's top-level ``name``/``version``/``tags`` for display, and falls\nback to the file stem when ``name`` is absent. Langfuse is intentionally\nnot consulted here — this is the local SSOT view the admin UI renders\nbefore richer Langfuse-aware tooling lands (S98+).",
+        "description": "List prompt YAML files found on disk.\n\nRead-only v1 surface: walks the configured prompt roots, parses each\nYAML's top-level ``name``/``version``/``tags`` for display, and falls\nback to the file stem when ``name`` is absent. Langfuse is intentionally\nnot consulted here \u2014 this is the local SSOT view the admin UI renders\nbefore richer Langfuse-aware tooling lands (S98+).",
         "operationId": "list_prompts_api_v1_prompts_list_get",
         "responses": {
           "200": {
@@ -15979,7 +16080,7 @@
     },
     "/api/v1/prompts/workflows": {
       "get": {
-        "description": "List workflow descriptors.\n\nFlag-off → 503 ``FeatureDisabled``.\n\nSprint W SW-4 (SR-FU-6) added the ``source`` query param so the admin\nUI can offer a source toggle:\n\n* ``local`` (default) — local YAML descriptors at ``prompts/workflows/``\n* ``langfuse`` — Langfuse-hosted ``workflow:<name>`` JSON-typed prompts\n* ``both`` — merged, deduplicated by ``name`` (local wins on collision)\n\nThe Langfuse listing surface is shipped as a stub\n(:func:`PromptManager.list_langfuse_workflows`) that returns an empty\nlist when the Langfuse client is unavailable or the v4 SDK does not\nexpose a cheap list-by-prefix call. Operators flip\n``source=langfuse`` once a real listing helper lands.",
+        "description": "List workflow descriptors.\n\nFlag-off \u2192 503 ``FeatureDisabled``.\n\nSprint W SW-4 (SR-FU-6) added the ``source`` query param so the admin\nUI can offer a source toggle:\n\n* ``local`` (default) \u2014 local YAML descriptors at ``prompts/workflows/``\n* ``langfuse`` \u2014 Langfuse-hosted ``workflow:<name>`` JSON-typed prompts\n* ``both`` \u2014 merged, deduplicated by ``name`` (local wins on collision)\n\nThe Langfuse listing surface is shipped as a stub\n(:func:`PromptManager.list_langfuse_workflows`) that returns an empty\nlist when the Langfuse client is unavailable or the v4 SDK does not\nexpose a cheap list-by-prefix call. Operators flip\n``source=langfuse`` once a real listing helper lands.",
         "operationId": "list_workflows_api_v1_prompts_workflows_get",
         "parameters": [
           {
@@ -16174,7 +16275,7 @@
         ]
       },
       "put": {
-        "description": "Write updated YAML back to disk and invalidate the cache.\n\nThe prompt must already exist on disk — create-new is intentionally out of\nscope. YAML is parsed + the top-level ``name`` must match the URL to catch\nrename-vs-edit confusion.",
+        "description": "Write updated YAML back to disk and invalidate the cache.\n\nThe prompt must already exist on disk \u2014 create-new is intentionally out of\nscope. YAML is parsed + the top-level ``name`` must match the URL to catch\nrename-vs-edit confusion.",
         "operationId": "upsert_prompt_api_v1_prompts__prompt_name__put",
         "parameters": [
           {
@@ -18007,7 +18108,7 @@
     },
     "/api/v1/reviews/{review_id}/escalate": {
       "post": {
-        "description": "Manually escalate a pending review — bumps priority.",
+        "description": "Manually escalate a pending review \u2014 bumps priority.",
         "operationId": "escalate_review_api_v1_reviews__review_id__escalate_post",
         "parameters": [
           {
@@ -19043,7 +19144,7 @@
     },
     "/api/v1/sources/webhook": {
       "post": {
-        "description": "Raw bytes body is signed as ``<timestamp>.<base64(body)>`` with HMAC-SHA256. Caller must send ``X-Webhook-Signature`` (hex), ``X-Webhook-Timestamp`` (unix seconds), and ``X-Filename``. Optional ``Idempotency-Key`` guards against duplicate delivery. The body MUST NOT be parsed as JSON by intermediaries — the signature covers the exact bytes submitted.",
+        "description": "Raw bytes body is signed as ``<timestamp>.<base64(body)>`` with HMAC-SHA256. Caller must send ``X-Webhook-Signature`` (hex), ``X-Webhook-Timestamp`` (unix seconds), and ``X-Filename``. Optional ``Idempotency-Key`` guards against duplicate delivery. The body MUST NOT be parsed as JSON by intermediaries \u2014 the signature covers the exact bytes submitted.",
         "operationId": "accept_webhook_api_v1_sources_webhook_post",
         "parameters": [
           {
@@ -19170,7 +19271,7 @@
                 }
               }
             },
-            "description": "Idempotency-Key already seen — request is a duplicate."
+            "description": "Idempotency-Key already seen \u2014 request is a duplicate."
           },
           "413": {
             "content": {
