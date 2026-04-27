@@ -27,16 +27,23 @@ import structlog
 from aiflow.intake.package import DescriptionRole
 
 if TYPE_CHECKING:
+    from aiflow.contracts.uc3_routing import ExtractionOutcome, ExtractionPath
     from aiflow.core.config import (
         UC3AttachmentIntentSettings,
+        UC3DocRecognizerRoutingSettings,
         UC3ExtractionSettings,
     )
+    from aiflow.guardrails.cost_preflight import CostPreflightGuardrail
     from aiflow.intake.package import IntakeFile, IntakePackage
     from aiflow.policy.intent_routing import IntentRoutingPolicy
     from aiflow.prompts.manager import PromptManager
     from aiflow.services.classifier.service import (
         ClassificationResult,
         ClassifierService,
+    )
+    from aiflow.services.document_recognizer.classifier import ClassifierInput
+    from aiflow.services.document_recognizer.orchestrator import (
+        DocumentRecognizerOrchestrator,
     )
     from aiflow.sources.base import SourceAdapter
     from aiflow.sources.sink import IntakePackageSink
@@ -47,7 +54,11 @@ if TYPE_CHECKING:
 # doesn't strip them as unused on subsequent edits.
 _RUNTIME_HOOKS = (asyncio, Path)
 
-__all__ = ["scan_and_classify"]
+__all__ = [
+    "_route_extract_by_doctype",
+    "build_default_doc_recognizer_orchestrator",
+    "scan_and_classify",
+]
 
 logger = structlog.get_logger(__name__)
 
@@ -71,6 +82,9 @@ async def scan_and_classify(
     prompt_label: str = "prod",
     attachment_intent_settings: UC3AttachmentIntentSettings | None = None,
     extraction_settings: UC3ExtractionSettings | None = None,
+    routing_settings: UC3DocRecognizerRoutingSettings | None = None,
+    doc_recognizer_orchestrator: DocumentRecognizerOrchestrator | None = None,
+    cost_preflight: CostPreflightGuardrail | None = None,
 ) -> list[tuple[str, ClassificationResult]]:
     """Drain up to ``max_items`` packages: fetch → sink → classify → (route) → persist.
 
@@ -226,27 +240,57 @@ async def scan_and_classify(
         # outputs intent_class == "EXTRACT" AND the caller opted in via
         # UC3ExtractionSettings. Flag-off contract: no import, no log event,
         # no new keys in output_data.
+        #
+        # Sprint X / SX-2 — when ``routing_settings`` is also enabled, the
+        # extract path is wrapped by ``_route_extract_by_doctype`` which
+        # classifies each attachment with DocRecognizer first and dispatches
+        # by detected doctype (``hu_invoice`` → invoice_processor byte-stable;
+        # other doctypes → DocRecognizer's PromptWorkflow extraction).
+        # Flag-off (default) preserves the Sprint Q path bit-for-bit.
         if (
             extraction_settings is not None
             and extraction_settings.enabled
             and package.files
             and _intent_class_is_extract(result)
         ):
-            extraction_payload = await _maybe_extract_invoice_fields(
-                package.files,
-                settings=extraction_settings,
-                workflow_run_id=str(run.id),
-            )
-            if extraction_payload is not None:
-                output_data["extracted_fields"] = extraction_payload["extracted_fields"]
-                logger.info(
-                    "email_connector.scan_and_classify.extracted_fields_persisted",
+            if routing_settings is not None and routing_settings.enabled:
+                routing_payload = await _route_extract_by_doctype(
+                    package.files,
+                    routing_settings=routing_settings,
+                    extraction_settings=extraction_settings,
                     tenant_id=tenant_id,
-                    package_id=str(package.package_id),
                     workflow_run_id=str(run.id),
-                    file_count=len(extraction_payload["extracted_fields"]),
-                    total_cost_usd=extraction_payload.get("total_cost_usd", 0.0),
+                    doc_recognizer_orchestrator=doc_recognizer_orchestrator,
+                    cost_preflight=cost_preflight,
                 )
+                if routing_payload is not None:
+                    output_data["extracted_fields"] = routing_payload["extracted_fields"]
+                    output_data["routing_decision"] = routing_payload["routing_decision"]
+                    logger.info(
+                        "email_connector.scan_and_classify.extracted_fields_persisted",
+                        tenant_id=tenant_id,
+                        package_id=str(package.package_id),
+                        workflow_run_id=str(run.id),
+                        file_count=len(routing_payload["extracted_fields"]),
+                        total_cost_usd=routing_payload.get("total_cost_usd", 0.0),
+                        routing_enabled=True,
+                    )
+            else:
+                extraction_payload = await _maybe_extract_invoice_fields(
+                    package.files,
+                    settings=extraction_settings,
+                    workflow_run_id=str(run.id),
+                )
+                if extraction_payload is not None:
+                    output_data["extracted_fields"] = extraction_payload["extracted_fields"]
+                    logger.info(
+                        "email_connector.scan_and_classify.extracted_fields_persisted",
+                        tenant_id=tenant_id,
+                        package_id=str(package.package_id),
+                        workflow_run_id=str(run.id),
+                        file_count=len(extraction_payload["extracted_fields"]),
+                        total_cost_usd=extraction_payload.get("total_cost_usd", 0.0),
+                    )
 
         if routing_policy is not None:
             action, target = routing_policy.decide(result.label, result.confidence)
@@ -564,3 +608,425 @@ async def _maybe_extract_attachment_features(
             reason=str(exc),
         )
         return None
+
+
+# ---------------------------------------------------------------------------
+# Sprint X / SX-2 — UC3 EXTRACT routing through DocRecognizer
+# ---------------------------------------------------------------------------
+
+
+# DocRecognizer doctype names that should keep flowing through the existing
+# Sprint Q ``invoice_processor`` byte-stable path. Other known doctypes
+# (id_card, address_card, passport, contract) route through DocRecognizer's
+# own PromptWorkflow extractor (Sprint W SW-1).
+_INVOICE_PROCESSOR_DOCTYPES = {"hu_invoice"}
+
+
+def build_default_doc_recognizer_orchestrator(
+    bootstrap_dir: Path | None = None,
+) -> DocumentRecognizerOrchestrator:
+    """Lazy-imported factory for the production orchestrator.
+
+    Reads doctype YAMLs from ``data/doctypes`` by default. Tests override
+    by passing a constructed orchestrator into ``scan_and_classify`` (or
+    by monkeypatching this function).
+    """
+    from aiflow.services.document_recognizer.orchestrator import (
+        DocumentRecognizerOrchestrator,
+    )
+    from aiflow.services.document_recognizer.registry import DocTypeRegistry
+
+    registry = DocTypeRegistry(bootstrap_dir=bootstrap_dir or Path("data/doctypes"))
+    return DocumentRecognizerOrchestrator(registry=registry)
+
+
+async def _route_extract_by_doctype(
+    files: list[IntakeFile],
+    *,
+    routing_settings: UC3DocRecognizerRoutingSettings,
+    extraction_settings: UC3ExtractionSettings,
+    tenant_id: str,
+    workflow_run_id: str | None = None,
+    doc_recognizer_orchestrator: DocumentRecognizerOrchestrator | None = None,
+    cost_preflight: CostPreflightGuardrail | None = None,
+) -> dict[str, Any] | None:
+    """Sprint X / SX-2 — classify each attachment with DocRecognizer and
+    dispatch to the right extractor.
+
+    Per-attachment slice of ``routing_settings.total_budget_seconds`` is
+    enforced via :func:`asyncio.wait_for`. ``hu_invoice`` doctype dispatches
+    back through the byte-stable Sprint Q ``_maybe_extract_invoice_fields``
+    helper so UC1 stays bit-stable on the flag-on path. Other known
+    doctypes call ``DocumentRecognizerOrchestrator.run`` with the detected
+    doctype as a hint and field-map the result into the same per-filename
+    dict shape. Below-threshold or unknown doctypes follow
+    ``routing_settings.unknown_doctype_action`` (fallback to invoice
+    processor / RAG ingest stub / skip).
+
+    Per-attachment errors are isolated (one bad attachment does not
+    poison the rest). Per-step cost preflight is consulted when a
+    ``cost_preflight`` instance is provided (``allowed=False`` → outcome
+    ``refused_cost`` and the LLM call is skipped).
+
+    Return shape::
+
+        {
+          "extracted_fields": {<filename>: {...invoice_processor shape OR
+                               doc_recognizer extracted_fields...}},
+          "total_cost_usd": float,
+          "routing_decision": <UC3ExtractRouting.model_dump()>,
+        }
+
+    Returns ``None`` only on empty input — every other failure mode is
+    surfaced inside the per-attachment record.
+    """
+    # Lazy imports — flag-off must not pay the DocRecognizer cold start.
+    from aiflow.contracts.uc3_routing import UC3AttachmentRoute, UC3ExtractRouting
+
+    if not files:
+        return None
+
+    eligible = files[: extraction_settings.max_attachments_per_email]
+    if not eligible:
+        return None
+
+    orchestrator = doc_recognizer_orchestrator or build_default_doc_recognizer_orchestrator()
+    per_attachment_budget = max(
+        0.001, routing_settings.total_budget_seconds / max(1, len(eligible))
+    )
+
+    extracted_fields: dict[str, Any] = {}
+    routes: list[UC3AttachmentRoute] = []
+    total_cost = 0.0
+    total_latency = 0.0
+
+    for f in eligible:
+        attachment_id = str(f.file_id)
+        filename = f.file_name
+        start = asyncio.get_event_loop().time()
+        path: ExtractionPath = "skipped"
+        outcome: ExtractionOutcome = "skipped"
+        cost_usd = 0.0
+        doctype: str | None = None
+        confidence = 0.0
+        error: str | None = None
+
+        try:
+            ctx = await _build_classifier_input(f)
+            classify_coro = orchestrator.classify(ctx, tenant_id=tenant_id)
+            match, _descriptor = await asyncio.wait_for(
+                classify_coro, timeout=per_attachment_budget
+            )
+            if match is not None:
+                doctype = match.doc_type
+                confidence = match.confidence
+
+            if match is None or confidence < routing_settings.confidence_threshold:
+                # Below-threshold / no-match → policy.
+                (
+                    path,
+                    outcome,
+                    cost_usd,
+                    fields_for_file,
+                    error,
+                ) = await _apply_unknown_doctype_action(
+                    f,
+                    action=routing_settings.unknown_doctype_action,
+                    extraction_settings=extraction_settings,
+                    cost_preflight=cost_preflight,
+                    per_attachment_budget=per_attachment_budget,
+                    workflow_run_id=workflow_run_id,
+                )
+                if fields_for_file is not None:
+                    extracted_fields[filename] = fields_for_file
+            elif doctype in _INVOICE_PROCESSOR_DOCTYPES:
+                preflight_outcome = _check_step_preflight(
+                    cost_preflight,
+                    step_name="uc3_routing.invoice_processor",
+                    ceiling_usd=extraction_settings.extraction_budget_usd,
+                )
+                if preflight_outcome is not None:
+                    path = "invoice_processor"
+                    outcome = preflight_outcome
+                else:
+                    (
+                        path,
+                        outcome,
+                        cost_usd,
+                        fields_for_file,
+                        error,
+                    ) = await _dispatch_to_invoice_processor(
+                        f,
+                        extraction_settings=extraction_settings,
+                        per_attachment_budget=per_attachment_budget,
+                        workflow_run_id=workflow_run_id,
+                    )
+                    if fields_for_file is not None:
+                        extracted_fields[filename] = fields_for_file
+            else:
+                preflight_outcome = _check_step_preflight(
+                    cost_preflight,
+                    step_name=f"uc3_routing.doc_recognizer.{doctype}",
+                    ceiling_usd=extraction_settings.extraction_budget_usd,
+                )
+                if preflight_outcome is not None:
+                    path = "doc_recognizer_workflow"
+                    outcome = preflight_outcome
+                else:
+                    (
+                        path,
+                        outcome,
+                        cost_usd,
+                        fields_for_file,
+                        error,
+                    ) = await _dispatch_to_doc_recognizer(
+                        orchestrator,
+                        ctx,
+                        doctype,
+                        tenant_id=tenant_id,
+                        per_attachment_budget=per_attachment_budget,
+                    )
+                    if fields_for_file is not None:
+                        extracted_fields[filename] = fields_for_file
+        except TimeoutError:
+            outcome = "timed_out"
+            error = f"per-attachment budget exceeded ({per_attachment_budget:.3f}s)"
+            logger.info(
+                "email_connector.scan_and_classify.routing_attachment_timeout",
+                tenant_id=tenant_id,
+                workflow_run_id=workflow_run_id,
+                attachment_id=attachment_id,
+                filename=filename,
+                budget_seconds=per_attachment_budget,
+            )
+        except Exception as exc:  # noqa: BLE001 — per-attachment isolation
+            outcome = "failed"
+            error = f"{type(exc).__name__}: {exc}"[:500]
+            logger.warning(
+                "email_connector.scan_and_classify.routing_attachment_failed",
+                tenant_id=tenant_id,
+                workflow_run_id=workflow_run_id,
+                attachment_id=attachment_id,
+                filename=filename,
+                reason=error,
+            )
+
+        latency_ms = (asyncio.get_event_loop().time() - start) * 1000.0
+        total_cost += cost_usd
+        total_latency += latency_ms
+
+        routes.append(
+            UC3AttachmentRoute(
+                attachment_id=attachment_id,
+                filename=filename,
+                doctype_detected=doctype,
+                doctype_confidence=confidence,
+                extraction_path=path,
+                extraction_outcome=outcome,
+                cost_usd=round(cost_usd, 6),
+                latency_ms=round(latency_ms, 3),
+                error=error,
+            )
+        )
+
+    routing = UC3ExtractRouting(
+        attachments=routes,
+        total_cost_usd=round(total_cost, 6),
+        total_latency_ms=round(total_latency, 3),
+        confidence_threshold=routing_settings.confidence_threshold,
+        unknown_doctype_action=routing_settings.unknown_doctype_action,
+    )
+
+    return {
+        "extracted_fields": extracted_fields,
+        "total_cost_usd": routing.total_cost_usd,
+        "routing_decision": routing.model_dump(mode="json"),
+    }
+
+
+async def _build_classifier_input(f: IntakeFile) -> ClassifierInput:
+    """Build a :class:`ClassifierInput` for a single attachment.
+
+    Reuses :class:`AttachmentProcessor` to extract text — same path the
+    Sprint O attachment-features helper uses, so MIME handling stays
+    consistent. When the file cannot be read or parsed, returns an empty
+    text input (filename + mime_type still feed the rule engine).
+    """
+    from aiflow.services.document_recognizer.classifier import ClassifierInput
+    from aiflow.tools.attachment_processor import AttachmentConfig, AttachmentProcessor
+
+    text = ""
+    table_count = 0
+    page_count = 1
+    path = Path(f.file_path)
+    if path.exists():
+        try:
+            content = path.read_bytes()
+            processor = AttachmentProcessor(config=AttachmentConfig(max_size_mb=20))
+            processed = await processor.process(f.file_name, content, f.mime_type)
+            text = processed.text or ""
+            metadata = processed.metadata or {}
+            table_count = int(metadata.get("table_count") or 0)
+            page_count = int(metadata.get("pages_processed") or metadata.get("page_count") or 1)
+        except Exception as exc:  # noqa: BLE001 — degrade to filename-only signals
+            logger.info(
+                "email_connector.routing.attachment_text_unavailable",
+                filename=f.file_name,
+                reason=str(exc)[:200],
+            )
+
+    return ClassifierInput(
+        text=text,
+        filename=f.file_name,
+        table_count=table_count,
+        page_count=page_count,
+        mime_type=f.mime_type,
+    )
+
+
+def _check_step_preflight(
+    cost_preflight: CostPreflightGuardrail | None,
+    *,
+    step_name: str,
+    ceiling_usd: float | None,
+) -> ExtractionOutcome | None:
+    """Run :meth:`CostPreflightGuardrail.check_step` if provided.
+
+    Returns ``"refused_cost"`` when the guardrail returned ``allowed=False``,
+    otherwise ``None`` (caller proceeds with the extraction). Conservative
+    token estimates (1500 in / 300 out) match the Sprint Q pricing notes
+    in ``_maybe_extract_invoice_fields``.
+    """
+    if cost_preflight is None:
+        return None
+    decision = cost_preflight.check_step(
+        step_name=step_name,
+        model="gpt-4o-mini",
+        input_tokens=1500,
+        max_output_tokens=300,
+        ceiling_usd=ceiling_usd,
+    )
+    if not decision.allowed:
+        return "refused_cost"
+    return None
+
+
+async def _dispatch_to_invoice_processor(
+    f: IntakeFile,
+    *,
+    extraction_settings: UC3ExtractionSettings,
+    per_attachment_budget: float,
+    workflow_run_id: str | None,
+) -> tuple[ExtractionPath, ExtractionOutcome, float, dict[str, Any] | None, str | None]:
+    """Run a single-file invoice extraction via the Sprint Q helper.
+
+    Slices ``per_attachment_budget`` into a one-off
+    :class:`UC3ExtractionSettings` so the byte-stable helper enforces the
+    routing budget instead of the original 60s default.
+    """
+    from aiflow.core.config import UC3ExtractionSettings as _UC3ExtractionSettings
+
+    sliced = _UC3ExtractionSettings(
+        enabled=True,
+        max_attachments_per_email=1,
+        total_budget_seconds=per_attachment_budget,
+        extraction_budget_usd=extraction_settings.extraction_budget_usd,
+    )
+    payload = await _maybe_extract_invoice_fields(
+        [f], settings=sliced, workflow_run_id=workflow_run_id
+    )
+    if payload is None:
+        return "invoice_processor", "timed_out", 0.0, None, "invoice_processor budget timeout"
+    fields = payload["extracted_fields"].get(f.file_name)
+    if fields is None or fields.get("error"):
+        err = (fields or {}).get("error") or "no extraction output"
+        return "invoice_processor", "failed", payload.get("total_cost_usd", 0.0), fields, err
+    return (
+        "invoice_processor",
+        "succeeded",
+        float(payload.get("total_cost_usd") or 0.0),
+        fields,
+        None,
+    )
+
+
+async def _dispatch_to_doc_recognizer(
+    orchestrator: DocumentRecognizerOrchestrator,
+    ctx: ClassifierInput,
+    doctype: str,
+    *,
+    tenant_id: str,
+    per_attachment_budget: float,
+) -> tuple[ExtractionPath, ExtractionOutcome, float, dict[str, Any] | None, str | None]:
+    """Run :meth:`DocumentRecognizerOrchestrator.run` for non-invoice doctypes."""
+    coro = orchestrator.run(ctx, tenant_id=tenant_id, doc_type_hint=doctype)
+    triple = await asyncio.wait_for(coro, timeout=per_attachment_budget)
+    if triple is None:
+        return (
+            "doc_recognizer_workflow",
+            "failed",
+            0.0,
+            None,
+            "doc_recognizer returned no match",
+        )
+    _match, extraction, intent = triple
+    fields_payload = {
+        "doc_type": extraction.doc_type,
+        "intent": intent.intent,
+        "extracted_fields": {
+            name: {"value": fv.value, "confidence": fv.confidence}
+            for name, fv in extraction.extracted_fields.items()
+        },
+        "validation_warnings": list(extraction.validation_warnings),
+        "extraction_confidence": min(
+            (fv.confidence for fv in extraction.extracted_fields.values()),
+            default=0.0,
+        ),
+        "extraction_time_ms": extraction.extraction_time_ms,
+        "cost_usd": extraction.cost_usd,
+    }
+    return (
+        "doc_recognizer_workflow",
+        "succeeded",
+        float(extraction.cost_usd),
+        fields_payload,
+        None,
+    )
+
+
+async def _apply_unknown_doctype_action(
+    f: IntakeFile,
+    *,
+    action: str,
+    extraction_settings: UC3ExtractionSettings,
+    cost_preflight: CostPreflightGuardrail | None,
+    per_attachment_budget: float,
+    workflow_run_id: str | None,
+) -> tuple[ExtractionPath, ExtractionOutcome, float, dict[str, Any] | None, str | None]:
+    """Resolve below-threshold / unknown doctype per the configured policy."""
+    if action == "fallback_invoice_processor":
+        preflight_outcome = _check_step_preflight(
+            cost_preflight,
+            step_name="uc3_routing.fallback_invoice_processor",
+            ceiling_usd=extraction_settings.extraction_budget_usd,
+        )
+        if preflight_outcome is not None:
+            return "invoice_processor", preflight_outcome, 0.0, None, None
+        return await _dispatch_to_invoice_processor(
+            f,
+            extraction_settings=extraction_settings,
+            per_attachment_budget=per_attachment_budget,
+            workflow_run_id=workflow_run_id,
+        )
+    if action == "rag_ingest":
+        # Sprint X SX-2 placeholder — the actual RAG handoff lands in a
+        # later sprint. Record the intent here so the audit trail is
+        # complete.
+        logger.info(
+            "email_connector.scan_and_classify.rag_ingest_stub",
+            filename=f.file_name,
+            workflow_run_id=workflow_run_id,
+        )
+        return "rag_ingest", "succeeded", 0.0, {"rag_ingest": "queued"}, None
+    # action == "skip"
+    return "skipped", "skipped", 0.0, None, None
