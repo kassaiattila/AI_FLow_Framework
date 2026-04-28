@@ -28,7 +28,7 @@ For sprint-by-sprint trajectory: `docs/SPRINT_HISTORY.md`.
 | SX-1 | Audit + kickoff (this PR) | n/a (planning) | IN PROGRESS |
 | SX-2 | UC3 → DocRecognizer routing layer (default-off; `hu_invoice` byte-stable on flag-on via existing `invoice_processor`) | UC3 4/4 (flag-off) + UC1 4/4 (flag-on hu_invoice) | **DONE** (PR #64) |
 | SX-3 | Routing trace — Alembic 050 `routing_runs` + 3-route API + `/routing-runs` admin UI | UC3 + UC1 byte-stable (observation-only) | **DONE** |
-| SX-4 | Professional RAG chat — Alembic 051 `aszf_conversations` + `aszf_conversation_turns` + 4-route API + `/aszf/chat` UI upgrade (sidebar history, persona switcher, collection picker, citation card, cost meter, transcript export) | UC2 MRR@5 ≥ 0.55 (existing retrieval API byte-stable) | QUEUED |
+| SX-4 | Professional RAG chat — Alembic 051 `aszf_conversations` + `aszf_conversation_turns` + 4-route API + `/aszf/chat` UI upgrade (sidebar history, persona switcher, collection picker, citation card, cost meter, transcript export) | UC2 MRR@5 ≥ 0.55 (existing retrieval API byte-stable) | **DONE** |
 | SX-5 | Close + SW-FU-2 (admin UI source-toggle) + SW-FU-3 (audit script extension) + tag `v1.8.0` | All four UCs unchanged | QUEUED |
 
 **Expected cumulative deltas:** ~+50 unit, ~+8 integration, +7 endpoints (201 → 208), +2 routers (32 → 34), +1 UI page + 1 UI page upgrade (27 → 28), +2 Alembic (049 → 051), +2 live Playwright specs.

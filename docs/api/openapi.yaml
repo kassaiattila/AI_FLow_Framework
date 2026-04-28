@@ -163,6 +163,100 @@ components:
       - single_description
       title: AssociationMode
       type: string
+    AszfChatRequest:
+      additionalProperties: false
+      description: 'Single-turn request envelope.
+
+
+        ``conversation_history`` is the *prior* turns (excluding the question
+
+        being asked); the workflow''s `rewrite_query` step uses it for context
+
+        expansion. The repository persists the history independently — this
+
+        endpoint is stateless on the server side.'
+      properties:
+        collection:
+          minLength: 1
+          title: Collection
+          type: string
+        conversation_history:
+          items:
+            additionalProperties:
+              type: string
+            type: object
+          title: Conversation History
+          type: array
+        language:
+          default: hu
+          title: Language
+          type: string
+        persona:
+          default: baseline
+          enum:
+          - baseline
+          - expert
+          - mentor
+          title: Persona
+          type: string
+        question:
+          minLength: 1
+          title: Question
+          type: string
+        top_k:
+          default: 5
+          maximum: 20.0
+          minimum: 1.0
+          title: Top K
+          type: integer
+      required:
+      - question
+      - collection
+      title: AszfChatRequest
+      type: object
+    AszfChatResponse:
+      additionalProperties: false
+      description: Response envelope — answer + structured citations + observability.
+      properties:
+        answer:
+          title: Answer
+          type: string
+        citations:
+          items:
+            $ref: '#/components/schemas/Citation'
+          title: Citations
+          type: array
+        collection:
+          default: ''
+          title: Collection
+          type: string
+        cost_usd:
+          default: 0.0
+          minimum: 0.0
+          title: Cost Usd
+          type: number
+        hallucination_score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Hallucination Score
+        latency_ms:
+          default: 0
+          minimum: 0.0
+          title: Latency Ms
+          type: integer
+        persona:
+          default: baseline
+          enum:
+          - baseline
+          - expert
+          - mentor
+          title: Persona
+          type: string
+      required:
+      - answer
+      title: AszfChatResponse
+      type: object
     AuditEntryResponse:
       properties:
         action:
@@ -856,6 +950,38 @@ components:
           type: string
       title: CircuitStateResponse
       type: object
+    Citation:
+      additionalProperties: true
+      description: 'Citation card payload — preserved verbatim across retrieval and
+        persistence.
+
+
+        Mirrors the shape produced by ``skills.aszf_rag_chat.workflows.query.extract_citations``
+
+        so the UI''s citation card can render the same fields regardless of whether
+        the turn is
+
+        being streamed live or replayed from the conversation history.'
+      properties:
+        score:
+          default: 0.0
+          title: Score
+          type: number
+        snippet:
+          default: ''
+          title: Snippet
+          type: string
+        source_id:
+          title: Source Id
+          type: string
+        title:
+          default: ''
+          title: Title
+          type: string
+      required:
+      - source_id
+      title: Citation
+      type: object
     ClassifyRequest:
       description: Request to classify a text.
       properties:
@@ -1369,6 +1495,134 @@ components:
           - type: 'null'
           title: Use Ssl
       title: ConnectorConfigUpdate
+      type: object
+    ConversationCreate:
+      additionalProperties: false
+      description: Write envelope for POST /api/v1/conversations.
+      properties:
+        collection_name:
+          minLength: 1
+          title: Collection Name
+          type: string
+        persona:
+          default: baseline
+          enum:
+          - baseline
+          - expert
+          - mentor
+          title: Persona
+          type: string
+        title:
+          anyOf:
+          - maxLength: 200
+            type: string
+          - type: 'null'
+          title: Title
+      required:
+      - collection_name
+      title: ConversationCreate
+      type: object
+    ConversationDetail:
+      additionalProperties: false
+      description: Detail-row shape including the turn list (ordered ``turn_index
+        ASC``).
+      properties:
+        collection_name:
+          title: Collection Name
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        created_by:
+          title: Created By
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        persona:
+          enum:
+          - baseline
+          - expert
+          - mentor
+          title: Persona
+          type: string
+        tenant_id:
+          title: Tenant Id
+          type: string
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        turns:
+          items:
+            $ref: '#/components/schemas/TurnDetail'
+          title: Turns
+          type: array
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+      required:
+      - id
+      - tenant_id
+      - created_by
+      - persona
+      - collection_name
+      - title
+      - created_at
+      - updated_at
+      title: ConversationDetail
+      type: object
+    ConversationSummary:
+      additionalProperties: false
+      description: List-row shape — returned by GET /api/v1/conversations/.
+      properties:
+        collection_name:
+          title: Collection Name
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        created_by:
+          title: Created By
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        persona:
+          enum:
+          - baseline
+          - expert
+          - mentor
+          title: Persona
+          type: string
+        tenant_id:
+          title: Tenant Id
+          type: string
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+      required:
+      - id
+      - tenant_id
+      - created_by
+      - persona
+      - collection_name
+      - title
+      - created_at
+      - updated_at
+      title: ConversationSummary
       type: object
     CostCapStatus:
       description: Cost cap status for a single tenant.
@@ -6867,6 +7121,99 @@ components:
       - duration_ms
       title: TraceSpan
       type: object
+    TurnAppend:
+      additionalProperties: false
+      description: Write envelope for POST /api/v1/conversations/{id}/turns.
+      properties:
+        citations:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Citation'
+            type: array
+          - type: 'null'
+          title: Citations
+        content:
+          minLength: 1
+          title: Content
+          type: string
+        cost_usd:
+          anyOf:
+          - minimum: 0.0
+            type: number
+          - type: 'null'
+          title: Cost Usd
+        latency_ms:
+          anyOf:
+          - minimum: 0.0
+            type: integer
+          - type: 'null'
+          title: Latency Ms
+        role:
+          enum:
+          - user
+          - assistant
+          title: Role
+          type: string
+      required:
+      - role
+      - content
+      title: TurnAppend
+      type: object
+    TurnDetail:
+      additionalProperties: false
+      description: Single turn — both list and detail responses share this shape.
+      properties:
+        citations:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Citation'
+            type: array
+          - type: 'null'
+          title: Citations
+        content:
+          title: Content
+          type: string
+        conversation_id:
+          format: uuid
+          title: Conversation Id
+          type: string
+        cost_usd:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Cost Usd
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        latency_ms:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Latency Ms
+        role:
+          enum:
+          - user
+          - assistant
+          title: Role
+          type: string
+        turn_index:
+          minimum: 0.0
+          title: Turn Index
+          type: integer
+      required:
+      - id
+      - conversation_id
+      - turn_index
+      - role
+      - content
+      - created_at
+      title: TurnDetail
+      type: object
     TypeClassifierConfig:
       description: Doc-type classifier rules + LLM fallback gate.
       properties:
@@ -7998,6 +8345,53 @@ paths:
       summary: Create User
       tags:
       - admin
+  /api/v1/aszf/chat:
+    post:
+      description: 'Run the ASZF RAG workflow and return ``answer`` + structured
+
+        ``citations`` + observability fields.
+
+
+        Imports the workflow lazily so the API process does not pay the
+
+        ``skills.aszf_rag_chat`` import cost on cold-start when the chat
+
+        endpoint is unused (matches the existing
+
+        :func:`aiflow.api.v1.chat_completions._run_aszf_rag` pattern).'
+      operationId: aszf_chat_api_v1_aszf_chat_post
+      parameters:
+      - description: Tenant scope (forwarded to the workflow for tenant-scoped retrieval).
+        in: query
+        name: tenant_id
+        required: false
+        schema:
+          default: default
+          description: Tenant scope (forwarded to the workflow for tenant-scoped retrieval).
+          title: Tenant Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AszfChatRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AszfChatResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Aszf Chat
+      tags:
+      - aszf-chat
   /api/v1/auth/login:
     post:
       description: 'Authenticate with username/password, return JWT token.
@@ -8085,6 +8479,208 @@ paths:
       summary: Refresh Token
       tags:
       - auth
+  /api/v1/conversations/:
+    get:
+      description: 'List per-tenant conversations ordered ``updated_at DESC``.
+
+
+        ``limit`` is hard-capped at 200; the 422 from FastAPI''s validator
+
+        matches ``test_get_list_rejects_limit_over_200_with_422``.'
+      operationId: list_conversations_api_v1_conversations__get
+      parameters:
+      - description: Tenant scope (default 'default').
+        in: query
+        name: tenant_id
+        required: false
+        schema:
+          default: default
+          description: Tenant scope (default 'default').
+          title: Tenant Id
+          type: string
+      - description: Page size.
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 50
+          description: Page size.
+          maximum: 200
+          minimum: 1
+          title: Limit
+          type: integer
+      - description: Page offset.
+        in: query
+        name: offset
+        required: false
+        schema:
+          default: 0
+          description: Page offset.
+          minimum: 0
+          title: Offset
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ConversationSummary'
+                title: Response List Conversations Api V1 Conversations  Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Conversations
+      tags:
+      - conversations
+    post:
+      description: 'Create a new conversation row.
+
+
+        Persona is pinned at create-time but can be changed mid-stream by the
+
+        operator; the change is recorded in the UI as a non-turn marker, while
+
+        the conversation''s persona field tracks the *current* persona used by
+
+        subsequent turns.'
+      operationId: create_conversation_api_v1_conversations__post
+      parameters:
+      - description: Tenant scope.
+        in: query
+        name: tenant_id
+        required: false
+        schema:
+          default: default
+          description: Tenant scope.
+          title: Tenant Id
+          type: string
+      - description: Override author (test affordance; production uses JWT).
+        in: query
+        name: created_by
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Override author (test affordance; production uses JWT).
+          title: Created By
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationSummary'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create Conversation
+      tags:
+      - conversations
+  /api/v1/conversations/{conversation_id}:
+    get:
+      description: 'Detail row + full turn list ordered ``turn_index ASC``. 404 on
+        miss
+
+        OR cross-tenant ID collision (no leakage).'
+      operationId: get_conversation_api_v1_conversations__conversation_id__get
+      parameters:
+      - in: path
+        name: conversation_id
+        required: true
+        schema:
+          format: uuid
+          title: Conversation Id
+          type: string
+      - description: Tenant scope.
+        in: query
+        name: tenant_id
+        required: false
+        schema:
+          default: default
+          description: Tenant scope.
+          title: Tenant Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDetail'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Conversation
+      tags:
+      - conversations
+  /api/v1/conversations/{conversation_id}/turns:
+    post:
+      description: 'Append one turn (user OR assistant). 404 if the conversation does
+
+        not exist or is owned by a different tenant. 422 if a user turn carries
+
+        citations / cost / latency (those fields are reserved for assistant
+
+        turns).'
+      operationId: append_turn_api_v1_conversations__conversation_id__turns_post
+      parameters:
+      - in: path
+        name: conversation_id
+        required: true
+        schema:
+          format: uuid
+          title: Conversation Id
+          type: string
+      - description: Tenant scope.
+        in: query
+        name: tenant_id
+        required: false
+        schema:
+          default: default
+          description: Tenant scope.
+          title: Tenant Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TurnAppend'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TurnDetail'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Append Turn
+      tags:
+      - conversations
   /api/v1/costs/breakdown:
     get:
       description: Get detailed cost breakdown by model from cost_records table.

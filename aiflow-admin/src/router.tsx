@@ -39,6 +39,7 @@ import { PromptDetail } from "./pages-new/PromptDetail";
 import { PromptWorkflows } from "./pages-new/PromptWorkflows";
 import { Quality } from "./pages-new/Quality";
 import { RoutingRuns } from "./pages-new/RoutingRuns";
+import { AszfChat } from "./pages-new/AszfChat";
 import { Services } from "./pages-new/Services";
 // Cubix archived (Sprint C)
 
@@ -103,7 +104,8 @@ export const router = createHashRouter([
       { path: "document-recognizer", element: <DocumentRecognizer /> },
       { path: "rag/collections/:id", element: <RagDetail /> },
       { path: "rag/:id", element: <RagDetail /> },
-      { path: "rag-chat", element: <Navigate to="/rag" replace /> },
+      { path: "aszf/chat", element: <AszfChat /> },
+      { path: "rag-chat", element: <Navigate to="/aszf/chat" replace /> },
       { path: "process-docs", element: <Navigate to="/" replace /> },
       { path: "spec-writer", element: <Navigate to="/" replace /> },
       { path: "media", element: <Navigate to="/" replace /> },
