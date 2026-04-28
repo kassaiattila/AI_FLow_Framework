@@ -8944,6 +8944,333 @@
         }
       }
     },
+    "/api/v1/conversations/": {
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "List Conversations",
+        "description": "List per-tenant conversations ordered ``updated_at DESC``.\n\n``limit`` is hard-capped at 200; the 422 from FastAPI's validator\nmatches ``test_get_list_rejects_limit_over_200_with_422``.",
+        "operationId": "list_conversations_api_v1_conversations__get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Tenant scope (default 'default').",
+              "default": "default",
+              "title": "Tenant Id"
+            },
+            "description": "Tenant scope (default 'default')."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "description": "Page size.",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Page size."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Page offset.",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Page offset."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConversationSummary"
+                  },
+                  "title": "Response List Conversations Api V1 Conversations  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Create Conversation",
+        "description": "Create a new conversation row.\n\nPersona is pinned at create-time but can be changed mid-stream by the\noperator; the change is recorded in the UI as a non-turn marker, while\nthe conversation's persona field tracks the *current* persona used by\nsubsequent turns.",
+        "operationId": "create_conversation_api_v1_conversations__post",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Tenant scope.",
+              "default": "default",
+              "title": "Tenant Id"
+            },
+            "description": "Tenant scope."
+          },
+          {
+            "name": "created_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Override author (test affordance; production uses JWT).",
+              "title": "Created By"
+            },
+            "description": "Override author (test affordance; production uses JWT)."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{conversation_id}": {
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Get Conversation",
+        "description": "Detail row + full turn list ordered ``turn_index ASC``. 404 on miss\nOR cross-tenant ID collision (no leakage).",
+        "operationId": "get_conversation_api_v1_conversations__conversation_id__get",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Tenant scope.",
+              "default": "default",
+              "title": "Tenant Id"
+            },
+            "description": "Tenant scope."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/turns": {
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Append Turn",
+        "description": "Append one turn (user OR assistant). 404 if the conversation does\nnot exist or is owned by a different tenant. 422 if a user turn carries\ncitations / cost / latency (those fields are reserved for assistant\nturns).",
+        "operationId": "append_turn_api_v1_conversations__conversation_id__turns_post",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Tenant scope.",
+              "default": "default",
+              "title": "Tenant Id"
+            },
+            "description": "Tenant scope."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TurnAppend"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TurnDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aszf/chat": {
+      "post": {
+        "tags": [
+          "aszf-chat"
+        ],
+        "summary": "Aszf Chat",
+        "description": "Run the ASZF RAG workflow and return ``answer`` + structured\n``citations`` + observability fields.\n\nImports the workflow lazily so the API process does not pay the\n``skills.aszf_rag_chat`` import cost on cold-start when the chat\nendpoint is unused (matches the existing\n:func:`aiflow.api.v1.chat_completions._run_aszf_rag` pattern).",
+        "operationId": "aszf_chat_api_v1_aszf_chat_post",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Tenant scope (forwarded to the workflow for tenant-scoped retrieval).",
+              "default": "default",
+              "title": "Tenant Id"
+            },
+            "description": "Tenant scope (forwarded to the workflow for tenant-scoped retrieval)."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AszfChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AszfChatResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/prompts/workflows": {
       "get": {
         "tags": [
@@ -9540,6 +9867,120 @@
         ],
         "title": "AssociationMode",
         "description": "File<->description association strategy (see N4 associator)."
+      },
+      "AszfChatRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Question"
+          },
+          "collection": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Collection"
+          },
+          "persona": {
+            "type": "string",
+            "enum": [
+              "baseline",
+              "expert",
+              "mentor"
+            ],
+            "title": "Persona",
+            "default": "baseline"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "hu"
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "default": 5
+          },
+          "conversation_history": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Conversation History"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "question",
+          "collection"
+        ],
+        "title": "AszfChatRequest",
+        "description": "Single-turn request envelope.\n\n``conversation_history`` is the *prior* turns (excluding the question\nbeing asked); the workflow's `rewrite_query` step uses it for context\nexpansion. The repository persists the history independently — this\nendpoint is stateless on the server side."
+      },
+      "AszfChatResponse": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "cost_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Cost Usd",
+            "default": 0.0
+          },
+          "latency_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Latency Ms",
+            "default": 0
+          },
+          "persona": {
+            "type": "string",
+            "enum": [
+              "baseline",
+              "expert",
+              "mentor"
+            ],
+            "title": "Persona",
+            "default": "baseline"
+          },
+          "collection": {
+            "type": "string",
+            "title": "Collection",
+            "default": ""
+          },
+          "hallucination_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hallucination Score"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "answer"
+        ],
+        "title": "AszfChatResponse",
+        "description": "Response envelope — answer + structured citations + observability."
       },
       "AuditEntryResponse": {
         "properties": {
@@ -10541,6 +10982,36 @@
         "type": "object",
         "title": "CircuitStateResponse"
       },
+      "Citation": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "default": ""
+          },
+          "snippet": {
+            "type": "string",
+            "title": "Snippet",
+            "default": ""
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "default": 0.0
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "source_id"
+        ],
+        "title": "Citation",
+        "description": "Citation card payload — preserved verbatim across retrieval and persistence.\n\nMirrors the shape produced by ``skills.aszf_rag_chat.workflows.query.extract_citations``\nso the UI's citation card can render the same fields regardless of whether the turn is\nbeing streamed live or replayed from the conversation history."
+      },
       "ClassifyRequest": {
         "properties": {
           "text": {
@@ -11378,6 +11849,181 @@
         "type": "object",
         "title": "ConnectorConfigUpdate",
         "description": "Update an existing connector config."
+      },
+      "ConversationCreate": {
+        "properties": {
+          "persona": {
+            "type": "string",
+            "enum": [
+              "baseline",
+              "expert",
+              "mentor"
+            ],
+            "title": "Persona",
+            "default": "baseline"
+          },
+          "collection_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Collection Name"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "collection_name"
+        ],
+        "title": "ConversationCreate",
+        "description": "Write envelope for POST /api/v1/conversations."
+      },
+      "ConversationDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "persona": {
+            "type": "string",
+            "enum": [
+              "baseline",
+              "expert",
+              "mentor"
+            ],
+            "title": "Persona"
+          },
+          "collection_name": {
+            "type": "string",
+            "title": "Collection Name"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/TurnDetail"
+            },
+            "type": "array",
+            "title": "Turns"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "created_by",
+          "persona",
+          "collection_name",
+          "title",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ConversationDetail",
+        "description": "Detail-row shape including the turn list (ordered ``turn_index ASC``)."
+      },
+      "ConversationSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "persona": {
+            "type": "string",
+            "enum": [
+              "baseline",
+              "expert",
+              "mentor"
+            ],
+            "title": "Persona"
+          },
+          "collection_name": {
+            "type": "string",
+            "title": "Collection Name"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "created_by",
+          "persona",
+          "collection_name",
+          "title",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ConversationSummary",
+        "description": "List-row shape — returned by GET /api/v1/conversations/."
       },
       "CostCapStatus": {
         "properties": {
@@ -19346,6 +19992,153 @@
         ],
         "title": "TraceSpan",
         "description": "Single span in a Langfuse trace, expressed relative to trace start."
+      },
+      "TurnAppend": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Content"
+          },
+          "citations": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Citation"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Citations"
+          },
+          "cost_usd": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Usd"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "TurnAppend",
+        "description": "Write envelope for POST /api/v1/conversations/{id}/turns."
+      },
+      "TurnDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "turn_index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Turn Index"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "citations": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Citation"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Citations"
+          },
+          "cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Usd"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "conversation_id",
+          "turn_index",
+          "role",
+          "content",
+          "created_at"
+        ],
+        "title": "TurnDetail",
+        "description": "Single turn — both list and detail responses share this shape."
       },
       "TypeClassifierConfig": {
         "properties": {

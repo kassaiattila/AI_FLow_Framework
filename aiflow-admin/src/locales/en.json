@@ -286,8 +286,24 @@
       "archive": "Archive",
       "reviewQueue": "Review Queue",
       "routingRuns": "Routing Trail",
+      "aszfChat": "ASZF Chat",
       "prompts": "Prompts",
       "promptWorkflows": "Prompt Workflows"
+    },
+    "aszfChat": {
+      "title": "ASZF Chat",
+      "subtitle": "Professional RAG chat with conversation history, persona switcher, and citations",
+      "newConversation": "New conversation",
+      "empty": "No conversations yet. Send a question to start one.",
+      "placeholder": "Ask a question about the ASZF documents…",
+      "send": "Send",
+      "thinking": "Thinking…",
+      "collection": "Collection",
+      "cumulativeCost": "Total cost",
+      "exportTranscript": "Export transcript",
+      "citations": "Citations",
+      "personaChanged": "Persona changed: {from} → {to}",
+      "composerHint": "Type a question and press Send to begin."
     },
     "routingRuns": {
       "title": "Routing Trail",

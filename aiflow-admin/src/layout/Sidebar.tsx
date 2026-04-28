@@ -63,6 +63,11 @@ const MENU_GROUPS: MenuGroup[] = [
         labelKey: "aiflow.menu.ragCollectionsAdmin",
         icon: "bar-chart",
       },
+      {
+        path: "/aszf/chat",
+        labelKey: "aiflow.menu.aszfChat",
+        icon: "mail",
+      },
     ],
   },
   {

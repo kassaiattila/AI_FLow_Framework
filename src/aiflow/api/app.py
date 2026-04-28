@@ -137,8 +137,10 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityHeadersMiddleware)
     # Include routers
     from aiflow.api.v1.admin import router as admin_router
+    from aiflow.api.v1.aszf_chat import router as aszf_chat_router
     from aiflow.api.v1.auth import router as auth_router
     from aiflow.api.v1.chat_completions import router as chat_router
+    from aiflow.api.v1.conversations import router as conversations_router
     from aiflow.api.v1.costs import router as costs_router
     from aiflow.api.v1.cubix import router as cubix_router
     from aiflow.api.v1.data_router import router as data_router_router
@@ -207,6 +209,8 @@ def create_app() -> FastAPI:
     app.include_router(quality_router)
     app.include_router(intent_schemas_router)
     app.include_router(routing_runs_router)
+    app.include_router(conversations_router)
+    app.include_router(aszf_chat_router)
     # IMPORTANT: workflow router must be mounted BEFORE the prompts router —
     # the latter has a `/{prompt_name:path}` catch-all that would shadow
     # `/api/v1/prompts/workflows*` otherwise.

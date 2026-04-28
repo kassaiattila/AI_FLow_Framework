@@ -286,8 +286,24 @@
       "archive": "Archiv",
       "reviewQueue": "Ellenorzes",
       "routingRuns": "Routing nyom",
+      "aszfChat": "ASZF Chat",
       "prompts": "Promptok",
       "promptWorkflows": "Prompt Workflowk"
+    },
+    "aszfChat": {
+      "title": "ASZF Chat",
+      "subtitle": "Professzionalis RAG chat — beszelgetes-elozmenyek, persona-valtas es forras-hivatkozasok",
+      "newConversation": "Uj beszelgetes",
+      "empty": "Meg nincs beszelgetes. Kuldj egy kerdest hogy elinditsd.",
+      "placeholder": "Kerdezz az ASZF dokumentumokrol…",
+      "send": "Kuldes",
+      "thinking": "Gondolkodom…",
+      "collection": "Gyujtemeny",
+      "cumulativeCost": "Osszkoltseg",
+      "exportTranscript": "Beszelgetes export",
+      "citations": "Hivatkozasok",
+      "personaChanged": "Persona valtas: {from} → {to}",
+      "composerHint": "Irj egy kerdest es nyomd meg a Kuldes gombot."
     },
     "routingRuns": {
       "title": "Routing nyom",
